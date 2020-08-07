@@ -189,7 +189,7 @@ class ProbabilisticAutoencoder:
         return z
     
     def decode(self, z):
-        x = self.to_tensor(z)
+        z = self.to_tensor(z)
         x = self.autoencoder.decode(z)
         return x
     
