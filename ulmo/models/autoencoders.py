@@ -60,6 +60,7 @@ class Autoencoder(ABC):
     
 class DCAE(Autoencoder, nn.Module):
     """A deep convolutional autoencoder."""
+    
     def __init__(self, in_channels, latent_dim):
         super().__init__()
 
@@ -126,3 +127,10 @@ class DCAE(Autoencoder, nn.Module):
     def forward(self, x):
         rx = self.reconstruct(x)
         return F.mse_loss(x, rx)
+    
+    @staticmethod
+    def from_file(f, **kwargs):
+        model = DCAE(**kwargs)
+        model.load_state_dict(torch.load(f))
+        model.eval()
+        return model

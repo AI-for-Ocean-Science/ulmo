@@ -1,6 +1,7 @@
 import os
 import time
 import sklearn
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -9,7 +10,7 @@ from tqdm.auto import tqdm
 
 
 class ProbabilisticAutoencoder:
-    
+    """A probabilistic autoencoder (see arxiv.org/abs/2006.05479)."""
     def __init__(self, autoencoder, flow, data,  
                  autoencoder_optimizer=None, flow_optimizer=None, 
                  valid_fraction=0.05, logdir='./', device=None):
@@ -148,19 +149,7 @@ class ProbabilisticAutoencoder:
             if save:
                 save_model()
                 print("Model saved.")
-        
-    def encode(self, x):
-        z = self.autoencoder.encode(x)
-        return z
-    
-    def decode(self, z):
-        x = self.autoencoder.decode(z)
-        return x
-    
-    def reconstruct(self, x):
-        rx = self.autoencoder.reconstruct(x)
-        return rx
-    
+                
     def store_latents(self):
         self.autoencoder.eval()
         train_loader, valid_loader = self.make_loaders(
@@ -173,7 +162,49 @@ class ProbabilisticAutoencoder:
             z = [self.autoencoder.encode(data.to(self.device)).detach().cpu().numpy()
                  for data in valid_loader]
             data['valid_latents'] = np.concatenate(z)
-
+            
+    def to_tensor(self, x):
+        if isinstance(x, np.ndarray):
+            x = torch.from_numpy(x).float().to(self.device)
+            return x
+        elif isinstance(x, torch.tensor):
+            return x
+        else:
+            t = type(x)
+            raise ValueError(f"Type {t} not supported.")
+            
+    def to_array(self, x):
+        if isinstance(x, torch.tensor):
+            x = x.detach().cpu().numpy()
+            return x
+        elif isinstance(x, np.ndarray):
+            return x
+        else:
+            t = type(x)
+            raise ValueError(f"Type {t} not supported.")
+        
+    def encode(self, x):
+        x = self.to_tensor(x)
+        z = self.autoencoder.encode(x)
+        return z
+    
+    def decode(self, z):
+        x = self.to_tensor(z)
+        x = self.autoencoder.decode(z)
+        return x
+    
+    def reconstruct(self, x):
+        x = self.to_tensor(x)
+        rx = self.autoencoder.reconstruct(x)
+        return rx
+    
+    def log_prob(self, x):
+        x = self.to_tensor(x)
+        z = self.encode(x)
+        if isinstance(z, np.ndarray):
+            z = torch.from_numpy(z).float().to(self.device)
+        log_prob = self.flow.log_prob(z)
+        return log_prob
     
     def train(self, autoencoder_epochs=20, autoencoder_batch_size=128,
               flow_epochs=20, flow_batch_size=64):
