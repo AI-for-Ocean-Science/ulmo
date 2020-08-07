@@ -20,10 +20,10 @@ class Autoencoder(ABC):
         Encode data.
         
         Parameters
-            x: torch.tensor or np.ndarray
+            x: torch.tensor
                 (*, D) or (*, C, H, W) batch of data
         Returns
-            z: torch.tensor or np.ndarray
+            z: torch.tensor
                 (*, latent_dim) batch of latents
         """
         pass
@@ -34,10 +34,10 @@ class Autoencoder(ABC):
         Decode latents.
         
         Parameters
-            z: torch.tensor or np.ndarray
+            z: torch.tensor
                 (*, latent_dim) batch of latents
         Returns
-            x: torch.tensor or np.ndarray
+            x: torch.tensor
                 (*, D) or (*, C, H, W) batch of data
 
         """
@@ -49,10 +49,80 @@ class Autoencoder(ABC):
         Compute reconstruction of x.
         
         Parameters
-            x: torch.tensor or np.ndarray
+            x: torch.tensor
                 (*, D) or (*, C, H, W) batch of data
         Returns
-            rx: torch.tensor or np.ndarray
+            rx: torch.tensor
                 (*, D) or (*, C, H, W) batch of reconstructions
         """
         pass
+
+    
+class DCAE(Autoencoder, nn.Module):
+    """A deep convolutional autoencoder."""
+    def __init__(self, in_channels, latent_dim):
+        super().__init__()
+
+        self.in_channels = in_channels
+        self.latent_dim = latent_dim
+        
+        self.encoder = nn.Sequential(
+            self._encoder_layer(in_channels, 32),
+            self._encoder_layer(32, 64),
+            self._encoder_layer(64, 128),
+            self._encoder_layer(128, 256))
+        
+        self.to_z = nn.Linear(256*3*3, latent_dim)
+        self.from_z = nn.Linear(latent_dim, 256*3*3)
+        
+        self.decoder = nn.Sequential(
+            self._decoder_layer(256, 128),
+            self._decoder_layer(128, 64),
+            self._decoder_layer(64, 32),
+            self._decoder_layer(32, 32))
+        
+        self.output = nn.Conv2d(32, 1, 3, 1, 1)
+
+    def _encoder_layer(self, in_channels, out_channels):
+        layer = nn.Sequential(
+            nn.Conv2d(
+                in_channels, 
+                out_channels,
+                kernel_size=3, 
+                stride=2, 
+                padding=1),
+            nn.BatchNorm2d(out_channels),
+            nn.LeakyReLU())
+        return layer
+    
+    def _decoder_layer(self, in_channels, out_channels):
+        layer = nn.Sequential(
+            nn.ConvTranspose2d(
+                in_channels,
+                out_channels,
+                kernel_size=3,
+                stride=2,
+                padding=1,
+                output_padding=1),
+            nn.BatchNorm2d(out_channels),
+            nn.LeakyReLU())
+        return layer
+    
+    def encode(self, x):
+        x = self.encoder(x)
+        z = self.to_z(x.view(x.size(0), -1))
+        return z
+    
+    def decode(self, z):
+        x = self.from_z(z).view(z.size(0), 256, 3, 3)
+        x = self.output(self.decoder(x))
+        return x
+    
+    def reconstruct(self, x):
+        z = self.encode(x)
+        rx = self.decode(z)
+        return rx
+    
+    def forward(self, x):
+        rx = self.reconstruct(x)
+        return F.mse_loss(x, rx)
