@@ -167,14 +167,14 @@ class ProbabilisticAutoencoder:
         if isinstance(x, np.ndarray):
             x = torch.from_numpy(x).float().to(self.device)
             return x
-        elif isinstance(x, torch.tensor):
+        elif isinstance(x, torch.Tensor):
             return x
         else:
             t = type(x)
             raise ValueError(f"Type {t} not supported.")
             
     def to_array(self, x):
-        if isinstance(x, torch.tensor):
+        if isinstance(x, torch.Tensor):
             x = x.detach().cpu().numpy()
             return x
         elif isinstance(x, np.ndarray):
