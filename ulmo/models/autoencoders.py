@@ -9,11 +9,6 @@ class Autoencoder(ABC):
     """
     An abstract class for implementing priors.
     """
-    @property
-    @abstractmethod
-    def latent_dim(self):
-        pass
-    
     @abstractmethod
     def encode(self, x):
         """
@@ -61,14 +56,14 @@ class Autoencoder(ABC):
 class DCAE(Autoencoder, nn.Module):
     """A deep convolutional autoencoder."""
     
-    def __init__(self, in_channels, latent_dim):
+    def __init__(self, input_channels, latent_dim):
         super().__init__()
 
-        self.in_channels = in_channels
+        self.input_channels = input_channels
         self.latent_dim = latent_dim
         
         self.encoder = nn.Sequential(
-            self._encoder_layer(in_channels, 32),
+            self._encoder_layer(input_channels, 32),
             self._encoder_layer(32, 64),
             self._encoder_layer(64, 128),
             self._encoder_layer(128, 256))
