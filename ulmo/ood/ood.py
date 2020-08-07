@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torch.distributions as D
 from tqdm.auto import tqdm
 from skimage import filters
 from sklearn.preprocessing import StandardScaler
@@ -120,16 +119,16 @@ class ProbabilisticAutoencoder:
             optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
             
             # Train
-            pbar = tqdm(range(n_epochs), unit='epoch')
-            for epoch in pbar:
-                for data in tqdm(train_loader, unit='batch'):
+            epoch_pbar = tqdm(range(n_epochs), unit='epoch')
+            for epoch in epoch_pbar:
+                for data in train_loader:
                     optimizer.zero_grad()
                     loss = model(data[0].to(self.device))
                     loss.backward()
                     total_loss += loss.item()
                     optimizer.step()
                     global_step += 1
-
+                
                 # Evaluate
                 model.eval()
                 with torch.no_grad():
@@ -141,7 +140,7 @@ class ProbabilisticAutoencoder:
                 if valid_loss < self.best_valid_loss[module]:
                     save_model()
                     self.best_valid_loss[module] = valid_loss
-                pbar.set_description(f"Validation Loss: {valid_loss:.3f}")
+                epoch_pbar.set_description(f"Validation Loss: {valid_loss:.3f}")
                 model.train()
                 
         except KeyboardInterrupt:
@@ -284,7 +283,7 @@ class ProbabilisticAutoencoder:
         fields = fields[idx[:16]]
         field_logL = field_logL[idx[:16]]
         
-        fig, axes = plt.subplots(nrows=8, ncols=4, figsize=(20, 20))
+        fig, axes = plt.subplots(nrows=8, ncols=4, figsize=(14, 20))
 
         for i in range(0, 8, 2):
             for j in range(4):
@@ -298,7 +297,6 @@ class ProbabilisticAutoencoder:
                 ax.axis('equal')
                 grad_ax.axis('equal')
                 ax.set_title(f'Log likelihood quantile: {p/n:.3f}')
-                grad_ax.set_title(f'Log likelihood quantile: {p/n:.3f}')
                 sns.heatmap(field, ax=ax, xticklabels=[], yticklabels=[], cmap=cm, vmin=-2, vmax=2)
                 sns.heatmap(grad, ax=grad_ax, xticklabels=[], yticklabels=[], cmap=cm, vmin=0, vmax=1)
         plt.show()
