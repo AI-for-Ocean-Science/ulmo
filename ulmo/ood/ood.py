@@ -94,7 +94,9 @@ class ProbabilisticAutoencoder:
     def save_flow(self):
         torch.save(self.flow.state_dict(), self.flow_filepath)
         
-    def _train_module(self, module, n_epochs, batch_size, lr):
+    def _train_module(self, module, n_epochs, batch_size, lr,
+                     summary_interval=50, eval_interval=500,
+                     show_plots=True):
         try:
             module = module.strip().lower()
             if module == 'autoencoder':
@@ -119,38 +121,61 @@ class ProbabilisticAutoencoder:
             model.train()
             global_step = 0
             total_loss = 0
+            train_losses, valid_losses = [], []
             optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
             
             # Train
             epoch_pbar = tqdm(range(n_epochs), unit='epoch')
             for epoch in epoch_pbar:
-                for data in train_loader:
+                batch_pbar = tqdm(train_loader, unit='batch')
+                for data in batch_pbar:
                     optimizer.zero_grad()
                     loss = model(data[0].to(self.device))
                     loss.backward()
                     total_loss += loss.item()
                     optimizer.step()
                     global_step += 1
-                
-                # Evaluate
-                model.eval()
-                with torch.no_grad():
-                    total_loss = 0
-                    for i, data in enumerate(valid_loader):
-                        loss = model(data[0].to(self.device))
-                        total_loss += loss.item()
-                valid_loss = total_loss / float(i+1)
-                if valid_loss < self.best_valid_loss[module]:
-                    save_model()
-                    self.best_valid_loss[module] = valid_loss
-                epoch_pbar.set_description(f"Validation Loss: {valid_loss:.3f}")
-                model.train()
+                    
+                    if global_step % summary_interval == 0:
+                        # Summary
+                        mean_loss = total_loss / summary_interval
+                        train_losses.append((global_step, mean_loss))
+                        total_loss = 0
+                        batch_pbar.set_description(f"Training Loss: {mean_loss:.3f}")
+                        
+                    if global_step % eval_interval == 0:
+                        # Evaluate
+                        model.eval()
+                        with torch.no_grad():
+                            total_loss = 0
+                            for i, data in enumerate(valid_loader):
+                                loss = model(data[0].to(self.device))
+                                total_loss += loss.item()
+                        valid_loss = total_loss / float(i+1)
+                        if valid_loss < self.best_valid_loss[module]:
+                            save_model()
+                            self.best_valid_loss[module] = valid_loss
+                        epoch_pbar.set_description(f"Validation Loss: {valid_loss:.3f}")
+                        valid_losses.append((global_step, valid_loss))
+                        total_loss = 0
+                        model.train()
                 
         except KeyboardInterrupt:
             save = input("Training stopped. Save model (y/n)?").strip().lower() == 'y'
             if save:
                 save_model()
                 print("Model saved.")
+        
+        finally:
+            if show_plots:
+                train_losses = np.array(train_losses)
+                valid_losses = np.array(valid_losses)
+                plt.plot(*train_losses.T, label='Training')
+                plt.plot(*valid_losses.T, label='Validation')
+                plt.xlabel('Global Step')
+                plt.ylabel('Loss')
+                plt.legend()
+                plt.show()
     
     def train_autoencoder(self, n_epochs, batch_size, lr):
         self._train_module('autoencoder', n_epochs=n_epochs, 
@@ -258,63 +283,6 @@ class ProbabilisticAutoencoder:
         plt.xlabel('Log Likelihood')
         plt.ylabel('Probability Density')
         plt.show()
-        
-    def plot_random_old(self, kind):
-        if not self.up_to_date_log_probs:
-            self._compute_log_probs()
-        
-        pal, cm = load_palette()
-        
-        logL = self.data['valid_log_probs'].flatten()
-        if kind == 'outliers':
-            mask = logL < np.quantile(logL, 0.05)
-        elif kind == 'inliers':
-            mask = logL > np.quantile(logL, 0.95)
-        elif kind == 'midliers':
-            mask = np.logical_and(
-                logL > np.quantile(logL, 0.4),
-                logL < np.quantile(logL, 0.6))
-        else:
-            raise ValueError(f"Kind {kind} unknown.")
-        
-        # Indices of log probs should align with fields since we
-        # are *not* shuffling when creating data loaders.
-        
-        fields = self.data['valid_data'][mask]
-        field_logL = logL[mask]
-        idx = sklearn.utils.shuffle(np.arange(fields.shape[0]))[:16]
-        fields = fields[idx]
-        field_logL = field_logL[idx]
-        
-        if self.data['valid_metadata'] is not None:
-            meta = self.data['valid_metadata'][mask][idx]
-        else:
-            meta = None
-        
-        fig, axes = plt.subplots(nrows=8, ncols=4, figsize=(18, 25))
-
-        for i in range(0, 8, 2):
-            for j in range(4):
-                ax = axes[i, j]
-                grad_ax = axes[i+1, j]
-                idx = 4*(i // 2) + j
-                field = fields[idx, 0]
-                grad = filters.sobel(field)
-                p = sum(field_logL[idx] > logL)
-                n = len(logL)
-                logL_title = f'Log likelihood quantile: {p/n:.3f}'
-                ax.axis('equal')
-                grad_ax.axis('equal')
-                if meta is not None:
-                    file, row, col = meta[idx][:3]
-                    ax.set_title(f'{file}\n{logL_title}')
-                    t = ax.text(0.12, 0.89, f'({row}, {col})', color='k', size=12, transform=ax.transAxes)
-                    t.set_path_effects([PathEffects.withStroke(linewidth=3, foreground='w')])
-                else:
-                    ax.set_title(f'Image {idx}\n{logL_title}')
-                sns.heatmap(field, ax=ax, xticklabels=[], yticklabels=[], cmap=cm, vmin=-2, vmax=2)
-                sns.heatmap(grad, ax=grad_ax, xticklabels=[], yticklabels=[], cmap=cm, vmin=0, vmax=1)
-        plt.show()
 
     def plot_random(self, kind):
         if not self.up_to_date_log_probs:
@@ -369,7 +337,7 @@ class ProbabilisticAutoencoder:
             grad = filters.sobel(field)
             p = sum(field_logL[i] > logL)
             n = len(logL)
-            logL_title = f'Log likelihood quantile: {p/n:.3f}'
+            logL_title = f'Likelihood quantile: {p/n:.3f}'
             ax.axis('equal')
             grad_ax.axis('equal')
             if meta is not None:
