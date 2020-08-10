@@ -4,13 +4,16 @@ import sklearn
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+import matplotlib.patheffects as PathEffects
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from tqdm.auto import tqdm
 from skimage import filters
+from matplotlib.gridspec import GridSpec
 from sklearn.preprocessing import StandardScaler
 from ulmo.plotting import load_palette
+
 
 
 class ProbabilisticAutoencoder:
@@ -256,6 +259,63 @@ class ProbabilisticAutoencoder:
         plt.ylabel('Probability Density')
         plt.show()
         
+    def plot_random_old(self, kind):
+        if not self.up_to_date_log_probs:
+            self._compute_log_probs()
+        
+        pal, cm = load_palette()
+        
+        logL = self.data['valid_log_probs'].flatten()
+        if kind == 'outliers':
+            mask = logL < np.quantile(logL, 0.05)
+        elif kind == 'inliers':
+            mask = logL > np.quantile(logL, 0.95)
+        elif kind == 'midliers':
+            mask = np.logical_and(
+                logL > np.quantile(logL, 0.4),
+                logL < np.quantile(logL, 0.6))
+        else:
+            raise ValueError(f"Kind {kind} unknown.")
+        
+        # Indices of log probs should align with fields since we
+        # are *not* shuffling when creating data loaders.
+        
+        fields = self.data['valid_data'][mask]
+        field_logL = logL[mask]
+        idx = sklearn.utils.shuffle(np.arange(fields.shape[0]))[:16]
+        fields = fields[idx]
+        field_logL = field_logL[idx]
+        
+        if self.data['valid_metadata'] is not None:
+            meta = self.data['valid_metadata'][mask][idx]
+        else:
+            meta = None
+        
+        fig, axes = plt.subplots(nrows=8, ncols=4, figsize=(18, 25))
+
+        for i in range(0, 8, 2):
+            for j in range(4):
+                ax = axes[i, j]
+                grad_ax = axes[i+1, j]
+                idx = 4*(i // 2) + j
+                field = fields[idx, 0]
+                grad = filters.sobel(field)
+                p = sum(field_logL[idx] > logL)
+                n = len(logL)
+                logL_title = f'Log likelihood quantile: {p/n:.3f}'
+                ax.axis('equal')
+                grad_ax.axis('equal')
+                if meta is not None:
+                    file, row, col = meta[idx][:3]
+                    ax.set_title(f'{file}\n{logL_title}')
+                    t = ax.text(0.12, 0.89, f'({row}, {col})', color='k', size=12, transform=ax.transAxes)
+                    t.set_path_effects([PathEffects.withStroke(linewidth=3, foreground='w')])
+                else:
+                    ax.set_title(f'Image {idx}\n{logL_title}')
+                sns.heatmap(field, ax=ax, xticklabels=[], yticklabels=[], cmap=cm, vmin=-2, vmax=2)
+                sns.heatmap(grad, ax=grad_ax, xticklabels=[], yticklabels=[], cmap=cm, vmin=0, vmax=1)
+        plt.show()
+
     def plot_random(self, kind):
         if not self.up_to_date_log_probs:
             self._compute_log_probs()
@@ -279,24 +339,46 @@ class ProbabilisticAutoencoder:
         
         fields = self.data['valid_data'][mask]
         field_logL = logL[mask]
-        idx = sklearn.utils.shuffle(np.arange(fields.shape[0]))
-        fields = fields[idx[:16]]
-        field_logL = field_logL[idx[:16]]
+        idx = sklearn.utils.shuffle(np.arange(fields.shape[0]))[:16]
+        fields = fields[idx]
+        field_logL = field_logL[idx]
         
-        fig, axes = plt.subplots(nrows=8, ncols=4, figsize=(14, 20))
+        if self.data['valid_metadata'] is not None:
+            meta = self.data['valid_metadata'][mask][idx]
+        else:
+            meta = None
+        
+        # Make plot grid
+        n, m = 4, 4 # rows, columns
+        t, b = 0.9, 0.1 # 1-top space, bottom space
+        msp, sp = 0.1, 0.5 # minor spacing, major spacing
 
-        for i in range(0, 8, 2):
-            for j in range(4):
-                ax = axes[i, j]
-                grad_ax = axes[i+1, j]
-                idx = 4*(i // 2) + j
-                field = fields[idx, 0]
-                grad = filters.sobel(field)
-                p = sum(field_logL[idx] > logL)
-                n = len(logL)
-                ax.axis('equal')
-                grad_ax.axis('equal')
-                ax.set_title(f'Log likelihood quantile: {p/n:.3f}')
-                sns.heatmap(field, ax=ax, xticklabels=[], yticklabels=[], cmap=cm, vmin=-2, vmax=2)
-                sns.heatmap(grad, ax=grad_ax, xticklabels=[], yticklabels=[], cmap=cm, vmin=0, vmax=1)
+        offs=(1+msp)*(t-b)/(2*n+n*msp+(n-1)*sp) # grid offset
+        hspace = sp+msp+1 #height space per grid
+
+        gso = GridSpec(n, m, bottom=b+offs, top=t, hspace=hspace)
+        gse = GridSpec(n, m, bottom=b, top=t-offs, hspace=hspace)
+
+        fig = plt.figure(figsize=(18, 25))
+        axes = []
+        for i in range(n*m):
+            axes.append((fig.add_subplot(gso[i]), fig.add_subplot(gse[i])))
+
+        for i, (ax, grad_ax) in enumerate(axes):
+            field = fields[i, 0]
+            grad = filters.sobel(field)
+            p = sum(field_logL[i] > logL)
+            n = len(logL)
+            logL_title = f'Log likelihood quantile: {p/n:.3f}'
+            ax.axis('equal')
+            grad_ax.axis('equal')
+            if meta is not None:
+                file, row, col = meta[i][:3]
+                ax.set_title(f'{file}\n{logL_title}')
+                t = ax.text(0.12, 0.89, f'({row}, {col})', color='k', size=12, transform=ax.transAxes)
+                t.set_path_effects([PathEffects.withStroke(linewidth=3, foreground='w')])
+            else:
+                ax.set_title(f'Image {i}\n{logL_title}')
+            sns.heatmap(field, ax=ax, xticklabels=[], yticklabels=[], cmap=cm, vmin=-2, vmax=2)
+            sns.heatmap(grad, ax=grad_ax, xticklabels=[], yticklabels=[], cmap=cm, vmin=0, vmax=1)
         plt.show()
