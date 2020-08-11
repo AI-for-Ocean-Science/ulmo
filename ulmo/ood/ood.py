@@ -235,7 +235,7 @@ class ProbabilisticAutoencoder:
             x = torch.from_numpy(x).float().to(self.device)
             return x
         elif isinstance(x, torch.Tensor):
-            return x
+            return x.to(self.device)
         else:
             t = type(x)
             raise ValueError(f"Type {t} not supported.")
