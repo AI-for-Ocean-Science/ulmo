@@ -324,11 +324,11 @@ class ProbabilisticAutoencoder:
             mask = np.logical_and(
                 logL > np.quantile(logL, 0.4),
                 logL < np.quantile(logL, 0.6))
-        elif kind == 'most_likely':
+        elif kind == 'most likely':
             indices = np.argsort(logL)[::-1][:16]
             mask = np.array([False] * len(logL))
             mask[indices] = True
-        elif kind == 'least_likely':
+        elif kind == 'least likely':
             indices = np.argsort(logL)[:16]
             mask = np.array([False] * len(logL))
             mask[indices] = True
