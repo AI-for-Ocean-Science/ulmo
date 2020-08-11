@@ -185,15 +185,13 @@ class ProbabilisticAutoencoder:
                 plt.legend()
                 plt.show()
     
-    def train_autoencoder(self, n_epochs, batch_size, lr):
-        self._train_module('autoencoder', n_epochs=n_epochs, 
-                           batch_size=batch_size, lr=lr)
+    def train_autoencoder(self, **kwargs):
+        self._train_module('autoencoder', **kwargs)
     
-    def train_flow(self, n_epochs, batch_size, lr):
+    def train_flow(self, **kwargs):
         if not self.up_to_date_latents:
             self._compute_latents()
-        self._train_module('flow', n_epochs=n_epochs,
-                           batch_size=batch_size, lr=lr)
+        self._train_module('flow', **kwargs)
                 
     def _compute_latents(self):
         self.autoencoder.eval()
