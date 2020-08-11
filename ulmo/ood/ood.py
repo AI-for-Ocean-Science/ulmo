@@ -197,7 +197,7 @@ class ProbabilisticAutoencoder:
         self.autoencoder.eval()
         train_loader, valid_loader = self.make_loaders(
             self.data['train_data'], self.data['valid_data'], 
-            batch_size=256, drop_last=False)
+            batch_size=512, drop_last=False)
         
         with torch.no_grad():
             z = [self.autoencoder.encode(data[0].to(self.device)).detach().cpu().numpy()
@@ -219,7 +219,7 @@ class ProbabilisticAutoencoder:
 
         train_loader, valid_loader = self.make_loaders(
             self.data['norm_train_latents'], self.data['norm_valid_latents'],
-            batch_size=100, drop_last=False)
+            batch_size=1000, drop_last=False)
         
         with torch.no_grad():
             log_prob = [self.flow.log_prob(data[0].to(self.device)).detach().cpu().numpy()
@@ -293,11 +293,13 @@ class ProbabilisticAutoencoder:
         log_prob = self.to_type(log_prob, t)
         return log_prob
     
-    def plot_log_probs(self):
+    def plot_log_probs(self, sample_size=10000):
         if not self.up_to_date_log_probs:
             self._compute_log_probs()
         
         logL = self.data['valid_log_probs'].flatten()
+        if len(logL) > sample_size:
+            logL = sklearn.utils.shuffle(logL)[:sample_size]
         low_logL = np.quantile(logL, 0.05)
         high_logL = np.quantile(logL, 0.95)
         sns.distplot(logL)
@@ -307,7 +309,7 @@ class ProbabilisticAutoencoder:
         plt.ylabel('Probability Density')
         plt.show()
 
-    def plot_random(self, kind):
+    def plot_grid(self, kind):
         if not self.up_to_date_log_probs:
             self._compute_log_probs()
         
@@ -322,6 +324,14 @@ class ProbabilisticAutoencoder:
             mask = np.logical_and(
                 logL > np.quantile(logL, 0.4),
                 logL < np.quantile(logL, 0.6))
+        elif kind == 'most_likely':
+            indices = np.argsort(logL)[::-1][:16]
+            mask = np.array([False] * len(logL))
+            mask[indices] = True
+        elif kind == 'least_likely':
+            indices = np.argsort(logL)[:16]
+            mask = np.array([False] * len(logL))
+            mask[indices] = True
         else:
             raise ValueError(f"Kind {kind} unknown.")
         
@@ -360,7 +370,7 @@ class ProbabilisticAutoencoder:
             grad = filters.sobel(field)
             p = sum(field_logL[i] > logL)
             n = len(logL)
-            logL_title = f'Likelihood quantile: {p/n:.3f}'
+            logL_title = f'Likelihood quantile: {p/n:.5f}'
             ax.axis('equal')
             grad_ax.axis('equal')
             if meta is not None:
