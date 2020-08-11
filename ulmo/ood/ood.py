@@ -91,8 +91,14 @@ class ProbabilisticAutoencoder:
     def save_autoencoder(self):
         torch.save(self.autoencoder.state_dict(), self.autoencoder_filepath)
         
+    def load_autoencoder(self):
+        self.autoencoder.load_state_dict(torch.load(self.autoencoder_filepath))
+        
     def save_flow(self):
         torch.save(self.flow.state_dict(), self.flow_filepath)
+    
+    def load_flow(self):
+        self.flow.load_state_dict(torch.load(self.flow_filepath))
         
     def _train_module(self, module, n_epochs, batch_size, lr,
                      summary_interval=50, eval_interval=500,
@@ -102,6 +108,7 @@ class ProbabilisticAutoencoder:
             if module == 'autoencoder':
                 model = self.autoencoder
                 save_model = self.save_autoencoder
+                load_model = self.load_autoencoder
                 train_loader, valid_loader = self.make_loaders(
                     self.data['train_data'], self.data['valid_data'], batch_size)
                 print(f"Training on {self.data['train_data'].shape[0]:,d} samples. "
@@ -110,6 +117,7 @@ class ProbabilisticAutoencoder:
             elif module == 'flow':
                 model = self.flow
                 save_model = self.save_flow
+                load_model = self.load_flow
                 train_loader, valid_loader = self.make_loaders(
                     self.data['norm_train_latents'], self.data['norm_valid_latents'], batch_size)
                 print(f"Training on {self.data['norm_train_latents'].shape[0]:,d} samples. "
@@ -147,17 +155,16 @@ class ProbabilisticAutoencoder:
                         # Evaluate
                         model.eval()
                         with torch.no_grad():
-                            total_loss = 0
+                            total_valid_loss = 0
                             for i, data in enumerate(valid_loader):
                                 loss = model(data[0].to(self.device))
-                                total_loss += loss.item()
-                        valid_loss = total_loss / float(i+1)
+                                total_valid_loss += loss.item()
+                        valid_loss = total_valid_loss / float(i+1)
                         if valid_loss < self.best_valid_loss[module]:
                             save_model()
                             self.best_valid_loss[module] = valid_loss
                         epoch_pbar.set_description(f"Validation Loss: {valid_loss:.3f}")
                         valid_losses.append((global_step, valid_loss))
-                        total_loss = 0
                         model.train()
                 
         except KeyboardInterrupt:
@@ -167,6 +174,7 @@ class ProbabilisticAutoencoder:
                 print("Model saved.")
         
         finally:
+            load_model()
             if show_plots:
                 train_losses = np.array(train_losses)
                 valid_losses = np.array(valid_losses)
@@ -191,7 +199,7 @@ class ProbabilisticAutoencoder:
         self.autoencoder.eval()
         train_loader, valid_loader = self.make_loaders(
             self.data['train_data'], self.data['valid_data'], 
-            batch_size=64, drop_last=False)
+            batch_size=256, drop_last=False)
         
         with torch.no_grad():
             z = [self.autoencoder.encode(data[0].to(self.device)).detach().cpu().numpy()
@@ -244,30 +252,47 @@ class ProbabilisticAutoencoder:
             t = type(x)
             raise ValueError(f"Type {t} not supported.")
         
+    def to_type(self, x, t):
+        if t == np.ndarray:
+            x = self.to_array(x)
+        elif t == torch.Tensor:
+            x = self.to_tensor(x)
+        else:
+            raise ValueError(f"Type {t} not supported.")
+        return x
+        
     def encode(self, x):
+        t = type(x)
         self.autoencoder.eval()
         x = self.to_tensor(x)
         z = self.autoencoder.encode(x)
+        z = self.to_type(z, t)
         return z
     
     def decode(self, z):
+        t = type(z)
         self.autoencoder.eval()
         z = self.to_tensor(z)
         x = self.autoencoder.decode(z)
+        x = self.to_type(x, t)
         return x
     
     def reconstruct(self, x):
+        t = type(x)
         self.autoencoder.eval()
         x = self.to_tensor(x)
         rx = self.autoencoder.reconstruct(x)
+        rx = self.to_type(rx, t)
         return rx
     
     def log_prob(self, x):
+        t = type(x)
         self.flow.eval()
         self.autoencoder.eval()
         x = self.to_tensor(x)
         z = self.encode(x)
         log_prob = self.flow.log_prob(z)
+        log_prob = self.to_type(log_prob, t)
         return log_prob
     
     def plot_log_probs(self):
@@ -321,7 +346,7 @@ class ProbabilisticAutoencoder:
         t, b = 0.9, 0.1 # 1-top space, bottom space
         msp, sp = 0.1, 0.5 # minor spacing, major spacing
 
-        offs=(1+msp)*(t-b)/(2*n+n*msp+(n-1)*sp) # grid offset
+        offs = (1+msp)*(t-b)/(2*n+n*msp+(n-1)*sp) # grid offset
         hspace = sp+msp+1 #height space per grid
 
         gso = GridSpec(n, m, bottom=b+offs, top=t, hspace=hspace)
