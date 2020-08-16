@@ -196,7 +196,7 @@ class ProbabilisticAutoencoder:
                 
     def _compute_latents(self):
         if os.path.isfile(self.filepath['latents']):
-            compute = input("Existing file found. Use file (y) or recompute (n)?").strip().lower() == 'n'
+            compute = input("Existing latents file found. Use file (y) or recompute (n)?").strip().lower() == 'n'
         else:
             compute = True
         if compute:
@@ -221,7 +221,7 @@ class ProbabilisticAutoencoder:
     
     def _compute_log_probs(self):
         if os.path.isfile(self.filepath['log_probs']):
-            compute = input("Existing file found. Use file (y) or recompute (n)?").strip().lower() == 'n'
+            compute = input("Existing log probs file found. Use file (y) or recompute (n)?").strip().lower() == 'n'
         else:
             compute = True
         if compute:
@@ -245,7 +245,7 @@ class ProbabilisticAutoencoder:
         
     def _compute_flow_latents(self):
         if os.path.isfile(self.filepath['flow_latents']):
-            compute = input("Existing file found. Use file (y) or recompute (n)?").strip().lower() == 'n'
+            compute = input("Existing flow latents file found. Use file (y) or recompute (n)?").strip().lower() == 'n'
         else:
             compute = True
         if compute:
