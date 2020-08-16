@@ -57,7 +57,8 @@ class ProbabilisticAutoencoder:
         self.filepath = {
             'data': filepath,
             'latents': os.path.join(datadir, self.stem + '_latents.h5'),
-            'log_probs': os.path.join(datadir, self.stem + '_log_probs.h5')}
+            'log_probs': os.path.join(datadir, self.stem + '_log_probs.h5'),
+            'flow_latents': os.path.join(datadir, self.stem + '_flow_latents.h5')}
         self.savepath = {
             'flow': os.path.join(logdir, 'flow.pt'),
             'autoencoder': os.path.join(logdir, 'autoencoder.pt')}
@@ -65,6 +66,7 @@ class ProbabilisticAutoencoder:
         self.datadir = datadir
         self.up_to_date_latents = False
         self.up_to_date_log_probs = False
+        self.up_to_date_flow_latents = False
         assert flow.dim == autoencoder.latent_dim
         
         self.best_valid_loss = {
@@ -239,6 +241,29 @@ class ProbabilisticAutoencoder:
                     f.create_dataset('valid', data=np.concatenate(log_prob))
         self.up_to_date_log_probs = True
         
+    def _compute_flow_latents(self):
+        print("Computing flow latent representations...")
+        if os.path.isfile(self.filepath['flow_latents']):
+            compute = input("Existing file found. Use file (y) or recompute (n)?").strip().lower() == 'n'
+        else:
+            compute = True
+        if compute:
+            self.flow.eval()
+            if not self.up_to_date_latents:
+                self._compute_latents()
+            train_loader, valid_loader = self._make_loaders(
+                'latents', batch_size=1024, drop_last=False)
+
+            with h5py.File(self.filepath['flow_latents'], 'w') as f:
+                with torch.no_grad():
+                    log_prob = [self.flow.latent_representation(data[0].to(self.device)).detach().cpu().numpy()
+                         for data in tqdm(train_loader, total=len(train_loader))]
+                    f.create_dataset('train', data=np.concatenate(log_prob))
+                    log_prob = [self.flow.latent_representation(data[0].to(self.device)).detach().cpu().numpy()
+                         for data in tqdm(valid_loader, total=len(valid_loader))]
+                    f.create_dataset('valid', data=np.concatenate(log_prob))
+        self.up_to_date_flow_latents = True
+        
     def to_tensor(self, x):
         if isinstance(x, np.ndarray):
             x = torch.from_numpy(x).float().to(self.device)
@@ -302,6 +327,23 @@ class ProbabilisticAutoencoder:
         log_prob = self.to_type(log_prob, t)
         return log_prob
     
+    def save_log_probs(self):
+        if not self.up_to_date_log_probs:
+            self._compute_log_probs()
+            
+        with h5py.File(self.filepath['data'], 'r') as f:
+            if 'valid_metadata' in f.keys():
+                meta = f['valid_metadata']
+                df = pd.DataFrame(meta[:].astype(np.unicode_), columns=meta.attrs['columns'])
+            else:
+                df = pd.DataFrame()
+        
+        with h5py.File(self.filepath['log_probs'], 'r') as f:
+            df['log_likelihood'] = f['valid'][:].flatten()
+            
+        csv_name = self.stem + '_log_probs.csv'
+        df.to_csv(os.path.join(self.logdir, csv_name), index=False)
+    
     def plot_log_probs(self, sample_size=10000, save_figure=False):
         if not self.up_to_date_log_probs:
             self._compute_log_probs()
@@ -321,7 +363,7 @@ class ProbabilisticAutoencoder:
             plt.savefig(os.path.join(self.logdir, 'log_probs'))
         plt.show()
 
-    def plot_grid(self, kind, save_figure=False):
+    def plot_grid(self, kind, save_metadata=False, save_figure=False):
         if not self.up_to_date_log_probs:
             self._compute_log_probs()
         
@@ -348,8 +390,8 @@ class ProbabilisticAutoencoder:
         elif (isinstance(kind, (int, float))
               and not isinstance(kind, bool)):
             mask = np.logical_and(
-                logL > np.quantile(logL, kind-0.05),
-                logL < np.quantile(logL, kind+0.05))
+                logL > np.quantile(logL, kind-0.01),
+                logL < np.quantile(logL, kind+0.01))
         else:
             raise ValueError(f"Kind {kind} unknown.")
         
@@ -364,12 +406,11 @@ class ProbabilisticAutoencoder:
         with h5py.File(self.filepath['data'], 'r') as f:
             fields = f['valid'][idx]
             if 'valid_metadata' in f.keys():
-                meta = f['valid_metadata'][idx].astype(np.unicode_)
-                # Output metadata to file
-                meta_df = pd.DataFrame(meta, 
-                    columns=['filename', 'row', 'column', 'mean_temperature', 'clear_fraction'])
-                csv_name = str(kind).replace(' ', '_') + '_metadata.csv'
-                meta_df.to_csv(os.path.join(self.logdir, csv_name), index=False)
+                meta = f['valid_metadata']
+                df = pd.DataFrame(meta[idx].astype(np.unicode_), columns=meta.attrs['columns'])
+                if save_metadata:
+                    csv_name = str(kind).replace(' ', '_') + '_metadata.csv'
+                    df.to_csv(os.path.join(self.logdir, csv_name), index=False)
             else:
                 meta = None
             
@@ -398,7 +439,7 @@ class ProbabilisticAutoencoder:
             ax.axis('equal')
             grad_ax.axis('equal')
             if meta is not None:
-                file, row, col = meta[i][:3]
+                file, row, col = df.iloc[i][['filename', 'row', 'column']]
                 ax.set_title(f'{file}\n{logL_title}')
                 t = ax.text(0.12, 0.89, f'({row}, {col})', color='k', size=12, transform=ax.transAxes)
                 t.set_path_effects([PathEffects.withStroke(linewidth=3, foreground='w')])

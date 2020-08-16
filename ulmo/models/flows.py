@@ -86,10 +86,10 @@ class ConditionalFlow(nn.Module):
         """Forward pass in density estimation direction.
 
         Args:
-            inputs (torch.Tensor): [N, dim] tensor of data.
-            context (torch.Tensor): [N, context_dim] tensor of context.
+            inputs (torch.Tensor): [*, dim] tensor of data.
+            context (torch.Tensor): [*, context_dim] tensor of context.
         Returns:
-            log_prob (torch.Tensor): [N,] tensor of log probabilities.
+            log_prob (torch.Tensor): [*,] tensor of log probabilities.
         """
         if self.encoder is not None and context is not None:
             context = self.encoder(context)
@@ -100,8 +100,8 @@ class ConditionalFlow(nn.Module):
         """Forward pass to negative log likelihood (NLL).
 
         Args:
-            inputs (torch.Tensor): [N, dim] tensor of data.
-            context (torch.Tensor): [N, context_dim] tensor of context.
+            inputs (torch.Tensor): [*, dim] tensor of data.
+            context (torch.Tensor): [*, context_dim] tensor of context.
         Returns:
             loss (torch.Tensor): [1,] tensor of mean NLL
         """
