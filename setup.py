@@ -24,8 +24,8 @@ if os.path.exists('README.md'):
 setup_keywords['provides'] = [setup_keywords['name']]
 setup_keywords['requires'] = ['Python (>3.7.0)']
 setup_keywords['install_requires'] = [
-    'xarray', 'h5netcdf', 'torch', 'nflows', 
-    'seaborn', 'scikit-learn', 'scikit-image', 'tqdm']
+    'xarray', 'h5netcdf', 'torch', 'seaborn', 
+    'scikit-learn', 'scikit-image', 'tqdm']
 setup_keywords['zip_safe'] = False
 setup_keywords['use_2to3'] = False
 setup_keywords['packages'] = find_packages()
