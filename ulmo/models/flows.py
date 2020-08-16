@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.distributions as D
-import nflows.nn as nn_
-import nflows.utils as utils
-from nflows import distributions, flows, transforms
+import ulmo.nflows.nn as nn_
+import ulmo.nflows.utils as utils
+from ulmo.nflows import distributions, flows, transforms
 
 
 class ConditionalFlow(nn.Module):
@@ -87,7 +87,10 @@ class ConditionalFlow(nn.Module):
 
         Args:
             inputs (torch.Tensor): [N, dim] tensor of data.
-            context (torch.Tensor): [N, context_dim] tensor of context."""
+            context (torch.Tensor): [N, context_dim] tensor of context.
+        Returns:
+            log_prob (torch.Tensor): [N,] tensor of log probabilities.
+        """
         if self.encoder is not None and context is not None:
             context = self.encoder(context)
         log_prob = self.flow.log_prob(inputs, context)
@@ -98,7 +101,10 @@ class ConditionalFlow(nn.Module):
 
         Args:
             inputs (torch.Tensor): [N, dim] tensor of data.
-            context (torch.Tensor): [N, context_dim] tensor of context."""
+            context (torch.Tensor): [N, context_dim] tensor of context.
+        Returns:
+            loss (torch.Tensor): [1,] tensor of mean NLL
+        """
         log_prob = self.log_prob(inputs, context)
         loss = -torch.mean(log_prob)
         return loss
@@ -108,7 +114,11 @@ class ConditionalFlow(nn.Module):
 
         Args:
             n_samples (int): Number of samples to draw.
-            context (torch.Tensor): [context_dim] tensor of conditioning info."""
+            context (torch.Tensor): [context_dim] tensor of conditioning info.
+        Returns:
+            samples (torch.Tensor): [n_samples, dim] tensor of data
+            log_prob (torch.Tensor): [n_samples,] tensor of log probabilities
+        """
         if context is not None:
             context = context.unsqueeze(0)
             if self.encoder is not None:
@@ -119,3 +129,15 @@ class ConditionalFlow(nn.Module):
             noise = self.flow._distribution.sample(n_samples)
         samples, log_prob = self.flow._transform.inverse(noise, context)
         return samples, log_prob
+    
+    def latent_representation(self, inputs, context=None):
+        """Get representations of data in latent space.
+        
+        Args:
+            inputs (torch.Tensor): [*, dim] tensor of data.
+            context (torch.Tensor): [*, context_dim] tensor of context.
+        Returns:
+            latents (torch.Tensor): [*, dim] tensor of latents."""
+        latents = self.flow.transform_to_noise(inputs, context)
+        return latents
+        

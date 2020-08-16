@@ -2,7 +2,9 @@ import os
 import time
 import h5py
 import sklearn
+import multiprocessing
 import numpy as np
+import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as PathEffects
@@ -47,8 +49,6 @@ class ProbabilisticAutoencoder:
             datadir = os.path.split(filepath)[0]
         if device is None:
             device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        if device == torch.device('cuda'):
-            torch.set_default_tensor_type('torch.cuda.FloatTensor')
             
         self.device = device
         self.autoencoder = autoencoder.to(device)
@@ -75,12 +75,14 @@ class ProbabilisticAutoencoder:
         torch.save(self.autoencoder.state_dict(), self.savepath['autoencoder'])
         
     def load_autoencoder(self):
+        print(f"Loading autoencoder model from: {self.savepath['autoencoder']}")
         self.autoencoder.load_state_dict(torch.load(self.savepath['autoencoder']))
         
     def save_flow(self):
         torch.save(self.flow.state_dict(), self.savepath['flow'])
     
     def load_flow(self):
+        print(f"Loading flow model from: {self.savepath['flow']}")
         self.flow.load_state_dict(torch.load(self.savepath['flow']))
         
     def _make_loaders(self, kind, batch_size, drop_last=True):
@@ -89,15 +91,17 @@ class ProbabilisticAutoencoder:
         train_dset = HDF5Dataset(filepath, partition='train')
         train_loader = torch.utils.data.DataLoader(
             train_dset, batch_size=batch_size, shuffle=False, 
-            drop_last=drop_last, collate_fn=id_collate)
+            drop_last=drop_last, collate_fn=id_collate,
+            num_workers=16)
 
         valid_dset = HDF5Dataset(filepath, partition='valid')
         valid_loader = torch.utils.data.DataLoader(
             valid_dset, batch_size=batch_size, shuffle=False, 
-            drop_last=drop_last, collate_fn=id_collate)
+            drop_last=drop_last, collate_fn=id_collate,
+            num_workers=16)
         
-        print(f"Training on {len(train_loader)*train_loader.batch_size:,d} samples. "
-              f"Validating on {len(valid_loader)*valid_loader.batch_size:,d} samples.")
+        print(f"{len(train_loader)*train_loader.batch_size:,d} training samples. "
+              f"{len(valid_loader)*valid_loader.batch_size:,d} validation samples.")
 
         return train_loader, valid_loader
         
@@ -189,40 +193,50 @@ class ProbabilisticAutoencoder:
         self._train_module('flow', **kwargs)
                 
     def _compute_latents(self):
-        self.autoencoder.eval()
         print("Computing latent representations...")
-        train_loader, valid_loader = self._make_loaders(
-            'data', batch_size=512, drop_last=False)
-        
-        self.scaler = StandardScaler()
-        with h5py.File(self.filepath['latents'], 'w') as f:
-            with torch.no_grad():
-                z = [self.autoencoder.encode(data[0].to(self.device)).detach().cpu().numpy()
-                     for data in train_loader]
-                train = self.scaler.fit_transform(np.concatenate(z))
-                f.create_dataset('train', data=train); del train
-                z = [self.autoencoder.encode(data[0].to(self.device)).detach().cpu().numpy()
-                     for data in valid_loader]
-                valid = self.scaler.transform(np.concatenate(z))
-                f.create_dataset('valid', data=valid); del valid
+        if os.path.isfile(self.filepath['latents']):
+            compute = input("Existing file found. Use file (y) or recompute (n)?").strip().lower() == 'n'
+        else:
+            compute = True
+        if compute:
+            self.autoencoder.eval()
+            train_loader, valid_loader = self._make_loaders(
+                'data', batch_size=2048, drop_last=False)
+
+            self.scaler = StandardScaler()
+            with h5py.File(self.filepath['latents'], 'w') as f:
+                with torch.no_grad():
+                    z = [self.autoencoder.encode(data[0].to(self.device)).detach().cpu().numpy()
+                         for data in tqdm(train_loader, total=len(train_loader), unit='batch')]
+                    train = self.scaler.fit_transform(np.concatenate(z))
+                    f.create_dataset('train', data=train); del train
+                    z = [self.autoencoder.encode(data[0].to(self.device)).detach().cpu().numpy()
+                         for data in tqdm(valid_loader, total=len(valid_loader), unit='batch')]
+                    valid = self.scaler.transform(np.concatenate(z))
+                    f.create_dataset('valid', data=valid); del valid
         self.up_to_date_latents = True
     
     def _compute_log_probs(self):
-        self.flow.eval()
-        if not self.up_to_date_latents:
-            self._compute_latents()
         print("Computing log probabilities...")
-        train_loader, valid_loader = self.make_loaders(
-            'latents', batch_size=1000, drop_last=False)
-        
-        with h5py.File(self.filepath['log_probs'], 'w') as f:
-            with torch.no_grad():
-                log_prob = [self.flow.log_prob(data[0].to(self.device)).detach().cpu().numpy()
-                     for data in train_loader]
-                f.create_dataset('train', data=np.concatenate(log_prob))
-                log_prob = [self.flow.log_prob(data[0].to(self.device)).detach().cpu().numpy()
-                     for data in valid_loader]
-                f.create_dataset('valid', data=np.concatenate(log_prob))
+        if os.path.isfile(self.filepath['log_probs']):
+            compute = input("Existing file found. Use file (y) or recompute (n)?").strip().lower() == 'n'
+        else:
+            compute = True
+        if compute:
+            self.flow.eval()
+            if not self.up_to_date_latents:
+                self._compute_latents()
+            train_loader, valid_loader = self._make_loaders(
+                'latents', batch_size=1024, drop_last=False)
+
+            with h5py.File(self.filepath['log_probs'], 'w') as f:
+                with torch.no_grad():
+                    log_prob = [self.flow.log_prob(data[0].to(self.device)).detach().cpu().numpy()
+                         for data in tqdm(train_loader, total=len(train_loader))]
+                    f.create_dataset('train', data=np.concatenate(log_prob))
+                    log_prob = [self.flow.log_prob(data[0].to(self.device)).detach().cpu().numpy()
+                         for data in tqdm(valid_loader, total=len(valid_loader))]
+                    f.create_dataset('valid', data=np.concatenate(log_prob))
         self.up_to_date_log_probs = True
         
     def to_tensor(self, x):
@@ -342,22 +356,23 @@ class ProbabilisticAutoencoder:
         # Indices of log probs should align with fields since we
         # are *not* shuffling when creating data loaders.
         
-        field_logL = logL[mask]
+        # Select 16 random indices from mask
+        idx = sorted(np.random.choice(np.where(mask)[0], replace=False, size=16))
+        field_logL = logL[idx]
+        
+        # Retrieve data
         with h5py.File(self.filepath['data'], 'r') as f:
-            fields = f['valid'][mask]
+            fields = f['valid'][idx]
             if 'valid_metadata' in f.keys():
-                meta = f['valid_metadata'][mask]
+                meta = f['valid_metadata'][idx].astype(np.unicode_)
+                # Output metadata to file
+                meta_df = pd.DataFrame(meta, 
+                    columns=['filename', 'row', 'column', 'mean_temperature', 'clear_fraction'])
+                csv_name = str(kind).replace(' ', '_') + '_metadata.csv'
+                meta_df.to_csv(os.path.join(self.logdir, csv_name), index=False)
             else:
                 meta = None
-                
-        # Select 16 random fields
-        n = fields.shape[0]
-        idx = np.random.choice(n, replace=False, size=16)
-        fields = fields[idx]
-        field_logL = field_logL[idx]
-        if meta is not None:
-            meta = meta[idx]
-        
+            
         # Make plot grid
         n, m = 4, 4 # rows, columns
         t, b = 0.9, 0.1 # 1-top space, bottom space
@@ -392,6 +407,6 @@ class ProbabilisticAutoencoder:
             sns.heatmap(field, ax=ax, xticklabels=[], yticklabels=[], cmap=cm, vmin=-2, vmax=2)
             sns.heatmap(grad, ax=grad_ax, xticklabels=[], yticklabels=[], cmap=cm, vmin=0, vmax=1)
         if save_figure:
-            fig_name = 'grid_' + kind.replace(' ', '_')
-            plt.savefig(os.path.join(self.logdir, fig_name))
+            fig_name = 'grid_' + str(kind).replace(' ', '_') + '.png'
+            plt.savefig(os.path.join(self.logdir, fig_name), bbox_inches='tight')
         plt.show()
