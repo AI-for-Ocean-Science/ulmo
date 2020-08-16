@@ -15,7 +15,7 @@ from tqdm.auto import tqdm
 from skimage import filters
 from matplotlib.gridspec import GridSpec
 from sklearn.preprocessing import StandardScaler
-from ulmo.plotting import load_palette
+from ulmo.plotting import load_palette, grid_plot
 from ulmo.utils import HDF5Dataset, id_collate
 
 
@@ -344,6 +344,42 @@ class ProbabilisticAutoencoder:
         csv_name = self.stem + '_log_probs.csv'
         df.to_csv(os.path.join(self.logdir, csv_name), index=False)
     
+    def plot_reconstructions(self, save_figure=False):
+        pal, cm = load_palette()
+        
+        with h5py.File(self.filepath['data'], 'r') as f:
+            fields = f['valid']
+            n = fields.shape[0]
+            idx = sorted(np.random.choice(n, replace=False, size=16))
+            fields = fields[idx]
+            recons = self.reconstruct(fields)
+            if 'valid_metadata' in f.keys():
+                meta = f['valid_metadata']
+                df = pd.DataFrame(meta[idx].astype(np.unicode_), columns=meta.attrs['columns'])
+            else:
+                meta = None
+        
+        fig, axes = grid_plot(nrows=4, ncols=4)
+
+        for i, (ax, r_ax) in enumerate(axes):
+            x = fields[i, 0]
+            rx = recons[i, 0]
+            ax.axis('equal')
+            r_ax.axis('equal')
+            if meta is not None:
+                file, row, col = df.iloc[i][['filename', 'row', 'column']]
+                ax.set_title(f'{file}')
+                t = ax.text(0.12, 0.89, f'({row}, {col})', color='k', size=12, transform=ax.transAxes)
+                t.set_path_effects([PathEffects.withStroke(linewidth=3, foreground='w')])
+            else:
+                ax.set_title(f'Image {i}\n{logL_title}')
+            sns.heatmap(x, ax=ax, xticklabels=[], yticklabels=[], cmap=cm, vmin=-2, vmax=2)
+            sns.heatmap(rx, ax=r_ax, xticklabels=[], yticklabels=[], cmap=cm, vmin=-2, vmax=2)
+        if save_figure:
+            fig_name = 'grid_reconstructions.png'
+            plt.savefig(os.path.join(self.logdir, fig_name), bbox_inches='tight')
+        plt.show()
+    
     def plot_log_probs(self, sample_size=10000, save_figure=False):
         if not self.up_to_date_log_probs:
             self._compute_log_probs()
@@ -413,22 +449,8 @@ class ProbabilisticAutoencoder:
                     df.to_csv(os.path.join(self.logdir, csv_name), index=False)
             else:
                 meta = None
-            
-        # Make plot grid
-        n, m = 4, 4 # rows, columns
-        t, b = 0.9, 0.1 # 1-top space, bottom space
-        msp, sp = 0.1, 0.5 # minor spacing, major spacing
-
-        offs = (1+msp)*(t-b)/(2*n+n*msp+(n-1)*sp) # grid offset
-        hspace = sp+msp+1 #height space per grid
-
-        gso = GridSpec(n, m, bottom=b+offs, top=t, hspace=hspace)
-        gse = GridSpec(n, m, bottom=b, top=t-offs, hspace=hspace)
-
-        fig = plt.figure(figsize=(18, 25))
-        axes = []
-        for i in range(n*m):
-            axes.append((fig.add_subplot(gso[i]), fig.add_subplot(gse[i])))
+        
+        fig, axes = grid_plot(nrows=4, ncols=4)
 
         for i, (ax, grad_ax) in enumerate(axes):
             field = fields[i, 0]
