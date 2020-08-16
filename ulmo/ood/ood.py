@@ -195,7 +195,6 @@ class ProbabilisticAutoencoder:
         self._train_module('flow', **kwargs)
                 
     def _compute_latents(self):
-        print("Computing latent representations...")
         if os.path.isfile(self.filepath['latents']):
             compute = input("Existing file found. Use file (y) or recompute (n)?").strip().lower() == 'n'
         else:
@@ -209,17 +208,18 @@ class ProbabilisticAutoencoder:
             with h5py.File(self.filepath['latents'], 'w') as f:
                 with torch.no_grad():
                     z = [self.autoencoder.encode(data[0].to(self.device)).detach().cpu().numpy()
-                         for data in tqdm(train_loader, total=len(train_loader), unit='batch')]
+                         for data in tqdm(train_loader, total=len(train_loader), unit='batch', 
+                                          desc='Computing train latents')]
                     train = self.scaler.fit_transform(np.concatenate(z))
                     f.create_dataset('train', data=train); del train
                     z = [self.autoencoder.encode(data[0].to(self.device)).detach().cpu().numpy()
-                         for data in tqdm(valid_loader, total=len(valid_loader), unit='batch')]
+                         for data in tqdm(valid_loader, total=len(valid_loader), unit='batch',
+                                          desc='Computing valid latents')]
                     valid = self.scaler.transform(np.concatenate(z))
                     f.create_dataset('valid', data=valid); del valid
         self.up_to_date_latents = True
     
     def _compute_log_probs(self):
-        print("Computing log probabilities...")
         if os.path.isfile(self.filepath['log_probs']):
             compute = input("Existing file found. Use file (y) or recompute (n)?").strip().lower() == 'n'
         else:
@@ -234,15 +234,16 @@ class ProbabilisticAutoencoder:
             with h5py.File(self.filepath['log_probs'], 'w') as f:
                 with torch.no_grad():
                     log_prob = [self.flow.log_prob(data[0].to(self.device)).detach().cpu().numpy()
-                         for data in tqdm(train_loader, total=len(train_loader))]
+                         for data in tqdm(train_loader, total=len(train_loader), unit='batch',
+                                          desc='Computing train log probs')]
                     f.create_dataset('train', data=np.concatenate(log_prob))
                     log_prob = [self.flow.log_prob(data[0].to(self.device)).detach().cpu().numpy()
-                         for data in tqdm(valid_loader, total=len(valid_loader))]
+                         for data in tqdm(valid_loader, total=len(valid_loader), unit='batch',
+                                          desc='Computing valid log probs')]
                     f.create_dataset('valid', data=np.concatenate(log_prob))
         self.up_to_date_log_probs = True
         
     def _compute_flow_latents(self):
-        print("Computing flow latent representations...")
         if os.path.isfile(self.filepath['flow_latents']):
             compute = input("Existing file found. Use file (y) or recompute (n)?").strip().lower() == 'n'
         else:
@@ -257,10 +258,12 @@ class ProbabilisticAutoencoder:
             with h5py.File(self.filepath['flow_latents'], 'w') as f:
                 with torch.no_grad():
                     log_prob = [self.flow.latent_representation(data[0].to(self.device)).detach().cpu().numpy()
-                         for data in tqdm(train_loader, total=len(train_loader))]
+                         for data in tqdm(train_loader, total=len(train_loader), unit='batch',
+                                         desc='Computing train flow latents')]
                     f.create_dataset('train', data=np.concatenate(log_prob))
                     log_prob = [self.flow.latent_representation(data[0].to(self.device)).detach().cpu().numpy()
-                         for data in tqdm(valid_loader, total=len(valid_loader))]
+                         for data in tqdm(valid_loader, total=len(valid_loader), unit='batch',
+                                         desc='Computing valid flow latents')]
                     f.create_dataset('valid', data=np.concatenate(log_prob))
         self.up_to_date_flow_latents = True
         
