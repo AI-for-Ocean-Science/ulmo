@@ -5,6 +5,16 @@ import torch.distributions as D
 from abc import ABC, abstractmethod
 
 
+def divisible_by_two(k, lower_bound=None):
+    if lower_bound is None:
+        lower_bound = 0
+    i = 0
+    while k % 2 == 0 and k > lower_bound:
+        k /= 2
+        i += 1
+    return i, int(k)
+
+
 class Autoencoder(ABC):
     """
     An abstract class for implementing priors.
@@ -56,28 +66,33 @@ class Autoencoder(ABC):
 class DCAE(Autoencoder, nn.Module):
     """A deep convolutional autoencoder."""
     
-    def __init__(self, input_channels, latent_dim):
+    def __init__(self, image_shape, latent_dim):
         super().__init__()
 
-        self.input_channels = input_channels
+        self.c, self.w, self.h = image_shape
+        assert self.w == self.h, "Image must be square"
+        self.n_layers, self.w_ = divisible_by_two(self.w, 4)
+        assert self.n_layers >= 1, "Image size not divisible by two"
         self.latent_dim = latent_dim
         
-        self.encoder = nn.Sequential(
-            self._encoder_layer(input_channels, 32),
-            self._encoder_layer(32, 64),
-            self._encoder_layer(64, 128),
-            self._encoder_layer(128, 256))
+        encoder_layers = [self._encoder_layer(self.c, 32)]
+        for i in range(self.n_layers-1):
+            in_channels, out_channels = 32*2**i, 32*2**(i+1)
+            encoder_layers.append(self._encoder_layer(in_channels, out_channels))
+        self.encoder = nn.Sequential(*encoder_layers)
         
-        self.to_z = nn.Linear(256*3*3, latent_dim)
-        self.from_z = nn.Linear(latent_dim, 256*3*3)
+        self.mid_channels = out_channels
+        self.to_z = nn.Linear(int(self.mid_channels*self.w_**2), latent_dim)
+        self.from_z = nn.Linear(latent_dim, int(self.mid_channels*self.w_**2))
         
-        self.decoder = nn.Sequential(
-            self._decoder_layer(256, 128),
-            self._decoder_layer(128, 64),
-            self._decoder_layer(64, 32),
-            self._decoder_layer(32, 32))
+        decoder_layers = []
+        for i in range(self.n_layers-1):
+            in_channels, out_channels = self.mid_channels//(2**i), self.mid_channels//(2**(i+1))
+            decoder_layers.append(self._decoder_layer(in_channels, out_channels))
+        decoder_layers.append(self._decoder_layer(out_channels, out_channels))
+        self.decoder = nn.Sequential(*decoder_layers)
         
-        self.output = nn.Conv2d(32, 1, 3, 1, 1)
+        self.output = nn.Conv2d(out_channels, self.c, 3, 1, 1)
 
     def _encoder_layer(self, in_channels, out_channels):
         layer = nn.Sequential(
@@ -110,7 +125,7 @@ class DCAE(Autoencoder, nn.Module):
         return z
     
     def decode(self, z):
-        x = self.from_z(z).view(z.size(0), 256, 3, 3)
+        x = self.from_z(z).view(z.size(0), self.mid_channels, self.w_, self.w_)
         x = self.output(self.decoder(x))
         return x
     
