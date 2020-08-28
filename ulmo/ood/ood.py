@@ -351,6 +351,7 @@ class ProbabilisticAutoencoder:
             
         csv_name = self.stem + '_log_probs.csv'
         df.to_csv(os.path.join(self.logdir, csv_name), index=False)
+        print(f"Saved log probabilities to {os.path.join(self.logdir, csv_name)}.")
     
     def plot_reconstructions(self, save_figure=False):
         pal, cm = load_palette()
@@ -384,7 +385,7 @@ class ProbabilisticAutoencoder:
             sns.heatmap(x, ax=ax, xticklabels=[], yticklabels=[], cmap=cm, vmin=-2, vmax=2)
             sns.heatmap(rx, ax=r_ax, xticklabels=[], yticklabels=[], cmap=cm, vmin=-2, vmax=2)
         if save_figure:
-            fig_name = 'grid_reconstructions' + self.stem + '.png'
+            fig_name = 'grid_reconstructions_' + self.stem + '.png'
             plt.savefig(os.path.join(self.logdir, fig_name), bbox_inches='tight')
         plt.show()
     
@@ -404,7 +405,7 @@ class ProbabilisticAutoencoder:
         plt.xlabel('Log Likelihood')
         plt.ylabel('Probability Density')
         if save_figure:
-            fig_name = 'log_probs' + self.stem + '.png'
+            fig_name = 'log_probs_' + self.stem + '.png'
             plt.savefig(os.path.join(self.logdir, fig_name), bbox_inches='tight')
         plt.show()
 
@@ -486,7 +487,7 @@ class ProbabilisticAutoencoder:
             sns.heatmap(field, ax=ax, xticklabels=[], yticklabels=[], cmap=cm, vmin=vmin, vmax=vmax)
             sns.heatmap(grad, ax=grad_ax, xticklabels=[], yticklabels=[], cmap=cm, vmin=grad_vmin, vmax=grad_vmax)
         if save_figure:
-            fig_name = 'grid_' + str(kind).replace(' ', '_') + self.stem + '.png'
+            fig_name = 'grid_' + str(kind).replace(' ', '_') + '_' + self.stem + '.png'
             plt.savefig(os.path.join(self.logdir, fig_name), bbox_inches='tight')
         plt.show()
         
