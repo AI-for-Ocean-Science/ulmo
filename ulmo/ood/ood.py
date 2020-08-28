@@ -6,6 +6,7 @@ import multiprocessing
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as PathEffects
 import torch
@@ -16,7 +17,7 @@ from skimage import filters
 from matplotlib.gridspec import GridSpec
 from sklearn.preprocessing import StandardScaler
 from ulmo.plotting import load_palette, grid_plot
-from ulmo.utils import HDF5Dataset, id_collate
+from ulmo.utils import HDF5Dataset, id_collate, get_quantiles
 
 
 class ProbabilisticAutoencoder:
@@ -49,7 +50,11 @@ class ProbabilisticAutoencoder:
             datadir = os.path.split(filepath)[0]
         if device is None:
             device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-            
+        if not os.path.isdir(logdir):
+            os.makedirs(logdir)
+        if not os.path.isdir(datadir):
+            os.makedirs(datadir)
+        
         self.device = device
         self.autoencoder = autoencoder.to(device)
         self.flow = flow.to(device)
@@ -379,7 +384,7 @@ class ProbabilisticAutoencoder:
             sns.heatmap(x, ax=ax, xticklabels=[], yticklabels=[], cmap=cm, vmin=-2, vmax=2)
             sns.heatmap(rx, ax=r_ax, xticklabels=[], yticklabels=[], cmap=cm, vmin=-2, vmax=2)
         if save_figure:
-            fig_name = 'grid_reconstructions.png'
+            fig_name = 'grid_reconstructions' + self.stem + '.png'
             plt.savefig(os.path.join(self.logdir, fig_name), bbox_inches='tight')
         plt.show()
     
@@ -399,10 +404,18 @@ class ProbabilisticAutoencoder:
         plt.xlabel('Log Likelihood')
         plt.ylabel('Probability Density')
         if save_figure:
-            plt.savefig(os.path.join(self.logdir, 'log_probs'))
+            fig_name = 'log_probs' + self.stem + '.png'
+            plt.savefig(os.path.join(self.logdir, fig_name), bbox_inches='tight')
         plt.show()
 
-    def plot_grid(self, kind, save_metadata=False, save_figure=False):
+    def plot_grid(self, kind, save_metadata=False, save_figure=False,
+                 vmin=None, vmax=None, grad_vmin=None, grad_vmax=None):
+        
+        vmin = vmin if vmin is not None else -2
+        vmax = vmax if vmax is not None else 2
+        grad_vmin = grad_vmin if grad_vmin is not None else 0
+        grad_vmax = grad_vmax if grad_vmax is not None else 1
+        
         if not self.up_to_date_log_probs:
             self._compute_log_probs()
         
@@ -470,9 +483,32 @@ class ProbabilisticAutoencoder:
                 t.set_path_effects([PathEffects.withStroke(linewidth=3, foreground='w')])
             else:
                 ax.set_title(f'Image {i}\n{logL_title}')
-            sns.heatmap(field, ax=ax, xticklabels=[], yticklabels=[], cmap=cm, vmin=-2, vmax=2)
-            sns.heatmap(grad, ax=grad_ax, xticklabels=[], yticklabels=[], cmap=cm, vmin=0, vmax=1)
+            sns.heatmap(field, ax=ax, xticklabels=[], yticklabels=[], cmap=cm, vmin=vmin, vmax=vmax)
+            sns.heatmap(grad, ax=grad_ax, xticklabels=[], yticklabels=[], cmap=cm, vmin=grad_vmin, vmax=grad_vmax)
         if save_figure:
-            fig_name = 'grid_' + str(kind).replace(' ', '_') + '.png'
+            fig_name = 'grid_' + str(kind).replace(' ', '_') + self.stem + '.png'
+            plt.savefig(os.path.join(self.logdir, fig_name), bbox_inches='tight')
+        plt.show()
+        
+    def plot_geographical(self, save_figure=False):
+        csv_name = self.stem + '_log_probs.csv'
+        filepath = os.path.join(self.logdir, csv_name)
+        
+        if not os.path.isfile(filepath):
+            self.save_log_probs()
+        
+        log_probs = pd.read_csv(filepath)
+        log_probs['quantiles'] = get_quantiles(log_probs['log_likelihood'])
+        
+        fig = plt.figure(figsize=(25, 16))
+        ax = plt.axes(projection=ccrs.PlateCarree())
+        ax.stock_img()
+        plt.scatter(log_probs['longitude'], log_probs['latitude'], 
+            c=log_probs['quantiles'], cmap=plt.get_cmap('jet_r'),
+            s=10, alpha=0.4)
+        cbar = plt.colorbar(fraction=0.0231, pad=0.02)
+        cbar.set_label('Likelihood Quantile')
+        if save_figure:
+            fig_name = 'geo_' + self.stem + '.png'
             plt.savefig(os.path.join(self.logdir, fig_name), bbox_inches='tight')
         plt.show()

@@ -54,3 +54,9 @@ def get_gradient_norm(model):
         param_norm = p.grad.data.norm(2)
         total_norm += param_norm.item() ** 2
     return total_norm ** (0.5)
+
+
+def get_quantiles(x):
+    rank = np.searchsorted(sorted(x), x)
+    quantile = rank / len(rank)
+    return quantile
