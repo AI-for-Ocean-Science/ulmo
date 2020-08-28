@@ -1,6 +1,7 @@
 import os
 import time
 import h5py
+import pickle
 import sklearn
 import multiprocessing
 import numpy as np
@@ -56,6 +57,7 @@ class ProbabilisticAutoencoder:
             os.makedirs(datadir)
         
         self.device = device
+        self.scaler = None
         self.autoencoder = autoencoder.to(device)
         self.flow = flow.to(device)
         self.stem = os.path.splitext(os.path.split(filepath)[1])[0]
@@ -222,6 +224,10 @@ class ProbabilisticAutoencoder:
                                           desc='Computing valid latents')]
                     valid = self.scaler.transform(np.concatenate(z))
                     f.create_dataset('valid', data=valid); del valid
+            
+            scaler_path = os.path.join(self.logdir, self.stem + '_scaler.pkl')
+            with open(scaler_path, 'wb') as f:
+                pickle.dump(self.scaler, f)
         self.up_to_date_latents = True
     
     def _compute_log_probs(self):
@@ -334,6 +340,51 @@ class ProbabilisticAutoencoder:
         log_prob = self.flow.log_prob(z)
         log_prob = self.to_type(log_prob, t)
         return log_prob
+    
+    def compute_log_probs(self, input_file, dataset, output_file, scaler=None):
+        if scaler is None:
+            scaler = self.scaler
+            scaler_path = os.path.join(self.logdir, self.stem + '_scaler.pkl')
+            if self.scaler is None:
+                if os.path.exists(scaler_path):
+                    load = input("Scaler file found in logdir. Use this (y/n)?") == 'y'
+                    if load:
+                        with open(scaler_path, 'rb') as f:
+                            scaler = pickle.load(f)
+                    else:
+                        raise RuntimeError("No scaler provided. Saved scaler found but not loaded.")
+                else:
+                    raise RuntimeError("No scaler found or provided.")
+            
+        # Make PyTorch dataset from HDF5 file
+        assert input_file.endswith('.h5'), "Input file must be in .h5 format."
+        assert output_file.endswith('.h5'), "Output file must be in .h5 format."
+        
+        dset = HDF5Dataset(input_file, partition=dataset)
+        loader = torch.utils.data.DataLoader(
+            dset, batch_size=1024, shuffle=False, 
+            drop_last=False, collate_fn=id_collate,
+            num_workers=16)
+        
+        self.autoencoder.eval()
+        self.flow.eval()
+        
+        with torch.no_grad():
+            latents = [self.autoencoder.encode(data[0].to(self.device)).detach().cpu().numpy()
+                     for data in tqdm(loader, total=len(loader), unit='batch', desc='Computing latents')]
+        latents = scaler.transform(np.concatenate(latents))
+
+        dset = torch.utils.data.TensorDataset(torch.from_numpy(latents).float())
+        loader = torch.utils.data.DataLoader(
+            dset, batch_size=1024, shuffle=False, 
+            drop_last=False, num_workers=16)
+        
+        with h5py.File(output_file, 'w') as f:
+            with torch.no_grad():
+                log_prob = [self.flow.log_prob(data[0].to(self.device)).detach().cpu().numpy()
+                     for data in tqdm(loader, total=len(loader), unit='batch', desc='Computing log probs')]
+                f.create_dataset('log_probs', data=np.concatenate(log_prob))
+        print(f"Log probabilities saved to {output_file}.")  
     
     def save_log_probs(self):
         if not self.up_to_date_log_probs:
