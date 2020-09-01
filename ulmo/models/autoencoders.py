@@ -145,11 +145,10 @@ class DCAE(Autoencoder, nn.Module):
         return F.mse_loss(x, rx)
     
     @staticmethod
-    def from_file(f, cpu=False, **kwargs):
+    def from_file(f, device=None, **kwargs):
         model = DCAE(**kwargs)
-        if cpu:
-            model.load_state_dict(torch.load(f, map_location=torch.device('cpu')))
-        else:
-            model.load_state_dict(torch.load(f))
+        if device is None:
+            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        model.load_state_dict(torch.load(f, map_location=device))
         model.eval()
         return model
