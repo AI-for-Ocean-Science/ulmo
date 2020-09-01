@@ -64,7 +64,13 @@ class Autoencoder(ABC):
 
     
 class DCAE(Autoencoder, nn.Module):
-    """A deep convolutional autoencoder."""
+    """A deep convolutional autoencoder
+
+        Parameters
+            image_shape: tuple
+                colors, width, height
+
+    """
     
     def __init__(self, image_shape, latent_dim):
         super().__init__()
@@ -139,8 +145,11 @@ class DCAE(Autoencoder, nn.Module):
         return F.mse_loss(x, rx)
     
     @staticmethod
-    def from_file(f, **kwargs):
+    def from_file(f, cpu=False, **kwargs):
         model = DCAE(**kwargs)
-        model.load_state_dict(torch.load(f))
+        if cpu:
+            model.load_state_dict(torch.load(f, map_location=torch.device('cpu')))
+        else:
+            model.load_state_dict(torch.load(f))
         model.eval()
         return model
