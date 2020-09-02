@@ -26,6 +26,9 @@ def load_nc(filename, verbose=True):
             print("Data is corrupt!")
         return None, None, None, None
 
+    geo.close()
+    nav.close()
+
     # Return
     return sst, qual, latitude, longitude
 

@@ -342,6 +342,20 @@ class ProbabilisticAutoencoder:
         return log_prob
     
     def compute_log_probs(self, input_file, dataset, output_file, scaler=None):
+        """
+
+        Parameters
+        ----------
+        input_file
+        dataset
+        output_file
+        scaler
+
+        Returns
+        -------
+
+        """
+        '''
         if scaler is None:
             scaler = self.scaler
             scaler_path = os.path.join(self.logdir, self.stem + '_scaler.pkl')
@@ -355,7 +369,8 @@ class ProbabilisticAutoencoder:
                         raise RuntimeError("No scaler provided. Saved scaler found but not loaded.")
                 else:
                     raise RuntimeError("No scaler found or provided.")
-            
+        '''
+
         # Make PyTorch dataset from HDF5 file
         assert input_file.endswith('.h5'), "Input file must be in .h5 format."
         assert output_file.endswith('.h5'), "Output file must be in .h5 format."
@@ -371,7 +386,10 @@ class ProbabilisticAutoencoder:
         
         with torch.no_grad():
             latents = [self.autoencoder.encode(data[0].to(self.device)).detach().cpu().numpy()
-                     for data in tqdm(loader, total=len(loader), unit='batch', desc='Computing latents')]
+                     for data in loader]
+                     #for data in tqdm(loader, total=len(loader), unit='batch', desc='Computing latents')]
+
+        import pdb; pdb.set_trace()
         latents = scaler.transform(np.concatenate(latents))
 
         dset = torch.utils.data.TensorDataset(torch.from_numpy(latents).float())
