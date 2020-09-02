@@ -91,7 +91,7 @@ def main(pargs):
         unconditional_transform=False,
         encoder=None)
     flow.load_state_dict(torch.load(os.path.join(model_path, 'flow.pt'), map_location=device))
-    pae = ood.ProbabilisticAutoencoder(dcae, flow, 'tmp/', device=device)
+    pae = ood.ProbabilisticAutoencoder(dcae, flow, 'tmp/', device=device, skip_mkdir=True)
     print("Model loaded!")
 
     pae.autoencoder.eval()

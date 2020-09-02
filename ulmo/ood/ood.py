@@ -24,7 +24,7 @@ from ulmo.utils import HDF5Dataset, id_collate, get_quantiles
 class ProbabilisticAutoencoder:
     """A probabilistic autoencoder (see arxiv.org/abs/2006.05479)."""
     def __init__(self, autoencoder, flow, filepath, datadir=None, 
-                 logdir=None, device=None):
+                 logdir=None, device=None, skip_mkdir=False):
         """
         Parameters
             autoencoder: ulmo.models.Autoencoder
@@ -44,6 +44,8 @@ class ProbabilisticAutoencoder:
                 Location to store logs and models
             device: torch.device
                 Device to use for training and inference
+            skip_mkdir: bool, optional
+                If True, do not make any dirs
         """
         if logdir is None:
             logdir = './'
@@ -51,10 +53,11 @@ class ProbabilisticAutoencoder:
             datadir = os.path.split(filepath)[0]
         if device is None:
             device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        if not os.path.isdir(logdir):
-            os.makedirs(logdir)
-        if not os.path.isdir(datadir):
-            os.makedirs(datadir)
+        if not skip_mkdir:
+            if not os.path.isdir(logdir):
+                os.makedirs(logdir)
+            if not os.path.isdir(datadir):
+                os.makedirs(datadir)
         
         self.device = device
         self.scaler = None
