@@ -53,7 +53,7 @@ def main(pargs):
     field = sst[row:row + field_size[0], col:col + field_size[1]]
     mask = masks[row:row + field_size[0], col:col + field_size[1]]
 
-    print("This field has {:0.1f}% cloud coverage".format(100*mask.sum()/field.size))
+    print("This {} field has {:0.1f}% cloud coverage".format(field_size, 100*mask.sum()/field.size))
 
     # Pre-process
     pp_field, mu = pp_utils.preproc_field(field, mask)
@@ -126,4 +126,4 @@ def main(pargs):
                         for data in tqdm(loader, total=len(loader), unit='batch', desc='Computing log probs')]
     print("Log probabilities generated!")
 
-    print("The LL for this image is: {}".format(float(log_prob[0])))
+    print("The LL for the field is: {}".format(float(log_prob[0])))
