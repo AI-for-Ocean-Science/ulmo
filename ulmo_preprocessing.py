@@ -8,9 +8,9 @@ from tqdm import tqdm
 from functools import partial
 from concurrent.futures import ProcessPoolExecutor
 from sklearn.utils import shuffle
-from skimage.restoration import inpaint
-from scipy.ndimage import median_filter
-from skimage.transform import downscale_local_mean
+
+from ulmo.preproc import utils as pp_utils
+from ulmo import io
 
 
 def extract_patches_2d(image, patch_size, n_patches):
@@ -27,36 +27,15 @@ def extract_patches_2d(image, patch_size, n_patches):
 
 def extract_fields(f, load_path, field_size=(128, 128), clear_thresh=0.95, qual_thresh=2, 
                    nadir_offset=480, temp_bounds=(-2, 33), n_patches=3000):
-    
+
+    # I/O
     filename = os.path.join(load_path, f)
-    
-    geo = xr.open_dataset(
-        filename_or_obj=filename,
-        group='geophysical_data', 
-        engine='h5netcdf', 
-        mask_and_scale=True)
-    nav = xr.open_dataset(
-        filename_or_obj=filename,
-        group='navigation_data', 
-        engine='h5netcdf', 
-        mask_and_scale=True)
-    
-    try:
-        # Fails if data is corrupt
-        sst = np.array(geo['sst'])
-        qual = np.array(geo['qual_sst'])
-        latitude = np.array(nav['latitude'])
-        longitude = np.array(nav['longitude'])
-    except:
-        return
-    
-    sst[np.isnan(sst)] = np.nan
-    qual[np.isnan(qual)] = np.nan
-    masks = np.logical_or(np.isnan(sst), np.isnan(qual))
-    qual_masks = np.zeros_like(masks)
-    qual_masks[~masks] = (qual[~masks] > qual_thresh) | (sst[~masks] <= temp_bounds[0]) | (sst[~masks] > temp_bounds[1])
-    masks = np.logical_or(masks, qual_masks)
-    
+    sst, qual, latitude, longitude = io.load_nc(filename, verbose=False)
+
+    # Mask
+    masks = pp_utils.build_mask(sst, qual, qual_thresh=qual_thresh, temp_bounds=temp_bounds)
+
+    # Restrict to near nadir
     nadir_pix = sst.shape[1] // 2
     lb = nadir_pix - nadir_offset
     ub = nadir_pix + nadir_offset
@@ -71,19 +50,15 @@ def extract_fields(f, load_path, field_size=(128, 128), clear_thresh=0.95, qual_
     for field, mask, loc in zip(fields, masks, locs):
         clear_frac = 1. - mask.sum() / field.size
         if clear_frac >= clear_thresh:
-            mask = np.uint8(mask)
-            field = inpaint.inpaint_biharmonic(field, mask, multichannel=False)
-            field = median_filter(field, size=(3, 1))
-            field = downscale_local_mean(field, (2, 2))
-            if np.isnan(field).sum() > 0:
+            # Standard
+            field, mu = pp_utils.preproc_field(field, mask)
+            if field is None:  # Bad inpainting or the like
                 continue
-            # De-mean the field
-            mu = np.mean(field)
-            field = field - mu
-            row, col = loc[0], loc[1]+lb
             # Get latitude/longitude at center of field
-            lat = latitude[row+field_size[0]//2, col+field_size[1]//2] 
+            row, col = loc[0], loc[1]+lb
+            lat = latitude[row+field_size[0]//2, col+field_size[1]//2]
             lon = longitude[row+field_size[0]//2, col+field_size[1]//2]
+            # Save
             clear_fields.append(field)
             metadata.append([f, str(row), str(col), str(lat), str(lon), str(mu), str(clear_frac)])
     
