@@ -33,4 +33,8 @@ setup_keywords['packages'] = find_packages()
 setup_keywords['setup_requires'] = ['pytest-runner']
 setup_keywords['tests_require'] = ['pytest']
 
+if os.path.isdir('bin'):
+    setup_keywords['scripts'] = [fname for fname in glob.glob(os.path.join('bin', '*'))
+                                 if not os.path.basename(fname).endswith('.rst')]
+
 setup(**setup_keywords)
