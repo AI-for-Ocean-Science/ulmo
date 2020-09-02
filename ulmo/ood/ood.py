@@ -7,7 +7,6 @@ import multiprocessing
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as PathEffects
 import torch
@@ -20,6 +19,10 @@ from sklearn.preprocessing import StandardScaler
 from ulmo.plotting import load_palette, grid_plot
 from ulmo.utils import HDF5Dataset, id_collate, get_quantiles
 
+try:
+    import cartopy.crs as ccrs
+except:
+    print("Cartopy not installed.  Some plots will not work!")
 
 class ProbabilisticAutoencoder:
     """A probabilistic autoencoder (see arxiv.org/abs/2006.05479)."""
