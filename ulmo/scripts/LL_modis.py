@@ -57,6 +57,7 @@ def main(pargs):
 
     # Pre-process
     pp_field, mu = pp_utils.preproc_field(field, mask)
+    print("Preprocessing done!")
 
     # Show?
     if pargs.show:
@@ -112,7 +113,7 @@ def main(pargs):
     latents = np.concatenate(latents)
 
     # Debug
-    print("Debug: {}".format(np.sum(latents)))
+    #print("Debug: {}".format(np.sum(latents)))
 
     # LL
     dset = torch.utils.data.TensorDataset(torch.from_numpy(latents).float())
