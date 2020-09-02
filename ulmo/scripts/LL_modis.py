@@ -105,7 +105,8 @@ def main(pargs):
         drop_last=False, num_workers=16)
     with torch.no_grad():
         latents = [pae.autoencoder.encode(data[0].to(device)).detach().cpu().numpy()
-                   for data in tqdm(loader, total=len(loader), unit='batch', desc='Computing latents')]
+                   for data in loader]
+                   #for data in tqdm(loader, total=len(loader), unit='batch', desc='Computing latents')]
     print("Latents generated!")
 
     #latents = scaler.transform(np.concatenate(latents))
