@@ -30,6 +30,8 @@ def main(pargs):
     from matplotlib import pyplot as plt
     import seaborn as sns
 
+    import glob
+    import pickle
     import torch
     from tqdm.auto import tqdm
 
@@ -109,8 +111,12 @@ def main(pargs):
                    for data in tqdm(loader, total=len(loader), unit='batch', desc='Computing latents')]
     print("Latents generated!")
 
-    #latents = scaler.transform(np.concatenate(latents))
-    latents = np.concatenate(latents)
+    # Scaler
+    scaler_path = glob.glob(os.path.join(model_path, '*scaler.pkl'))[0]
+    with open(scaler_path, 'rb') as f:
+        scaler = pickle.load(f)
+    latents = scaler.transform(np.concatenate(latents))
+    #latents = np.concatenate(latents)
 
     # Debug
     #print("Debug: {}".format(np.sum(latents)))

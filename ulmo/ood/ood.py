@@ -361,7 +361,6 @@ class ProbabilisticAutoencoder:
         -------
 
         """
-        '''
         if scaler is None:
             scaler = self.scaler
             scaler_path = os.path.join(self.logdir, self.stem + '_scaler.pkl')
@@ -375,7 +374,6 @@ class ProbabilisticAutoencoder:
                         raise RuntimeError("No scaler provided. Saved scaler found but not loaded.")
                 else:
                     raise RuntimeError("No scaler found or provided.")
-        '''
 
         # Make PyTorch dataset from HDF5 file
         assert input_file.endswith('.h5'), "Input file must be in .h5 format."
