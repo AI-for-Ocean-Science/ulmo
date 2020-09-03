@@ -28,7 +28,7 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
     # Median
     if median:
         field = median_filter(field, size=med_size)
-        
+
     # Reduce to 64x64
     if downscale:
         field = downscale_local_mean(field, dscale_size)
