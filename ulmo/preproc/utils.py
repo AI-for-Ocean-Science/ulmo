@@ -6,7 +6,29 @@ from skimage.restoration import inpaint as sk_inpaint
 from scipy.ndimage import median_filter
 from skimage.transform import downscale_local_mean
 
+
 def build_mask(sst, qual, qual_thresh=2, temp_bounds=(-2,33)):
+    """
+    Generate a mask based on NaN, qual, and temperature bounds
+
+    Parameters
+    ----------
+    sst : np.ndarray
+        Full SST image
+    qual : np.ndarray
+        Quality image
+    qual_thresh : int
+        Quality threshold value;  qual must exceed this
+    temp_bounds : tuple
+        Temperature interval considered valid
+
+
+    Returns
+    -------
+    masks : np.ndarray
+        mask
+
+    """
     sst[np.isnan(sst)] = np.nan
     qual[np.isnan(qual)] = np.nan
     # Deal with NaN
@@ -18,8 +40,38 @@ def build_mask(sst, qual, qual_thresh=2, temp_bounds=(-2,33)):
     # Return
     return masks
 
+
 def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
                   downscale=True, dscale_size=(2,2)):
+    """
+    Preprocess an input field image with a series of steps:
+        1. Inpainting
+        2. Median
+        3. Downscale
+        4. Remove mean
+
+    Parameters
+    ----------
+    field : np.ndarray
+    mask : np.ndarray
+        Data mask.  True = masked
+    inpaint : bool, optional
+        if True, inpaint masked values
+    median : bool, optional
+        If True, apply a median filter
+    med_size : tuple
+        Median window to apply
+    downscale : bool, optional
+        If True downscale the image
+    dscale_size : tuple, optional
+        Size to rescale by
+
+    Returns
+    -------
+    pp_field, mu : np.ndarray, float
+        Pre-processed field, mean temperature
+
+    """
     # Inpaint?
     if inpaint:
         mask = np.uint8(mask)
@@ -39,9 +91,9 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
 
     # De-mean the field
     mu = np.mean(field)
-    field = field - mu
+    pp_field = field - mu
 
     # Return
-    return field, mu
+    return pp_field, mu
 
 
