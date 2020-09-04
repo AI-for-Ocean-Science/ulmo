@@ -34,6 +34,11 @@ def main(pargs):
     from ulmo import io as ulmo_io
     from ulmo.preproc import utils as pp_utils
 
+    # File check
+    if pargs.outfile[-3:] != '.h5':
+        print("outfile must have .h5 extension")
+        return
+
     # Init
     field_size = tuple([int(isz) for isz in pargs.field_size.split(',')])
 
@@ -83,8 +88,9 @@ def main(pargs):
     tbl['mu'] = mus
 
     # Write to disk
-    tbl.to_hdf(pargs.outfile, 'meta', mode='w')
+    tbl.to_csv(pargs.outfile.replace('.h5', '.csv'))
 
+    tbl.to_hdf(pargs.outfile, 'meta', mode='w')
     f = h5py.File(pargs.outfile, mode='a')
     # Add pre-processing steps
     for key in pdict:
