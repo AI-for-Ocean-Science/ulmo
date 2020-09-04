@@ -49,6 +49,7 @@ def main(pargs):
         outfile = '{:s}_{:s}.nc'.format(pargs.model, str(SST.time.values)[:19])
         # No clobber
         if os.path.isfile(outfile):
+            print("Not clobbering: {}".format(outfile))
             continue
         # Write
         write_sst(SST, outfile)
