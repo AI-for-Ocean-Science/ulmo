@@ -10,6 +10,8 @@ def parser(options=None):
     parser.add_argument("row", type=int, help="Row for the field")
     parser.add_argument("col", type=int, help="Column for the field")
     parser.add_argument("-s","--show", default=False, action="store_true", help="Show pre-processed image?")
+    parser.add_argument("--sigmoid", default=False, action="store_true", help="Sigmoid pre-process?")
+    parser.add_argument("--scale", type=float, help="Scale the image by this value")
     #parser.add_argument("-g", "--galaxy_options", type=str, help="Options for fg/host building (photom,cigale)")
     parser.add_argument("--model_env", type=str, default='SST_OOD_MODELDIR',
                         help="Environmental variable pointing to model directory")
@@ -58,7 +60,7 @@ def main(pargs):
     print("This {} field has {:0.1f}% cloud coverage".format(field_size, 100*mask.sum()/field.size))
 
     # Pre-process
-    pp_field, mu = pp_utils.preproc_field(field, mask)
+    pp_field, mu = pp_utils.preproc_field(field, mask, sigmoid=pargs.sigmoid, scale=pargs.scale)
     print("Preprocessing done!")
 
     # Show?
@@ -66,7 +68,14 @@ def main(pargs):
         pal, cm = plotting.load_palette()
         plt.clf()
         ax = plt.gca()
-        sns.heatmap(pp_field, ax=ax, xticklabels=[], yticklabels=[], cmap=cm, vmin=-5, vmax=5)
+        vmnx = [-5, 5]
+        if pargs.sigmoid:
+            vmnx = [-1,1]
+        if pargs.scale is not None:
+            vmnx = [item*pargs.scale for item in vmnx]
+
+        sns.heatmap(pp_field, ax=ax, xticklabels=[], yticklabels=[], cmap=cm,
+                    vmin=vmnx[0], vmax=vmnx[1])
         plt.show()
 
     # Load model
