@@ -47,9 +47,11 @@ def main(pargs):
         SST = ds_sst.Theta.isel(time=tt, k=0)  # , i=slice(1000,2000), j=slice(1000,2000))
         # Generate outfile name
         outfile = '{:s}_{:s}.nc'.format(pargs.model, str(SST.time.values)[:19])
+        # No clobber
+        if os.path.isfile(outfile):
+            continue
         # Write
         write_sst(SST, outfile)
         print("Wrote: {}".format(outfile))
-        import pdb; pdb.set_trace()
 
 
