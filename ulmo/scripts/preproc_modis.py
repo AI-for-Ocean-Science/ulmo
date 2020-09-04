@@ -43,6 +43,10 @@ def main(pargs):
     # For saving
     pp_fields, CCs, mus = [], [], []
 
+    # Pre-processing dict
+    pdict = dict(inpaint=True, median=True, med_size=(3, 1),
+                      downscale=True, dscale_size=(2, 2))
+
     # Loop on the rows
     for iid, tfield in tbl.iterrows():
         # Load the image
@@ -62,7 +66,7 @@ def main(pargs):
             print("This {} field has {:0.1f}% cloud coverage".format(field_size, CC))
 
         # Pre-process
-        pp_field, mu = pp_utils.preproc_field(field, mask)
+        pp_field, mu = pp_utils.preproc_field(field, mask, **pdict)
         if pp_field is None:
             print("Field at {},{} in {} failed preprocessing. Saving a null image".format(
                 tfield.row, tfield.col, tfield.file))
@@ -81,6 +85,10 @@ def main(pargs):
     tbl.to_hdf(pargs.outfile, 'meta', mode='w')
 
     f = h5py.File(pargs.outfile, mode='a')
+    # Add pre-processing steps
+    for key in pdict:
+        f.attrs[key] = pdict[key]
+    # Add images
     dset = f.create_dataset("pp_fields", compression='gzip', data=pp_fields)
     f.close()
 
