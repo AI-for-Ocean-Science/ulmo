@@ -39,10 +39,12 @@ def main(pargs):
     iter_step = tstep_hr*pargs.tstep
     ds_sst = model.get_dataset(varnames=[pargs.var], k_levels=[0], type='latlon',
                                iter_step=iter_step)  # , iter_step=960)  # Every 12 hours
+    print("Model is ready")
 
     # Loop me
     for tt in range(ds_sst.time.size):
-        SST = ds_sst.Theta.isel(time=0, k=0)  # , i=slice(1000,2000), j=slice(1000,2000))
+        print("Time step = {} of {}".format(tt, ds_sst.time.size))
+        SST = ds_sst.Theta.isel(time=tt, k=0)  # , i=slice(1000,2000), j=slice(1000,2000))
         # Generate outfile name
         outfile = '{:s}_{:s}.nc'.format(pargs.model, str(SST.time.values)[:19])
         # Write
