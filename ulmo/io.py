@@ -4,6 +4,24 @@ import numpy as np
 import xarray as xr
 
 def load_nc(filename, verbose=True):
+    """
+    Load a MODIS or equivalent .nc file
+
+    Parameters
+    ----------
+    filename : str
+    verbose : bool, optional
+
+    Returns
+    -------
+    sst, qual, latitude, longitude : np.ndarray, np.ndarray, np.ndarray np.ndarray
+        Temperture map
+        Quality
+        Latitutides
+        Longitudes
+        or None's if the data is corrupt!
+
+    """
     geo = xr.open_dataset(
         filename_or_obj=filename,
         group='geophysical_data',
