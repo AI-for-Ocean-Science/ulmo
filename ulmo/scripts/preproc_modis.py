@@ -70,7 +70,8 @@ def main(pargs):
         if pp_field is None:
             print("Field at {},{} in {} failed preprocessing. Saving a null image".format(
                 tfield.row, tfield.col, tfield.file))
-            pp_field = np.zeros((field_size[0]/2, field_size[0]/2))
+            pp_field = np.zeros((field_size[0]/pdict['dscale_size'][0],
+                                 field_size[0]/pdict['dscale_size'][1]))
 
         # Save
         pp_fields.append(pp_field)
