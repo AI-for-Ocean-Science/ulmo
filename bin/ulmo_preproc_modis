@@ -1,0 +1,15 @@
+#!/usr/bin/env python
+#
+# See top-level LICENSE file for Copyright information
+#
+# -*- coding: utf-8 -*-
+
+"""
+This script runs the pre-processing steps on a list of MODIS fields
+"""
+
+import ulmo.scripts.preproc_modis as preproc_modis
+
+if __name__ == '__main__':
+    args = preproc_modis.parser()
+    preproc_modis.main(args)
