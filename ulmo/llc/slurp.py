@@ -1,4 +1,5 @@
 """ Methods to slurp LLC data of interest"""
 
 
-def
+def write_sst():
+    pass
