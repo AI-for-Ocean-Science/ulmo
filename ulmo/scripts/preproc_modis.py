@@ -8,6 +8,7 @@ def parser(options=None):
     parser = argparse.ArgumentParser(description='Preproc list of MODIS fields. Filename, row, col')
     parser.add_argument("file", type=str, help="ASCII list of fields for pre-processing")
     parser.add_argument("outfile", type=str, help="Output file.  Should have .h5 extension")
+    parser.add_argument("--path", type=str, default=None, help='Path to append to filenames')
     parser.add_argument("--field_size", type=str, default='128,128', help='Field size, before downscale.  e.g. 128,128')
     parser.add_argument("--skip_inpaint", default=False, action="store_true",
                         help="Skip inpainting?")
@@ -54,8 +55,12 @@ def main(pargs):
 
     # Loop on the rows
     for iid, tfield in tbl.iterrows():
+        # Filename
+        ifile = tfield.file
+        if pargs.path is not None:
+            ifile = os.path.join(pargs.path, ifile)
         # Load the image
-        sst, qual, latitude, longitude = ulmo_io.load_nc(tfield.file, verbose=False)
+        sst, qual, latitude, longitude = ulmo_io.load_nc(ifile, verbose=False)
 
         # Generate the masks
         masks = pp_utils.build_mask(sst, qual)
@@ -100,3 +105,4 @@ def main(pargs):
     f.close()
 
     print("Wrote: {}".format(pargs.outfile))
+    print("Wrote: {}".format(pargs.outfile.replace('.h5', '.csv')))
