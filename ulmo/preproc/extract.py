@@ -13,8 +13,8 @@ def random_clear(mask, field_size, CC_max=0.05, ndraw_mnx=(10,1000),
     # Clear
     mask_edge = np.zeros_like(mask)
     mask_edge[:field_size//2,:] = True
-    mask_edge[field_size//2:,:] = True
-    mask_edge[:,field_size//2:] = True
+    mask_edge[-field_size//2:,:] = True
+    mask_edge[:,-field_size//2:] = True
     mask_edge[:,:field_size//2] = True
     clear = (CC_mask < CC_max) & np.invert(mask_edge)
 

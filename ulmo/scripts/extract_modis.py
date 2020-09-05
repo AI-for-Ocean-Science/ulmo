@@ -39,6 +39,7 @@ def parser(options=None):
     parser.add_argument('--nmax_patches', type=int, default=1000,
                         help='Maximum number of random patches to consider from each file')
     parser.add_argument("--debug", default=False, action="store_true", help="Debug?")
+    parser.add_argument("--wolverine", default=False, action="store_true", help="Run on Wolverine")
     args = parser.parse_args()
 
     if options is None:
@@ -96,11 +97,13 @@ def extract_file(ifile, load_path, field_size=(128,128), nadir_offset=480,
 def main(pargs):
     """ Run
     """
-    #load_path = f'/home/xavier/Projects/Oceanography/AI/OOD'
-    #save_path = (f'TST_{pargs.year}'
     load_path = f'/Volumes/Aqua-1/MODIS/night/night/{pargs.year}'
     save_path = (f'/Volumes/Aqua-1/MODIS/uri-ai-sst/xavier/MODIS_{pargs.year}'
                  f'_{pargs.clear_threshold}clear_{pargs.field_size}x{pargs.field_size}.h5')
+    if pargs.wolverine:
+        load_path = f'/home/xavier/Projects/Oceanography/AI/OOD'
+        save_path = (f'TST_{pargs.year}'
+            f'_{pargs.clear_threshold}clear_{pargs.field_size}x{pargs.field_size}.h5')
 
     map_fn = partial(extract_file,
                      load_path=load_path,
@@ -113,7 +116,8 @@ def main(pargs):
 
     if pargs.debug:
         files = [f for f in os.listdir(load_path) if f.endswith('.nc')]
-        files = files[0:100]
+        if not pargs.wolverine:
+            files = files[0:100]
         answers = []
         for kk, ifile in enumerate(files):
             answers.append(extract_file(ifile,
