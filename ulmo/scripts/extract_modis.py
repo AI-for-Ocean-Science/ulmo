@@ -87,7 +87,10 @@ def extract_file(ifile, load_path, field_size=(128,128), nadir_offset=480,
         lon = longitude[row + field_size[0] // 2, col + field_size[1] // 2]
         metadata.append([ifile, str(row), str(col), str(lat), str(lon), str(clear_frac)])
 
-    return np.stack(fields), np.stack(field_masks), np.stack(metadata)
+    try:
+        return np.stack(fields), np.stack(field_masks), np.stack(metadata)
+    except:
+        embed(header='93 of extract')
 
 def main(pargs):
     """ Run
@@ -120,6 +123,7 @@ def main(pargs):
                      nadir_offset=pargs.nadir_offset,
                      temp_bounds=(pargs.temp_lower_bound, pargs.temp_upper_bound),
                      ndraw_mnx=(pargs.nmin_patches, pargs.nmax_patches)))
+            print("kk: {}".format(kk))
         embed(header='123 of extract')
 
     n_cores = multiprocessing.cpu_count()
