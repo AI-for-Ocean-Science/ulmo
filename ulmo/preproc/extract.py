@@ -4,7 +4,7 @@ import numpy as np
 from scipy.ndimage import uniform_filter
 
 
-def random_clear(mask, field_size, CC_max=0.05, ndraw_mnx=(10,1000),
+def random_clear(mask, field_size, CC_max=0.05, ndraw_mnx=(2,1000),
                    min_clear_patch=1000):
 
     # Sum across the image
@@ -26,8 +26,8 @@ def random_clear(mask, field_size, CC_max=0.05, ndraw_mnx=(10,1000),
     if nclear < min_clear_patch:
         return None, None, None
 
-    ndraw2 = 4 * ((nclear // field_size ** 2) + 1)
-    ndraw = int(3000 * nclear / mask.size)
+    ndraw = 8 * ((nclear // field_size ** 2) + 1)
+    ndraw2 = 1 # int(3000 * nclear / mask.size)  # DR scaling
     ndraw = np.maximum(ndraw, ndraw2)
     ndraw = np.minimum(ndraw, ndraw_mnx[1])
     ndraw = np.maximum(ndraw, ndraw_mnx[0])

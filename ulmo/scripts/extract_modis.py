@@ -137,7 +137,7 @@ def main(pargs):
     with ProcessPoolExecutor(max_workers=n_cores) as executor:
         files = [f for f in os.listdir(load_path) if f.endswith('.nc')]
         if pargs.debug:
-            files = files[0:100]
+            files = files[0:1000]
         chunksize = len(files) // n_cores if len(files) // n_cores > 0 else 1
         answers = list(tqdm(executor.map(map_fn, files, chunksize=chunksize), total=len(files)))
 
