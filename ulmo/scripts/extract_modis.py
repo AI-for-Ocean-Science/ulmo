@@ -117,7 +117,7 @@ def main(pargs):
                      ndraw_mnx=(pargs.nmin_patches, pargs.nmax_patches),
                      nrepeat=pargs.nrepeat)
 
-    '''
+
     if pargs.debug:
         files = [f for f in os.listdir(load_path) if f.endswith('.nc')]
         if not pargs.wolverine:
@@ -134,7 +134,7 @@ def main(pargs):
                      ndraw_mnx=(pargs.nmin_patches, pargs.nmax_patches)))
             print("kk: {}".format(kk))
         embed(header='123 of extract')
-    '''
+
 
     n_cores = multiprocessing.cpu_count()
     with ProcessPoolExecutor(max_workers=n_cores) as executor:
