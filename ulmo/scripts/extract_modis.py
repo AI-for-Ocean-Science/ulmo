@@ -110,7 +110,6 @@ def main(pargs):
                      qual_thresh=pargs.quality_threshold,
                      nadir_offset=pargs.nadir_offset,
                      temp_bounds=(pargs.temp_lower_bound, pargs.temp_upper_bound),
-                     ndraw_mnx=(pargs.nmin_patches, pargs.nmax_patches),
                      nrepeat=pargs.nrepeat)
 
 
