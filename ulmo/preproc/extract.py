@@ -5,7 +5,7 @@ from scipy.ndimage import uniform_filter
 
 
 def random_clear(mask, field_size, CC_max=0.05, ndraw_mnx=(2,1000),
-                   min_clear_patch=1000):
+                 nrepeat=12):
 
     # Sum across the image
     CC_mask = uniform_filter(mask.astype(float), field_size, mode='constant', cval=1.)
@@ -23,12 +23,10 @@ def random_clear(mask, field_size, CC_max=0.05, ndraw_mnx=(2,1000),
     nclear = idx_clear[0].size
 
     # Enough clear?
-    if nclear < min_clear_patch:
+    if nclear == 0:
         return None, None, None
 
-    ndraw = 8 * ((nclear // field_size ** 2) + 1)
-    ndraw2 = 1 # int(3000 * nclear / mask.size)  # DR scaling
-    ndraw = np.maximum(ndraw, ndraw2)
+    ndraw = nrepeat * (nclear // field_size ** 2)
     ndraw = np.minimum(ndraw, ndraw_mnx[1])
     ndraw = np.maximum(ndraw, ndraw_mnx[0])
 

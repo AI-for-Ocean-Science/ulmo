@@ -34,7 +34,9 @@ def parser(options=None):
                         help='Minimum temperature considered')
     parser.add_argument('--temp_upper_bound', type=float, default=33.,
                         help='Maximum temperature considered')
-    parser.add_argument('--nmin_patches', type=int, default=10,
+    parser.add_argument('--nrepeat', type=int, default=12,
+                        help='Repeats for each good block')
+    parser.add_argument('--nmin_patches', type=int, default=2,
                         help='Mininum number of random patches to consider from each file')
     parser.add_argument('--nmax_patches', type=int, default=1000,
                         help='Maximum number of random patches to consider from each file')
@@ -51,7 +53,7 @@ def parser(options=None):
 
 def extract_file(ifile, load_path, field_size=(128,128), nadir_offset=480,
                  CC_max=0.05, qual_thresh=2, temp_bounds = (-2, 33),
-                 ndraw_mnx=(10,1000)):
+                 ndraw_mnx=(2,1000), nrepeat=12):
 
     filename = os.path.join(load_path, ifile)
 
@@ -71,7 +73,7 @@ def extract_file(ifile, load_path, field_size=(128,128), nadir_offset=480,
 
     # Random clear rows, cols
     rows, cols, clear_fracs = extract.random_clear(masks, field_size[0], CC_max=CC_max,
-                                                   ndraw_mnx=ndraw_mnx)
+                                                   ndraw_mnx=ndraw_mnx, nrepeat=nrepeat)
     if rows is None:
         return
 
@@ -112,7 +114,8 @@ def main(pargs):
                      qual_thresh=pargs.quality_threshold,
                      nadir_offset=pargs.nadir_offset,
                      temp_bounds=(pargs.temp_lower_bound, pargs.temp_upper_bound),
-                     ndraw_mnx=(pargs.nmin_patches, pargs.nmax_patches))
+                     ndraw_mnx=(pargs.nmin_patches, pargs.nmax_patches),
+                     nrepeat=pargs.nrepeat)
 
     '''
     if pargs.debug:
