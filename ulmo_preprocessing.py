@@ -90,7 +90,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     load_path = f'/Volumes/Aqua-1/MODIS/night/night/{args.year}'
-    load_path = f'/home/xavier/Projects/Oceanography/AI/OOD'
     save_path = (f'/Volumes/Aqua-1/MODIS/uri-ai-sst/dreiman/MODIS_{args.year}'
         f'_{args.clear_threshold}clear_{args.field_size}x{args.field_size}.h5')
 
@@ -101,10 +100,9 @@ if __name__ == '__main__':
 
     n_cores = multiprocessing.cpu_count()
     with ProcessPoolExecutor(max_workers=n_cores) as executor:
-        files = [f for f in os.listdir(load_path) if f.endswith('.nc')] *2
+        files = [f for f in os.listdir(load_path) if f.endswith('.nc')]
         chunksize = len(files)//n_cores if len(files)//n_cores > 0 else 1
         fields = list(tqdm(executor.map(map_fn, files, chunksize=chunksize), total=len(files)))
-        import pdb; pdb.set_trace()
         fields, metadata = np.array([f for f in fields if f is not None]).T
         fields, metadata = np.concatenate(fields), np.concatenate(metadata)
 

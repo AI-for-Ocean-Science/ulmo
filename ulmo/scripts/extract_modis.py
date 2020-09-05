@@ -38,6 +38,7 @@ def parser(options=None):
                         help='Mininum number of random patches to consider from each file')
     parser.add_argument('--nmax_patches', type=int, default=1000,
                         help='Maximum number of random patches to consider from each file')
+    parser.add_argument("--debug", default=False, action="store_true", help="Debug?")
     args = parser.parse_args()
 
     if options is None:
@@ -86,16 +87,15 @@ def extract_file(ifile, load_path, field_size=(128,128), nadir_offset=480,
         lon = longitude[row + field_size[0] // 2, col + field_size[1] // 2]
         metadata.append([ifile, str(row), str(col), str(lat), str(lon), str(clear_frac)])
 
-    #return np.stack(fields), np.stack(field_masks), np.stack(metadata)
-    return np.stack(fields), np.stack(metadata)
+    return np.stack(fields), np.stack(field_masks), np.stack(metadata)
 
 def main(pargs):
     """ Run
     """
-    #load_path = f'/Volumes/Aqua-1/MODIS/night/night/{pargs.year}'
-    load_path = f'/home/xavier/Projects/Oceanography/AI/OOD'
-    #save_path = (f'/Volumes/Aqua-1/MODIS/uri-ai-sst/dreiman/MODIS_{pargs.year}'
-    save_path = (f'{load_path}_{pargs.year}'
+    #load_path = f'/home/xavier/Projects/Oceanography/AI/OOD'
+    #save_path = (f'TST_{pargs.year}'
+    load_path = f'/Volumes/Aqua-1/MODIS/night/night/{pargs.year}'
+    save_path = (f'/Volumes/Aqua-1/MODIS/uri-ai-sst/xavier/MODIS_{pargs.year}'
                  f'_{pargs.clear_threshold}clear_{pargs.field_size}x{pargs.field_size}.h5')
 
     map_fn = partial(extract_file,
@@ -109,28 +109,26 @@ def main(pargs):
 
     n_cores = multiprocessing.cpu_count()
     with ProcessPoolExecutor(max_workers=n_cores) as executor:
-        files = [f for f in os.listdir(load_path) if f.endswith('.nc')] *2
+        files = [f for f in os.listdir(load_path) if f.endswith('.nc')]
+        if pargs.debug:
+            files = files[0:1000]
         chunksize = len(files) // n_cores if len(files) // n_cores > 0 else 1
-        fields = list(tqdm(executor.map(map_fn, files, chunksize=chunksize), total=len(files)))
+        answers = list(tqdm(executor.map(map_fn, files, chunksize=chunksize), total=len(files)))
 
-    embed(header='115 of extract_modis')
-    fields, metadata = np.array([f for f in fields if f is not None]).T
-    fields, masks, metadata = np.array([f for f in fields if f is not None]).T
-    fields, masks, metadata = np.concatenate(fields), np.concatenate(masks), np.concatenate(metadata)
+    # Trim None's
+    answers = [f for f in answers if f is not None]
+    fields = np.concatenate([item[0] for item in answers])
+    masks = np.concatenate([item[1] for item in answers])
+    metadata = np.concatenate([item[2] for item in answers])
+    del answers
+    #fields, masks, metadata = np.array([f for f in fields if f is not None]).T
+    #fields, masks, metadata = np.concatenate(fields), np.concatenate(masks), np.concatenate(metadata)
 
-    embed(header='106 of extract_modis')
-
-    fields = fields[:, None, :, :]
-    n = int(args.valid_fraction * fields.shape[0])
-    idx = shuffle(np.arange(fields.shape[0]))
-    valid_idx, train_idx = idx[:n], idx[n:]
+    # Write
     columns = ['filename', 'row', 'column', 'latitude', 'longitude', 'mean_temperature', 'clear_fraction']
 
     with h5py.File(save_path, 'w') as f:
-        f.create_dataset('train', data=fields[train_idx].astype(np.float32))
-        dset = f.create_dataset('train_metadata', data=metadata[train_idx].astype('S'))
+        f.create_dataset('fields', data=fields.astype(np.float32))
+        f.create_dataset('masks', data=masks.astype(np.int8))
+        dset = f.create_dataset('metadata', data=metadata.astype('S'))
         dset.attrs['columns'] = columns
-        f.create_dataset('valid', data=fields[valid_idx].astype(np.float32))
-        dset = f.create_dataset('valid_metadata', data=metadata[valid_idx].astype('S'))
-        dset.attrs['columns'] = columns
-
