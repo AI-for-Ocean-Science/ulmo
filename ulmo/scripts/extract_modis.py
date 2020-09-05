@@ -79,8 +79,8 @@ def extract_file(ifile, load_path, field_size=(128,128), nadir_offset=480,
     metadata = []
     for r, c, clear_frac in zip(rows, cols, clear_fracs):
         # Avoid edges
-        if r < 0 or c < 0 or (r+field_size[0] > sst.shape[0]) or (c+field_size[1] > sst.shape[1]):
-            continue
+        #if r < 0 or c < 0 or (r+field_size[0] > sst.shape[0]) or (c+field_size[1] > sst.shape[1]):
+        #    continue
         # SST and mask
         fields.append(sst[r:r+field_size[0], c:c+field_size[1]])
         field_masks.append(masks[r:r+field_size[0], c:c+field_size[1]])
@@ -89,11 +89,9 @@ def extract_file(ifile, load_path, field_size=(128,128), nadir_offset=480,
         lat = latitude[row + field_size[0] // 2, col + field_size[1] // 2]
         lon = longitude[row + field_size[0] // 2, col + field_size[1] // 2]
         metadata.append([ifile, str(row), str(col), str(lat), str(lon), str(clear_frac)])
+    print("n_field = {}".format(len(fields)))
 
-    try:
-        return np.stack(fields), np.stack(field_masks), np.stack(metadata)
-    except:
-        embed(header='93 of extract')
+    return np.stack(fields), np.stack(field_masks), np.stack(metadata)
 
 def main(pargs):
     """ Run
@@ -113,7 +111,6 @@ def main(pargs):
                      temp_bounds=(pargs.temp_lower_bound, pargs.temp_upper_bound),
                      ndraw_mnx=(pargs.nmin_patches, pargs.nmax_patches))
 
-    '''
     if pargs.debug:
         files = [f for f in os.listdir(load_path) if f.endswith('.nc')]
         files = files[0:100]
@@ -129,7 +126,6 @@ def main(pargs):
                      ndraw_mnx=(pargs.nmin_patches, pargs.nmax_patches)))
             print("kk: {}".format(kk))
         embed(header='123 of extract')
-    '''
 
     n_cores = multiprocessing.cpu_count()
     with ProcessPoolExecutor(max_workers=n_cores) as executor:
