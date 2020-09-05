@@ -6,8 +6,9 @@ from scipy.ndimage import uniform_filter
 from IPython import embed
 
 
-def random_clear(mask, field_size, CC_max=0.05, ndraw_mnx=(2,1000),
-                 nrepeat=12):
+def random_clear(mask, field_size, CC_max=0.05,
+                 ndraw_mnx=(2,1000),
+                 nran_draw=1):
 
     # Sum across the image
     CC_mask = uniform_filter(mask.astype(float), field_size, mode='constant', cval=1.)
@@ -23,9 +24,10 @@ def random_clear(mask, field_size, CC_max=0.05, ndraw_mnx=(2,1000),
     # Indices
     idx_clear = np.where(clear)
     nclear = idx_clear[0].size
+    keep = np.zeros_like(idx_clear[0], dtype=bool)
 
     # Enough clear?
-    if nclear < ndraw_mnx[0]:
+    if nclear < nran_draw:
         return None, None, None
 
     #ndraw = nrepeat * (nclear // field_size ** 2)
@@ -35,20 +37,27 @@ def random_clear(mask, field_size, CC_max=0.05, ndraw_mnx=(2,1000),
     # Sub-grid me
     sub_size = field_size // 4
     rows = np.arange(mask.shape[0]) // sub_size + 1
-    cols = np.arange(mask.shape[1]) // sub_size + 1
-    sub_grid = np.outer(rows, cols)
-    embed(header='39 of extract')
+    cols = np.arange(mask.shape[1]) // sub_size * 64
+    sub_grid = np.outer(rows, np.ones(mask.shape[1], dtype=int)) + np.outer(
+        np.ones(mask.shape[0], dtype=int), cols)
 
+    #
+    sub_values = sub_grid[idx_clear]
+    uni_sub, counts = np.unique(sub_values, return_counts=True)
+    for iuni, icount in zip(uni_sub, counts):
+        mt = np.where(sub_values == iuni)[0]
+        r_idx = np.random.choice(icount, size=min(icount, nran_draw))
+        keep[mt[r_idx]] = True
 
     # Pick em, randomly
-    r_idx = np.random.choice(nclear, size=ndraw)
+    #r_idx = np.random.choice(nclear, size=ndraw)
 
     # Offset to lower left corner
-    picked_row = idx_clear[0][r_idx] - field_size//2
-    picked_col = idx_clear[1][r_idx] - field_size//2
+    picked_row = idx_clear[0][keep] - field_size//2
+    picked_col = idx_clear[1][keep] - field_size//2
 
     # Return
-    return picked_row, picked_col, CC_mask[idx_clear][r_idx]
+    return picked_row, picked_col, CC_mask[idx_clear][keep]
 
 
 

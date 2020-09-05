@@ -34,7 +34,7 @@ def parser(options=None):
                         help='Minimum temperature considered')
     parser.add_argument('--temp_upper_bound', type=float, default=33.,
                         help='Maximum temperature considered')
-    parser.add_argument('--nrepeat', type=int, default=12,
+    parser.add_argument('--nrepeat', type=int, default=1,
                         help='Repeats for each good block')
     parser.add_argument('--nmin_patches', type=int, default=2,
                         help='Mininum number of random patches to consider from each file')
@@ -52,8 +52,7 @@ def parser(options=None):
 
 
 def extract_file(ifile, load_path, field_size=(128,128), nadir_offset=480,
-                 CC_max=0.05, qual_thresh=2, temp_bounds = (-2, 33),
-                 ndraw_mnx=(2,1000), nrepeat=12):
+                 CC_max=0.05, qual_thresh=2, temp_bounds = (-2, 33), nrepeat=1):
 
     filename = os.path.join(load_path, ifile)
 
@@ -73,7 +72,7 @@ def extract_file(ifile, load_path, field_size=(128,128), nadir_offset=480,
 
     # Random clear rows, cols
     rows, cols, clear_fracs = extract.random_clear(masks, field_size[0], CC_max=CC_max,
-                                                   ndraw_mnx=ndraw_mnx, nrepeat=nrepeat)
+                                                   nran_draw=nrepeat)
     if rows is None:
         return
 
@@ -81,9 +80,6 @@ def extract_file(ifile, load_path, field_size=(128,128), nadir_offset=480,
     fields, field_masks = [], []
     metadata = []
     for r, c, clear_frac in zip(rows, cols, clear_fracs):
-        # Avoid edges
-        #if r < 0 or c < 0 or (r+field_size[0] > sst.shape[0]) or (c+field_size[1] > sst.shape[1]):
-        #    continue
         # SST and mask
         fields.append(sst[r:r+field_size[0], c:c+field_size[1]])
         field_masks.append(masks[r:r+field_size[0], c:c+field_size[1]])
@@ -119,7 +115,7 @@ def main(pargs):
 
 
     if pargs.debug:
-        files = [f for f in os.listdir(load_path) if f.endswith('.nc')]
+        files = [f for f in os.listdir(load_path) if f.endswith('.nc')] 
         if not pargs.wolverine:
             files = files[0:100]
         answers = []
@@ -131,7 +127,7 @@ def main(pargs):
                      qual_thresh=pargs.quality_threshold,
                      nadir_offset=pargs.nadir_offset,
                      temp_bounds=(pargs.temp_lower_bound, pargs.temp_upper_bound),
-                     ndraw_mnx=(pargs.nmin_patches, pargs.nmax_patches)))
+                     nrepeat=pargs.nrepeat))
             print("kk: {}".format(kk))
         embed(header='123 of extract')
 
@@ -139,7 +135,9 @@ def main(pargs):
     n_cores = multiprocessing.cpu_count()
     with ProcessPoolExecutor(max_workers=n_cores) as executor:
         files = [f for f in os.listdir(load_path) if f.endswith('.nc')]
-        if pargs.debug:
+        if pargs.wolverine:
+            files = [f for f in os.listdir(load_path) if f.endswith('.nc')]*4
+        elif pargs.debug:
             files = files[0:1000]
         chunksize = len(files) // n_cores if len(files) // n_cores > 0 else 1
         answers = list(tqdm(executor.map(map_fn, files, chunksize=chunksize), total=len(files)))
