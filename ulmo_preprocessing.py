@@ -65,6 +65,7 @@ def extract_fields(f, load_path, field_size=(128, 128), clear_thresh=0.95, qual_
     if len(clear_fields) == 0:
         return
     else:
+        print("nclear = {}".format(len(clear_fields)))
         return np.stack(clear_fields), np.stack(metadata)
 
 if __name__ == '__main__':
@@ -86,11 +87,12 @@ if __name__ == '__main__':
     parser.add_argument('--n_patches', type=int, default=3000,
                         help='Number of random patches to consider from each file')  
     parser.add_argument('--valid_fraction', type=float, default=0.05,
-                        help='Fraction of fields to holdout for validation') 
+                        help='Fraction of fields to holdout for validation')
+    parser.add_argument("--debug", default=False, action="store_true", help="Debug?")
     args = parser.parse_args()
     
     load_path = f'/Volumes/Aqua-1/MODIS/night/night/{args.year}'
-    save_path = (f'/Volumes/Aqua-1/MODIS/uri-ai-sst/dreiman/MODIS_{args.year}'
+    save_path = (f'/Volumes/Aqua-1/MODIS/uri-ai-sst/xavier/MODIS_{args.year}'
         f'_{args.clear_threshold}clear_{args.field_size}x{args.field_size}.h5')
 
     map_fn = partial(extract_fields, load_path=load_path, field_size=(args.field_size, args.field_size),
@@ -101,6 +103,8 @@ if __name__ == '__main__':
     n_cores = multiprocessing.cpu_count()
     with ProcessPoolExecutor(max_workers=n_cores) as executor:
         files = [f for f in os.listdir(load_path) if f.endswith('.nc')]
+        if args.debug:
+            files = files[0:100]
         chunksize = len(files)//n_cores if len(files)//n_cores > 0 else 1
         fields = list(tqdm(executor.map(map_fn, files, chunksize=chunksize), total=len(files)))
         fields, metadata = np.array([f for f in fields if f is not None]).T
