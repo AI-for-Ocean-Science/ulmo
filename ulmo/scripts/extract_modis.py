@@ -78,6 +78,9 @@ def extract_file(ifile, load_path, field_size=(128,128), nadir_offset=480,
     fields, field_masks = [], []
     metadata = []
     for r, c, clear_frac in zip(rows, cols, clear_fracs):
+        # Avoid edge
+        if r < 0 or c < 0:
+            continue
         # SST and mask
         fields.append(sst[r:r+field_size[0], c:c+field_size[1]])
         field_masks.append(masks[r:r+field_size[0], c:c+field_size[1]])
