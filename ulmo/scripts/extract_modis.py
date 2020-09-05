@@ -52,7 +52,8 @@ def parser(options=None):
 
 
 def extract_file(ifile, load_path, field_size=(128,128), nadir_offset=480,
-                 CC_max=0.05, qual_thresh=2, temp_bounds = (-2, 33), nrepeat=1):
+                 CC_max=0.05, qual_thresh=2, temp_bounds = (-2, 33), nrepeat=1,
+                 debug=False):
 
     filename = os.path.join(load_path, ifile)
 
@@ -88,7 +89,8 @@ def extract_file(ifile, load_path, field_size=(128,128), nadir_offset=480,
         lat = latitude[row + field_size[0] // 2, col + field_size[1] // 2]
         lon = longitude[row + field_size[0] // 2, col + field_size[1] // 2]
         metadata.append([ifile, str(row), str(col), str(lat), str(lon), str(clear_frac)])
-    print("f: {}, n_field = {}".format(ifile, len(fields)))
+    if debug:
+        print("f: {}, n_field = {}".format(ifile, len(fields)))
 
     return np.stack(fields), np.stack(field_masks), np.stack(metadata)
 
@@ -110,7 +112,8 @@ def main(pargs):
                      qual_thresh=pargs.quality_threshold,
                      nadir_offset=pargs.nadir_offset,
                      temp_bounds=(pargs.temp_lower_bound, pargs.temp_upper_bound),
-                     nrepeat=pargs.nrepeat)
+                     nrepeat=pargs.nrepeat,
+                     debug=pargs.debug)
 
 
     '''
@@ -138,7 +141,7 @@ def main(pargs):
         if pargs.wolverine:
             files = [f for f in os.listdir(load_path) if f.endswith('.nc')]*4
         elif pargs.debug:
-            files = files[0:1000]
+            files = files[0:5000]
         chunksize = len(files) // n_cores if len(files) // n_cores > 0 else 1
         answers = list(tqdm(executor.map(map_fn, files, chunksize=chunksize), total=len(files)))
 
