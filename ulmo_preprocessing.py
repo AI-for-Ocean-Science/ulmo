@@ -90,28 +90,30 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     load_path = f'/Volumes/Aqua-1/MODIS/night/night/{args.year}'
+    load_path = f'/home/xavier/Projects/Oceanography/AI/OOD'
     save_path = (f'/Volumes/Aqua-1/MODIS/uri-ai-sst/dreiman/MODIS_{args.year}'
         f'_{args.clear_threshold}clear_{args.field_size}x{args.field_size}.h5')
-    
-    map_fn = partial(extract_fields, load_path=load_path, field_size=(args.field_size, args.field_size), 
-                     clear_thresh=args.clear_threshold/100., qual_thresh=args.quality_threshold, 
-                     nadir_offset=args.nadir_offset, temp_bounds=(args.temp_lower_bound, args.temp_upper_bound), 
+
+    map_fn = partial(extract_fields, load_path=load_path, field_size=(args.field_size, args.field_size),
+                     clear_thresh=args.clear_threshold/100., qual_thresh=args.quality_threshold,
+                     nadir_offset=args.nadir_offset, temp_bounds=(args.temp_lower_bound, args.temp_upper_bound),
                      n_patches=args.n_patches)
-    
+
     n_cores = multiprocessing.cpu_count()
     with ProcessPoolExecutor(max_workers=n_cores) as executor:
-        files = [f for f in os.listdir(load_path) if f.endswith('.nc')]
+        files = [f for f in os.listdir(load_path) if f.endswith('.nc')] *2
         chunksize = len(files)//n_cores if len(files)//n_cores > 0 else 1
         fields = list(tqdm(executor.map(map_fn, files, chunksize=chunksize), total=len(files)))
+        import pdb; pdb.set_trace()
         fields, metadata = np.array([f for f in fields if f is not None]).T
         fields, metadata = np.concatenate(fields), np.concatenate(metadata)
-        
+
     fields = fields[:, None, :, :]
     n = int(args.valid_fraction * fields.shape[0])
     idx = shuffle(np.arange(fields.shape[0]))
     valid_idx, train_idx = idx[:n], idx[n:]
     columns = ['filename', 'row', 'column', 'latitude', 'longitude', 'mean_temperature', 'clear_fraction']
-    
+
     with h5py.File(save_path, 'w') as f:
         f.create_dataset('train', data=fields[train_idx].astype(np.float32))
         dset = f.create_dataset('train_metadata', data=metadata[train_idx].astype('S'))
