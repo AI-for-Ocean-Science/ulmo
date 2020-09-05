@@ -65,7 +65,7 @@ def extract_fields(f, load_path, field_size=(128, 128), clear_thresh=0.95, qual_
     if len(clear_fields) == 0:
         return
     else:
-        print("f: {}, nclear = {}".format(f, len(clear_fields)))
+        print("f: {}, nclear = {}, frac={}".format(f, len(clear_fields)))
         return np.stack(clear_fields), np.stack(metadata)
 
 if __name__ == '__main__':

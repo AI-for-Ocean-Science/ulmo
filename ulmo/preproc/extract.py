@@ -26,7 +26,8 @@ def random_clear(mask, field_size, CC_max=0.05, ndraw_mnx=(10,1000),
     if nclear < min_clear_patch:
         return None, None, None
 
-    ndraw = 2 * ((nclear // field_size ** 2) + 1)
+    #ndraw = 2 * ((nclear // field_size ** 2) + 1)
+    ndraw = int(3000 * nclear / mask.size)
     ndraw = np.minimum(ndraw, ndraw_mnx[1])
     ndraw = np.maximum(ndraw, ndraw_mnx[0])
 
