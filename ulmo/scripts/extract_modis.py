@@ -89,8 +89,8 @@ def extract_file(ifile, load_path, field_size=(128,128), nadir_offset=480,
         lat = latitude[row + field_size[0] // 2, col + field_size[1] // 2]
         lon = longitude[row + field_size[0] // 2, col + field_size[1] // 2]
         metadata.append([ifile, str(row), str(col), str(lat), str(lon), str(clear_frac)])
-    if debug:
-        print("f: {}, n_field = {}".format(ifile, len(fields)))
+    #if debug:
+    #    print("f: {}, n_field = {}".format(ifile, len(fields)))
 
     return np.stack(fields), np.stack(field_masks), np.stack(metadata)
 
