@@ -110,6 +110,8 @@ if __name__ == '__main__':
         fields, metadata = np.array([f for f in fields if f is not None]).T
         fields, metadata = np.concatenate(fields), np.concatenate(metadata)
 
+    if args.debug:
+        from IPython import embed; embed(header='114 of preproc')
     fields = fields[:, None, :, :]
     n = int(args.valid_fraction * fields.shape[0])
     idx = shuffle(np.arange(fields.shape[0]))
