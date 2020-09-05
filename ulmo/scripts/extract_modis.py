@@ -113,6 +113,7 @@ def main(pargs):
                      temp_bounds=(pargs.temp_lower_bound, pargs.temp_upper_bound),
                      ndraw_mnx=(pargs.nmin_patches, pargs.nmax_patches))
 
+    '''
     if pargs.debug:
         files = [f for f in os.listdir(load_path) if f.endswith('.nc')]
         files = files[0:100]
@@ -128,12 +129,13 @@ def main(pargs):
                      ndraw_mnx=(pargs.nmin_patches, pargs.nmax_patches)))
             print("kk: {}".format(kk))
         embed(header='123 of extract')
+    '''
 
     n_cores = multiprocessing.cpu_count()
     with ProcessPoolExecutor(max_workers=n_cores) as executor:
         files = [f for f in os.listdir(load_path) if f.endswith('.nc')]
         if pargs.debug:
-            files = files[0:100]
+            files = files[0:1000]
         chunksize = len(files) // n_cores if len(files) // n_cores > 0 else 1
         answers = list(tqdm(executor.map(map_fn, files, chunksize=chunksize), total=len(files)))
 
