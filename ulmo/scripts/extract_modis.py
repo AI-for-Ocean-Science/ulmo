@@ -92,7 +92,7 @@ def extract_file(ifile, load_path, field_size=(128,128), nadir_offset=480,
     #if debug:
     #    print("f: {}, n_field = {}".format(ifile, len(fields)))
 
-    return np.stack(fields), np.stack(field_masks), np.stack(metadata)
+    return np.stack(fields).astype(np.float32), np.stack(field_masks), np.stack(metadata)
 
 def main(pargs):
     """ Run
