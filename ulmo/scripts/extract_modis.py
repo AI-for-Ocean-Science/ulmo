@@ -68,7 +68,7 @@ def extract_file(ifile, load_path, field_size=(128,128), nadir_offset=480,
     nadir_pix = sst.shape[1] // 2
     lb = nadir_pix - nadir_offset
     ub = nadir_pix + nadir_offset
-    sst = sst[:, lb:ub].astype(np.float32)
+    sst = sst[:, lb:ub]
     masks = masks[:, lb:ub]
 
     # Random clear rows, cols
