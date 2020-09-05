@@ -75,7 +75,7 @@ def extract_file(ifile, load_path, field_size=(128,128), nadir_offset=480,
         return
 
     # Extract
-    fields, field_masks, locations = [], [], []
+    fields, field_masks = [], []
     metadata = []
     for r, c, clear_frac in zip(rows, cols, clear_fracs):
         # SST and mask
@@ -106,6 +106,21 @@ def main(pargs):
                      nadir_offset=pargs.nadir_offset,
                      temp_bounds=(pargs.temp_lower_bound, pargs.temp_upper_bound),
                      ndraw_mnx=(pargs.nmin_patches, pargs.nmax_patches))
+
+    if pargs.debug:
+        files = [f for f in os.listdir(load_path) if f.endswith('.nc')]
+        files = files[0:100]
+        answers = []
+        for kk, ifile in enumerate(files):
+            answers.append(extract_file(ifile,
+                     load_path=load_path,
+                     field_size=(pargs.field_size, pargs.field_size),
+                     CC_max=1.-pargs.clear_threshold / 100.,
+                     qual_thresh=pargs.quality_threshold,
+                     nadir_offset=pargs.nadir_offset,
+                     temp_bounds=(pargs.temp_lower_bound, pargs.temp_upper_bound),
+                     ndraw_mnx=(pargs.nmin_patches, pargs.nmax_patches)))
+        embed(header='123 of extract')
 
     n_cores = multiprocessing.cpu_count()
     with ProcessPoolExecutor(max_workers=n_cores) as executor:
