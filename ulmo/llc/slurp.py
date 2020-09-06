@@ -3,12 +3,16 @@
 
 def write_sst(xr_da, outfile, strip_coord=True, encode=True):
     """
+    Write an input xarray.DataArray of Theta to a netcdf file
 
     Parameters
     ----------
     xr_da : xarray.DataArray
-    strip_coord
+    outfile : str
+    strip_coord  : bool, optional
+        Strip off coordinates?
     encode : bool, optional
+        Encode to int16?
 
     """
 
