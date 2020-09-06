@@ -83,7 +83,7 @@ def extract_file(ifile, load_path, field_size=(128,128), nadir_offset=480,
     metadata = []
     for r, c, clear_frac in zip(rows, cols, clear_fracs):
         # SST and mask
-        fields.append(sst[r:r+field_size[0], c:c+field_size[1]])
+        fields.append(sst[r:r+field_size[0], c:c+field_size[1]].astype(np.float32))
         field_masks.append(masks[r:r+field_size[0], c:c+field_size[1]])
         # meta
         row, col = r, c + lb
