@@ -40,6 +40,7 @@ def parser(options=None):
                         help='Mininum number of random patches to consider from each file')
     parser.add_argument('--nmax_patches', type=int, default=1000,
                         help='Maximum number of random patches to consider from each file')
+    parser.add_argument('--ncores', type=int, help='Number of cores for processing')
     parser.add_argument("--debug", default=False, action="store_true", help="Debug?")
     parser.add_argument("--wolverine", default=False, action="store_true", help="Run on Wolverine")
     args = parser.parse_args()
@@ -137,7 +138,11 @@ def main(pargs):
         embed(header='123 of extract')
     '''
 
-    n_cores = multiprocessing.cpu_count()
+    if pargs.ncores is None:
+        n_cores = multiprocessing.cpu_count()
+    else:
+        n_cores= pargs.ncores
+    print("Using: {} cores".format(n_cores))
     with ProcessPoolExecutor(max_workers=n_cores) as executor:
         files = [f for f in os.listdir(load_path) if f.endswith('.nc')]
         if pargs.wolverine:
