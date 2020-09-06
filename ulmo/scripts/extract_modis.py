@@ -148,7 +148,7 @@ def main(pargs):
         if pargs.wolverine:
             files = [f for f in os.listdir(load_path) if f.endswith('.nc')]*500
         elif pargs.debug:
-            files = files[0:1000]
+            files = files[0:6000]
         chunksize = len(files) // n_cores if len(files) // n_cores > 0 else 1
         answers = list(tqdm(executor.map(map_fn, files, chunksize=chunksize), total=len(files)))
 
