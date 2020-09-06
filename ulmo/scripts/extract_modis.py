@@ -165,7 +165,8 @@ def main(pargs):
     columns = ['filename', 'row', 'column', 'latitude', 'longitude', 'mean_temperature', 'clear_fraction']
 
     with h5py.File(save_path, 'w') as f:
-        f.create_dataset('fields', data=fields.astype(np.float32))
+        #f.create_dataset('fields', data=fields.astype(np.float32))
+        f.create_dataset('fields', data=fields)
         f.create_dataset('masks', data=masks.astype(np.int8))
         dset = f.create_dataset('metadata', data=metadata.astype('S'))
         dset.attrs['columns'] = columns
