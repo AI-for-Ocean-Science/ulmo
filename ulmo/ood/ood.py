@@ -7,7 +7,6 @@ import multiprocessing
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as PathEffects
 import torch
@@ -20,11 +19,15 @@ from sklearn.preprocessing import StandardScaler
 from ulmo.plotting import load_palette, grid_plot
 from ulmo.utils import HDF5Dataset, id_collate, get_quantiles
 
+try:
+    import cartopy.crs as ccrs
+except:
+    print("Cartopy not installed.  Some plots will not work!")
 
 class ProbabilisticAutoencoder:
     """A probabilistic autoencoder (see arxiv.org/abs/2006.05479)."""
     def __init__(self, autoencoder, flow, filepath, datadir=None, 
-                 logdir=None, device=None):
+                 logdir=None, device=None, skip_mkdir=False):
         """
         Parameters
             autoencoder: ulmo.models.Autoencoder
@@ -44,6 +47,8 @@ class ProbabilisticAutoencoder:
                 Location to store logs and models
             device: torch.device
                 Device to use for training and inference
+            skip_mkdir: bool, optional
+                If True, do not make any dirs
         """
         if logdir is None:
             logdir = './'
@@ -51,10 +56,11 @@ class ProbabilisticAutoencoder:
             datadir = os.path.split(filepath)[0]
         if device is None:
             device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        if not os.path.isdir(logdir):
-            os.makedirs(logdir)
-        if not os.path.isdir(datadir):
-            os.makedirs(datadir)
+        if not skip_mkdir:
+            if not os.path.isdir(logdir):
+                os.makedirs(logdir)
+            if not os.path.isdir(datadir):
+                os.makedirs(datadir)
         
         self.device = device
         self.scaler = None
@@ -342,6 +348,19 @@ class ProbabilisticAutoencoder:
         return log_prob
     
     def compute_log_probs(self, input_file, dataset, output_file, scaler=None):
+        """
+
+        Parameters
+        ----------
+        input_file
+        dataset
+        output_file
+        scaler
+
+        Returns
+        -------
+
+        """
         if scaler is None:
             scaler = self.scaler
             scaler_path = os.path.join(self.logdir, self.stem + '_scaler.pkl')
@@ -355,7 +374,7 @@ class ProbabilisticAutoencoder:
                         raise RuntimeError("No scaler provided. Saved scaler found but not loaded.")
                 else:
                     raise RuntimeError("No scaler found or provided.")
-            
+
         # Make PyTorch dataset from HDF5 file
         assert input_file.endswith('.h5'), "Input file must be in .h5 format."
         assert output_file.endswith('.h5'), "Output file must be in .h5 format."
@@ -371,7 +390,10 @@ class ProbabilisticAutoencoder:
         
         with torch.no_grad():
             latents = [self.autoencoder.encode(data[0].to(self.device)).detach().cpu().numpy()
-                     for data in tqdm(loader, total=len(loader), unit='batch', desc='Computing latents')]
+                     for data in loader]
+                     #for data in tqdm(loader, total=len(loader), unit='batch', desc='Computing latents')]
+
+        import pdb; pdb.set_trace()
         latents = scaler.transform(np.concatenate(latents))
 
         dset = torch.utils.data.TensorDataset(torch.from_numpy(latents).float())
