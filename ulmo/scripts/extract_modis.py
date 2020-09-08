@@ -154,7 +154,6 @@ def main(pargs):
 
     # Trim None's
     answers = [f for f in answers if f is not None]
-    embed(header='157 of extract')
     fields = np.concatenate([item[0] for item in answers])
     masks = np.concatenate([item[1] for item in answers])
     metadata = np.concatenate([item[2] for item in answers])
