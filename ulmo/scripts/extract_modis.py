@@ -41,6 +41,7 @@ def parser(options=None):
     parser.add_argument('--nmax_patches', type=int, default=1000,
                         help='Maximum number of random patches to consider from each file')
     parser.add_argument('--ncores', type=int, help='Number of cores for processing')
+    parser.add_argument('--nsub_files', type=int, default=1000, help='Number of files to process at a time')
     parser.add_argument("--debug", default=False, action="store_true", help="Debug?")
     parser.add_argument("--wolverine", default=False, action="store_true", help="Run on Wolverine")
     args = parser.parse_args()
@@ -143,25 +144,40 @@ def main(pargs):
     else:
         n_cores= pargs.ncores
     print("Using: {} cores".format(n_cores))
-    with ProcessPoolExecutor(max_workers=n_cores) as executor:
-        files = [f for f in os.listdir(load_path) if f.endswith('.nc')]
-        if pargs.wolverine:
-            files = [f for f in os.listdir(load_path) if f.endswith('.nc')]*500
-        elif pargs.debug:
-            files = files[6000:8000]
-        chunksize = len(files) // n_cores if len(files) // n_cores > 0 else 1
-        if pargs.debug:
-            chunksize = 100
-        answers = list(tqdm(executor.map(map_fn, files, chunksize=chunksize), total=len(files)))
 
-    # Trim None's
-    answers = [f for f in answers if f is not None]
-    fields = np.concatenate([item[0] for item in answers])
-    masks = np.concatenate([item[1] for item in answers])
-    metadata = np.concatenate([item[2] for item in answers])
-    del answers
-    #fields, masks, metadata = np.array([f for f in fields if f is not None]).T
-    #fields, masks, metadata = np.concatenate(fields), np.concatenate(masks), np.concatenate(metadata)
+    # Limit number of files to 10000
+    files = [f for f in os.listdir(load_path) if f.endswith('.nc')]
+    if pargs.wolverine:
+        files = [f for f in os.listdir(load_path) if f.endswith('.nc')] * 500
+    elif pargs.debug:
+        files = files[6000:8000]
+
+    nloop = len(files) // pargs.nsub_files + ((len(files) % pargs.nsub_files) > 0)
+
+    fields, masks, metadata = None, None, None
+    for kk in range(nloop):
+        i0 = kk*pargs.nsub_files
+        i1 = min((kk+1)*pargs.nsub_files, len(files))
+        print('Files: {}:{} of {}'.format(i0, i1, len(files)))
+        sub_files = files[i0:i1]
+
+        with ProcessPoolExecutor(max_workers=n_cores) as executor:
+            chunksize = len(sub_files) // n_cores if len(sub_files) // n_cores > 0 else 1
+            if pargs.debug:
+                chunksize = 100
+            answers = list(tqdm(executor.map(map_fn, sub_files, chunksize=chunksize), total=len(sub_files)))
+
+        # Trim None's
+        answers = [f for f in answers if f is not None]
+        if fields is None:
+            fields = np.concatenate([item[0] for item in answers])
+            masks = np.concatenate([item[1] for item in answers])
+            metadata = np.concatenate([item[2] for item in answers])
+        else:
+            fields = np.concatenate([fields]+[item[0] for item in answers], axis=0)
+            masks = np.concatenate([masks]+[item[1] for item in answers], axis=0)
+            metadata = np.concatenate([metadata]+[item[2] for item in answers], axis=0)
+        del answers
 
     # Write
     columns = ['filename', 'row', 'column', 'latitude', 'longitude', 'mean_temperature', 'clear_fraction']
