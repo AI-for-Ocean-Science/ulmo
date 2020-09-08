@@ -148,8 +148,10 @@ def main(pargs):
         if pargs.wolverine:
             files = [f for f in os.listdir(load_path) if f.endswith('.nc')]*500
         elif pargs.debug:
-            files = files[6000:7000]
+            files = files[6000:8000]
         chunksize = len(files) // n_cores if len(files) // n_cores > 0 else 1
+        if pargs.debug:
+            chunksize = 100
         answers = list(tqdm(executor.map(map_fn, files, chunksize=chunksize), total=len(files)))
 
     # Trim None's
@@ -165,7 +167,8 @@ def main(pargs):
     columns = ['filename', 'row', 'column', 'latitude', 'longitude', 'mean_temperature', 'clear_fraction']
 
     with h5py.File(save_path, 'w') as f:
-        f.create_dataset('fields', data=fields.astype(np.float32))
+        #f.create_dataset('fields', data=fields.astype(np.float32))
+        f.create_dataset('fields', data=fields)
         f.create_dataset('masks', data=masks.astype(np.int8))
         dset = f.create_dataset('metadata', data=metadata.astype('S'))
         dset.attrs['columns'] = columns
