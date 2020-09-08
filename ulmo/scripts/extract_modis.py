@@ -153,6 +153,7 @@ def main(pargs):
         files = files[6000:8000]
 
     nloop = len(files) // pargs.nsub_files + ((len(files) % pargs.nsub_files) > 0)
+    print('nloop: {}'.format(nloop))
 
     fields, masks, metadata = None, None, None
     for kk in range(nloop):
@@ -165,7 +166,8 @@ def main(pargs):
             chunksize = len(sub_files) // n_cores if len(sub_files) // n_cores > 0 else 1
             if pargs.debug:
                 chunksize = 100
-            answers = list(tqdm(executor.map(map_fn, sub_files, chunksize=chunksize), total=len(sub_files)))
+            answers = list(tqdm(executor.map(map_fn, sub_files,
+                                             chunksize=chunksize), total=len(sub_files)))
 
         # Trim None's
         answers = [f for f in answers if f is not None]
