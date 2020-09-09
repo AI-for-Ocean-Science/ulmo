@@ -49,7 +49,9 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
         1. Inpainting
         2. Median
         3. Downscale
-        4. Remove mean
+        4. Sigmoid
+        5. Scale
+        6. Remove mean
 
     Parameters
     ----------
