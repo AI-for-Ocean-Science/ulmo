@@ -15,6 +15,8 @@ import pandas
 from ulmo import io as ulmo_io
 from ulmo.preproc import utils as pp_utils
 
+from sklearn.utils import shuffle
+
 from IPython import embed
 
 def parser(options=None):
@@ -22,7 +24,7 @@ def parser(options=None):
     # Parse
     parser = argparse.ArgumentParser(description='Preproc images in an H5 file.')
     parser.add_argument("infile", type=str, help="H5 file for pre-processing")
-    parser.add_argument("outfile", type=str, help="Output file.  Should have .h5 extension")
+    parser.add_argument("valid_fraction", type=float, help="Validation fraction.  Can be 1")
     parser.add_argument("--skip_inpaint", default=False, action="store_true",
                         help="Skip inpainting?")
     parser.add_argument('--ncores', type=int, help='Number of cores for processing')
@@ -57,9 +59,8 @@ def main(pargs):
     """
     import warnings
 
-    # File check
-    if pargs.outfile[-3:] != '.h5':
-        print("outfile must have .h5 extension")
+    if pargs.infile[-3:] != '.h5':
+        print("infile must have .h5 extension")
         return
 
     # Open h5 file
@@ -76,7 +77,7 @@ def main(pargs):
 
     # Pre-processing dict
     pdict = dict(inpaint=True, median=True, med_size=(3, 1),
-                      downscale=True, dscale_size=(2, 2),
+                 downscale=True, dscale_size=(2, 2),
                  only_inpaint=pargs.only_inpaint)
 
     # Setup for parallel
@@ -91,7 +92,7 @@ def main(pargs):
     # Prepare to loop
     nimages = f['fields'].shape[0]
     if pargs.debug:
-        nimages = 1000
+        nimages = 1024
     nloop = nimages // pargs.nsub_fields + ((nimages % pargs.nsub_fields) > 0)
 
     # Process them all, then deal with train/validation
@@ -100,7 +101,7 @@ def main(pargs):
         # Load the images into memory
         i0 = kk*pargs.nsub_fields
         i1 = min((kk+1)*pargs.nsub_fields, nimages)
-        print('Files: {}:{} of {}'.format(i0, i1, nimages))
+        print('Fields: {}:{} of {}'.format(i0, i1, nimages))
         fields = f['fields'][i0:i1]
         masks = f['masks'][i0:i1].astype(np.uint8)
         sub_idx = range(i0, i1)
@@ -133,25 +134,34 @@ def main(pargs):
 
     # Recast
     pp_fields = np.stack(pp_fields)
+    pp_fields = pp_fields[:, None, :, :]  # Shaped for training
 
     # Modify metadata
     metadata = metadata.iloc[img_idx]
     if not pargs.only_inpaint:
         metadata['mean_temperature'] = mu
 
+    # Train/validation
+    n = int(pargs.valid_fraction * pp_fields.shape[0])
+    idx = shuffle(np.arange(pp_fields.shape[0]))
+    valid_idx, train_idx = idx[:n], idx[n:]
+
+
     # ###################
     # Write to disk
+    suffix = '_preproc_{:.1f}valid.h5'.format(pargs.valid_fraction)
+    outfile = pargs.infile.replace('.h5', suffix)
 
-    # First the pandas table
-    metadata.to_hdf(pargs.outfile, 'metadata', mode='w')
+    with h5py.File(outfile, 'w') as f:
+        # Validation
+        f.create_dataset('valid', data=pp_fields[valid_idx].astype(np.float32))
+        # Train
+        if pargs.valid_fraction < 1:
+            f.create_dataset('train', data=pp_fields[train_idx].astype(np.float32))
+    # Metadata
+    metadata.iloc[valid_idx].to_hdf(outfile, 'valid_metadata', mode='a')
+    if pargs.valid_fraction < 1:
+        metadata.iloc[train_idx].to_hdf(outfile, 'train_metadata', mode='a')
 
-    # Now the images
-    newf = h5py.File(pargs.outfile, mode='a')
-    # Add pre-processing steps
-    for key in pdict:
-        newf.attrs[key] = pdict[key]
-    # Add images
-    dset = newf.create_dataset("pp_fields", data=pp_fields)
-    newf.close()
+    print("Wrote: {}".format(outfile))
 
-    print("Wrote: {}".format(pargs.outfile))

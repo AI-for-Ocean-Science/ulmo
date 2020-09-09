@@ -26,10 +26,10 @@ class HDF5Dataset(data.Dataset):
     
     def __getitem__(self, index):
         data = self.h5f[self.partition][index]
-        if self.meta_dset in self.h5f.keys():
-            metadata = self.h5f[self.meta_dset][index]
-        else:
-            metadata = None
+        #if self.meta_dset in self.h5f.keys():
+        #    metadata = self.h5f[self.meta_dset][index]
+        #else:
+        metadata = None
         return data, metadata
     
 
