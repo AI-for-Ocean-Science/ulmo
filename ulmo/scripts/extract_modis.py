@@ -41,7 +41,7 @@ def parser(options=None):
     parser.add_argument('--nmax_patches', type=int, default=1000,
                         help='Maximum number of random patches to consider from each file')
     parser.add_argument('--ncores', type=int, help='Number of cores for processing')
-    parser.add_argument('--nsub_files', type=int, default=1000, help='Number of files to process at a time')
+    parser.add_argument('--nsub_files', type=int, default=20000, help='Number of files to process at a time')
     parser.add_argument("--debug", default=False, action="store_true", help="Debug?")
     parser.add_argument("--wolverine", default=False, action="store_true", help="Run on Wolverine")
     parser.add_argument("--no_inpaint", default=False, action="store_true", help="Turn off inpainting?")
