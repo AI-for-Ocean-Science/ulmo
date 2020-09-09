@@ -1,0 +1,15 @@
+#!/usr/bin/env python
+#
+# See top-level LICENSE file for Copyright information
+#
+# -*- coding: utf-8 -*-
+
+"""
+This script grabs LLC data
+"""
+
+import ulmo.scripts.grab_llc as grab_llc
+
+if __name__ == '__main__':
+    args = grab_llc.parser()
+    grab_llc.main(args)
