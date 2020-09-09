@@ -7,6 +7,8 @@ from scipy.ndimage import median_filter
 from scipy import special
 from skimage.transform import downscale_local_mean
 
+from IPython import embed
+
 
 def build_mask(sst, qual, qual_thresh=2, temp_bounds=(-2,33)):
     """
@@ -43,7 +45,8 @@ def build_mask(sst, qual, qual_thresh=2, temp_bounds=(-2,33)):
 
 
 def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
-                  downscale=True, dscale_size=(2,2), sigmoid=False, scale=None):
+                  downscale=True, dscale_size=(2,2), sigmoid=False, scale=None,
+                  only_inpaint=False):
     """
     Preprocess an input field image with a series of steps:
         1. Inpainting
@@ -77,8 +80,15 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
     """
     # Inpaint?
     if inpaint:
-        mask = np.uint8(mask)
+        if mask.dtype.name != 'uint8':
+            mask = np.uint8(mask)
         field = sk_inpaint.inpaint_biharmonic(field, mask, multichannel=False)
+
+    if only_inpaint:
+        if np.any(np.isnan(field)):
+            return None, None
+        else:
+            return field, None
 
     # Median
     if median:
@@ -89,7 +99,7 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
         field = downscale_local_mean(field, dscale_size)
 
     # Check for junk
-    if np.isnan(field).sum() > 0:
+    if np.any(np.isnan(field)):
         return None, None
 
     # De-mean the field

@@ -29,6 +29,7 @@ def parser(options=None):
     parser.add_argument('--nsub_fields', type=int, default=10000,
                         help='Number of fields to parallel process at a time')
     parser.add_argument("--debug", default=False, action="store_true", help="Debug?")
+    parser.add_argument("--only_inpaint", default=False, action="store_true", help="Only inpaint?")
 
     if options is None:
         pargs = parser.parse_args()
@@ -38,6 +39,7 @@ def parser(options=None):
 
 def preproc_image(item, pdict):
 
+    # Parse
     field, mask, idx = item
 
     # Run
@@ -54,7 +56,6 @@ def main(pargs):
     """ Run
     """
     import warnings
-
 
     # File check
     if pargs.outfile[-3:] != '.h5':
@@ -75,7 +76,8 @@ def main(pargs):
 
     # Pre-processing dict
     pdict = dict(inpaint=True, median=True, med_size=(3, 1),
-                      downscale=True, dscale_size=(2, 2))
+                      downscale=True, dscale_size=(2, 2),
+                 only_inpaint=pargs.only_inpaint)
 
     # Setup for parallel
     map_fn = partial(preproc_image,
@@ -100,8 +102,9 @@ def main(pargs):
         i1 = min((kk+1)*pargs.nsub_fields, nimages)
         print('Files: {}:{} of {}'.format(i0, i1, nimages))
         fields = f['fields'][i0:i1]
-        masks = f['masks'][i0:i1].astype(bool)
+        masks = f['masks'][i0:i1].astype(np.uint8)
         sub_idx = range(i0, i1)
+
 
         # Convert to lists
         items = []
@@ -123,6 +126,8 @@ def main(pargs):
         img_idx += [item[1] for item in answers]
         mu += [item[2] for item in answers]
 
+        del answers
+
     # Close infile
     f.close()
 
@@ -131,7 +136,8 @@ def main(pargs):
 
     # Modify metadata
     metadata = metadata.iloc[img_idx]
-    metadata['mean_temperature'] = mu
+    if not pargs.only_inpaint:
+        metadata['mean_temperature'] = mu
 
     # ###################
     # Write to disk
