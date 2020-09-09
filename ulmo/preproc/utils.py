@@ -4,6 +4,7 @@ import numpy as np
 
 from skimage.restoration import inpaint as sk_inpaint
 from scipy.ndimage import median_filter
+from scipy import special
 from skimage.transform import downscale_local_mean
 
 
@@ -42,7 +43,7 @@ def build_mask(sst, qual, qual_thresh=2, temp_bounds=(-2,33)):
 
 
 def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
-                  downscale=True, dscale_size=(2,2)):
+                  downscale=True, dscale_size=(2,2), sigmoid=False, scale=None):
     """
     Preprocess an input field image with a series of steps:
         1. Inpainting
@@ -92,6 +93,14 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
     # De-mean the field
     mu = np.mean(field)
     pp_field = field - mu
+
+    # Sigmoid?
+    if sigmoid:
+        pp_field = special.erf(pp_field)
+
+    # Scale?
+    if scale is not None:
+        pp_field *= scale
 
     # Return
     return pp_field, mu
