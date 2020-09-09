@@ -182,7 +182,7 @@ def main(pargs):
         del answers
 
     # Write
-    columns = ['filename', 'row', 'column', 'latitude', 'longitude', 'mean_temperature', 'clear_fraction']
+    columns = ['filename', 'row', 'column', 'latitude', 'longitude', 'clear_fraction']
 
     with h5py.File(save_path, 'w') as f:
         #f.create_dataset('fields', data=fields.astype(np.float32))
