@@ -25,8 +25,7 @@ def parser(options=None):
     parser = argparse.ArgumentParser(description='Preproc images in an H5 file.')
     parser.add_argument("infile", type=str, help="H5 file for pre-processing")
     parser.add_argument("valid_fraction", type=float, help="Validation fraction.  Can be 1")
-    parser.add_argument("--skip_inpaint", default=False, action="store_true",
-                        help="Skip inpainting?")
+    parser.add_argument("--inpaint", default=False, action="store_true", help="Inpaint?")
     parser.add_argument('--ncores', type=int, help='Number of cores for processing')
     parser.add_argument('--nsub_fields', type=int, default=10000,
                         help='Number of fields to parallel process at a time')
@@ -76,7 +75,8 @@ def main(pargs):
                                 columns=clms) #meta.attrs['columns'])
 
     # Pre-processing dict
-    pdict = dict(inpaint=True, median=True, med_size=(3, 1),
+    pdict = dict(inpaint=pargs.inpaint,
+                 median=True, med_size=(3, 1),
                  downscale=True, dscale_size=(2, 2),
                  only_inpaint=pargs.only_inpaint)
 
