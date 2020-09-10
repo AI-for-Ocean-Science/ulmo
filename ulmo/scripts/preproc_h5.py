@@ -95,6 +95,8 @@ def main(pargs):
         nimages = 1024
     nloop = nimages // pargs.nsub_fields + ((nimages % pargs.nsub_fields) > 0)
 
+    print("There are {} images to process in the input file".format(nimages))
+
     # Process them all, then deal with train/validation
     pp_fields, mu, img_idx = [], [], []
     for kk in range(nloop):
@@ -135,6 +137,8 @@ def main(pargs):
     # Recast
     pp_fields = np.stack(pp_fields)
     pp_fields = pp_fields[:, None, :, :]  # Shaped for training
+
+    print("After pre-processing, there are {} images ready for analysis".format(pp_fields.shape[0]))
 
     # Modify metadata
     metadata = metadata.iloc[img_idx]
