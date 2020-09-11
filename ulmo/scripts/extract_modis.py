@@ -75,8 +75,8 @@ def extract_file(ifile, load_path, field_size=(128,128), nadir_offset=480,
     masks = masks[:, lb:ub].astype(np.uint8)
 
     # Random clear rows, cols
-    rows, cols, clear_fracs = extract.random_clear(masks, field_size[0], CC_max=CC_max,
-                                                   nran_draw=nrepeat)
+    rows, cols, clear_fracs = extract.clear_grid(masks, field_size[0], 'center',
+                                                 CC_max=CC_max, nsgrid_draw=nrepeat)
     if rows is None:
         return
 
@@ -133,7 +133,7 @@ def main(pargs):
 
     '''
     if pargs.debug:
-        files = [f for f in os.listdir(load_path) if f.endswith('.nc')] 
+        files = [f for f in os.listdir(load_path) if f.endswith('.nc')]
         if not pargs.wolverine:
             files = files[0:100]
         answers = []

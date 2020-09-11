@@ -6,9 +6,30 @@ from scipy.ndimage import uniform_filter
 from IPython import embed
 
 
-def random_clear(mask, field_size, CC_max=0.05,
+def clear_grid(mask, field_size, method, CC_max=0.05,
                  ndraw_mnx=(2,1000),
-                 nran_draw=1):
+                 nsgrid_draw=1):
+    """
+
+    Parameters
+    ----------
+    mask : np.ndarray
+    field_size : int
+    method : str
+        'random'
+        'lower_corner'
+    CC_max
+    ndraw_mnx
+    nsgrid_draw : int
+        Number of fields to draw per sub-grid
+
+    Returns
+    -------
+
+    """
+    # Some checks
+    if nsgrid_draw > 1 and method == 'lower_corner':
+        raise IOError("Not ready for this..")
 
     # Sum across the image
     CC_mask = uniform_filter(mask.astype(float), field_size, mode='constant', cval=1.)
@@ -27,30 +48,39 @@ def random_clear(mask, field_size, CC_max=0.05,
     keep = np.zeros_like(idx_clear[0], dtype=bool)
 
     # Enough clear?
-    if nclear < nran_draw:
+    if nclear < nsgrid_draw:
         return None, None, None
-
-    #ndraw = nrepeat * (nclear // field_size ** 2)
-    #ndraw = np.minimum(ndraw, ndraw_mnx[1])
-    #ndraw = np.maximum(ndraw, ndraw_mnx[0])
 
     # Sub-grid me
     sub_size = field_size // 4
     rows = np.arange(mask.shape[0]) // sub_size + 1
-    cols = np.arange(mask.shape[1]) // sub_size * 64
+    sub_nrows = rows[-1]  # The 1 was already added in
+    cols = np.arange(mask.shape[1]) // sub_size * rows[-1]
     sub_grid = np.outer(rows, np.ones(mask.shape[1], dtype=int)) + np.outer(
         np.ones(mask.shape[0], dtype=int), cols)
 
-    #
+    # Work through each sub_grid
     sub_values = sub_grid[idx_clear]
     uni_sub, counts = np.unique(sub_values, return_counts=True)
     for iuni, icount in zip(uni_sub, counts):
         mt = np.where(sub_values == iuni)[0]
-        r_idx = np.random.choice(icount, size=min(icount, nran_draw))
-        keep[mt[r_idx]] = True
-
-    # Pick em, randomly
-    #r_idx = np.random.choice(nclear, size=ndraw)
+        if method == 'random':
+            r_idx = np.random.choice(icount, size=min(icount, nsgrid_draw))
+            keep[mt[r_idx]] = True
+        elif method == 'center':
+            # Grid lower corners
+            sgrid_col = (iuni - 1) // sub_nrows
+            sgrid_row = (iuni-1) - sgrid_col*sub_nrows
+            # i,j center
+            iirow = sgrid_row * sub_size + sub_size // 2
+            jjcol = sgrid_col * sub_size + sub_size // 2
+            # Distanc3
+            dist2 = (idx_clear[0][mt]-iirow)**2 + (idx_clear[1][mt]--jjcol)**2
+            # Min and keep
+            imin = np.argmin(dist2)
+            keep[mt[imin]] = True
+        else:
+            raise IOError("Bad method option")
 
     # Offset to lower left corner
     picked_row = idx_clear[0][keep] - field_size//2
