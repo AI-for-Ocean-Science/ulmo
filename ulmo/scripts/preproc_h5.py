@@ -73,6 +73,7 @@ def main(pargs):
         clms.remove('mean_temperature')
     metadata = pandas.DataFrame(meta[:].astype(np.unicode_),
                                 columns=clms) #meta.attrs['columns'])
+    f.close()
 
     # Pre-processing dict
     pdict = dict(inpaint=pargs.inpaint,
@@ -100,6 +101,7 @@ def main(pargs):
     # Process them all, then deal with train/validation
     pp_fields, mu, img_idx = [], [], []
     for kk in range(nloop):
+        f = h5py.File(pargs.infile, mode='r')
         # Load the images into memory
         i0 = kk*pargs.nsub_fields
         i1 = min((kk+1)*pargs.nsub_fields, nimages)
@@ -134,10 +136,8 @@ def main(pargs):
         img_idx += [item[1] for item in answers]
         mu += [item[2] for item in answers]
 
-        del answers
-
-    # Close infile
-    f.close()
+        del answers, fields, masks, items
+        f.close()
 
     # Recast
     pp_fields = np.stack(pp_fields)
