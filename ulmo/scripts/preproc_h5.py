@@ -73,7 +73,6 @@ def main(pargs):
         clms.remove('mean_temperature')
     metadata = pandas.DataFrame(meta[:].astype(np.unicode_),
                                 columns=clms) #meta.attrs['columns'])
-    f.close()
 
     # Pre-processing dict
     pdict = dict(inpaint=pargs.inpaint,
@@ -97,6 +96,7 @@ def main(pargs):
     nloop = nimages // pargs.nsub_fields + ((nimages % pargs.nsub_fields) > 0)
 
     print("There are {} images to process in the input file".format(nimages))
+    f.close()
 
     # Process them all, then deal with train/validation
     pp_fields, mu, img_idx = [], [], []
