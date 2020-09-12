@@ -105,16 +105,21 @@ def main(pargs):
         i1 = min((kk+1)*pargs.nsub_fields, nimages)
         print('Fields: {}:{} of {}'.format(i0, i1, nimages))
         fields = f['fields'][i0:i1]
+        shape =fields.shape
         masks = f['masks'][i0:i1].astype(np.uint8)
-        sub_idx = range(i0, i1)
+        sub_idx = np.arange(i0, i1).tolist()
 
 
         # Convert to lists
-        items = []
-        for i in range(fields.shape[0]):
-            items.append([fields[i,...], masks[i,...], sub_idx[i]])
-        del fields, masks
+        print('Making lists')
+        fields = np.vsplit(fields, shape[0])
+        fields = [field.reshape(shape[1:]) for field in fields]
+        masks = np.vsplit(masks, shape[0])
+        masks = [mask.reshape(shape[1:]) for mask in masks]
 
+        items = [item for item in zip(fields,masks,sub_idx)]
+
+        print('Process time')
         # Do it
         with ProcessPoolExecutor(max_workers=n_cores) as executor:
             chunksize = len(items) // n_cores if len(items) // n_cores > 0 else 1
