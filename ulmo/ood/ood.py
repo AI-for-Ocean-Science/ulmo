@@ -335,21 +335,25 @@ class ProbabilisticAutoencoder:
                     f.create_dataset('valid', data=np.concatenate(log_prob))
         self.up_to_date_flow_latents = True
 
-    def load_meta(self, key):
+    def load_meta(self, key, filename=None):
         """
 
         Parameters
         ----------
         key : str
             Group name for metadata, e.g. "valid_metadata"
+        filename : str, optional
+            File for meta data
 
         Returns
         -------
-        except:
         df : pandas.DataFrame
 
         """
-        with h5py.File(self.filepath['data'], 'r') as f:
+        if filename is None:
+            filename = self.filepath['data']
+        # Proceed
+        with h5py.File(filename, 'r') as f:
             if key in f.keys():
                 meta = f[key]
                 df = pd.DataFrame(meta[:].astype(np.unicode_), columns=meta.attrs['columns'])
@@ -420,8 +424,10 @@ class ProbabilisticAutoencoder:
         log_prob = self.to_type(log_prob, t)
         return log_prob
     
-    def compute_log_probs(self, input_file, dataset, output_file, scaler=None):
+    def compute_log_probs(self, input_file, dataset, output_file,
+                          scaler=None, csv=False):
         """
+        Computer log probs on an input HDF file of images
 
         Parameters
         ----------
@@ -478,21 +484,52 @@ class ProbabilisticAutoencoder:
                 log_prob = [self.flow.log_prob(data[0].to(self.device)).detach().cpu().numpy()
                      for data in tqdm(loader, total=len(loader), unit='batch', desc='Computing log probs')]
                 f.create_dataset('log_probs', data=np.concatenate(log_prob))
-        print(f"Log probabilities saved to {output_file}.")  
-    
+        print(f"Log probabilities saved to {output_file}.")
+
+        # CSV?
+        if csv:
+            csv_name = output_file.replace('h5', 'csv')
+            df = self.load_meta(dataset+'_metadata', filename=input_file)
+            self._log_probs_to_csv(df, output_file, csv_name,
+                                   dataset=dataset)
+
+    def _log_probs_to_csv(self, df, log_file, outfile, dataset='valid'):
+        """
+
+        Parameters
+        ----------
+        df : pnadas.DataFrame
+        log_file : str
+        outfile : str
+        dataset : str, optional
+
+        """
+        with h5py.File(log_file, 'r') as f:
+            df['log_likelihood'] = f[dataset][:].flatten()
+        df.to_csv(outfile, index=False)
+        print(f"Saved log probabilities to {outfile}.")
+
     def save_log_probs(self):
+        """
+        Write the log probabilities to a CSV file
+
+        Returns
+        -------
+
+        """
         if not self.up_to_date_log_probs:
             self._compute_log_probs()
 
+        # Prep
         df = self.load_meta('valid_metadata')
-
-        with h5py.File(self.filepath['log_probs'], 'r') as f:
-            df['log_likelihood'] = f['valid'][:].flatten()
-            
         csv_name = self.stem + '_log_probs.csv'
-        df.to_csv(os.path.join(self.logdir, csv_name), index=False)
-        print(f"Saved log probabilities to {os.path.join(self.logdir, csv_name)}.")
-    
+        outfile = os.path.join(self.logdir, csv_name)
+
+        # Call
+        self._log_probs_to_csv(df, self.filepath['log_probs'], outfile)
+
+
+
     def plot_reconstructions(self, save_figure=False):
         pal, cm = load_palette()
         
