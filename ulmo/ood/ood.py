@@ -483,7 +483,7 @@ class ProbabilisticAutoencoder:
             with torch.no_grad():
                 log_prob = [self.flow.log_prob(data[0].to(self.device)).detach().cpu().numpy()
                      for data in tqdm(loader, total=len(loader), unit='batch', desc='Computing log probs')]
-                f.create_dataset('log_probs', data=np.concatenate(log_prob))
+                f.create_dataset(dataset, data=np.concatenate(log_prob))
         print(f"Log probabilities saved to {output_file}.")
 
         # CSV?
