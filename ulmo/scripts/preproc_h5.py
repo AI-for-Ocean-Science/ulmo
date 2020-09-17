@@ -2,6 +2,7 @@
 
 import numpy as np
 import os
+import json
 
 from functools import partial
 from concurrent.futures import ProcessPoolExecutor
@@ -25,12 +26,11 @@ def parser(options=None):
     parser = argparse.ArgumentParser(description='Preproc images in an H5 file.')
     parser.add_argument("infile", type=str, help="H5 file for pre-processing")
     parser.add_argument("valid_fraction", type=float, help="Validation fraction.  Can be 1")
-    parser.add_argument("--inpaint", default=False, action="store_true", help="Inpaint?")
+    parser.add_argument("preproc_steps", type=str, help="JSON file containing the steps to be applied")
     parser.add_argument('--ncores', type=int, help='Number of cores for processing')
     parser.add_argument('--nsub_fields', type=int, default=10000,
                         help='Number of fields to parallel process at a time')
     parser.add_argument("--debug", default=False, action="store_true", help="Debug?")
-    parser.add_argument("--only_inpaint", default=False, action="store_true", help="Only inpaint?")
 
     if options is None:
         pargs = parser.parse_args()
@@ -75,10 +75,17 @@ def main(pargs):
                                 columns=clms) #meta.attrs['columns'])
 
     # Pre-processing dict
-    pdict = dict(inpaint=pargs.inpaint,
-                 median=True, med_size=(3, 1),
-                 downscale=True, dscale_size=(2, 2),
-                 only_inpaint=pargs.only_inpaint)
+    with open(pargs.preproc_steps, 'rt') as fh:
+        pdict = json.load(fh)
+    # Tuple me
+    for key in ['med_size', 'dscale_size']:
+        if key in pdict:
+            pdict[key] = tuple(pdict[key])
+
+    #pdict = dict(inpaint=pargs.inpaint,
+    #             median=True, med_size=(3, 1),
+    #             downscale=True, dscale_size=(2, 2),
+    #             only_inpaint=pargs.only_inpaint)
 
     # Setup for parallel
     map_fn = partial(preproc_image,
@@ -147,14 +154,13 @@ def main(pargs):
 
     # Modify metadata
     metadata = metadata.iloc[img_idx]
-    if not pargs.only_inpaint:
+    if 'only_inpaint' in pdict.keys() and not pdict['only_inpaint']:
         metadata['mean_temperature'] = mu
 
     # Train/validation
     n = int(pargs.valid_fraction * pp_fields.shape[0])
     idx = shuffle(np.arange(pp_fields.shape[0]))
     valid_idx, train_idx = idx[:n], idx[n:]
-
 
     # ###################
     # Write to disk

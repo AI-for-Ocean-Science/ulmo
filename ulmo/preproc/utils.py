@@ -120,7 +120,10 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
 
     # Exponate?
     if expon is not None:
-        pp_field = pp_field**expon
+        neg = pp_field < 0.
+        pos = np.logical_not(neg)
+        pp_field[pos] = pp_field[pos]**expon
+        pp_field[neg] = -1 * (-1*pp_field[neg])**expon
 
     # Return
     return pp_field, mu
