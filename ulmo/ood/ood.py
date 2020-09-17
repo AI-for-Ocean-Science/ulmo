@@ -1,5 +1,6 @@
 import os
 import time
+import io, json
 import h5py
 import pickle
 import sklearn
@@ -16,8 +17,11 @@ from tqdm.auto import tqdm
 from skimage import filters
 from matplotlib.gridspec import GridSpec
 from sklearn.preprocessing import StandardScaler
+
 from ulmo.plotting import load_palette, grid_plot
 from ulmo.utils import HDF5Dataset, id_collate, get_quantiles
+from ulmo.models import DCAE, ConditionalFlow
+
 
 try:
     import cartopy.crs as ccrs
@@ -25,6 +29,24 @@ except:
     print("Cartopy not installed.  Some plots will not work!")
 
 class ProbabilisticAutoencoder:
+    @classmethod
+    def from_json(cls, json_file, **kwargs):
+        # Load JSON
+        with open(json_file, 'rt') as fh:
+            model_dict = json.load(fh)
+        # Tuples
+        tuples = ['image_shape']
+        for key in model_dict.keys():
+            for sub_key in model_dict[key]:
+                if sub_key in tuples:
+                    model_dict[key][sub_key] = tuple(model_dict[key][sub_key])
+        # Instatiate the pieces
+        autoencoder = DCAE(**model_dict['AE'])
+        flow = ConditionalFlow(**model_dict['flow'])
+        # Do it!
+        pae = cls(autoencoder=autoencoder, flow=flow, **kwargs)
+        return pae
+
     """A probabilistic autoencoder (see arxiv.org/abs/2006.05479)."""
     def __init__(self, autoencoder, flow, filepath, datadir=None, 
                  logdir=None, device=None, skip_mkdir=False):
@@ -73,6 +95,7 @@ class ProbabilisticAutoencoder:
             'log_probs': os.path.join(datadir, self.stem + '_log_probs.h5'),
             'flow_latents': os.path.join(datadir, self.stem + '_flow_latents.h5')}
         self.savepath = {
+            'model': os.path.join(logdir, 'model.json'),
             'flow': os.path.join(logdir, 'flow.pt'),
             'autoencoder': os.path.join(logdir, 'autoencoder.pt')}
         self.logdir = logdir
@@ -85,6 +108,9 @@ class ProbabilisticAutoencoder:
         self.best_valid_loss = {
             'flow': np.inf,
             'autoencoder': np.inf}
+
+        # Write model to JSON
+        self.write_model()
         
     def save_autoencoder(self):
         torch.save(self.autoencoder.state_dict(), self.savepath['autoencoder'])
@@ -99,7 +125,26 @@ class ProbabilisticAutoencoder:
     def load_flow(self):
         print(f"Loading flow model from: {self.savepath['flow']}")
         self.flow.load_state_dict(torch.load(self.savepath['flow']))
-        
+
+    def write_model(self):
+        # Generate the dict
+        ood_model = {}
+        # AE
+        ood_model['AE'] = dict(image_shape=(self.autoencoder.c, self.autoencoder.w, self.autoencoder.h),
+                               latent_dim=self.autoencoder.latent_dim)
+        # Flow
+        flow_attr = ['dim', 'context_dim', 'transform_type', 'n_layers', 'hidden_units', 'n_blocks',
+                     'dropout', 'use_batch_norm', 'tails', 'tail_bound', 'n_bins', 'min_bin_height',
+                     'min_bin_width', 'min_derivative', 'unconditional_transform', 'encoder']
+        ood_model['flow'] = {}
+        for attr in flow_attr:
+            ood_model['flow'][attr] = getattr(self.flow, attr)
+        # JSONify
+        with io.open(self.savepath['model'], 'w', encoding='utf-8') as f:
+            f.write(json.dumps(ood_model, sort_keys=True, indent=4,
+                           separators=(',', ': ')))
+        print(f"Wrote model parameters to {self.savepath['model']}")
+
     def _make_loaders(self, kind, batch_size, drop_last=True):
         filepath = self.filepath[kind]
             
