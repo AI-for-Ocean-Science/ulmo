@@ -44,12 +44,13 @@ class ProbabilisticAutoencoder:
         autoencoder = DCAE(**model_dict['AE'])
         flow = ConditionalFlow(**model_dict['flow'])
         # Do it!
-        pae = cls(autoencoder=autoencoder, flow=flow, **kwargs)
+        pae = cls(autoencoder=autoencoder, flow=flow, write_model=False, **kwargs)
         return pae
 
     """A probabilistic autoencoder (see arxiv.org/abs/2006.05479)."""
     def __init__(self, autoencoder, flow, filepath, datadir=None, 
-                 logdir=None, device=None, skip_mkdir=False):
+                 logdir=None, device=None, skip_mkdir=False,
+                 write_model=True):
         """
         Parameters
             autoencoder: ulmo.models.Autoencoder
@@ -110,7 +111,8 @@ class ProbabilisticAutoencoder:
             'autoencoder': np.inf}
 
         # Write model to JSON
-        self.write_model()
+        if write_model:
+            self.write_model()
         
     def save_autoencoder(self):
         torch.save(self.autoencoder.state_dict(), self.savepath['autoencoder'])
