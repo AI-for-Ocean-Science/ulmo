@@ -111,7 +111,8 @@ def main(pargs):
     """
     # Filenames
     istr = 'F' if pargs.no_inpaint else 'T'
-    load_path = f'/Volumes/Aqua-1/MODIS/night/night/{pargs.year}'
+    #load_path = f'/Volumes/Aqua-1/MODIS/night/night/{pargs.year}'
+    load_path = f'/Volumes/Aqua-1/MODIS_R2019/night/{pargs.year}'
     save_path = (f'/Volumes/Aqua-1/MODIS/uri-ai-sst/xavier/MODIS_{pargs.year}'
                  f'_{pargs.clear_threshold}clear_{pargs.field_size}x{pargs.field_size}_inpaint{istr}.h5')
     if pargs.wolverine:
@@ -162,7 +163,7 @@ def main(pargs):
         files = [f for f in os.listdir(load_path) if f.endswith('.nc')] * 50
     elif pargs.debug:
         #files = files[6000:8000]
-        files = files[0:100]
+        files = files[0:1000]
 
     nloop = len(files) // pargs.nsub_files + ((len(files) % pargs.nsub_files) > 0)
     print('nloop: {}'.format(nloop))
@@ -176,8 +177,6 @@ def main(pargs):
 
         with ProcessPoolExecutor(max_workers=n_cores) as executor:
             chunksize = len(sub_files) // n_cores if len(sub_files) // n_cores > 0 else 1
-            #if pargs.debug:
-            #    chunksize = 100
             answers = list(tqdm(executor.map(map_fn, sub_files,
                                              chunksize=chunksize), total=len(sub_files)))
 
