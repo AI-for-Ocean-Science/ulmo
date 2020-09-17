@@ -27,6 +27,7 @@ def parser(options=None):
     parser.add_argument("infile", type=str, help="H5 file for pre-processing")
     parser.add_argument("valid_fraction", type=float, help="Validation fraction.  Can be 1")
     parser.add_argument("preproc_steps", type=str, help="JSON file containing the steps to be applied")
+    parser.add_argument("outfile", type=str, help="H5 outfile name")
     parser.add_argument('--ncores', type=int, help='Number of cores for processing')
     parser.add_argument('--nsub_fields', type=int, default=10000,
                         help='Number of fields to parallel process at a time')
@@ -165,10 +166,8 @@ def main(pargs):
 
     # ###################
     # Write to disk
-    suffix = '_preproc_{:.1f}valid.h5'.format(pargs.valid_fraction)
-    outfile = pargs.infile.replace('.h5', suffix)
 
-    with h5py.File(outfile, 'w') as f:
+    with h5py.File(pargs.outfile, 'w') as f:
         # Validation
         f.create_dataset('valid', data=pp_fields[valid_idx].astype(np.float32))
         # Metadata
@@ -180,5 +179,5 @@ def main(pargs):
             dset = f.create_dataset('train_metadata', data=metadata.iloc[train_idx].to_numpy(dtype=str).astype('S'))
             dset.attrs['columns'] = clms
 
-    print("Wrote: {}".format(outfile))
+    print("Wrote: {}".format(pargs.outfile))
 
