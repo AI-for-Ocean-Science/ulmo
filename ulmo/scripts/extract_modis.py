@@ -166,7 +166,7 @@ def main(pargs):
         files = files[0:1000]
 
     nloop = len(files) // pargs.nsub_files + ((len(files) % pargs.nsub_files) > 0)
-    print('nloop: {}'.format(nloop))
+    print('Processing {} files in {} loops of {}'.format(len(files), nloop, pargs.nsub_files))
 
     fields, masks, metadata = None, None, None
     for kk in range(nloop):

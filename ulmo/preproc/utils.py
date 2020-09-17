@@ -46,7 +46,7 @@ def build_mask(sst, qual, qual_thresh=2, temp_bounds=(-2,33)):
 
 def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
                   downscale=True, dscale_size=(2,2), sigmoid=False, scale=None,
-                  only_inpaint=False):
+                  expon=None, only_inpaint=False):
     """
     Preprocess an input field image with a series of steps:
         1. Inpainting
@@ -71,6 +71,10 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
         If True downscale the image
     dscale_size : tuple, optional
         Size to rescale by
+    scale : float
+        Scale the SSTa values by this multiplicative factor
+    expon : float
+        Exponate the SSTa values by this exponent
 
     Returns
     -------
@@ -113,6 +117,10 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
     # Scale?
     if scale is not None:
         pp_field *= scale
+
+    # Exponate?
+    if expon is not None:
+        pp_field = pp_field**expon
 
     # Return
     return pp_field, mu
