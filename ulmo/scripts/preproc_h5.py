@@ -96,25 +96,32 @@ def main(pargs):
     nloop = nimages // pargs.nsub_fields + ((nimages % pargs.nsub_fields) > 0)
 
     print("There are {} images to process in the input file".format(nimages))
+    f.close()
 
     # Process them all, then deal with train/validation
     pp_fields, mu, img_idx = [], [], []
     for kk in range(nloop):
+        f = h5py.File(pargs.infile, mode='r')
         # Load the images into memory
         i0 = kk*pargs.nsub_fields
         i1 = min((kk+1)*pargs.nsub_fields, nimages)
         print('Fields: {}:{} of {}'.format(i0, i1, nimages))
         fields = f['fields'][i0:i1]
+        shape =fields.shape
         masks = f['masks'][i0:i1].astype(np.uint8)
-        sub_idx = range(i0, i1)
+        sub_idx = np.arange(i0, i1).tolist()
 
 
         # Convert to lists
-        items = []
-        for i in range(fields.shape[0]):
-            items.append([fields[i,...], masks[i,...], sub_idx[i]])
-        del fields, masks
+        print('Making lists')
+        fields = np.vsplit(fields, shape[0])
+        fields = [field.reshape(shape[1:]) for field in fields]
+        masks = np.vsplit(masks, shape[0])
+        masks = [mask.reshape(shape[1:]) for mask in masks]
 
+        items = [item for item in zip(fields,masks,sub_idx)]
+
+        print('Process time')
         # Do it
         with ProcessPoolExecutor(max_workers=n_cores) as executor:
             chunksize = len(items) // n_cores if len(items) // n_cores > 0 else 1
@@ -129,10 +136,8 @@ def main(pargs):
         img_idx += [item[1] for item in answers]
         mu += [item[2] for item in answers]
 
-        del answers
-
-    # Close infile
-    f.close()
+        del answers, fields, masks, items
+        f.close()
 
     # Recast
     pp_fields = np.stack(pp_fields)
