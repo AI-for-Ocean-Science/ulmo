@@ -298,18 +298,16 @@ class ProbabilisticAutoencoder:
 
         Returns
         -------
+        except:
         df : pandas.DataFrame
 
         """
-        try:  # Saved as pandas (since JXP)
-            df = pd.read_hdf(self.filepath['data'], key)
-        except:
-            with h5py.File(self.filepath['data'], 'r') as f:
-                if key in f.keys():
-                    meta = f[key]
-                    df = pd.DataFrame(meta[:].astype(np.unicode_), columns=meta.attrs['columns'])
-                else:
-                    df = pd.DataFrame()
+        with h5py.File(self.filepath['data'], 'r') as f:
+            if key in f.keys():
+                meta = f[key]
+                df = pd.DataFrame(meta[:].astype(np.unicode_), columns=meta.attrs['columns'])
+            else:
+                df = pd.DataFrame()
         return df
 
     def to_tensor(self, x):
@@ -421,7 +419,6 @@ class ProbabilisticAutoencoder:
                      for data in loader]
                      #for data in tqdm(loader, total=len(loader), unit='batch', desc='Computing latents')]
 
-        import pdb; pdb.set_trace()
         latents = scaler.transform(np.concatenate(latents))
 
         dset = torch.utils.data.TensorDataset(torch.from_numpy(latents).float())
@@ -441,13 +438,7 @@ class ProbabilisticAutoencoder:
             self._compute_log_probs()
 
         df = self.load_meta('valid_metadata')
-        #with h5py.File(self.filepath['data'], 'r') as f:
-        #    if 'valid_metadata' in f.keys():
-        #        meta = f['valid_metadata']
-        #        df = pd.DataFrame(meta[:].astype(np.unicode_), columns=meta.attrs['columns'])
-        #    else:
-        #        df = pd.DataFrame()
-        
+
         with h5py.File(self.filepath['log_probs'], 'r') as f:
             df['log_likelihood'] = f['valid'][:].flatten()
             
@@ -465,12 +456,7 @@ class ProbabilisticAutoencoder:
             fields = fields[idx]
             recons = self.reconstruct(fields)
             df = self.load_meta('valid_metadata')
-            #if 'valid_metadata' in f.keys():
-            #    meta = f['valid_metadata']
-            #    df = pd.DataFrame(meta[idx].astype(np.unicode_), columns=meta.attrs['columns'])
-            #else:
-            #    meta = None
-        
+
         fig, axes = grid_plot(nrows=4, ncols=4)
 
         for i, (ax, r_ax) in enumerate(axes):
@@ -561,7 +547,6 @@ class ProbabilisticAutoencoder:
         # Retrieve data
         with h5py.File(self.filepath['data'], 'r') as f:
             fields = f['valid'][idx]
-            import pdb; pdb.set_trace()  # Update metadata loading
             if 'valid_metadata' in f.keys():
                 meta = f['valid_metadata']
                 df = pd.DataFrame(meta[idx].astype(np.unicode_), columns=meta.attrs['columns'])

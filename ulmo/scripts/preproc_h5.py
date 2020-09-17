@@ -72,7 +72,7 @@ def main(pargs):
     if 'mean_temperature' in clms:
         clms.remove('mean_temperature')
     metadata = pandas.DataFrame(meta[:].astype(np.unicode_),
-                                columns=clms) #meta.attrs['columns'])
+                                columns=clms)
 
     # Pre-processing dict
     with open(pargs.preproc_steps, 'rt') as fh:
@@ -156,6 +156,7 @@ def main(pargs):
     metadata = metadata.iloc[img_idx]
     if 'only_inpaint' in pdict.keys() and not pdict['only_inpaint']:
         metadata['mean_temperature'] = mu
+        clms += ['mean_temperature']
 
     # Train/validation
     n = int(pargs.valid_fraction * pp_fields.shape[0])
@@ -170,13 +171,14 @@ def main(pargs):
     with h5py.File(outfile, 'w') as f:
         # Validation
         f.create_dataset('valid', data=pp_fields[valid_idx].astype(np.float32))
+        # Metadata
+        dset = f.create_dataset('valid_metadata', data=metadata.iloc[valid_idx].to_numpy(dtype=str).astype('S'))
+        dset.attrs['columns'] = clms
         # Train
         if pargs.valid_fraction < 1:
             f.create_dataset('train', data=pp_fields[train_idx].astype(np.float32))
-    # Metadata
-    metadata.iloc[valid_idx].to_hdf(outfile, 'valid_metadata', mode='a')
-    if pargs.valid_fraction < 1:
-        metadata.iloc[train_idx].to_hdf(outfile, 'train_metadata', mode='a')
+            dset = f.create_dataset('train_metadata', data=metadata.iloc[train_idx].to_numpy(dtype=str).astype('S'))
+            dset.attrs['columns'] = clms
 
     print("Wrote: {}".format(outfile))
 
