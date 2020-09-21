@@ -1,5 +1,6 @@
 import os
 import time
+import io, json
 import h5py
 import pickle
 import sklearn
@@ -16,8 +17,11 @@ from tqdm.auto import tqdm
 from skimage import filters
 from matplotlib.gridspec import GridSpec
 from sklearn.preprocessing import StandardScaler
+
 from ulmo.plotting import load_palette, grid_plot
 from ulmo.utils import HDF5Dataset, id_collate, get_quantiles
+from ulmo.models import DCAE, ConditionalFlow
+
 
 try:
     import cartopy.crs as ccrs
@@ -25,9 +29,28 @@ except:
     print("Cartopy not installed.  Some plots will not work!")
 
 class ProbabilisticAutoencoder:
+    @classmethod
+    def from_json(cls, json_file, **kwargs):
+        # Load JSON
+        with open(json_file, 'rt') as fh:
+            model_dict = json.load(fh)
+        # Tuples
+        tuples = ['image_shape']
+        for key in model_dict.keys():
+            for sub_key in model_dict[key]:
+                if sub_key in tuples:
+                    model_dict[key][sub_key] = tuple(model_dict[key][sub_key])
+        # Instatiate the pieces
+        autoencoder = DCAE(**model_dict['AE'])
+        flow = ConditionalFlow(**model_dict['flow'])
+        # Do it!
+        pae = cls(autoencoder=autoencoder, flow=flow, write_model=False, **kwargs)
+        return pae
+
     """A probabilistic autoencoder (see arxiv.org/abs/2006.05479)."""
     def __init__(self, autoencoder, flow, filepath, datadir=None, 
-                 logdir=None, device=None, skip_mkdir=False):
+                 logdir=None, device=None, skip_mkdir=False,
+                 write_model=True):
         """
         Parameters
             autoencoder: ulmo.models.Autoencoder
@@ -73,6 +96,7 @@ class ProbabilisticAutoencoder:
             'log_probs': os.path.join(datadir, self.stem + '_log_probs.h5'),
             'flow_latents': os.path.join(datadir, self.stem + '_flow_latents.h5')}
         self.savepath = {
+            'model': os.path.join(logdir, 'model.json'),
             'flow': os.path.join(logdir, 'flow.pt'),
             'autoencoder': os.path.join(logdir, 'autoencoder.pt')}
         self.logdir = logdir
@@ -85,6 +109,10 @@ class ProbabilisticAutoencoder:
         self.best_valid_loss = {
             'flow': np.inf,
             'autoencoder': np.inf}
+
+        # Write model to JSON
+        if write_model:
+            self.write_model()
         
     def save_autoencoder(self):
         torch.save(self.autoencoder.state_dict(), self.savepath['autoencoder'])
@@ -99,7 +127,26 @@ class ProbabilisticAutoencoder:
     def load_flow(self):
         print(f"Loading flow model from: {self.savepath['flow']}")
         self.flow.load_state_dict(torch.load(self.savepath['flow']))
-        
+
+    def write_model(self):
+        # Generate the dict
+        ood_model = {}
+        # AE
+        ood_model['AE'] = dict(image_shape=(self.autoencoder.c, self.autoencoder.w, self.autoencoder.h),
+                               latent_dim=self.autoencoder.latent_dim)
+        # Flow
+        flow_attr = ['dim', 'context_dim', 'transform_type', 'n_layers', 'hidden_units', 'n_blocks',
+                     'dropout', 'use_batch_norm', 'tails', 'tail_bound', 'n_bins', 'min_bin_height',
+                     'min_bin_width', 'min_derivative', 'unconditional_transform', 'encoder']
+        ood_model['flow'] = {}
+        for attr in flow_attr:
+            ood_model['flow'][attr] = getattr(self.flow, attr)
+        # JSONify
+        with io.open(self.savepath['model'], 'w', encoding='utf-8') as f:
+            f.write(json.dumps(ood_model, sort_keys=True, indent=4,
+                           separators=(',', ': ')))
+        print(f"Wrote model parameters to {self.savepath['model']}")
+
     def _make_loaders(self, kind, batch_size, drop_last=True):
         filepath = self.filepath[kind]
             
@@ -114,7 +161,7 @@ class ProbabilisticAutoencoder:
             valid_dset, batch_size=batch_size, shuffle=False, 
             drop_last=drop_last, collate_fn=id_collate,
             num_workers=16)
-        
+
         print(f"{len(train_loader)*train_loader.batch_size:,d} training samples. "
               f"{len(valid_loader)*valid_loader.batch_size:,d} validation samples.")
 
@@ -139,7 +186,7 @@ class ProbabilisticAutoencoder:
                 self.up_to_date_log_probs = False
             else:
                 raise ValueError(f"Module {module} unknown.")
-            
+
             model.train()
             global_step = 0
             total_loss = 0
@@ -180,7 +227,11 @@ class ProbabilisticAutoencoder:
                         epoch_pbar.set_description(f"Validation Loss: {valid_loss:.3f}")
                         valid_losses.append((global_step, valid_loss))
                         model.train()
-                
+            save = input("Training stopped. Save model (y/n)?").strip().lower() == 'y'
+            if save:
+                save_model()
+                print("Model saved.")
+
         except KeyboardInterrupt:
             save = input("Training stopped. Save model (y/n)?").strip().lower() == 'y'
             if save:
@@ -283,7 +334,33 @@ class ProbabilisticAutoencoder:
                                          desc='Computing valid flow latents')]
                     f.create_dataset('valid', data=np.concatenate(log_prob))
         self.up_to_date_flow_latents = True
-        
+
+    def load_meta(self, key, filename=None):
+        """
+
+        Parameters
+        ----------
+        key : str
+            Group name for metadata, e.g. "valid_metadata"
+        filename : str, optional
+            File for meta data
+
+        Returns
+        -------
+        df : pandas.DataFrame
+
+        """
+        if filename is None:
+            filename = self.filepath['data']
+        # Proceed
+        with h5py.File(filename, 'r') as f:
+            if key in f.keys():
+                meta = f[key]
+                df = pd.DataFrame(meta[:].astype(np.unicode_), columns=meta.attrs['columns'])
+            else:
+                df = pd.DataFrame()
+        return df
+
     def to_tensor(self, x):
         if isinstance(x, np.ndarray):
             x = torch.from_numpy(x).float().to(self.device)
@@ -347,8 +424,10 @@ class ProbabilisticAutoencoder:
         log_prob = self.to_type(log_prob, t)
         return log_prob
     
-    def compute_log_probs(self, input_file, dataset, output_file, scaler=None):
+    def compute_log_probs(self, input_file, dataset, output_file,
+                          scaler=None, csv=False):
         """
+        Computer log probs on an input HDF file of images
 
         Parameters
         ----------
@@ -393,7 +472,6 @@ class ProbabilisticAutoencoder:
                      for data in loader]
                      #for data in tqdm(loader, total=len(loader), unit='batch', desc='Computing latents')]
 
-        import pdb; pdb.set_trace()
         latents = scaler.transform(np.concatenate(latents))
 
         dset = torch.utils.data.TensorDataset(torch.from_numpy(latents).float())
@@ -405,27 +483,53 @@ class ProbabilisticAutoencoder:
             with torch.no_grad():
                 log_prob = [self.flow.log_prob(data[0].to(self.device)).detach().cpu().numpy()
                      for data in tqdm(loader, total=len(loader), unit='batch', desc='Computing log probs')]
-                f.create_dataset('log_probs', data=np.concatenate(log_prob))
-        print(f"Log probabilities saved to {output_file}.")  
-    
+                f.create_dataset(dataset, data=np.concatenate(log_prob))
+        print(f"Log probabilities saved to {output_file}.")
+
+        # CSV?
+        if csv:
+            csv_name = output_file.replace('h5', 'csv')
+            df = self.load_meta(dataset+'_metadata', filename=input_file)
+            self._log_probs_to_csv(df, output_file, csv_name,
+                                   dataset=dataset)
+
+    def _log_probs_to_csv(self, df, log_file, outfile, dataset='valid'):
+        """
+
+        Parameters
+        ----------
+        df : pnadas.DataFrame
+        log_file : str
+        outfile : str
+        dataset : str, optional
+
+        """
+        with h5py.File(log_file, 'r') as f:
+            df['log_likelihood'] = f[dataset][:].flatten()
+        df.to_csv(outfile, index=False)
+        print(f"Saved log probabilities to {outfile}.")
+
     def save_log_probs(self):
+        """
+        Write the log probabilities to a CSV file
+
+        Returns
+        -------
+
+        """
         if not self.up_to_date_log_probs:
             self._compute_log_probs()
-            
-        with h5py.File(self.filepath['data'], 'r') as f:
-            if 'valid_metadata' in f.keys():
-                meta = f['valid_metadata']
-                df = pd.DataFrame(meta[:].astype(np.unicode_), columns=meta.attrs['columns'])
-            else:
-                df = pd.DataFrame()
-        
-        with h5py.File(self.filepath['log_probs'], 'r') as f:
-            df['log_likelihood'] = f['valid'][:].flatten()
-            
+
+        # Prep
+        df = self.load_meta('valid_metadata')
         csv_name = self.stem + '_log_probs.csv'
-        df.to_csv(os.path.join(self.logdir, csv_name), index=False)
-        print(f"Saved log probabilities to {os.path.join(self.logdir, csv_name)}.")
-    
+        outfile = os.path.join(self.logdir, csv_name)
+
+        # Call
+        self._log_probs_to_csv(df, self.filepath['log_probs'], outfile)
+
+
+
     def plot_reconstructions(self, save_figure=False):
         pal, cm = load_palette()
         
@@ -435,12 +539,8 @@ class ProbabilisticAutoencoder:
             idx = sorted(np.random.choice(n, replace=False, size=16))
             fields = fields[idx]
             recons = self.reconstruct(fields)
-            if 'valid_metadata' in f.keys():
-                meta = f['valid_metadata']
-                df = pd.DataFrame(meta[idx].astype(np.unicode_), columns=meta.attrs['columns'])
-            else:
-                meta = None
-        
+            df = self.load_meta('valid_metadata')
+
         fig, axes = grid_plot(nrows=4, ncols=4)
 
         for i, (ax, r_ax) in enumerate(axes):
@@ -448,7 +548,7 @@ class ProbabilisticAutoencoder:
             rx = recons[i, 0]
             ax.axis('equal')
             r_ax.axis('equal')
-            if meta is not None:
+            if df is not None:
                 file, row, col = df.iloc[i][['filename', 'row', 'column']]
                 ax.set_title(f'{file}')
                 t = ax.text(0.12, 0.89, f'({row}, {col})', color='k', size=12, transform=ax.transAxes)

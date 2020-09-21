@@ -1,0 +1,15 @@
+{
+    "downscale": true,
+    "dscale_size": [
+        2,
+        2
+    ],
+    "expon": 2.0,
+    "inpaint": false,
+    "med_size": [
+        3,
+        1
+    ],
+    "median": true,
+    "only_inpaint": false
+}
