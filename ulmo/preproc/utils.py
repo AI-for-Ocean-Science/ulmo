@@ -6,6 +6,7 @@ from skimage.restoration import inpaint as sk_inpaint
 from scipy.ndimage import median_filter
 from scipy import special
 from skimage.transform import downscale_local_mean
+from skimage import filters
 
 from IPython import embed
 
@@ -46,7 +47,7 @@ def build_mask(sst, qual, qual_thresh=2, temp_bounds=(-2,33)):
 
 def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
                   downscale=True, dscale_size=(2,2), sigmoid=False, scale=None,
-                  expon=None, only_inpaint=False):
+                  expon=None, only_inpaint=False, gradient=False):
     """
     Preprocess an input field image with a series of steps:
         1. Inpainting
@@ -78,10 +79,11 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
 
     Returns
     -------
-    pp_field, mu : np.ndarray, float
+    pp_field, meta_dict : np.ndarray, dict
         Pre-processed field, mean temperature
 
     """
+    meta_dict = {}
     # Inpaint?
     if inpaint:
         if mask.dtype.name != 'uint8':
@@ -93,6 +95,15 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
             return None, None
         else:
             return field, None
+
+    # Capture more metadata
+    srt = np.argsort(field.flatten())
+    meta_dict['Tmax'] = field.flatten()[srt[-1]]
+    meta_dict['Tmin'] = field.flatten()[srt[0]]
+    i10 = int(0.1*field.size)
+    i90 = int(0.9*field.size)
+    meta_dict['T10'] = field.flatten()[srt[i10]]
+    meta_dict['T90'] = field.flatten()[srt[i90]]
 
     # Median
     if median:
@@ -109,6 +120,7 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
     # De-mean the field
     mu = np.mean(field)
     pp_field = field - mu
+    meta_dict['mu'] = mu
 
     # Sigmoid?
     if sigmoid:
@@ -125,7 +137,11 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
         pp_field[pos] = pp_field[pos]**expon
         pp_field[neg] = -1 * (-1*pp_field[neg])**expon
 
+    # Sobel Gradient?
+    if gradient:
+        pp_field = filters.sobel(pp_field)
+
     # Return
-    return pp_field, mu
+    return pp_field, meta_dict
 
 
