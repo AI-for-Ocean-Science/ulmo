@@ -113,7 +113,7 @@ def main(pargs):
     istr = 'F' if pargs.no_inpaint else 'T'
     #load_path = f'/Volumes/Aqua-1/MODIS/night/night/{pargs.year}'
     load_path = f'/Volumes/Aqua-1/MODIS_R2019/night/{pargs.year}'
-    save_path = (f'/Volumes/Aqua-1/MODIS/uri-ai-sst/xavier/MODIS_R2019_{pargs.year}'
+    save_path = (f'/Volumes/Aqua-1/MODIS/uri-ai-sst/OOD/Extractions/MODIS_R2019_{pargs.year}'
                  f'_{pargs.clear_threshold}clear_{pargs.field_size}x{pargs.field_size}_inpaint{istr}.h5')
     if pargs.wolverine:
         load_path = f'/home/xavier/Projects/Oceanography/AI/OOD'
