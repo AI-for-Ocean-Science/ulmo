@@ -156,6 +156,9 @@ def main(pargs):
                 metadata[key] = [imeta[key] for imeta in meta]
                 clms += [key]
 
+    if pargs.debug:
+        embed(header='160 of preproc')
+
     # Train/validation
     n = int(pargs.valid_fraction * pp_fields.shape[0])
     idx = shuffle(np.arange(pp_fields.shape[0]))
