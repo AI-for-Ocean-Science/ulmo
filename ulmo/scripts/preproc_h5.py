@@ -21,6 +21,7 @@ from sklearn.utils import shuffle
 
 from IPython import embed
 
+
 def parser(options=None):
     import argparse
     # Parse
@@ -40,8 +41,23 @@ def parser(options=None):
         pargs = parser.parse_args(options)
     return pargs
 
-def preproc_image(item, pdict):
 
+def preproc_image(item, pdict):
+    """
+    Simple wrapper for preproc_field()
+
+    Parameters
+    ----------
+    item : tuple
+        field, mask, idx
+    pdict : dict
+        Preprocessing dict
+
+    Returns
+    -------
+    pp_field, idx, meta : np.ndarray, int, dict
+
+    """
     # Parse
     field, mask, idx = item
 
@@ -54,6 +70,7 @@ def preproc_image(item, pdict):
 
     # Return
     return pp_field, idx, meta
+
 
 def main(pargs):
     """ Run
