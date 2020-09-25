@@ -10,6 +10,6 @@
         1
     ],
     "median": true,
-    "only_inpaint": false
+    "only_inpaint": false,
     "gradient": true
 }

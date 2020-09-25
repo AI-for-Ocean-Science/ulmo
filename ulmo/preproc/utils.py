@@ -26,7 +26,6 @@ def build_mask(sst, qual, qual_thresh=2, temp_bounds=(-2,33)):
     temp_bounds : tuple
         Temperature interval considered valid
 
-
     Returns
     -------
     masks : np.ndarray
