@@ -407,6 +407,20 @@ class ProbabilisticAutoencoder:
         return x
     
     def reconstruct(self, x):
+        """
+        Use the AutoEncoder to reconstruct an input image
+
+        Parameters
+        ----------
+        x : np.ndarray
+            Image
+
+        Returns
+        -------
+        rx : np.ndarray
+            Reconstructed image
+
+        """
         t = type(x)
         self.autoencoder.eval()
         x = self.to_tensor(x)
@@ -531,6 +545,14 @@ class ProbabilisticAutoencoder:
 
 
     def plot_reconstructions(self, save_figure=False):
+        """
+        Generate a grid of plots of reconstructed images
+
+        Parameters
+        ----------
+        save_figure : bool, optional
+
+        """
         pal, cm = load_palette()
         
         with h5py.File(self.filepath['data'], 'r') as f:
