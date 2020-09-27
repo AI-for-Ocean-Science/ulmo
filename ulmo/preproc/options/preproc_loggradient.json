@@ -1,0 +1,16 @@
+{
+    "downscale": true,
+    "dscale_size": [
+        2,
+        2
+    ],
+    "inpaint": false,
+    "med_size": [
+        3,
+        1
+    ],
+    "median": true,
+    "only_inpaint": false,
+    "gradient": true,
+    "log_scale": true
+}
