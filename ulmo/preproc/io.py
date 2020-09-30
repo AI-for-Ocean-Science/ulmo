@@ -6,7 +6,20 @@ import json
 
 preproc_path = os.path.join(resource_filename('ulmo', 'preproc'), 'options')
 
-def load_options(filename):
+def load_options(root):
+    """
+    Load a PreProc options dict
+
+    Parameters
+    ----------
+    root (str) : Root of preproc JSON file
+
+    Returns
+    -------
+    pdict : dict
+
+    """
+    filename = 'preproc_{}.json'.format(root)
     # Tuples
     with open(os.path.join(preproc_path, filename), 'rt') as fh:
         pdict = json.load(fh)

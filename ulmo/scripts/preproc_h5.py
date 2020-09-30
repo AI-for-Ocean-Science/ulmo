@@ -21,13 +21,14 @@ from sklearn.utils import shuffle
 
 from IPython import embed
 
+
 def parser(options=None):
     import argparse
     # Parse
     parser = argparse.ArgumentParser(description='Preproc images in an H5 file.')
     parser.add_argument("infile", type=str, help="H5 file for pre-processing")
     parser.add_argument("valid_fraction", type=float, help="Validation fraction.  Can be 1")
-    parser.add_argument("preproc_steps", type=str, help="JSON file containing the steps to be applied")
+    parser.add_argument("preproc_root", type=str, help="Root name of JSON file containing the steps to be applied")
     parser.add_argument("outfile", type=str, help="H5 outfile name")
     parser.add_argument('--ncores', type=int, help='Number of cores for processing')
     parser.add_argument('--nsub_fields', type=int, default=10000,
@@ -40,8 +41,23 @@ def parser(options=None):
         pargs = parser.parse_args(options)
     return pargs
 
-def preproc_image(item, pdict):
 
+def preproc_image(item, pdict):
+    """
+    Simple wrapper for preproc_field()
+
+    Parameters
+    ----------
+    item : tuple
+        field, mask, idx
+    pdict : dict
+        Preprocessing dict
+
+    Returns
+    -------
+    pp_field, idx, meta : np.ndarray, int, dict
+
+    """
     # Parse
     field, mask, idx = item
 
@@ -54,6 +70,7 @@ def preproc_image(item, pdict):
 
     # Return
     return pp_field, idx, meta
+
 
 def main(pargs):
     """ Run
@@ -77,7 +94,7 @@ def main(pargs):
                                 columns=clms)
 
     # Pre-processing dict
-    pdict = pp_io.load_options(pargs.preproc_steps)
+    pdict = pp_io.load_options(pargs.preproc_root)
 
     # Setup for parallel
     map_fn = partial(preproc_image,
