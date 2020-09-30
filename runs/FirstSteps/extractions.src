@@ -1,0 +1,8 @@
+#screen -L ulmo_extract_modis --ncores 20 --year 2008
+#screen -L ulmo_extract_modis --ncores 20 --year 2009
+#screen -L ulmo_extract_modis --ncores 20 --year 2010
+#screen -L ulmo_extract_modis --ncores 20 --year 2011
+#screen -L ulmo_extract_modis --ncores 20 --year 2012
+#screen -L ulmo_extract_modis --ncores 20 --year 2013
+#screen -L ulmo_extract_modis --ncores 20 --year 2014
+screen -L ulmo_extract_modis --ncores 20 --year 2015
