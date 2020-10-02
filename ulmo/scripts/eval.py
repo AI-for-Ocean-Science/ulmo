@@ -40,6 +40,7 @@ def run_evals(years, flavor, clobber=False):
         log_prob_file = 'Evaluations/R2010_on_{}_95clear_128x128_preproc_{}_log_prob.h5'.format(year, flavor)
         if os.path.isfile(log_prob_file) and not clobber:
             print("Eval file {} exists! Skipping..".format(log_prob_file))
+            continue
 
         # Run
         pae.compute_log_probs(data_file, 'valid', log_prob_file, csv=True)
