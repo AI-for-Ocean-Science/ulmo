@@ -61,7 +61,13 @@ def extract_file(ifile, load_path, field_size=(128,128), nadir_offset=480,
     filename = os.path.join(load_path, ifile)
 
     # Load the image
-    sst, qual, latitude, longitude = ulmo_io.load_nc(filename, verbose=False)
+    try:
+        sst, qual, latitude, longitude = ulmo_io.load_nc(filename, verbose=False)
+    except:
+        print("File {} is junk".format(filename))
+        return
+    if sst is None:
+        return
 
     # Generate the masks
     masks = pp_utils.build_mask(sst, qual, qual_thresh=qual_thresh,
