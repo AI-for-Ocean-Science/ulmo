@@ -1,0 +1,15 @@
+#!/usr/bin/env python
+#
+# See top-level LICENSE file for Copyright information
+#
+# -*- coding: utf-8 -*-
+
+"""
+This script runs evaluations on input years
+"""
+
+import ulmo.scripts.eval as eval
+
+if __name__ == '__main__':
+    args = eval.parser()
+    eval.main(args)

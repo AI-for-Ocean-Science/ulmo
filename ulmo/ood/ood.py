@@ -439,7 +439,7 @@ class ProbabilisticAutoencoder:
         return log_prob
     
     def compute_log_probs(self, input_file, dataset, output_file,
-                          scaler=None, csv=False):
+                          scaler=None, csv=False, query=False):
         """
         Computer log probs on an input HDF file of images
 
@@ -449,6 +449,8 @@ class ProbabilisticAutoencoder:
         dataset
         output_file
         scaler
+        query : bool, optional
+            If True, query the user
 
         Returns
         -------
@@ -459,7 +461,10 @@ class ProbabilisticAutoencoder:
             scaler_path = os.path.join(self.logdir, self.stem + '_scaler.pkl')
             if self.scaler is None:
                 if os.path.exists(scaler_path):
-                    load = input("Scaler file found in logdir. Use this (y/n)?") == 'y'
+                    if query:
+                        load = input("Scaler file found in logdir. Use this (y/n)?") == 'y'
+                    else:
+                        load = True
                     if load:
                         with open(scaler_path, 'rb') as f:
                             scaler = pickle.load(f)
