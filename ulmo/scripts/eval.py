@@ -26,6 +26,8 @@ def run_evals(years, flavor, clobber=False):
     pae.load_autoencoder()
     pae.load_flow()
 
+    print("Model loaded!")
+
     # Prep
     for year in years:
         # Input
@@ -37,7 +39,7 @@ def run_evals(years, flavor, clobber=False):
         # Output
         log_prob_file = 'Evaluations/R2010_on_{}_95clear_128x128_preproc_{}_log_prob.h5'.format(year, flavor)
         if os.path.isfile(log_prob_file) and not clobber:
-            raise IOError("Eval file {} exists! Skipping..".format(log_prob_file))
+            print("Eval file {} exists! Skipping..".format(log_prob_file))
 
         # Run
         pae.compute_log_probs(data_file, 'valid', log_prob_file, csv=True)
