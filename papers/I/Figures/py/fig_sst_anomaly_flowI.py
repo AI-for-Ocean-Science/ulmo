@@ -170,6 +170,7 @@ def fig_in_painting(outfile, iexpmle=4):
     # Find a good example
     prob_file = os.path.join(eval_path,
                              'MODIS_R2019_2010_95clear_128x128_preproc_std_log_probs.csv')
+    print("Grabbing an example")
     df = pandas.read_csv(prob_file)
     cloudy = df.clear_fraction > 0.045
     df = df[cloudy]
@@ -178,6 +179,8 @@ def fig_in_painting(outfile, iexpmle=4):
     # One, psuedo-random
     example = df.iloc[i_LL[iexpmle]]
 
+
+    print("Extracting")
     # Grab out of Extraction file
     extract_file = os.path.join(extract_path,
                              'MODIS_R2019_2010_95clear_128x128_inpaintT.h5')
@@ -186,8 +189,18 @@ def fig_in_painting(outfile, iexpmle=4):
     meta = f[key]
     df_ex = pandas.DataFrame(meta[:].astype(np.unicode_), columns=meta.attrs['columns'])
 
-    imt = (df_ex.filename == example.filename) & (df_ex.row == example.row) & (df_ex.column == example.column)
-    embed(header='190 of figs')
+    imt = (df_ex.filename.values == example.filename) & (
+            df_ex.row.values.astype(int) == example.row) & (
+            df_ex.column.values.astype(int) == example.column)
+    assert np.sum(imt) == 1
+    index = df_ex.iloc[imt].index[0]
+
+    # Grab image + mask
+    field = f['fields'][index]
+    mask = f['masks'][index]
+
+    masked_field = field.copy()
+    masked_field[mask == 1] = 0
 
     f.close()
 
@@ -199,10 +212,10 @@ def fig_in_painting(outfile, iexpmle=4):
 
     # Before in-painting
     ax1 = plt.subplot(gs[0])
-    sns.heatmap(pp_field, ax=ax1, xticklabels=[], yticklabels=[], cmap=cm)#, vmin=-2, vmax=2)
+    sns.heatmap(masked_field, ax=ax1, xticklabels=[], yticklabels=[], cmap=cm)#, vmin=-2, vmax=2)
 
-    #ax2 = plt.subplot(gs[1])
-    #sns.heatmap(grad, ax=ax2, xticklabels=[], yticklabels=[], cmap=cm)#, vmin=-2, vmax=2)
+    ax2 = plt.subplot(gs[1])
+    sns.heatmap(field, ax=ax2, xticklabels=[], yticklabels=[], cmap=cm)#, vmin=-2, vmax=2)
 
     # Layout and save
     # plt.tight_layout(pad=0.5, h_pad=0.5, w_pad=0.5)
