@@ -179,8 +179,17 @@ def fig_in_painting(outfile, iexpmle=4):
     example = df.iloc[i_LL[iexpmle]]
 
     # Grab out of Extraction file
-    extract_file = os.path.join(eval_path,
-                             'MODIS_R2019_2010_95clear_128x128_preproc_std_log_probs.csv')
+    extract_file = os.path.join(extract_path,
+                             'MODIS_R2019_2010_95clear_128x128_inpaintT.h5')
+    f = h5py.File(extract_file, mode='r')
+    key = 'valid_metadata'
+    meta = f[key]
+    df_ex = pandas.DataFrame(meta[:].astype(np.unicode_), columns=meta.attrs['columns'])
+
+    imt = (df_ex.filename == example.filename) & (df_ex.row == example.row) & (df_ex.column == example.column)
+    embed(header='190 of figs')
+
+    f.close()
 
     # Plot
     fig = plt.figure(figsize=(7, 5))
