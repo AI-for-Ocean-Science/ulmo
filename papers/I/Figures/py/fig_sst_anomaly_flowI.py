@@ -206,7 +206,7 @@ def fig_in_painting(outfile, iexpmle=4, vmnx=(8, 24)):
 
 
     # Plot
-    fig = plt.figure(figsize=(7, 5))
+    fig = plt.figure(figsize=(10, 4))
     pal, cm = plotting.load_palette()
     plt.clf()
     gs = gridspec.GridSpec(1,2)
