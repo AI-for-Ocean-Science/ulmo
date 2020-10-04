@@ -15,10 +15,15 @@ import healpy as hp
 import h5py
 
 import pandas
+import seaborn as sns
 
 from ulmo.analysis import cc as ulmo_cc
+from ulmo import plotting
 
 from IPython import embed
+
+eval_path = os.path.join(os.getenv("SST_OOD"), 'Evaluations')
+extract_path = os.path.join(os.getenv("SST_OOD"), 'Extractions')
 
 
 def fig_db_by_month(outfile):
@@ -160,6 +165,42 @@ def fig_CC(outfile):
     plt.close()
     print('Wrote {:s}'.format(outfile))
 
+def fig_in_painting(outfile, iexpmle=4):
+
+    # Find a good example
+    prob_file = os.path.join(eval_path,
+                             'MODIS_R2019_2010_95clear_128x128_preproc_std_log_probs.csv')
+    df = pandas.read_csv(prob_file)
+    cloudy = df.clear_fraction > 0.045
+    df = df[cloudy]
+    i_LL = np.argsort(df.log_likelihood.values)
+
+    # One, psuedo-random
+    example = df.iloc[i_LL[iexpmle]]
+
+    # Grab out of Extraction file
+    extract_file = os.path.join(eval_path,
+                             'MODIS_R2019_2010_95clear_128x128_preproc_std_log_probs.csv')
+
+    # Plot
+    fig = plt.figure(figsize=(7, 5))
+    pal, cm = plotting.load_palette()
+    plt.clf()
+    gs = gridspec.GridSpec(1,2)
+
+    # Before in-painting
+    ax1 = plt.subplot(gs[0])
+    sns.heatmap(pp_field, ax=ax1, xticklabels=[], yticklabels=[], cmap=cm)#, vmin=-2, vmax=2)
+
+    #ax2 = plt.subplot(gs[1])
+    #sns.heatmap(grad, ax=ax2, xticklabels=[], yticklabels=[], cmap=cm)#, vmin=-2, vmax=2)
+
+    # Layout and save
+    # plt.tight_layout(pad=0.5, h_pad=0.5, w_pad=0.5)
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
 
 def fig_evals_spatial(pproc, outfile, nside=64):
     """
@@ -176,7 +217,6 @@ def fig_evals_spatial(pproc, outfile, nside=64):
     """
 
     # Load up the tables
-    eval_path = os.path.join(os.getenv("SST_OOD"), 'Evaluations')
     table_files = glob.glob(os.path.join(eval_path, 'R2010_on*{}_log_prob.csv'.format(pproc)))
 
     # Cut down?
@@ -294,6 +334,11 @@ def main(flg_fig):
         for outfile in ['fig_std_evals_spatial.png']:
             fig_evals_spatial('std', outfile)
 
+    # In-painting
+    if flg_fig & (2 ** 4):
+        for outfile in ['fig_in_painting.png']:
+            fig_in_painting(outfile)
+
 # Command line execution
 if __name__ == '__main__':
 
@@ -302,7 +347,8 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 0  # Month histogram
         #flg_fig += 2 ** 1  # <T> histogram
         #flg_fig += 2 ** 2  # CC
-        flg_fig += 2 ** 3  # All Evals spatial
+        #flg_fig += 2 ** 3  # All Evals spatial
+        flg_fig += 2 ** 4  # In-painting
     else:
         flg_fig = sys.argv[1]
 
