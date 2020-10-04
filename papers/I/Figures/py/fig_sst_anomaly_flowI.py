@@ -182,7 +182,7 @@ def fig_in_painting(outfile, iexpmle=4):
     extract_file = os.path.join(extract_path,
                              'MODIS_R2019_2010_95clear_128x128_inpaintT.h5')
     f = h5py.File(extract_file, mode='r')
-    key = 'valid_metadata'
+    key = 'metadata'
     meta = f[key]
     df_ex = pandas.DataFrame(meta[:].astype(np.unicode_), columns=meta.attrs['columns'])
 
