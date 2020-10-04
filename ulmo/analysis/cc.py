@@ -117,7 +117,6 @@ def main(n_cores, wolverine=False, debug=False):
         answers = list(tqdm(executor.map(map_fn, files,
                                          chunksize=chunksize), total=len(files)))
 
-    embed(header='119 of cc')
     # Trim None's
     answers = [f for f in answers if f is not None]
     # Slurp
