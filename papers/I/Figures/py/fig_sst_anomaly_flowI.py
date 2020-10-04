@@ -165,7 +165,7 @@ def fig_CC(outfile):
     plt.close()
     print('Wrote {:s}'.format(outfile))
 
-def fig_in_painting(outfile, iexpmle=4):
+def fig_in_painting(outfile, iexpmle=4, vmnx=(8, 24)):
 
     # Find a good example
     prob_file = os.path.join(eval_path,
@@ -200,9 +200,10 @@ def fig_in_painting(outfile, iexpmle=4):
     mask = f['masks'][index]
 
     masked_field = field.copy()
-    masked_field[mask == 1] = 0
+    masked_field[mask == 1] = np.nan
 
     f.close()
+
 
     # Plot
     fig = plt.figure(figsize=(7, 5))
@@ -212,10 +213,12 @@ def fig_in_painting(outfile, iexpmle=4):
 
     # Before in-painting
     ax1 = plt.subplot(gs[0])
-    sns.heatmap(masked_field, ax=ax1, xticklabels=[], yticklabels=[], cmap=cm)#, vmin=-2, vmax=2)
+    sns.heatmap(masked_field, ax=ax1, xticklabels=[], yticklabels=[], cmap=cm,
+                vmin=vmnx[0], vmax=vmnx[1])
 
     ax2 = plt.subplot(gs[1])
-    sns.heatmap(field, ax=ax2, xticklabels=[], yticklabels=[], cmap=cm)#, vmin=-2, vmax=2)
+    sns.heatmap(field, ax=ax2, xticklabels=[], yticklabels=[], cmap=cm,
+                vmin=vmnx[0], vmax=vmnx[1])
 
     # Layout and save
     # plt.tight_layout(pad=0.5, h_pad=0.5, w_pad=0.5)
