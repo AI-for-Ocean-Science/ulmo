@@ -58,7 +58,7 @@ def cc_per_file(ifile, load_path, field_size=(128,128), nadir_offset=480,
     return ifile, fracCC
 
 
-def main(n_cores, wolverine=True, debug=False):
+def main(n_cores, wolverine=False, debug=False):
     """ Run
     """
     # Filenames
@@ -133,4 +133,4 @@ def main(n_cores, wolverine=True, debug=False):
 
 # Command line execution
 if __name__ == '__main__':
-    main(16)
+    main(16, debug=True)
