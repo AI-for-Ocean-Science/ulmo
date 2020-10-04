@@ -1,8 +1,8 @@
 """ Figures for the first SST OOD paper"""
 import os, sys
 import numpy as np
+import glob
 
-from datetime import date
 
 import matplotlib as mpl
 import matplotlib.gridspec as gridspec
@@ -160,6 +160,97 @@ def fig_CC(outfile):
     plt.close()
     print('Wrote {:s}'.format(outfile))
 
+
+def fig_evals_spatial(pproc, outfile, nside=64):
+    """
+
+    Parameters
+    ----------
+    pproc
+    outfile
+    nside
+
+    Returns
+    -------
+
+    """
+
+    # Load up the tables
+    eval_path = os.path.join(os.getenv("SST_OOD"), 'Evaluations')
+    table_files = glob.glob(os.path.join(eval_path, 'R2010_on*{}_log_prob.csv'.format(pproc)))
+
+    # Cut down?
+    #table_files = table_files[0:2]
+
+    evals_tbl = pandas.DataFrame()
+    for table_file in table_files:
+        print("Loading: {}".format(table_file))
+        df = pandas.read_csv(table_file)
+        evals_tbl = pandas.concat([evals_tbl, df])
+
+    print('NEED TO ADD IN 2010!!!')
+
+    # Healpix me
+    hp_events = evals_to_healpix(evals_tbl, nside, log=True)
+
+    fig = plt.figure(figsize=(12, 8))
+    plt.clf()
+
+    # Median dSST
+    hp.mollview(hp_events, min=0, #max=2,
+                cmap='Blues',
+                flip='geo', title='', unit=r'$\log_{10} \, N_{\rm evals}$',
+                rot=(0., 180., 180.))
+
+    # Layout and save
+    #plt.tight_layout(pad=0.2,h_pad=0.,w_pad=0.1)
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
+
+
+def evals_to_healpix(eval_tbl, nside, log=False):
+    """
+    Generate a healpix map of where the input
+    MHW Systems are located on the globe
+
+    Parameters
+    ----------
+    mhw_sys : pandas.DataFrame
+    nside : int
+
+    Returns
+    -------
+    healpix_array : hp.ma
+
+    """
+    # Grab lats, lons
+    lats = eval_tbl.latitude.values
+    lons = eval_tbl.longitude.values
+
+    # Healpix coords
+    theta = (90 - lats) * np.pi / 180.
+    phi = lons * np.pi / 180.
+    idx_all = hp.pixelfunc.ang2pix(nside, theta, phi)
+
+    # Count events
+    npix_hp = hp.nside2npix(nside)
+    all_events = np.ma.masked_array(np.zeros(npix_hp, dtype='int'))
+    for idx in idx_all:
+        all_events[idx] += 1
+
+    zero = all_events == 0
+    if log:
+        all_events[~zero] = np.log10(all_events[~zero])
+
+    # Mask
+    hpma = hp.ma(all_events.astype(float))
+    hpma.mask = zero
+
+    # Return
+    return hpma
+
 def set_fontsize(ax,fsz):
     '''
     Generate a Table of columns and so on
@@ -198,6 +289,11 @@ def main(flg_fig):
         for outfile in ['fig_CC.png']: #, 'fig_CC.pdf']:
             fig_CC(outfile)
 
+    # Spatial of all evaluations
+    if flg_fig & (2 ** 3):
+        for outfile in ['fig_std_evals_spatial.png']:
+            fig_evals_spatial('std', outfile)
+
 # Command line execution
 if __name__ == '__main__':
 
@@ -205,7 +301,8 @@ if __name__ == '__main__':
         flg_fig = 0
         #flg_fig += 2 ** 0  # Month histogram
         #flg_fig += 2 ** 1  # <T> histogram
-        flg_fig += 2 ** 2  # CC
+        #flg_fig += 2 ** 2  # CC
+        flg_fig += 2 ** 3  # All Evals spatial
     else:
         flg_fig = sys.argv[1]
 
