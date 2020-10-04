@@ -54,8 +54,11 @@ def parser(options=None):
     return pargs
 
 
-def extract_file(ifile, load_path, field_size=(128,128), nadir_offset=480,
-                 CC_max=0.05, qual_thresh=2, temp_bounds = (-2, 33), nrepeat=1,
+def extract_file(ifile, load_path, field_size=(128,128),
+                 nadir_offset=480,
+                 CC_max=0.05, qual_thresh=2,
+                 temp_bounds = (-2, 33),
+                 nrepeat=1,
                  inpaint=True, debug=False):
 
     filename = os.path.join(load_path, ifile)
