@@ -16,6 +16,8 @@ from ulmo.preproc import utils as pp_utils
 from ulmo.preproc import extract
 from ulmo.preproc import io as pp_io
 
+CC_values = np.array([0.95, 0.9, 0.85, 0.8, 0.75, 0.7, 0.65, 0.6, 0.55, 0.5, 0.45, 0.4,
+             0.35, 0.3, 0.25, 0.2, 0.15, 0.1, 0.05])
 
 
 def cc_per_file(ifile, load_path, field_size=(128,128), nadir_offset=480,
@@ -44,9 +46,7 @@ def cc_per_file(ifile, load_path, field_size=(128,128), nadir_offset=480,
     masks = masks[:, lb:ub].astype(np.uint8)
 
     # Loop on CC
-    CC_values = [0.95, 0.9, 0.85, 0.8, 0.75, 0.7, 0.65, 0.6, 0.55, 0.5, 0.45, 0.4,
-                   0.35, 0.3, 0.25, 0.2, 0.15, 0.1, 0.05]
-    fracCC = np.zeros(len(CC_values))
+    fracCC = np.zeros(CC_values.size)
 
     for ss, CC_max in enumerate(CC_values):
 
