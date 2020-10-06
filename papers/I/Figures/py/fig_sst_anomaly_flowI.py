@@ -20,7 +20,7 @@ import seaborn as sns
 from ulmo.analysis import cc as ulmo_cc
 from ulmo import plotting
 from ulmo.utils import image_utils
-from ulmo.ood import ood
+from ulmo.utils import models as model_utils
 
 from IPython import embed
 
@@ -268,14 +268,8 @@ def fig_auto_encode(outfile, iexpmle=4, vmnx=(-5, 5)):
     fields = np.reshape(field, (1,1,64,64))
 
     # Load up the model
-    datadir = os.path.join(model_path, 'R2019_2010_128x128_std')
-    filepath = 'PreProc/MODIS_R2019_2010_95clear_128x128_preproc_std.h5'
-    pae = ood.ProbabilisticAutoencoder.from_json(datadir + '/model.json',
-                                                 datadir=datadir,
-                                                 filepath=filepath,
-                                                 logdir=datadir)
-    pae.load_autoencoder()
-    #pae.autoencoder.eval()
+    pae = model_utils.load('standard')
+    # Reconstruct
     recons = pae.reconstruct(fields)
 
     # Plot
