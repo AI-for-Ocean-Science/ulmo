@@ -489,7 +489,6 @@ class ProbabilisticAutoencoder:
         with torch.no_grad():
             latents = [self.autoencoder.encode(data[0].to(self.device)).detach().cpu().numpy()
                      for data in loader]
-                     #for data in tqdm(loader, total=len(loader), unit='batch', desc='Computing latents')]
 
         latents = scaler.transform(np.concatenate(latents))
 
