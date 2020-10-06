@@ -19,12 +19,18 @@ import seaborn as sns
 
 from ulmo.analysis import cc as ulmo_cc
 from ulmo import plotting
+from ulmo.utils import image_utils
+from ulmo.ood import ood
 
 from IPython import embed
 
 eval_path = os.path.join(os.getenv("SST_OOD"), 'Evaluations')
 extract_path = os.path.join(os.getenv("SST_OOD"), 'Extractions')
+model_path = os.path.join(os.getenv("SST_OOD"), 'Models')
 
+# Local
+#sys.path.append(os.path.abspath("../../Analysis/py"))
+#import image_utils
 
 def fig_db_by_month(outfile):
 
@@ -165,44 +171,24 @@ def fig_CC(outfile):
     plt.close()
     print('Wrote {:s}'.format(outfile))
 
+
 def fig_in_painting(outfile, iexpmle=4, vmnx=(8, 24)):
+    """
 
-    # Find a good example
-    prob_file = os.path.join(eval_path,
-                             'MODIS_R2019_2010_95clear_128x128_preproc_std_log_probs.csv')
-    print("Grabbing an example")
-    df = pandas.read_csv(prob_file)
-    cloudy = df.clear_fraction > 0.045
-    df = df[cloudy]
-    i_LL = np.argsort(df.log_likelihood.values)
+    Parameters
+    ----------
+    outfile
+    iexpmle
+    vmnx
 
-    # One, psuedo-random
-    example = df.iloc[i_LL[iexpmle]]
+    Returns
+    -------
 
-
-    print("Extracting")
-    # Grab out of Extraction file
-    extract_file = os.path.join(extract_path,
-                             'MODIS_R2019_2010_95clear_128x128_inpaintT.h5')
-    f = h5py.File(extract_file, mode='r')
-    key = 'metadata'
-    meta = f[key]
-    df_ex = pandas.DataFrame(meta[:].astype(np.unicode_), columns=meta.attrs['columns'])
-
-    imt = (df_ex.filename.values == example.filename) & (
-            df_ex.row.values.astype(int) == example.row) & (
-            df_ex.column.values.astype(int) == example.column)
-    assert np.sum(imt) == 1
-    index = df_ex.iloc[imt].index[0]
-
-    # Grab image + mask
-    field = f['fields'][index]
-    mask = f['masks'][index]
-
+    """
+    # Grab it
+    field, mask = image_utils.grab_img(iexpmle, 'Extracted')
     masked_field = field.copy()
     masked_field[mask == 1] = -np.nan
-
-    f.close()
 
 
     # Plot
@@ -269,6 +255,47 @@ def fig_evals_spatial(pproc, outfile, nside=64):
 
     # Layout and save
     #plt.tight_layout(pad=0.2,h_pad=0.,w_pad=0.1)
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
+
+
+def fig_auto_encode(outfile, iexpmle=4, vmnx=(-5, 5)):
+
+    # Grab it
+    field, mask = image_utils.grab_img(iexpmle, 'PreProc')
+    fields = np.reshape(field, (1,1,64,64))
+
+    # Load up the model
+    datadir = os.path.join(model_path, 'R2019_2010_128x128_std')
+    filepath = 'PreProc/MODIS_R2019_2010_95clear_128x128_preproc_std.h5'
+    pae = ood.ProbabilisticAutoencoder.from_json(datadir + '/model.json',
+                                                 datadir=datadir,
+                                                 filepath=filepath,
+                                                 logdir=datadir)
+    pae.load_autoencoder()
+    #pae.autoencoder.eval()
+    recons = pae.reconstruct(fields)
+
+    # Plot
+    fig = plt.figure(figsize=(10, 4))
+    pal, cm = plotting.load_palette()
+    plt.clf()
+    gs = gridspec.GridSpec(1,2)
+
+    # Original
+    ax1 = plt.subplot(gs[0])
+    sns.heatmap(field[0,...], ax=ax1, xticklabels=[], yticklabels=[], cmap=cm,
+                vmin=vmnx[0], vmax=vmnx[1])
+
+    # Reconstructed
+    ax2 = plt.subplot(gs[1])
+    sns.heatmap(recons[0,0,...], ax=ax2, xticklabels=[], yticklabels=[], cmap=cm,
+                vmin=vmnx[0], vmax=vmnx[1])
+
+    # Layout and save
+    # plt.tight_layout(pad=0.5, h_pad=0.5, w_pad=0.5)
     plt.savefig(outfile, dpi=300)
     plt.close()
     print('Wrote {:s}'.format(outfile))
@@ -364,6 +391,11 @@ def main(flg_fig):
         for outfile in ['fig_in_painting.png']:
             fig_in_painting(outfile)
 
+    # Auto-encode
+    if flg_fig & (2 ** 5):
+        for outfile in ['fig_auto_encode.png']:
+            fig_auto_encode(outfile)
+
 # Command line execution
 if __name__ == '__main__':
 
@@ -373,7 +405,8 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 1  # <T> histogram
         #flg_fig += 2 ** 2  # CC
         #flg_fig += 2 ** 3  # All Evals spatial
-        flg_fig += 2 ** 4  # In-painting
+        #flg_fig += 2 ** 4  # In-painting
+        flg_fig += 2 ** 5  # Auto-encode
     else:
         flg_fig = sys.argv[1]
 

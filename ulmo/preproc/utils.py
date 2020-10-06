@@ -47,7 +47,7 @@ def build_mask(sst, qual, qual_thresh=2, temp_bounds=(-2,33)):
 def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
                   downscale=True, dscale_size=(2,2), sigmoid=False, scale=None,
                   expon=None, only_inpaint=False, gradient=False,
-                  log_scale=False):
+                  log_scale=False, **kwargs):
     """
     Preprocess an input field image with a series of steps:
         1. Inpainting
@@ -80,6 +80,7 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
         Exponate the SSTa values by this exponent
     gradient : bool, optional
         If True, apply a Sobel gradient enhancing filter
+    **kwargs : catches extraction keywords
 
     Returns
     -------

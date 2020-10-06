@@ -119,14 +119,14 @@ class ProbabilisticAutoencoder:
         
     def load_autoencoder(self):
         print(f"Loading autoencoder model from: {self.savepath['autoencoder']}")
-        self.autoencoder.load_state_dict(torch.load(self.savepath['autoencoder']))
+        self.autoencoder.load_state_dict(torch.load(self.savepath['autoencoder'], map_location=self.device))
         
     def save_flow(self):
         torch.save(self.flow.state_dict(), self.savepath['flow'])
     
     def load_flow(self):
         print(f"Loading flow model from: {self.savepath['flow']}")
-        self.flow.load_state_dict(torch.load(self.savepath['flow']))
+        self.flow.load_state_dict(torch.load(self.savepath['flow'], map_location=self.device))
 
     def write_model(self):
         # Generate the dict
