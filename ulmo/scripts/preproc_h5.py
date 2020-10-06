@@ -15,10 +15,12 @@ import pandas
 
 from ulmo import io as ulmo_io
 from ulmo.preproc import utils as pp_utils
+from ulmo.preproc import io as pp_io
 
 from sklearn.utils import shuffle
 
 from IPython import embed
+
 
 def parser(options=None):
     import argparse
@@ -26,7 +28,7 @@ def parser(options=None):
     parser = argparse.ArgumentParser(description='Preproc images in an H5 file.')
     parser.add_argument("infile", type=str, help="H5 file for pre-processing")
     parser.add_argument("valid_fraction", type=float, help="Validation fraction.  Can be 1")
-    parser.add_argument("preproc_steps", type=str, help="JSON file containing the steps to be applied")
+    parser.add_argument("preproc_root", type=str, help="Root name of JSON file containing the steps to be applied")
     parser.add_argument("outfile", type=str, help="H5 outfile name")
     parser.add_argument('--ncores', type=int, help='Number of cores for processing')
     parser.add_argument('--nsub_fields', type=int, default=10000,
@@ -39,20 +41,36 @@ def parser(options=None):
         pargs = parser.parse_args(options)
     return pargs
 
-def preproc_image(item, pdict):
 
+def preproc_image(item, pdict):
+    """
+    Simple wrapper for preproc_field()
+
+    Parameters
+    ----------
+    item : tuple
+        field, mask, idx
+    pdict : dict
+        Preprocessing dict
+
+    Returns
+    -------
+    pp_field, idx, meta : np.ndarray, int, dict
+
+    """
     # Parse
     field, mask, idx = item
 
     # Run
-    pp_field, mu = pp_utils.preproc_field(field, mask, **pdict)
+    pp_field, meta = pp_utils.preproc_field(field, mask, **pdict)
 
     # Failed?
     if pp_field is None:
         return None
 
     # Return
-    return pp_field, idx, mu
+    return pp_field, idx, meta
+
 
 def main(pargs):
     """ Run
@@ -76,17 +94,7 @@ def main(pargs):
                                 columns=clms)
 
     # Pre-processing dict
-    with open(pargs.preproc_steps, 'rt') as fh:
-        pdict = json.load(fh)
-    # Tuple me
-    for key in ['med_size', 'dscale_size']:
-        if key in pdict:
-            pdict[key] = tuple(pdict[key])
-
-    #pdict = dict(inpaint=pargs.inpaint,
-    #             median=True, med_size=(3, 1),
-    #             downscale=True, dscale_size=(2, 2),
-    #             only_inpaint=pargs.only_inpaint)
+    pdict = pp_io.load_options(pargs.preproc_root)
 
     # Setup for parallel
     map_fn = partial(preproc_image,
@@ -107,7 +115,7 @@ def main(pargs):
     f.close()
 
     # Process them all, then deal with train/validation
-    pp_fields, mu, img_idx = [], [], []
+    pp_fields, meta, img_idx = [], [], []
     for kk in range(nloop):
         f = h5py.File(pargs.infile, mode='r')
         # Load the images into memory
@@ -142,7 +150,7 @@ def main(pargs):
         # Slurp
         pp_fields += [item[0] for item in answers]
         img_idx += [item[1] for item in answers]
-        mu += [item[2] for item in answers]
+        meta += [item[2] for item in answers]
 
         del answers, fields, masks, items
         f.close()
@@ -156,8 +164,17 @@ def main(pargs):
     # Modify metadata
     metadata = metadata.iloc[img_idx]
     if 'only_inpaint' in pdict.keys() and not pdict['only_inpaint']:
-        metadata['mean_temperature'] = mu
+        # Mu
+        metadata['mean_temperature'] = [imeta['mu'] for imeta in meta]
         clms += ['mean_temperature']
+        # Others
+        for key in ['Tmin', 'Tmax', 'T90', 'T10']:
+            if key in meta[0].keys():
+                metadata[key] = [imeta[key] for imeta in meta]
+                clms += [key]
+
+    if pargs.debug:
+        embed(header='160 of preproc')
 
     # Train/validation
     n = int(pargs.valid_fraction * pp_fields.shape[0])

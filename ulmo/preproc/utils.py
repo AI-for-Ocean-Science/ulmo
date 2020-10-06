@@ -6,6 +6,7 @@ from skimage.restoration import inpaint as sk_inpaint
 from scipy.ndimage import median_filter
 from scipy import special
 from skimage.transform import downscale_local_mean
+from skimage import filters
 
 from IPython import embed
 
@@ -24,7 +25,6 @@ def build_mask(sst, qual, qual_thresh=2, temp_bounds=(-2,33)):
         Quality threshold value;  qual must exceed this
     temp_bounds : tuple
         Temperature interval considered valid
-
 
     Returns
     -------
@@ -46,7 +46,8 @@ def build_mask(sst, qual, qual_thresh=2, temp_bounds=(-2,33)):
 
 def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
                   downscale=True, dscale_size=(2,2), sigmoid=False, scale=None,
-                  expon=None, only_inpaint=False):
+                  expon=None, only_inpaint=False, gradient=False,
+                  log_scale=False):
     """
     Preprocess an input field image with a series of steps:
         1. Inpainting
@@ -75,13 +76,16 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
         Scale the SSTa values by this multiplicative factor
     expon : float
         Exponate the SSTa values by this exponent
+    gradient : bool, optional
+        If True, apply a Sobel gradient enhancing filter
 
     Returns
     -------
-    pp_field, mu : np.ndarray, float
+    pp_field, meta_dict : np.ndarray, dict
         Pre-processed field, mean temperature
 
     """
+    meta_dict = {}
     # Inpaint?
     if inpaint:
         if mask.dtype.name != 'uint8':
@@ -93,6 +97,15 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
             return None, None
         else:
             return field, None
+
+    # Capture more metadata
+    srt = np.argsort(field.flatten())
+    meta_dict['Tmax'] = field.flatten()[srt[-1]]
+    meta_dict['Tmin'] = field.flatten()[srt[0]]
+    i10 = int(0.1*field.size)
+    i90 = int(0.9*field.size)
+    meta_dict['T10'] = field.flatten()[srt[i10]]
+    meta_dict['T90'] = field.flatten()[srt[i90]]
 
     # Median
     if median:
@@ -109,6 +122,7 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
     # De-mean the field
     mu = np.mean(field)
     pp_field = field - mu
+    meta_dict['mu'] = mu
 
     # Sigmoid?
     if sigmoid:
@@ -125,7 +139,24 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
         pp_field[pos] = pp_field[pos]**expon
         pp_field[neg] = -1 * (-1*pp_field[neg])**expon
 
+    # Sobel Gradient?
+    if gradient:
+        pp_field = filters.sobel(pp_field)
+
+    # Log?
+    if log_scale:
+        if not gradient:
+            raise IOError("Only implemented with gradient=True so far")
+        # Set 0 values to the lowest non-zero value
+        zero = pp_field == 0.
+        if np.any(zero):
+            min_nonz = np.min(pp_field[np.logical_not(zero)])
+            pp_field[zero] = min_nonz
+        # Take log
+        pp_field = np.log(pp_field)
+
+
     # Return
-    return pp_field, mu
+    return pp_field, meta_dict
 
 

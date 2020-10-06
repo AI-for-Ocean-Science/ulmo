@@ -1,0 +1,14 @@
+#!/bin/bash -f
+#screen -L ulmo_extract_modis --ncores 20 --year 2008
+#screen -L ulmo_extract_modis --ncores 20 --year 2009
+#screen -L ulmo_extract_modis --ncores 20 --year 2010
+#screen -L ulmo_extract_modis --ncores 20 --year 2011
+#screen -L ulmo_extract_modis --ncores 20 --year 2012
+#screen -L ulmo_extract_modis --ncores 20 --year 2013
+#screen -L ulmo_extract_modis --ncores 20 --year 2014
+#screen -L ulmo_extract_modis --ncores 20 --year 2015
+#ulmo_extract_modis --ncores 20 --year 2004
+ulmo_extract_modis --ncores 20 --year 2005
+ulmo_extract_modis --ncores 20 --year 2006
+ulmo_extract_modis --ncores 20 --year 2007
+ulmo_extract_modis --ncores 20 --year 2016
