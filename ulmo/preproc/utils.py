@@ -56,6 +56,8 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
         4. Sigmoid
         5. Scale
         6. Remove mean
+        7. Sobel
+        8. Log
 
     Parameters
     ----------

@@ -200,7 +200,7 @@ def fig_in_painting(outfile, iexpmle=4, vmnx=(8, 24)):
     mask = f['masks'][index]
 
     masked_field = field.copy()
-    masked_field[mask == 1] = np.nan
+    masked_field[mask == 1] = -np.nan
 
     f.close()
 
