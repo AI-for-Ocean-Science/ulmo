@@ -308,6 +308,18 @@ def fig_LL_SSTa(outfile):
     plt.ylabel('Probability Density')
 
     # Inset for lowest LL
+    cut_LL = -2000.
+    lowLL = logL < cut_LL
+    axins = ax.inset_axes([0.1, 0.4, 0.47, 0.47])
+    #axins.scatter(evals_tbl.date.values[lowLL], evals_tbl.log_likelihood.values[lowLL])
+    #bins = np.arange(-6000., -1000., 250)
+    #out_hist, out_bins = np.histogram(logL[lowLL], bins=bins)
+    #embed(header='316 of figs')
+    axins.hist(logL[lowLL], color='k')
+    axins.set_xlim(-5500., cut_LL)
+    #axins.scatter(evals_tbl.log_likelihood.values[lowLL], evals_tbl.date.values[lowLL],
+    #              s=0.1)
+    #plt.gcf().autofmt_xdate()
 
 
     # Layout and save

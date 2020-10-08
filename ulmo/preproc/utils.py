@@ -145,6 +145,13 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
     # Sobel Gradient?
     if gradient:
         pp_field = filters.sobel(pp_field)
+        # Meta
+        srt = np.argsort(pp_field.flatten())
+        i10 = int(0.1*pp_field.size)
+        i90 = int(0.9*pp_field.size)
+        meta_dict['G10'] = pp_field.flatten()[srt[i10]]
+        meta_dict['G90'] = pp_field.flatten()[srt[i90]]
+        meta_dict['Gmax'] = pp_field.flatten()[srt[-1]]
 
     # Log?
     if log_scale:
