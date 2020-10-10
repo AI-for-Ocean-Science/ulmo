@@ -21,16 +21,18 @@ from ulmo.analysis import cc as ulmo_cc
 from ulmo import plotting
 from ulmo.utils import image_utils
 from ulmo.utils import models as model_utils
+from ulmo import defs
 
 from IPython import embed
 
-eval_path = os.path.join(os.getenv("SST_OOD"), 'Evaluations')
-extract_path = os.path.join(os.getenv("SST_OOD"), 'Extractions')
-model_path = os.path.join(os.getenv("SST_OOD"), 'Models')
 
 # Local
-#sys.path.append(os.path.abspath("../../Analysis/py"))
-#import image_utils
+sys.path.append(os.path.abspath("../Analysis/py"))
+import results
+
+extract_path = defs.extract_path
+model_path = defs.model_path
+eval_path = defs.eval_path
 
 def fig_db_by_month(outfile):
 
@@ -226,20 +228,8 @@ def fig_evals_spatial(pproc, outfile, nside=64):
     -------
 
     """
-
-    # Load up the tables
-    table_files = glob.glob(os.path.join(eval_path, 'R2010_on*{}_log_prob.csv'.format(pproc)))
-
-    # Cut down?
-    #table_files = table_files[0:2]
-
-    evals_tbl = pandas.DataFrame()
-    for table_file in table_files:
-        print("Loading: {}".format(table_file))
-        df = pandas.read_csv(table_file)
-        evals_tbl = pandas.concat([evals_tbl, df])
-
-    print('NEED TO ADD IN 2010!!!')
+    # Load
+    evals_tbl = results.load_log_prob(pproc)
 
     # Healpix me
     hp_events = evals_to_healpix(evals_tbl, nside, log=True)
@@ -287,6 +277,50 @@ def fig_auto_encode(outfile, iexpmle=4, vmnx=(-5, 5)):
     ax2 = plt.subplot(gs[1])
     sns.heatmap(recons[0,0,...], ax=ax2, xticklabels=[], yticklabels=[], cmap=cm,
                 vmin=vmnx[0], vmax=vmnx[1])
+
+    # Layout and save
+    # plt.tight_layout(pad=0.5, h_pad=0.5, w_pad=0.5)
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
+
+def fig_LL_SSTa(outfile):
+
+    evals_tbl = results.load_log_prob('std')
+    logL = evals_tbl.log_likelihood.values
+
+
+    # Plot
+    fig = plt.figure(figsize=(10, 4))
+    plt.clf()
+    gs = gridspec.GridSpec(1,1)
+
+    # Original
+    ax = plt.subplot(gs[0])
+
+    low_logL = np.quantile(logL, 0.05)
+    high_logL = np.quantile(logL, 0.95)
+    sns.distplot(logL)
+    plt.axvline(low_logL, linestyle='--', c='r')
+    plt.axvline(high_logL, linestyle='--', c='r')
+    plt.xlabel('Log Likelihood')
+    plt.ylabel('Probability Density')
+
+    # Inset for lowest LL
+    cut_LL = -2000.
+    lowLL = logL < cut_LL
+    axins = ax.inset_axes([0.1, 0.4, 0.47, 0.47])
+    #axins.scatter(evals_tbl.date.values[lowLL], evals_tbl.log_likelihood.values[lowLL])
+    #bins = np.arange(-6000., -1000., 250)
+    #out_hist, out_bins = np.histogram(logL[lowLL], bins=bins)
+    #embed(header='316 of figs')
+    axins.hist(logL[lowLL], color='k')
+    axins.set_xlim(-5500., cut_LL)
+    #axins.scatter(evals_tbl.log_likelihood.values[lowLL], evals_tbl.date.values[lowLL],
+    #              s=0.1)
+    #plt.gcf().autofmt_xdate()
+
 
     # Layout and save
     # plt.tight_layout(pad=0.5, h_pad=0.5, w_pad=0.5)
@@ -390,6 +424,11 @@ def main(flg_fig):
         for outfile in ['fig_auto_encode.png']:
             fig_auto_encode(outfile)
 
+    # LL for SSTa
+    if flg_fig & (2 ** 6):
+        for outfile in ['fig_LL_SSTa.png']:
+            fig_LL_SSTa(outfile)
+
 # Command line execution
 if __name__ == '__main__':
 
@@ -400,7 +439,8 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 2  # CC
         #flg_fig += 2 ** 3  # All Evals spatial
         #flg_fig += 2 ** 4  # In-painting
-        flg_fig += 2 ** 5  # Auto-encode
+        #flg_fig += 2 ** 5  # Auto-encode
+        flg_fig += 2 ** 6  # LL SSTa
     else:
         flg_fig = sys.argv[1]
 
