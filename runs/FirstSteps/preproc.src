@@ -1,6 +1,20 @@
+# Standard
+
 # Log-Grad
-ulmo_preproc_h5 Extractions/MODIS_R2019_2008_95clear_128x128_inpaintT.h5 0.8 loggradient PreProc/MODIS_R2019_2008_95clear_128x128_preproc_loggrad.h5 --ncores 16 --nsub_fields 64000
-ulmo_preproc_h5 Extractions/MODIS_R2019_2009_95clear_128x128_inpaintT.h5 0.8 loggradient PreProc/MODIS_R2019_2009_95clear_128x128_preproc_loggrad.h5 --ncores 16 --nsub_fields 64000
-#ulmo_preproc_h5 Extractions/MODIS_R2019_2010_95clear_128x128_inpaintT.h5 0.8 loggradient PreProc/MODIS_R2019_2010_95clear_128x128_preproc_loggrad.h5 --ncores 16 --nsub_fields 64000
-ulmo_preproc_h5 Extractions/MODIS_R2019_2011_95clear_128x128_inpaintT.h5 0.8 loggradient PreProc/MODIS_R2019_2011_95clear_128x128_preproc_loggrad.h5 --ncores 16 --nsub_fields 64000
-ulmo_preproc_h5 Extractions/MODIS_R2019_2012_95clear_128x128_inpaintT.h5 0.8 loggradient PreProc/MODIS_R2019_2012_95clear_128x128_preproc_loggrad.h5 --ncores 16 --nsub_fields 64000
+ulmo_preproc_h5 Extractions/MODIS_R2019_2003_95clear_128x128_inpaintT.h5 1 loggradient PreProc/MODIS_R2019_2003_95clear_128x128_preproc_loggrad.h5 --ncores 16 --nsub_fields 64000
+ulmo_preproc_h5 Extractions/MODIS_R2019_2004_95clear_128x128_inpaintT.h5 1 loggradient PreProc/MODIS_R2019_2004_95clear_128x128_preproc_loggrad.h5 --ncores 16 --nsub_fields 64000
+#ulmo_preproc_h5 Extractions/MODIS_R2019_2005_95clear_128x128_inpaintT.h5 1 loggradient PreProc/MODIS_R2019_2005_95clear_128x128_preproc_loggrad.h5 --ncores 16 --nsub_fields 64000
+ulmo_preproc_h5 Extractions/MODIS_R2019_2006_95clear_128x128_inpaintT.h5 1 loggradient PreProc/MODIS_R2019_2006_95clear_128x128_preproc_loggrad.h5 --ncores 16 --nsub_fields 64000
+ulmo_preproc_h5 Extractions/MODIS_R2019_2007_95clear_128x128_inpaintT.h5 1 loggradient PreProc/MODIS_R2019_2007_95clear_128x128_preproc_loggrad.h5 --ncores 16 --nsub_fields 64000
+ulmo_preproc_h5 Extractions/MODIS_R2019_2008_95clear_128x128_inpaintT.h5 1 loggradient PreProc/MODIS_R2019_2008_95clear_128x128_preproc_loggrad.h5 --ncores 16 --nsub_fields 64000
+ulmo_preproc_h5 Extractions/MODIS_R2019_2009_95clear_128x128_inpaintT.h5 1 loggradient PreProc/MODIS_R2019_2009_95clear_128x128_preproc_loggrad.h5 --ncores 16 --nsub_fields 64000
+ulmo_preproc_h5 Extractions/MODIS_R2019_2010_95clear_128x128_inpaintT.h5 0.8 loggradient PreProc/MODIS_R2019_2010_95clear_128x128_preproc_loggrad.h5 --ncores 16 --nsub_fields 64000
+ulmo_preproc_h5 Extractions/MODIS_R2019_2011_95clear_128x128_inpaintT.h5 1 loggradient PreProc/MODIS_R2019_2011_95clear_128x128_preproc_loggrad.h5 --ncores 16 --nsub_fields 64000
+ulmo_preproc_h5 Extractions/MODIS_R2019_2012_95clear_128x128_inpaintT.h5 1 loggradient PreProc/MODIS_R2019_2012_95clear_128x128_preproc_loggrad.h5 --ncores 16 --nsub_fields 64000
+ulmo_preproc_h5 Extractions/MODIS_R2019_2013_95clear_128x128_inpaintT.h5 1 loggradient PreProc/MODIS_R2019_2013_95clear_128x128_preproc_loggrad.h5 --ncores 16 --nsub_fields 64000
+ulmo_preproc_h5 Extractions/MODIS_R2019_2014_95clear_128x128_inpaintT.h5 1 loggradient PreProc/MODIS_R2019_2014_95clear_128x128_preproc_loggrad.h5 --ncores 16 --nsub_fields 64000
+#ulmo_preproc_h5 Extractions/MODIS_R2019_2015_95clear_128x128_inpaintT.h5 1 loggradient PreProc/MODIS_R2019_2015_95clear_128x128_preproc_loggrad.h5 --ncores 16 --nsub_fields 64000
+ulmo_preproc_h5 Extractions/MODIS_R2019_2016_95clear_128x128_inpaintT.h5 1 loggradient PreProc/MODIS_R2019_2016_95clear_128x128_preproc_loggrad.h5 --ncores 16 --nsub_fields 64000
+ulmo_preproc_h5 Extractions/MODIS_R2019_2017_95clear_128x128_inpaintT.h5 1 loggradient PreProc/MODIS_R2019_2017_95clear_128x128_preproc_loggrad.h5 --ncores 16 --nsub_fields 64000
+ulmo_preproc_h5 Extractions/MODIS_R2019_2018_95clear_128x128_inpaintT.h5 1 loggradient PreProc/MODIS_R2019_2018_95clear_128x128_preproc_loggrad.h5 --ncores 16 --nsub_fields 64000
+ulmo_preproc_h5 Extractions/MODIS_R2019_2019_95clear_128x128_inpaintT.h5 1 loggradient PreProc/MODIS_R2019_2019_95clear_128x128_preproc_loggrad.h5 --ncores 16 --nsub_fields 64000
