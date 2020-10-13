@@ -1,3 +1,4 @@
+#!/bin/bash -f
 # Standard
 ulmo_preproc_h5 Extractions/MODIS_R2019_2003_95clear_128x128_inpaintT.h5 1 standard PreProc/MODIS_R2019_2003_95clear_128x128_preproc_std.h5 --ncores 16 --nsub_fields 64000
 ulmo_preproc_h5 Extractions/MODIS_R2019_2004_95clear_128x128_inpaintT.h5 1 standard PreProc/MODIS_R2019_2004_95clear_128x128_preproc_std.h5 --ncores 16 --nsub_fields 64000
