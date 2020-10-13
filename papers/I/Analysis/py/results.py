@@ -1,8 +1,13 @@
 """ Result methods"""
 
 import glob, os
+import numpy as np
+
 import pandas
 import datetime
+
+from astropy.coordinates import SkyCoord
+from astropy import units
 
 from ulmo import defs
 
@@ -37,3 +42,43 @@ def load_log_prob(pproc):
 
     # Return
     return evals_tbl
+
+
+def random_imgs(evals_tbl, years, dyear, top=1000, verbose=False):
+    # Cut
+    isrt = np.argsort(evals_tbl.log_likelihood)
+    topN = evals_tbl.iloc[isrt[0:top]]
+
+    # Coords
+    coords = SkyCoord(b=topN.latitude * units.deg, l=topN.longitude * units.deg, frame='galactic')
+
+    # Loop time
+    used_coords = None
+    for_gallery = []
+    for year in years:
+        # Cut on date
+        t0 = datetime.datetime(year, 1, 1)
+        t1 = datetime.datetime(year + dyear, 1, 1)
+        in_time = np.where((topN.date >= t0) & (topN.date < t1))[0]
+        if verbose:
+            print('Year {}:, n_options={}'.format(year, len(in_time)))
+        # Grab one
+        if used_coords is not None:
+            # Ugly loop
+            all_seps = np.zeros((len(used_coords), len(in_time)))
+            for kk, ucoord in enumerate(used_coords):
+                seps = ucoord.separation(coords[in_time])
+                all_seps[kk, :] = seps.to('deg').value
+            # Minimum for each
+            min_seps = np.min(all_seps, axis=0)
+            best = np.argmax(min_seps)
+            for_gallery.append(in_time[best])
+            used_coords = coords[np.array(for_gallery)]
+        else:
+            # Take a random one
+            rani = np.random.randint(low=0, high=len(in_time), size=1)[0]
+            for_gallery.append(in_time[rani])
+            used_coords = coords[np.array(for_gallery)]
+
+    # Return table of random choices
+    return topN.iloc[for_gallery]
