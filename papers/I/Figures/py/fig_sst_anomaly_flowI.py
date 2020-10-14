@@ -120,7 +120,7 @@ def fig_db_by_meanT(outfile):
 
 def fig_CC(outfile):
 
-    tst_file = os.path.join(os.getenv('SST_OOD'), 'tst_CC.h5')
+    tst_file = os.path.join(os.getenv('SST_OOD'), 'Analysis', 'cc_2010.h5')
 
     # Load data
     f = h5py.File(tst_file, mode='r')
@@ -132,6 +132,7 @@ def fig_CC(outfile):
     # Differential
     diff_CC = mean_fCC - np.roll(mean_fCC, -1)
     diff_CC[-1] = mean_fCC[-1]
+    yzero = np.zeros_like(diff_CC)
 
     # Figure time
     fig = plt.figure(figsize=(7, 5))
@@ -139,12 +140,17 @@ def fig_CC(outfile):
     ax = plt.gca()
 
     # Plot
-    p1 = ax.step(1-ulmo_cc.CC_values, diff_CC, label='Differential')
+    #p1 = ax.plot(1-ulmo_cc.CC_values, diff_CC, label='Differential')
+    p1 = ax.fill_between(np.array(1-ulmo_cc.CC_values), yzero, diff_CC,
+                         step='mid',
+                         alpha=0.5,
+                         color='blue',
+                         label='Differential')
 
     # Labels
     ax.set_ylabel(r'Differential Fraction')
     ax.set_xlabel(r'Clear Fraction (1-CC)')
-    ax.set_ylim(0., 0.05)
+    ax.set_ylim(0., 0.04)
 
     # Cumulative
     axC = ax.twinx()
@@ -161,7 +167,8 @@ def fig_CC(outfile):
     #ax.set_yscale('log')
     #ax.minorticks_on()
 
-    plts = p1 + p2
+    #plts = p1 + p2
+    plts = p2
     labs = [p.get_label() for p in plts]
 
     legend = plt.legend(plts, labs, loc='upper left', scatterpoints=1, borderpad=0.3,
@@ -440,7 +447,8 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 3  # All Evals spatial
         #flg_fig += 2 ** 4  # In-painting
         #flg_fig += 2 ** 5  # Auto-encode
-        flg_fig += 2 ** 6  # LL SSTa
+        #flg_fig += 2 ** 6  # LL SSTa
+        flg_fig += 2 ** 7  # Gallery
     else:
         flg_fig = sys.argv[1]
 
