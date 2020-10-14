@@ -14,10 +14,10 @@ def run_evals(years, flavor, clobber=False):
 
     # Load model
     if flavor == 'loggrad':
-        datadir = './R2019_2010_128x128_loggrad'
+        datadir = './Models/R2019_2010_128x128_loggrad'
         filepath = 'PreProc/MODIS_R2019_2010_95clear_128x128_preproc_loggrad.h5'
     elif flavor == 'std':
-        datadir = './R2019_2010_128x128_std'
+        datadir = './Models/R2019_2010_128x128_std'
         filepath = 'PreProc/MODIS_R2019_2010_95clear_128x128_preproc_std.h5'
     pae = ood.ProbabilisticAutoencoder.from_json(datadir + '/model.json',
                                                  datadir=datadir,
