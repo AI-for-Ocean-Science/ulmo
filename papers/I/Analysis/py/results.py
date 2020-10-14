@@ -13,10 +13,11 @@ from ulmo import defs
 
 from IPython import embed
 
-def load_log_prob(pproc):
+def load_log_prob(pproc, table_files=None):
 
     # Load up the tables
-    table_files = glob.glob(os.path.join(defs.eval_path, 'R2010_on*{}_log_prob.csv'.format(pproc)))
+    if table_files is None:
+        table_files = glob.glob(os.path.join(defs.eval_path, 'R2010_on*{}_log_prob.csv'.format(pproc)))
 
     # Cut down?
     # table_files = table_files[0:2]

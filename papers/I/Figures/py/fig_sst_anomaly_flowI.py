@@ -181,7 +181,23 @@ def fig_CC(outfile):
     print('Wrote {:s}'.format(outfile))
 
 
-def fig_in_painting(outfile, iexpmle=4, vmnx=(8, 24)):
+def img_exmple(iexmple=4):
+    prob_file = os.path.join(eval_path,
+                             'MODIS_R2019_2010_95clear_128x128_preproc_std_log_probs.csv')
+    table_files = [prob_file]
+    # Find a good example
+    print("Grabbing an example")
+    df = results.load_log_prob('std', table_files=table_files)
+    cloudy = df.clear_fraction > 0.045
+    df = df[cloudy]
+    i_LL = np.argsort(df.log_likelihood.values)
+
+    # One, psuedo-random
+    example = df.iloc[i_LL[iexmple]]
+    return example
+
+
+def fig_in_painting(outfile, iexmple=4, vmnx=(8, 24)):
     """
 
     Parameters
@@ -194,8 +210,10 @@ def fig_in_painting(outfile, iexpmle=4, vmnx=(8, 24)):
     -------
 
     """
+    example = img_exmple(iexmple=iexmple)
+
     # Grab it
-    field, mask = image_utils.grab_img(iexpmle, 'Extracted')
+    field, mask = image_utils.grab_img(example, 'Extracted', ptype='std')
     masked_field = field.copy()
     masked_field[mask == 1] = -np.nan
 
@@ -258,10 +276,11 @@ def fig_evals_spatial(pproc, outfile, nside=64):
 
 
 
-def fig_auto_encode(outfile, iexpmle=4, vmnx=(-5, 5)):
+def fig_auto_encode(outfile, iexmple=4, vmnx=(-5, 5)):
 
+    example = img_exmple(iexmple=iexmple)
     # Grab it
-    field, mask = image_utils.grab_img(iexpmle, 'PreProc')
+    field, mask = image_utils.grab_img(example, 'PreProc', ptype='std')
     fields = np.reshape(field, (1,1,64,64))
 
     # Load up the model
@@ -335,6 +354,53 @@ def fig_LL_SSTa(outfile):
     plt.close()
     print('Wrote {:s}'.format(outfile))
 
+
+def fig_gallery_std(outfile):
+
+    evals_tbl = results.load_log_prob('std')
+
+
+    # Grab random outliers
+    years = [2008, 2009, 2011, 2012]
+    dyear = 1
+    ngallery = 4
+    gallery_tbl = results.random_imgs(evals_tbl, years, dyear)
+
+    if len(gallery_tbl) < ngallery:
+        raise ValueError("Uh oh")
+
+    # Plot
+    pal, cm = plotting.load_palette()
+    fig = plt.figure(figsize=(10, 10))
+    plt.clf()
+    gs = gridspec.GridSpec(3,3)
+
+    # Original
+    for ss in range(ngallery):
+        # Axis
+        ax = plt.subplot(gs[ss])
+
+        # Grab image
+        example = gallery_tbl.iloc[ss]
+        field, mask = image_utils.grab_img(example, 'PreProc', ptype='std')
+
+        # Plot
+        sns.heatmap(field[0], ax=ax, xticklabels=[], yticklabels=[], cmap=cm)
+                #vmin=vmnx[0], vmax=vmnx[1])
+
+        # Label
+        lsz = 17.
+        lclr = 'k'
+        ax.text(0.05, 0.90, '{}'.format(example.date.strftime('%Y-%m-%d')),
+                transform=ax.transAxes, fontsize=lsz, ha='left', color=lclr)
+        ax.text(0.05, 0.80, '{:0.3f},{:0.3f}'.format(example.longitude, example.latitude),
+                transform=ax.transAxes, fontsize=lsz, ha='left', color=lclr)
+
+    # Layout and save
+    # plt.tight_layout(pad=0.5, h_pad=0.5, w_pad=0.5)
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
 
 
 def evals_to_healpix(eval_tbl, nside, log=False):
@@ -435,6 +501,11 @@ def main(flg_fig):
     if flg_fig & (2 ** 6):
         for outfile in ['fig_LL_SSTa.png']:
             fig_LL_SSTa(outfile)
+
+    # Outlier gallery
+    if flg_fig & (2 ** 7):
+        for outfile in ['fig_gallery_std.png']:
+            fig_gallery_std(outfile)
 
 # Command line execution
 if __name__ == '__main__':
