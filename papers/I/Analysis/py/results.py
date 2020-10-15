@@ -18,6 +18,7 @@ def load_log_prob(pproc, table_files=None):
     # Load up the tables
     if table_files is None:
         table_files = glob.glob(os.path.join(defs.eval_path, 'R2010_on*{}_log_prob.csv'.format(pproc)))
+    table_files.sort()
 
     # Cut down?
     # table_files = table_files[0:2]
@@ -39,7 +40,7 @@ def load_log_prob(pproc, table_files=None):
         df['date'] = dtimes
         evals_tbl = pandas.concat([evals_tbl, df])
 
-    print('NEED TO ADD IN 2010!!!')
+    #print('NEED TO ADD IN 2010!!!')
 
     # Return
     return evals_tbl

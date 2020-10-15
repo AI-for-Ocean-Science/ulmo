@@ -26,6 +26,7 @@ from ulmo import defs
 from IPython import embed
 
 
+
 # Local
 sys.path.append(os.path.abspath("../Analysis/py"))
 import results
@@ -336,7 +337,7 @@ def fig_LL_SSTa(outfile):
     # Inset for lowest LL
     cut_LL = -1500.
     lowLL = logL < cut_LL
-    axins = ax.inset_axes([0.1, 0.4, 0.47, 0.47])
+    axins = ax.inset_axes([0.1, 0.3, 0.57, 0.57])
     #axins.scatter(evals_tbl.date.values[lowLL], evals_tbl.log_likelihood.values[lowLL])
     #bins = np.arange(-6000., -1000., 250)
     #out_hist, out_bins = np.histogram(logL[lowLL], bins=bins)
@@ -344,7 +345,7 @@ def fig_LL_SSTa(outfile):
     #axins.hist(logL[lowLL], color='k')
     axins.scatter(evals_tbl.log_likelihood.values[lowLL], evals_tbl.date.values[lowLL],
                   s=0.1)
-    axins.set_xlim(-5500., cut_LL)
+    axins.set_xlim(-8000., cut_LL)
     plt.gcf().autofmt_xdate()
 
 
@@ -361,9 +362,10 @@ def fig_gallery_std(outfile):
 
 
     # Grab random outliers
-    years = [2008, 2009, 2011, 2012]
-    dyear = 1
-    ngallery = 4
+    #years = [2008, 2009, 2011, 2012]
+    years = np.arange(2003, 2020, 2)
+    dyear = 2
+    ngallery = 9
     gallery_tbl = results.random_imgs(evals_tbl, years, dyear)
 
     if len(gallery_tbl) < ngallery:
@@ -398,6 +400,48 @@ def fig_gallery_std(outfile):
 
     # Layout and save
     # plt.tight_layout(pad=0.5, h_pad=0.5, w_pad=0.5)
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
+
+def fig_LL_vs_DT(outfile, evals_tbl=None, ptype='std'):
+
+    # Load
+    if evals_tbl is None:
+        evals_tbl = results.load_log_prob(ptype)
+
+    # Add in DT
+    if 'DT' not in evals_tbl.keys():
+        evals_tbl['DT'] = evals_tbl.T90 - evals_tbl.T10
+
+    # Bins
+    bins_LL = np.linspace(-10000., 1100., 22)
+    bins_DT = np.linspace(0., 14, 14)
+
+    fig = plt.figure(figsize=(12, 8))
+    plt.clf()
+    gs = gridspec.GridSpec(1,1)
+
+    # Total NSpax
+    ax_tot = plt.subplot(gs[0])
+
+    # 2D hist
+    hist2d(evals_tbl.log_likelihood.values, evals_tbl.DT.values,
+           bins=[bins_LL, bins_DT], ax=ax_tot, color='b')
+
+    ax_tot.set_xlabel('LL')
+    ax_tot.set_ylabel(r'$\Delta T$')
+    #ax_tot.set_ylim(0.3, 5.0)
+    #ax_tot.minorticks_on()
+
+    #legend = plt.legend(loc='upper right', scatterpoints=1, borderpad=0.3,
+    #                    handletextpad=0.3, fontsize=19, numpoints=1)
+
+    set_fontsize(ax_tot, 19.)
+
+    # Layout and save
+    plt.tight_layout(pad=0.2,h_pad=0.,w_pad=0.1)
     plt.savefig(outfile, dpi=300)
     plt.close()
     print('Wrote {:s}'.format(outfile))
@@ -459,6 +503,189 @@ def set_fontsize(ax,fsz):
                 ax.get_xticklabels() + ax.get_yticklabels()):
         item.set_fontsize(fsz)
 
+def hist2d(x, y, bins=20, range=None, weights=None, levels=None, smooth=None,
+           ax=None, color=None, plot_datapoints=True, plot_density=True,
+           plot_contours=True, no_fill_contours=False, fill_contours=False,
+           contour_kwargs=None, contourf_kwargs=None, data_kwargs=None,
+           **kwargs):
+    """
+    Plot a 2-D histogram of samples.
+
+    Parameters
+    ----------
+    x, y : array_like (nsamples,)
+       The samples.
+
+    bins : int or list
+
+    levels : array_like
+        The contour levels to draw.
+
+    ax : matplotlib.Axes (optional)
+        A axes instance on which to add the 2-D histogram.
+
+    plot_datapoints : bool (optional)
+        Draw the individual data points.
+
+    plot_density : bool (optional)
+        Draw the density colormap.
+
+    plot_contours : bool (optional)
+        Draw the contours.
+
+    no_fill_contours : bool (optional)
+        Add no filling at all to the contours (unlike setting
+        ``fill_contours=False``, which still adds a white fill at the densest
+        points).
+
+    fill_contours : bool (optional)
+        Fill the contours.
+
+    contour_kwargs : dict (optional)
+        Any additional keyword arguments to pass to the `contour` method.
+
+    contourf_kwargs : dict (optional)
+        Any additional keyword arguments to pass to the `contourf` method.
+
+    data_kwargs : dict (optional)
+        Any additional keyword arguments to pass to the `plot` method when
+        adding the individual data points.
+    """
+    from matplotlib.colors import LinearSegmentedColormap, colorConverter
+    from scipy.ndimage import gaussian_filter
+
+    if ax is None:
+        ax = plt.gca()
+
+    # Set the default range based on the data range if not provided.
+    if range is None:
+        if "extent" in kwargs:
+            range = kwargs["extent"]
+        else:
+            range = [[x.min(), x.max()], [y.min(), y.max()]]
+
+    # Set up the default plotting arguments.
+    if color is None:
+        color = "k"
+
+    # Choose the default "sigma" contour levels.
+    if levels is None:
+        levels = 1.0 - np.exp(-0.5 * np.arange(0.5, 2.1, 0.5) ** 2)
+
+    # This is the color map for the density plot, over-plotted to indicate the
+    # density of the points near the center.
+    density_cmap = LinearSegmentedColormap.from_list(
+        "density_cmap", [color, (1, 1, 1, 0)])
+
+    # This color map is used to hide the points at the high density areas.
+    white_cmap = LinearSegmentedColormap.from_list(
+        "white_cmap", [(1, 1, 1), (1, 1, 1)], N=2)
+
+    # This "color map" is the list of colors for the contour levels if the
+    # contours are filled.
+    rgba_color = colorConverter.to_rgba(color)
+    contour_cmap = [list(rgba_color) for l in levels] + [rgba_color]
+    for i, l in enumerate(levels):
+        contour_cmap[i][-1] *= float(i) / (len(levels)+1)
+
+    # We'll make the 2D histogram to directly estimate the density.
+    try:
+        H, X, Y = np.histogram2d(x.flatten(), y.flatten(), bins=bins,
+                                 range=range, weights=weights)
+    except ValueError:
+        embed(header='732 of figs')
+        raise ValueError("It looks like at least one of your sample columns "
+                         "have no dynamic range. You could try using the "
+                         "'range' argument.")
+
+    if smooth is not None:
+        if gaussian_filter is None:
+            raise ImportError("Please install scipy for smoothing")
+        H = gaussian_filter(H, smooth)
+
+    # Compute the density levels.
+    Hflat = H.flatten()
+    inds = np.argsort(Hflat)[::-1]
+    Hflat = Hflat[inds]
+    sm = np.cumsum(Hflat)
+    sm /= sm[-1]
+    V = np.empty(len(levels))
+    for i, v0 in enumerate(levels):
+        try:
+            V[i] = Hflat[sm <= v0][-1]
+        except:
+            V[i] = Hflat[0]
+    V.sort()
+    m = np.diff(V) == 0
+    if np.any(m):
+        print("Too few points to create valid contours")
+    while np.any(m):
+        V[np.where(m)[0][0]] *= 1.0 - 1e-4
+        m = np.diff(V) == 0
+    V.sort()
+
+    # Compute the bin centers.
+    X1, Y1 = 0.5 * (X[1:] + X[:-1]), 0.5 * (Y[1:] + Y[:-1])
+
+    # Extend the array for the sake of the contours at the plot edges.
+    H2 = H.min() + np.zeros((H.shape[0] + 4, H.shape[1] + 4))
+    H2[2:-2, 2:-2] = H
+    H2[2:-2, 1] = H[:, 0]
+    H2[2:-2, -2] = H[:, -1]
+    H2[1, 2:-2] = H[0]
+    H2[-2, 2:-2] = H[-1]
+    H2[1, 1] = H[0, 0]
+    H2[1, -2] = H[0, -1]
+    H2[-2, 1] = H[-1, 0]
+    H2[-2, -2] = H[-1, -1]
+    X2 = np.concatenate([
+        X1[0] + np.array([-2, -1]) * np.diff(X1[:2]),
+        X1,
+        X1[-1] + np.array([1, 2]) * np.diff(X1[-2:]),
+        ])
+    Y2 = np.concatenate([
+        Y1[0] + np.array([-2, -1]) * np.diff(Y1[:2]),
+        Y1,
+        Y1[-1] + np.array([1, 2]) * np.diff(Y1[-2:]),
+        ])
+
+    if plot_datapoints:
+        if data_kwargs is None:
+            data_kwargs = dict()
+        data_kwargs["color"] = data_kwargs.get("color", color)
+        data_kwargs["ms"] = data_kwargs.get("ms", 2.0)
+        data_kwargs["mec"] = data_kwargs.get("mec", "none")
+        data_kwargs["alpha"] = data_kwargs.get("alpha", 0.1)
+        ax.plot(x, y, "o", zorder=-1, rasterized=True, **data_kwargs)
+
+    # Plot the base fill to hide the densest data points.
+    if (plot_contours or plot_density) and not no_fill_contours:
+        ax.contourf(X2, Y2, H2.T, [V.min(), H.max()],
+                    cmap=white_cmap, antialiased=False)
+
+    if plot_contours and fill_contours:
+        if contourf_kwargs is None:
+            contourf_kwargs = dict()
+        contourf_kwargs["colors"] = contourf_kwargs.get("colors", contour_cmap)
+        contourf_kwargs["antialiased"] = contourf_kwargs.get("antialiased",
+                                                             False)
+        ax.contourf(X2, Y2, H2.T, np.concatenate([[0], V, [H.max()*(1+1e-4)]]),
+                    **contourf_kwargs)
+
+    # Plot the density map. This can't be plotted at the same time as the
+    # contour fills.
+    elif plot_density:
+        ax.pcolor(X, Y, H.max() - H.T, cmap=density_cmap)
+
+    # Plot the contour edge colors.
+    if plot_contours:
+        if contour_kwargs is None:
+            contour_kwargs = dict()
+        contour_kwargs["colors"] = contour_kwargs.get("colors", color)
+        ax.contour(X2, Y2, H2.T, V, **contour_kwargs)
+
+    ax.set_xlim(range[0])
+    ax.set_ylim(range[1])
 
 #### ########################## #########################
 def main(flg_fig):
@@ -518,8 +745,8 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 3  # All Evals spatial
         #flg_fig += 2 ** 4  # In-painting
         #flg_fig += 2 ** 5  # Auto-encode
-        #flg_fig += 2 ** 6  # LL SSTa
-        flg_fig += 2 ** 7  # Gallery
+        flg_fig += 2 ** 6  # LL SSTa
+        #flg_fig += 2 ** 7  # Gallery
     else:
         flg_fig = sys.argv[1]
 
