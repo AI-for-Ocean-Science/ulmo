@@ -745,8 +745,8 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 3  # All Evals spatial
         #flg_fig += 2 ** 4  # In-painting
         #flg_fig += 2 ** 5  # Auto-encode
-        flg_fig += 2 ** 6  # LL SSTa
-        #flg_fig += 2 ** 7  # Gallery
+        #flg_fig += 2 ** 6  # LL SSTa
+        flg_fig += 2 ** 7  # Gallery
     else:
         flg_fig = sys.argv[1]
 
