@@ -14,6 +14,19 @@ from ulmo import defs
 from IPython import embed
 
 def load_log_prob(pproc, table_files=None):
+    """
+    Load log probabilities
+
+    Parameters
+    ----------
+    pproc : str
+        std or loggrad
+    table_files
+
+    Returns
+    -------
+
+    """
 
     # Load up the tables
     if table_files is None:

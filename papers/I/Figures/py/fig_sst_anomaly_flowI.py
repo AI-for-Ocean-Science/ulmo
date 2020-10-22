@@ -356,10 +356,9 @@ def fig_LL_SSTa(outfile):
     print('Wrote {:s}'.format(outfile))
 
 
-def fig_gallery_std(outfile):
+def fig_gallery(outfile, ptype):
 
-    evals_tbl = results.load_log_prob('std')
-
+    evals_tbl = results.load_log_prob(ptype)
 
     # Grab random outliers
     #years = [2008, 2009, 2011, 2012]
@@ -731,8 +730,8 @@ def main(flg_fig):
 
     # Outlier gallery
     if flg_fig & (2 ** 7):
-        for outfile in ['fig_gallery_std.png']:
-            fig_gallery_std(outfile)
+        for ptype, outfile in zip(['std', 'loggrad'], ['fig_gallery_std.png', 'fig_gallery_std.png']):
+            fig_gallery(outfile, ptype)
 
 # Command line execution
 if __name__ == '__main__':
