@@ -730,7 +730,7 @@ def main(flg_fig):
 
     # Outlier gallery
     if flg_fig & (2 ** 7):
-        for ptype, outfile in zip(['std', 'loggrad'], ['fig_gallery_std.png', 'fig_gallery_std.png']):
+        for ptype, outfile in zip(['std', 'loggrad'], ['fig_gallery_std.png', 'fig_gallery_loggrad.png']):
             fig_gallery(outfile, ptype)
 
 # Command line execution
