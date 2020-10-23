@@ -446,6 +446,109 @@ def fig_LL_vs_DT(outfile, evals_tbl=None, ptype='std'):
     print('Wrote {:s}'.format(outfile))
 
 
+def fig_LL_vs_LL(outfile, evals_tbl_std=None, evals_tbl_grad=None):
+
+    # Load
+    if evals_tbl_std is None:
+        evals_tbl_std = results.load_log_prob('std')
+    if evals_tbl_grad is None:
+        evals_tbl_grad = results.load_log_prob('loggrad')
+
+    # Outliers
+    point1 = int(0.001 * len(evals_tbl_std))
+    isortLL = np.argsort(evals_tbl_std.log_likelihood)
+    outliers_std = evals_tbl_std.iloc[isortLL[0:point1]]
+
+    # Grab em
+    LL_grad = []
+    for kk in range(len(outliers_std)):
+        iobj = outliers_std.iloc[kk]
+        gdate = evals_tbl_grad.date == iobj.date
+        grow = evals_tbl_grad.row == iobj.row
+        gcol = evals_tbl_grad.column == iobj.column
+        idx = np.where(gdate & grow & gcol)[0]
+        if len(idx) == 1:
+            LL_grad.append(evals_tbl_grad.iloc[idx].log_likelihood.values[0])
+        else:
+            LL_grad.append(np.nan)
+        print(LL_grad[-1])
+    import pdb; pdb.set_trace()
+
+    fig = plt.figure(figsize=(12, 8))
+    plt.clf()
+    gs = gridspec.GridSpec(1,1)
+
+    # Total NSpax
+    ax_tot = plt.subplot(gs[0])
+
+
+    ax_tot.set_xlabel('LL')
+    ax_tot.set_ylabel(r'$\Delta T$')
+    #ax_tot.set_ylim(0.3, 5.0)
+    #ax_tot.minorticks_on()
+
+    #legend = plt.legend(loc='upper right', scatterpoints=1, borderpad=0.3,
+    #                    handletextpad=0.3, fontsize=19, numpoints=1)
+
+    set_fontsize(ax_tot, 19.)
+
+    # Layout and save
+    plt.tight_layout(pad=0.2,h_pad=0.,w_pad=0.1)
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
+
+def fig_year_month(outfile, ptype, evals_tbl=None):
+
+    # Load
+    if evals_tbl is None:
+        evals_tbl = results.load_log_prob(ptype)
+
+    # Outliers
+    point1 = int(0.001 * len(evals_tbl))
+    isortLL = np.argsort(evals_tbl.log_likelihood)
+    outliers = evals_tbl.iloc[isortLL[0:point1]]
+
+    # Parse
+    years = [item.year for item in outliers.date]
+    months = [item.month for item in outliers.date]
+
+    #
+    bins_year = np.arange(2002.5, 2020.5)
+    bins_month = np.arange(0.5, 13.5)
+    counts, xedges, yedges = np.histogram2d(months, years,
+                                            bins=(bins_month, bins_year))
+
+    fig = plt.figure(figsize=(12, 8))
+    plt.clf()
+    gs = gridspec.GridSpec(1,1)
+
+    # Total NSpax
+    ax_tot = plt.subplot(gs[0])
+
+    cm = plt.get_cmap('Blues')
+    mplt = ax_tot.pcolormesh(xedges, yedges, counts.transpose(), cmap=cm)
+    cb = plt.colorbar(mplt, fraction=0.030, pad=0.04)
+    cb.set_label(r'Counts', fontsize=20.)
+
+    ax_tot.set_xlabel('Month')
+    ax_tot.set_ylabel(r'Year')
+    #ax_tot.set_ylim(0.3, 5.0)
+    #ax_tot.minorticks_on()
+
+    #legend = plt.legend(loc='upper right', scatterpoints=1, borderpad=0.3,
+    #                    handletextpad=0.3, fontsize=19, numpoints=1)
+
+    set_fontsize(ax_tot, 19.)
+
+    # Layout and save
+    plt.tight_layout(pad=0.2,h_pad=0.,w_pad=0.1)
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
+
 def evals_to_healpix(eval_tbl, nside, log=False):
     """
     Generate a healpix map of where the input
@@ -733,6 +836,17 @@ def main(flg_fig):
         for ptype, outfile in zip(['std', 'loggrad'], ['fig_gallery_std.png', 'fig_gallery_loggrad.png']):
             fig_gallery(outfile, ptype)
 
+    # LL vs LL
+    if flg_fig & (2 ** 8):
+        for outfile in ['fig_LL_vs_LL.png']:
+            fig_LL_vs_LL(outfile)
+
+    # Year, Month
+    if flg_fig & (2 ** 9):
+        for ptype, outfile in zip(['std', 'loggrad'], ['fig_year_month_std.png', 'fig_year_month_loggrad.png']):
+            fig_year_month(outfile, ptype)
+
+
 # Command line execution
 if __name__ == '__main__':
 
@@ -745,8 +859,11 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 4  # In-painting
         #flg_fig += 2 ** 5  # Auto-encode
         #flg_fig += 2 ** 6  # LL SSTa
-        flg_fig += 2 ** 7  # Gallery
+        #flg_fig += 2 ** 7  # Gallery
+        #flg_fig += 2 ** 8  # LL_SST vs. LL_grad
+        flg_fig += 2 ** 9  # year, month
     else:
         flg_fig = sys.argv[1]
 
     main(flg_fig)
+
