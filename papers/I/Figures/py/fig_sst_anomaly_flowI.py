@@ -21,6 +21,7 @@ from ulmo.analysis import cc as ulmo_cc
 from ulmo import plotting
 from ulmo.utils import image_utils
 from ulmo.utils import models as model_utils
+from ulmo.utils import utils as utils
 from ulmo import defs
 
 from IPython import embed
@@ -448,17 +449,33 @@ def fig_LL_vs_DT(outfile, evals_tbl=None, ptype='std'):
 
 def fig_LL_vs_LL(outfile, evals_tbl_std=None, evals_tbl_grad=None):
 
+
     # Load
     if evals_tbl_std is None:
-        evals_tbl_std = results.load_log_prob('std')
+        evals_tbl_std = results.load_log_prob('std', feather=True)
     if evals_tbl_grad is None:
-        evals_tbl_grad = results.load_log_prob('loggrad')
+        evals_tbl_grad = results.load_log_prob('loggrad', feather=True)
 
     # Outliers
     point1 = int(0.001 * len(evals_tbl_std))
-    isortLL = np.argsort(evals_tbl_std.log_likelihood)
-    outliers_std = evals_tbl_std.iloc[isortLL[0:point1]]
+    isortLL_std = np.argsort(evals_tbl_std.log_likelihood)
+    outliers_std = evals_tbl_std.iloc[isortLL_std[0:point1]]
 
+    isortLL_grad = np.argsort(evals_tbl_grad.log_likelihood)
+    outliers_grad = evals_tbl_grad.iloc[isortLL_grad[0:point1]]
+
+    # Std to grad
+    mtchs = utils.match_ids(outliers_std.UID, evals_tbl_grad.UID, require_in_match=False)
+    gd_LL = mtchs >= 0
+    LL_grad_std = evals_tbl_grad.log_likelihood.values[mtchs[gd_LL]]
+    LL_std = outliers_std.log_likelihood.values[gd_LL]
+
+    mtchs2 = utils.match_ids(outliers_grad.UID, evals_tbl_std.UID, require_in_match=False)
+    gd_LL2 = mtchs2 >= 0
+    LL_std_grad = evals_tbl_std.log_likelihood.values[mtchs2[gd_LL2]]
+    LL_grad = outliers_grad.log_likelihood.values[gd_LL2]
+
+    '''
     # Grab em
     LL_grad = []
     for kk in range(len(outliers_std)):
@@ -471,26 +488,25 @@ def fig_LL_vs_LL(outfile, evals_tbl_std=None, evals_tbl_grad=None):
             LL_grad.append(evals_tbl_grad.iloc[idx].log_likelihood.values[0])
         else:
             LL_grad.append(np.nan)
-        print(LL_grad[-1])
-    import pdb; pdb.set_trace()
+    '''
 
     fig = plt.figure(figsize=(12, 8))
     plt.clf()
-    gs = gridspec.GridSpec(1,1)
+    gs = gridspec.GridSpec(2,1)
 
-    # Total NSpax
-    ax_tot = plt.subplot(gs[0])
+    #
+    ax_std = plt.subplot(gs[0])
+    ax_std.scatter(LL_std, LL_grad_std, s=0.2)
+    ax_std.set_xlabel('LL SSTa 0.1% Outliers')
+    ax_std.set_ylabel('LL_grad')
 
+    ax_log = plt.subplot(gs[1])
+    ax_log.scatter(LL_grad, LL_std_grad, s=0.2)
+    ax_log.set_xlabel(r'LL $\nabla$SST 0.1% Outliers')
+    ax_log.set_ylabel('LL_std')
 
-    ax_tot.set_xlabel('LL')
-    ax_tot.set_ylabel(r'$\Delta T$')
-    #ax_tot.set_ylim(0.3, 5.0)
-    #ax_tot.minorticks_on()
-
-    #legend = plt.legend(loc='upper right', scatterpoints=1, borderpad=0.3,
-    #                    handletextpad=0.3, fontsize=19, numpoints=1)
-
-    set_fontsize(ax_tot, 19.)
+    set_fontsize(ax_std, 19.)
+    set_fontsize(ax_log, 19.)
 
     # Layout and save
     plt.tight_layout(pad=0.2,h_pad=0.,w_pad=0.1)
@@ -860,8 +876,8 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 5  # Auto-encode
         #flg_fig += 2 ** 6  # LL SSTa
         #flg_fig += 2 ** 7  # Gallery
-        #flg_fig += 2 ** 8  # LL_SST vs. LL_grad
-        flg_fig += 2 ** 9  # year, month
+        flg_fig += 2 ** 8  # LL_SST vs. LL_grad
+        #flg_fig += 2 ** 9  # year, month
     else:
         flg_fig = sys.argv[1]
 

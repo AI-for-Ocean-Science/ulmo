@@ -13,7 +13,8 @@ from ulmo import defs
 
 from IPython import embed
 
-def load_log_prob(pproc, table_files=None):
+
+def load_log_prob(pproc, table_files=None, add_UID=False, feather=False):
     """
     Load log probabilities
 
@@ -28,13 +29,16 @@ def load_log_prob(pproc, table_files=None):
 
     """
 
+    if feather:
+        ffile = os.path.join(defs.eval_path, 'R2010_results_{}.feather'.format(pproc))
+        print("Loading: {}".format(ffile))
+        return pandas.read_feather(ffile)
+
     # Load up the tables
     if table_files is None:
         table_files = glob.glob(os.path.join(defs.eval_path, 'R2010_on*{}_log_prob.csv'.format(pproc)))
     table_files.sort()
 
-    # Cut down?
-    # table_files = table_files[0:2]
 
     ioff = 10
     evals_tbl = pandas.DataFrame()
@@ -48,12 +52,19 @@ def load_log_prob(pproc, table_files=None):
                                     int(ifile[10+ioff:12+ioff]),
                                     int(ifile[12+ioff:14+ioff]))
                   for ifile in df['filename'].values]
-        #except:
-        #    embed(header='32 of results')
-        df['date'] = dtimes
-        evals_tbl = pandas.concat([evals_tbl, df])
 
-    #print('NEED TO ADD IN 2010!!!')
+        df['date'] = dtimes
+        # Unique identifier
+        if add_UID:
+            tlong = df['date'].values.astype(np.int64) // 10000000000
+            lats = np.round((df.latitude.values + 90)*10000).astype(int)
+            lons = np.round((df.longitude.values + 180)*100000).astype(int)
+            uid = [np.int64('{:s}{:d}{:d}'.format(str(t)[:-5],lat,lon))
+                   for t,lat,lon in zip(tlong, lats, lons)]
+            if len(uid) != len(np.unique(uid)):
+                embed(header='67 of results')
+            df['UID'] = np.array(uid).astype(np.int64)
+        evals_tbl = pandas.concat([evals_tbl, df])
 
     # Return
     return evals_tbl
@@ -97,3 +108,19 @@ def random_imgs(evals_tbl, years, dyear, top=1000, verbose=False):
 
     # Return table of random choices
     return topN.iloc[for_gallery]
+
+
+def build_feather():
+    # Standard
+    for model in ['std', 'loggrad']:
+        df = load_log_prob(model, add_UID=True)
+        uid = df['UID'].values
+        if len(uid) != len(np.unique(uid)):
+            print("Not all indices are unique.  Boo hoo")
+        df.reset_index().to_feather('R2010_results_{}.feather'.format(model))
+
+# Command line execution
+if __name__ == '__main__':
+    build_feather()
+
+
