@@ -242,7 +242,7 @@ def fig_in_painting(outfile, iexmple=4, vmnx=(8, 24)):
     print('Wrote {:s}'.format(outfile))
 
 
-def fig_evals_spatial(pproc, outfile, nside=64):
+def fig_spatial(pproc, cohort, outfile, nside=64):
     """
 
     Parameters
@@ -256,7 +256,17 @@ def fig_evals_spatial(pproc, outfile, nside=64):
 
     """
     # Load
-    evals_tbl = results.load_log_prob(pproc)
+    evals_tbl = results.load_log_prob(pproc, feather=True)
+
+    if cohort == 'all':
+        lbl = 'evals'
+    elif cohort == 'outliers':
+        point1 = int(0.001 * len(evals_tbl))
+        isortLL = np.argsort(evals_tbl.log_likelihood)
+        evals_tbl = evals_tbl.iloc[isortLL[0:point1]]
+        lbl = 'outliers'
+    else:
+        raise IOError("Bad cohort")
 
     # Healpix me
     hp_events = evals_to_healpix(evals_tbl, nside, log=True)
@@ -264,11 +274,14 @@ def fig_evals_spatial(pproc, outfile, nside=64):
     fig = plt.figure(figsize=(12, 8))
     plt.clf()
 
+    ax = plt.gca()
+
     # Median dSST
-    hp.mollview(hp_events, min=0, #max=2,
+    hp.mollview(hp_events, min=0, hold=True,
                 cmap='Blues',
-                flip='geo', title='', unit=r'$\log_{10} \, N_{\rm evals}$',
+                flip='geo', title='', unit=r'$\log_{10} \, N_{\rm '+'{}'.format(lbl)+'}$',
                 rot=(0., 180., 180.))
+    plt.gca().coastlines()
 
     # Layout and save
     #plt.tight_layout(pad=0.2,h_pad=0.,w_pad=0.1)
@@ -603,6 +616,8 @@ def evals_to_healpix(eval_tbl, nside, log=False):
     hpma = hp.ma(all_events.astype(float))
     hpma.mask = zero
 
+    embed(header='619 of figs')
+
     # Return
     return hpma
 
@@ -830,7 +845,7 @@ def main(flg_fig):
     # Spatial of all evaluations
     if flg_fig & (2 ** 3):
         for outfile in ['fig_std_evals_spatial.png']:
-            fig_evals_spatial('std', outfile)
+            fig_spatial('std', 'all', outfile)
 
     # In-painting
     if flg_fig & (2 ** 4):
@@ -862,6 +877,13 @@ def main(flg_fig):
         for ptype, outfile in zip(['std', 'loggrad'], ['fig_year_month_std.png', 'fig_year_month_loggrad.png']):
             fig_year_month(outfile, ptype)
 
+    # Spatial of outliers
+    if flg_fig & (2 ** 10):
+        for ptype, outfile in zip(['std', 'loggrad'],
+                                  ['fig_outliers_spatial_std.png',
+                                   'fig_outliers_spatial_loggrad.png']):
+            fig_spatial(ptype, 'outliers', outfile)
+
 
 # Command line execution
 if __name__ == '__main__':
@@ -876,8 +898,9 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 5  # Auto-encode
         #flg_fig += 2 ** 6  # LL SSTa
         #flg_fig += 2 ** 7  # Gallery
-        flg_fig += 2 ** 8  # LL_SST vs. LL_grad
+        #flg_fig += 2 ** 8  # LL_SST vs. LL_grad
         #flg_fig += 2 ** 9  # year, month
+        flg_fig += 2 ** 10  # Outliers spatial
     else:
         flg_fig = sys.argv[1]
 
