@@ -70,13 +70,12 @@ def load_log_prob(pproc, table_files=None, add_UID=False, feather=False):
     return evals_tbl
 
 
-def random_imgs(evals_tbl, years, dyear, top=1000, verbose=False):
-    # Cut
-    isrt = np.argsort(evals_tbl.log_likelihood)
-    topN = evals_tbl.iloc[isrt[0:top]]
+def random_imgs(evals_tbl, years, dyear, verbose=False):
 
     # Coords
-    coords = SkyCoord(b=topN.latitude * units.deg, l=topN.longitude * units.deg, frame='galactic')
+    coords = SkyCoord(b=evals_tbl.latitude * units.deg,
+                      l=evals_tbl.longitude * units.deg,
+                      frame='galactic')
 
     # Loop time
     used_coords = None
@@ -85,7 +84,7 @@ def random_imgs(evals_tbl, years, dyear, top=1000, verbose=False):
         # Cut on date
         t0 = datetime.datetime(year, 1, 1)
         t1 = datetime.datetime(year + dyear, 1, 1)
-        in_time = np.where((topN.date >= t0) & (topN.date < t1))[0]
+        in_time = np.where((evals_tbl.date >= t0) & (evals_tbl.date < t1))[0]
         if verbose:
             print('Year {}:, n_options={}'.format(year, len(in_time)))
         # Grab one
@@ -107,7 +106,7 @@ def random_imgs(evals_tbl, years, dyear, top=1000, verbose=False):
             used_coords = coords[np.array(for_gallery)]
 
     # Return table of random choices
-    return topN.iloc[for_gallery]
+    return evals_tbl.iloc[for_gallery]
 
 
 def build_feather():

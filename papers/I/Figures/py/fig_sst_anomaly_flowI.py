@@ -370,15 +370,28 @@ def fig_LL_SSTa(outfile):
     print('Wrote {:s}'.format(outfile))
 
 
-def fig_gallery(outfile, ptype):
+def fig_gallery(outfile, ptype, flavor='outlier'):
 
-    evals_tbl = results.load_log_prob(ptype)
+    evals_tbl = results.load_log_prob(ptype, feather=True)
 
     # Grab random outliers
     #years = [2008, 2009, 2011, 2012]
     years = np.arange(2003, 2020, 2)
     dyear = 2
     ngallery = 9
+
+    if flavor == 'outlier':
+        # Cut
+        top = 1000
+        isrt = np.argsort(evals_tbl.log_likelihood)
+        evals_tbl = evals_tbl.iloc[isrt[0:top]]
+    elif flavor == 'inlier':
+        bottom = 1000
+        isrt = np.argsort(evals_tbl.log_likelihood)
+        evals_tbl = evals_tbl.iloc[isrt[-bottom:]]
+    else:
+        raise IOError("Bad flavor")
+
     gallery_tbl = results.random_imgs(evals_tbl, years, dyear)
 
     if len(gallery_tbl) < ngallery:
@@ -397,11 +410,15 @@ def fig_gallery(outfile, ptype):
 
         # Grab image
         example = gallery_tbl.iloc[ss]
-        field, mask = image_utils.grab_img(example, 'PreProc', ptype='std')
+        field, mask = image_utils.grab_img(example, 'PreProc', ptype=ptype)
 
         # Plot
-        sns.heatmap(field[0], ax=ax, xticklabels=[], yticklabels=[], cmap=cm)
-                #vmin=vmnx[0], vmax=vmnx[1])
+        if ptype == 'loggrad':
+            vmin, vmax = -5., 0.
+        else:
+            vmin, vmax = None, None
+        sns.heatmap(field[0], ax=ax, xticklabels=[], yticklabels=[], cmap=cm,
+                    vmin=vmin, vmax=vmax)
 
         # Label
         lsz = 17.
@@ -864,8 +881,13 @@ def main(flg_fig):
 
     # Outlier gallery
     if flg_fig & (2 ** 7):
+        # Outlier
         for ptype, outfile in zip(['std', 'loggrad'], ['fig_gallery_std.png', 'fig_gallery_loggrad.png']):
             fig_gallery(outfile, ptype)
+        # Inlier
+        #for ptype, outfile in zip(['std', 'loggrad'], ['fig_inlier_gallery_std.png', 'fig_inlier_gallery_loggrad.png']):
+        #    fig_gallery(outfile, ptype, flavor='inlier')
+
 
     # LL vs LL
     if flg_fig & (2 ** 8):
@@ -903,11 +925,11 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 4  # In-painting
         #flg_fig += 2 ** 5  # Auto-encode
         #flg_fig += 2 ** 6  # LL SSTa
-        #flg_fig += 2 ** 7  # Gallery
+        flg_fig += 2 ** 7  # Gallery
         #flg_fig += 2 ** 8  # LL_SST vs. LL_grad
         #flg_fig += 2 ** 9  # year, month
         #flg_fig += 2 ** 10  # Outliers spatial
-        flg_fig += 2 ** 11  # LL vs DT
+        #flg_fig += 2 ** 11  # LL vs DT
     else:
         flg_fig = sys.argv[1]
 
