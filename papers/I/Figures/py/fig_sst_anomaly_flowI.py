@@ -418,11 +418,11 @@ def fig_gallery(outfile, ptype):
     print('Wrote {:s}'.format(outfile))
 
 
-def fig_LL_vs_DT(outfile, evals_tbl=None, ptype='std'):
+def fig_LL_vs_DT(ptype, outfile, evals_tbl=None):
 
     # Load
     if evals_tbl is None:
-        evals_tbl = results.load_log_prob(ptype)
+        evals_tbl = results.load_log_prob(ptype, feather=True)
 
     # Add in DT
     if 'DT' not in evals_tbl.keys():
@@ -884,6 +884,12 @@ def main(flg_fig):
                                    'fig_outliers_spatial_loggrad.png']):
             fig_spatial(ptype, 'outliers', outfile)
 
+    # LL vs. DT
+    if flg_fig & (2 ** 11):
+        for ptype, outfile in zip(['std', 'loggrad'],
+                                  ['fig_LL_vs_T_std.png',
+                                   'fig_LL_vs_T_loggrad.png']):
+            fig_LL_vs_DT(ptype, outfile)
 
 # Command line execution
 if __name__ == '__main__':
@@ -900,7 +906,8 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 7  # Gallery
         #flg_fig += 2 ** 8  # LL_SST vs. LL_grad
         #flg_fig += 2 ** 9  # year, month
-        flg_fig += 2 ** 10  # Outliers spatial
+        #flg_fig += 2 ** 10  # Outliers spatial
+        flg_fig += 2 ** 11  # LL vs DT
     else:
         flg_fig = sys.argv[1]
 
