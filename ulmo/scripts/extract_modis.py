@@ -10,11 +10,11 @@ import multiprocessing
 
 from tqdm import tqdm
 
-from IPython import embed
 from ulmo import io as ulmo_io
 from ulmo.preproc import utils as pp_utils
 from ulmo.preproc import extract
 
+from IPython import embed
 
 def parser(options=None):
     import argparse
