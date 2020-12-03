@@ -59,7 +59,7 @@ def parser(options=None):
 
 
 
-def main(pargs):
+def main():
     """ Run
     """
     import warnings
