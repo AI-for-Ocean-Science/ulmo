@@ -169,4 +169,3 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
     # Return
     return pp_field, meta_dict
 
-
