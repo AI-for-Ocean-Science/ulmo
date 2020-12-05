@@ -165,6 +165,6 @@ if __name__ == '__main__':
     # Day
     run_evals('./Models/R2019_2010_128x128_std',
               'PreProc/MODIS_R2019_2010_95clear_128x128_preproc_std.h5',
-              'Scan/LLLscan_20100619T172508_L2_preproc.h5', 
-              'Scan/LLLscan_20100619T172508_L2_log_prob.h5')
+              'Scan/LLscan_20100619T172508_L2_preproc.h5',
+              'Scan/LLscan_20100619T172508_L2_log_prob.h5')
 
