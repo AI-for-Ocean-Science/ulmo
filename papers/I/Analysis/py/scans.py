@@ -105,15 +105,12 @@ def scan_granule(mask_file, data_file, outfile):
     print("Wrote: {}".format(outfile))
 
 
-def run_evals(flavor='std', clobber=False):
+def run_evals(datadir, filepath, data_file, log_prob_file, clobber=False):
 
     # Load model
-    if flavor == 'loggrad':
-        datadir = './Models/R2019_2010_128x128_loggrad'
-        filepath = 'PreProc/MODIS_R2019_2010_95clear_128x128_preproc_loggrad.h5'
-    elif flavor == 'std':
-        datadir = './Models/R2019_2010_128x128_std'
-        filepath = 'PreProc/MODIS_R2019_2010_95clear_128x128_preproc_std.h5'
+    #if flavor == 'loggrad':
+    #    datadir = './Models/R2019_2010_128x128_loggrad'
+    #    filepath = 'PreProc/MODIS_R2019_2010_95clear_128x128_preproc_loggrad.h5'
     pae = ood.ProbabilisticAutoencoder.from_json(datadir + '/model.json',
                                                  datadir=datadir,
                                                  filepath=filepath,
@@ -124,13 +121,11 @@ def run_evals(flavor='std', clobber=False):
     print("Model loaded!")
 
     # Input
-    data_file = 'Scan/LL_map_preproc.h5'
     # Check
     if not os.path.isfile(data_file):
         raise IOError("This data file does not exist! {}".format(data_file))
 
     # Output
-    log_prob_file = 'Scan/LL_map_log_prob.h5'
     if os.path.isfile(log_prob_file) and not clobber:
         print("Eval file {} exists! Skipping..".format(log_prob_file))
         return
@@ -158,8 +153,18 @@ def parser(options=None):
 # Command line execution
 if __name__ == '__main__':
 
-    #run_evals()
-    scan_granule('AQUA_MODIS_20100619T172508_L2_SST_pcc_Mask.nc',
-                 'AQUA_MODIS.20100619T172508.L2.SST.nc',
-                 'LLscan_20100619T172508_L2.h5')
+    #scan_granule('AQUA_MODIS_20100619T172508_L2_SST_pcc_Mask.nc',
+    #             'AQUA_MODIS.20100619T172508.L2.SST.nc',
+    #             'LLscan_20100619T172508_L2.h5')
+
+    # Run
+    # Night
+    #run_evals('./Models/R2019_2010_128x128_std',
+    #          'PreProc/MODIS_R2019_2010_95clear_128x128_preproc_std.h5',
+    #          'Scan/LL_map_preproc.h5', 'Scan/LL_map_log_prob.h5')
+    # Day
+    run_evals('./Models/R2019_2010_128x128_std',
+              'PreProc/MODIS_R2019_2010_95clear_128x128_preproc_std.h5',
+              'Scan/LLLscan_20100619T172508_L2_preproc.h5', 
+              'Scan/LLLscan_20100619T172508_L2_log_prob.h5')
 
