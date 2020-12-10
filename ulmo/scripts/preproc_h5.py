@@ -28,12 +28,14 @@ def parser(options=None):
     parser = argparse.ArgumentParser(description='Preproc images in an H5 file.')
     parser.add_argument("infile", type=str, help="H5 file for pre-processing")
     parser.add_argument("valid_fraction", type=float, help="Validation fraction.  Can be 1")
-    parser.add_argument("preproc_root", type=str, help="Root name of JSON file containing the steps to be applied")
+    parser.add_argument("preproc_root", type=str,
+                        help="Root name of JSON file containing the steps to be applied (standard, gradient)")
     parser.add_argument("outfile", type=str, help="H5 outfile name")
     parser.add_argument('--ncores', type=int, help='Number of cores for processing')
     parser.add_argument('--nsub_fields', type=int, default=10000,
                         help='Number of fields to parallel process at a time')
     parser.add_argument("--debug", default=False, action="store_true", help="Debug?")
+    parser.add_argument("--kludge", default=False, action="store_true", help="X Kludge")
 
     if options is None:
         pargs = parser.parse_args()
@@ -132,8 +134,12 @@ def main(pargs):
         print('Making lists')
         fields = np.vsplit(fields, shape[0])
         fields = [field.reshape(shape[1:]) for field in fields]
-        masks = np.vsplit(masks, shape[0])
-        masks = [mask.reshape(shape[1:]) for mask in masks]
+
+        if pargs.kludge:
+            masks = [None]*len(fields)
+        else:
+            masks = np.vsplit(masks, shape[0])
+            masks = [mask.reshape(shape[1:]) for mask in masks]
 
         items = [item for item in zip(fields,masks,sub_idx)]
 

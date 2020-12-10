@@ -29,7 +29,7 @@ def build_mask(sst, qual, qual_thresh=2, temp_bounds=(-2,33)):
     Returns
     -------
     masks : np.ndarray
-        mask
+        mask;  True = bad
 
     """
     sst[np.isnan(sst)] = np.nan
@@ -168,5 +168,4 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
 
     # Return
     return pp_field, meta_dict
-
 
