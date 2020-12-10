@@ -23,6 +23,26 @@ CC_values = np.array([0.95, 0.9, 0.85, 0.8, 0.75, 0.7, 0.65, 0.6, 0.55, 0.5, 0.4
 def cc_per_file(ifile, load_path, field_size=(128,128), nadir_offset=480,
                  qual_thresh=2, temp_bounds = (-2, 33), nrepeat=1,
                  inpaint=True, debug=False):
+    """
+    Loop through CC_values to determine the incidence of clear images
+    per file
+
+    Parameters
+    ----------
+    ifile : str
+    load_path : str
+    field_size : tuple
+    nadir_offset : int
+    qual_thresh : int
+    temp_bounds : tuple
+    nrepeat
+    inpaint
+    debug
+
+    Returns
+    -------
+
+    """
 
     filename = os.path.join(load_path, ifile)
 

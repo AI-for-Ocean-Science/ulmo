@@ -71,6 +71,20 @@ def load_log_prob(pproc, table_files=None, add_UID=False, feather=False):
 
 
 def random_imgs(evals_tbl, years, dyear, verbose=False):
+    """
+    Generate a set of random images
+
+    Parameters
+    ----------
+    evals_tbl
+    years
+    dyear
+    verbose
+
+    Returns
+    -------
+
+    """
 
     # Coords
     coords = SkyCoord(b=evals_tbl.latitude * units.deg,
@@ -110,6 +124,13 @@ def random_imgs(evals_tbl, years, dyear, verbose=False):
 
 
 def build_feather():
+    """
+    Generate a feather version of the pandas table
+
+    Returns
+    -------
+
+    """
     # Standard
     for model in ['std', 'loggrad']:
         df = load_log_prob(model, add_UID=True)

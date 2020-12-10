@@ -19,8 +19,10 @@ def clear_grid(mask, field_size, method, CC_max=0.05,
         'lower_corner'
     CC_max
     ndraw_mnx
-    nsgrid_draw : int
+    nsgrid_draw : int, optional
         Number of fields to draw per sub-grid
+    return_fracCC : bool, optional
+        Return the fraction of the image satisfying the CC value
 
     Returns
     -------
@@ -41,7 +43,7 @@ def clear_grid(mask, field_size, method, CC_max=0.05,
     mask_edge[:,:field_size//2] = True
     clear = (CC_mask < CC_max) & np.invert(mask_edge)
     if return_fracCC:
-        return np.sum(clear)/clear.size
+        return np.sum(clear)/((clear.shape[0]-field_size//2)*(clear.shape[1]-field_size//2))
 
     # Indices
     idx_clear = np.where(clear)

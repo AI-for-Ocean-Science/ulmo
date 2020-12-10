@@ -122,6 +122,7 @@ def fig_db_by_meanT(outfile):
 
 def fig_CC(outfile):
 
+    # Build by ulmo/analysis/cc.py
     tst_file = os.path.join(os.getenv('SST_OOD'), 'Analysis', 'cc_2010.h5')
 
     # Load data
@@ -130,6 +131,7 @@ def fig_CC(outfile):
 
     # Average
     mean_fCC = np.mean(fracCC, axis=0)
+    embed(header='134 of figs')
 
     # Differential
     diff_CC = mean_fCC - np.roll(mean_fCC, -1)
@@ -920,12 +922,12 @@ if __name__ == '__main__':
         flg_fig = 0
         #flg_fig += 2 ** 0  # Month histogram
         #flg_fig += 2 ** 1  # <T> histogram
-        #flg_fig += 2 ** 2  # CC
+        flg_fig += 2 ** 2  # CC fractions
         #flg_fig += 2 ** 3  # All Evals spatial
         #flg_fig += 2 ** 4  # In-painting
         #flg_fig += 2 ** 5  # Auto-encode
         #flg_fig += 2 ** 6  # LL SSTa
-        flg_fig += 2 ** 7  # Gallery
+        #flg_fig += 2 ** 7  # Gallery
         #flg_fig += 2 ** 8  # LL_SST vs. LL_grad
         #flg_fig += 2 ** 9  # year, month
         #flg_fig += 2 ** 10  # Outliers spatial

@@ -20,6 +20,19 @@ dpath = '/home/xavier/Projects/Oceanography/AI/OOD/Scan'
 
 
 def scan_granule(mask_file, data_file, outfile):
+    """
+    Scan the LL across a given granule
+
+    Parameters
+    ----------
+    mask_file
+    data_file
+    outfile
+
+    Returns
+    -------
+
+    """
     CC_max = 0.05
     nadir_offset = 480
     field_size = (128, 128)
