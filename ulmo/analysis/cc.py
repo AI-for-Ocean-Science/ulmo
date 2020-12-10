@@ -16,7 +16,7 @@ from ulmo.preproc import utils as pp_utils
 from ulmo.preproc import extract
 from ulmo.preproc import io as pp_io
 
-CC_values = np.array([0.95, 0.9, 0.85, 0.8, 0.75, 0.7, 0.65, 0.6, 0.55, 0.5, 0.45, 0.4,
+CC_values = np.array([1.0, 0.95, 0.9, 0.85, 0.8, 0.75, 0.7, 0.65, 0.6, 0.55, 0.5, 0.45, 0.4,
              0.35, 0.3, 0.25, 0.2, 0.15, 0.1, 0.05])
 
 
@@ -132,4 +132,4 @@ def main(n_cores, wolverine=False, debug=False):
 
 # Command line execution
 if __name__ == '__main__':
-    main(16, debug=True)
+    main(16, debug=False)
