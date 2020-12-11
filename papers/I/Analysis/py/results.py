@@ -83,6 +83,7 @@ def random_imgs(evals_tbl, years, dyear, verbose=False):
 
     Returns
     -------
+    pandas.DataFrame
 
     """
 

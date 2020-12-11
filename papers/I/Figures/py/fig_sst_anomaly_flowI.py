@@ -153,7 +153,7 @@ def fig_CC(outfile):
 
     # Labels
     ax.set_ylabel(r'Differential Fraction')
-    ax.set_xlabel(r'Clear Fraction (1-CC)')
+    ax.set_xlabel(r'Clear Fraction (CF=1-CC)')
     ax.set_ylim(0., 0.04)
 
     # Cumulative
@@ -161,7 +161,7 @@ def fig_CC(outfile):
     axC.set_ylim(0., 1.)
 
     p2 = axC.plot(1-ulmo_cc.CC_values, mean_fCC, color='k', label='Cumulative')
-    axC.set_ylabel(r'Cumulative Fraction')
+    axC.set_ylabel(r'Cumulative Distribution')
 
     # Font sizes
     fsz = 15.
@@ -329,10 +329,22 @@ def fig_auto_encode(outfile, iexmple=4, vmnx=(-5, 5)):
 
 
 def fig_LL_SSTa(outfile):
+    """
+    LL distribution
+
+    Parameters
+    ----------
+    outfile
+
+    Returns
+    -------
+
+    """
 
     evals_tbl = results.load_log_prob('std')
     logL = evals_tbl.log_likelihood.values
 
+    print("median logL = {}".format(np.median(logL)))
 
     # Plot
     fig = plt.figure(figsize=(10, 4))
@@ -396,12 +408,16 @@ def fig_gallery(outfile, ptype, flavor='outlier'):
 
     gallery_tbl = results.random_imgs(evals_tbl, years, dyear)
 
+    # Over-ride one?
+    if flavor == 'outlier':
+        embed(header='412 of figs')
+
     if len(gallery_tbl) < ngallery:
         raise ValueError("Uh oh")
 
     # Plot
     pal, cm = plotting.load_palette()
-    fig = plt.figure(figsize=(10, 10))
+    fig = plt.figure(figsize=(10, 8))
     plt.clf()
     gs = gridspec.GridSpec(3,3)
 
@@ -884,11 +900,11 @@ def main(flg_fig):
     # Outlier gallery
     if flg_fig & (2 ** 7):
         # Outlier
-        for ptype, outfile in zip(['std', 'loggrad'], ['fig_gallery_std.png', 'fig_gallery_loggrad.png']):
-            fig_gallery(outfile, ptype)
+        #for ptype, outfile in zip(['std', 'loggrad'], ['fig_gallery_std.png', 'fig_gallery_loggrad.png']):
+        #    fig_gallery(outfile, ptype)
         # Inlier
-        #for ptype, outfile in zip(['std', 'loggrad'], ['fig_inlier_gallery_std.png', 'fig_inlier_gallery_loggrad.png']):
-        #    fig_gallery(outfile, ptype, flavor='inlier')
+        for ptype, outfile in zip(['std', 'loggrad'], ['fig_inlier_gallery_std.png', 'fig_inlier_gallery_loggrad.png']):
+            fig_gallery(outfile, ptype, flavor='inlier')
 
 
     # LL vs LL
@@ -922,16 +938,16 @@ if __name__ == '__main__':
         flg_fig = 0
         #flg_fig += 2 ** 0  # Month histogram
         #flg_fig += 2 ** 1  # <T> histogram
-        flg_fig += 2 ** 2  # CC fractions
+        #flg_fig += 2 ** 2  # CC fractions
         #flg_fig += 2 ** 3  # All Evals spatial
         #flg_fig += 2 ** 4  # In-painting
         #flg_fig += 2 ** 5  # Auto-encode
         #flg_fig += 2 ** 6  # LL SSTa
         #flg_fig += 2 ** 7  # Gallery
         #flg_fig += 2 ** 8  # LL_SST vs. LL_grad
-        #flg_fig += 2 ** 9  # year, month
+        flg_fig += 2 ** 9  # year, month
         #flg_fig += 2 ** 10  # Outliers spatial
-        #flg_fig += 2 ** 11  # LL vs DT
+        flg_fig += 2 ** 11  # LL vs DT
     else:
         flg_fig = sys.argv[1]
 
