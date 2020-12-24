@@ -243,6 +243,8 @@ def main(pargs):
     # Write
     columns = ['filename', 'row', 'column', 'latitude', 'longitude', 'clear_fraction']
 
+    print("Writing {} cutouts to {}".format(fields.shape[0], save_path))
+
     with h5py.File(save_path, 'w') as f:
         #f.create_dataset('fields', data=fields.astype(np.float32))
         f.create_dataset('fields', data=fields)
