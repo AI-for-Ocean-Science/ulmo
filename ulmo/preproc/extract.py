@@ -26,6 +26,7 @@ def clear_grid(mask, field_size, method, CC_max=0.05,
 
     Returns
     -------
+    picked_row, picked_col, CC_mask[idx_clear][keep] : rows, columns, CC_fraction
 
     """
     # Some checks

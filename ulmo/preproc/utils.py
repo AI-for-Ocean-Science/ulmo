@@ -11,20 +11,24 @@ from skimage import filters
 from IPython import embed
 
 
-def build_mask(sst, qual, qual_thresh=2, temp_bounds=(-2,33)):
+def build_mask(dfield, qual, qual_thresh=2, temp_bounds=(-2,33),
+               field='SST'):
     """
-    Generate a mask based on NaN, qual, and temperature bounds
+    Generate a mask based on NaN, qual, and other bounds
 
     Parameters
     ----------
-    sst : np.ndarray
-        Full SST image
+    dfield : np.ndarray
+        Full data image
     qual : np.ndarray
         Quality image
     qual_thresh : int
         Quality threshold value;  qual must exceed this
-    temp_bounds : tuple
+    temp_bounds : tuple, optional
         Temperature interval considered valid
+        Used for SST
+    field : str, optional
+        Options: SST, aph_443
 
     Returns
     -------
@@ -32,14 +36,22 @@ def build_mask(sst, qual, qual_thresh=2, temp_bounds=(-2,33)):
         mask;  True = bad
 
     """
-    sst[np.isnan(sst)] = np.nan
-    qual[np.isnan(qual)] = np.nan
+    dfield[np.isnan(dfield)] = np.nan
+    if field == 'SST':
+        qual[np.isnan(qual)] = np.nan
     # Deal with NaN
-    masks = np.logical_or(np.isnan(sst), np.isnan(qual))
-    # Temperature bounds and quality
+    masks = np.logical_or(np.isnan(dfield), np.isnan(qual))
+    # Quality
+    # TODO -- Do this right for color
     qual_masks = np.zeros_like(masks)
-    qual_masks[~masks] = (qual[~masks] > qual_thresh) | (sst[~masks] <= temp_bounds[0]) | (sst[~masks] > temp_bounds[1])
-    masks = np.logical_or(masks, qual_masks)
+    qual_masks[~masks] = (qual[~masks] > qual_thresh)
+    # Temperature bounds
+    #
+    value_masks = np.zeros_like(masks)
+    if field == 'SST':
+        value_masks = (dfield[~masks] <= temp_bounds[0]) | (dfield[~masks] > temp_bounds[1])
+    # Union
+    masks = np.logical_or(masks, qual_masks, value_masks)
     # Return
     return masks
 

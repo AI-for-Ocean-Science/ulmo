@@ -20,6 +20,7 @@ def parser(options=None):
     import argparse
     # Parse
     parser = argparse.ArgumentParser(description='Ulmo MODIS extraction')
+    parser.add_argument("--field", default='SST', type=str, help="Field to extract")
     parser.add_argument('--year', type=int, default=2010,
                         help='Data year to parse')
     parser.add_argument('--clear_threshold', type=int, default=95,
@@ -57,51 +58,80 @@ def parser(options=None):
 def extract_file(ifile, load_path, field_size=(128,128),
                  nadir_offset=480,
                  CC_max=0.05, qual_thresh=2,
+                 field='SST',
                  temp_bounds = (-2, 33),
                  nrepeat=1,
                  inpaint=True, debug=False):
+    """
+    Perform extraction from a Level 2 MODIS SST file
+
+    Parameters
+    ----------
+    ifile
+    load_path
+    field_size
+    nadir_offset
+    CC_max
+    qual_thresh
+    field : str, optional
+    temp_bounds
+    nrepeat
+    inpaint
+    debug
+
+    Returns
+    -------
+
+    """
 
     filename = os.path.join(load_path, ifile)
 
     # Load the image
     try:
-        sst, qual, latitude, longitude = ulmo_io.load_nc(filename, verbose=False)
+        dfield, qual, latitude, longitude = ulmo_io.load_nc(filename,
+                                                            field=field,
+                                                            verbose=False)
     except:
         print("File {} is junk".format(filename))
         return
-    if sst is None:
+    if dfield is None:
         return
 
     # Generate the masks
-    masks = pp_utils.build_mask(sst, qual, qual_thresh=qual_thresh,
-                                temp_bounds=temp_bounds)
+    masks = pp_utils.build_mask(dfield, qual, qual_thresh=qual_thresh,
+                                temp_bounds=temp_bounds, field=field)
 
     # Restrict to near nadir
-    nadir_pix = sst.shape[1] // 2
+    nadir_pix = dfield.shape[1] // 2
     lb = nadir_pix - nadir_offset
     ub = nadir_pix + nadir_offset
-    sst = sst[:, lb:ub]
+    dfield = dfield[:, lb:ub]
     masks = masks[:, lb:ub].astype(np.uint8)
 
     # Random clear rows, cols
     rows, cols, clear_fracs = extract.clear_grid(masks, field_size[0], 'center',
                                                  CC_max=CC_max, nsgrid_draw=nrepeat)
     if rows is None:
+        if debug:
+            print("Extracted 0 cutouts")
         return
+    if debug:
+        print("Extracted {} cutouts".format(rows.size))
+
 
     # Extract
     fields, field_masks = [], []
     metadata = []
     for r, c, clear_frac in zip(rows, cols, clear_fracs):
         # Inpaint?
-        field = sst[r:r+field_size[0], c:c+field_size[1]]
+        cutout = dfield[r:r+field_size[0], c:c+field_size[1]]
         mask = masks[r:r+field_size[0], c:c+field_size[1]]
         if inpaint:
-            field, _ = pp_utils.preproc_field(field, mask, only_inpaint=True)
-        if field is None:
+            cutout, _ = pp_utils.preproc_field(cutout, mask, only_inpaint=True)
+        if cutout is None:
             continue
         # Append SST and mask
-        fields.append(field.astype(np.float32))
+        fields.append(cutout.astype(np.float32))
         field_masks.append(mask)
         # meta
         row, col = r, c + lb
@@ -109,7 +139,7 @@ def extract_file(ifile, load_path, field_size=(128,128),
         lon = longitude[row + field_size[0] // 2, col + field_size[1] // 2]
         metadata.append([ifile, str(row), str(col), str(lat), str(lon), str(clear_frac)])
 
-    del sst, masks
+    del dfield, masks
 
     return np.stack(fields), np.stack(field_masks), np.stack(metadata)
 
@@ -119,9 +149,18 @@ def main(pargs):
     # Filenames
     istr = 'F' if pargs.no_inpaint else 'T'
     #load_path = f'/Volumes/Aqua-1/MODIS/night/night/{pargs.year}'
-    load_path = f'/Volumes/Aqua-1/MODIS_R2019/night/{pargs.year}'
-    save_path = (f'/Volumes/Aqua-1/MODIS/uri-ai-sst/OOD/Extractions/MODIS_R2019_{pargs.year}'
+    if pargs.field == 'SST':
+        load_path = f'/Volumes/Aqua-1/MODIS_R2019/night/{pargs.year}'
+        save_path = (f'/Volumes/Aqua-1/MODIS/uri-ai-sst/OOD/Extractions/MODIS_R2019_{pargs.year}'
                  f'_{pargs.clear_threshold}clear_{pargs.field_size}x{pargs.field_size}_inpaint{istr}.h5')
+    elif pargs.field == 'aph_443':
+        load_path = f'/tank/xavier/Oceanography/data/MODIS/MODIS_R2019_IOC/{pargs.year}'
+        save_path = (f'/tank/xavier/Oceanography/AI/Color/MODIS_R2019_IOC_aph443_{pargs.year}'
+                     f'_{pargs.clear_threshold}clear_{pargs.field_size}x{pargs.field_size}_inpaint{istr}.h5')
+    else:
+        raise IOError("Bad field: {}".format(pargs.field))
+
+    # Debuggin
     if pargs.wolverine:
         load_path = f'/home/xavier/Projects/Oceanography/AI/OOD'
         save_path = (f'TST_{pargs.year}'
@@ -133,14 +172,15 @@ def main(pargs):
                      field_size=(pargs.field_size, pargs.field_size),
                      CC_max=1.-pargs.clear_threshold / 100.,
                      qual_thresh=pargs.quality_threshold,
+                     field=pargs.field,
                      nadir_offset=pargs.nadir_offset,
                      temp_bounds=(pargs.temp_lower_bound, pargs.temp_upper_bound),
                      nrepeat=pargs.nrepeat,
                      inpaint=not pargs.no_inpaint,
                      debug=pargs.debug)
 
-    '''
-    if pargs.debug:
+
+    if pargs.debug and pargs.ncores == 1:
         files = [f for f in os.listdir(load_path) if f.endswith('.nc')]
         if not pargs.wolverine:
             files = files[0:100]
@@ -150,13 +190,14 @@ def main(pargs):
                      load_path=load_path,
                      field_size=(pargs.field_size, pargs.field_size),
                      CC_max=1.-pargs.clear_threshold / 100.,
+                     field=pargs.field,
                      qual_thresh=pargs.quality_threshold,
+                     debug=pargs.debug,
                      nadir_offset=pargs.nadir_offset,
                      temp_bounds=(pargs.temp_lower_bound, pargs.temp_upper_bound),
                      nrepeat=pargs.nrepeat))
             print("kk: {}".format(kk))
         embed(header='123 of extract')
-    '''
 
     if pargs.ncores is None:
         n_cores = multiprocessing.cpu_count()
