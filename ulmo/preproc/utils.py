@@ -86,8 +86,8 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
         If True downscale the image
     dscale_size : tuple, optional
         Size to rescale by
-    scale : float
-        Scale the SSTa values by this multiplicative factor
+    scale : float, optional
+        Scale the field_a values by this multiplicative factor
     expon : float
         Exponate the SSTa values by this exponent
     gradient : bool, optional
