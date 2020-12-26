@@ -1,0 +1,15 @@
+#!/usr/bin/env python
+#
+# See top-level LICENSE file for Copyright information
+#
+# -*- coding: utf-8 -*-
+
+"""
+This script generates a reconstructed image
+"""
+
+from ulmo.scripts import reconstruct
+
+if __name__ == '__main__':
+    args = reconstruct.parser()
+    reconstruct.main(args)
