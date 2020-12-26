@@ -155,7 +155,7 @@ def main(pargs):
                  f'_{pargs.clear_threshold}clear_{pargs.field_size}x{pargs.field_size}_inpaint{istr}.h5')
     elif pargs.field == 'aph_443':
         load_path = f'/tank/xavier/Oceanography/data/MODIS/MODIS_R2019_IOC/{pargs.year}'
-        save_path = (f'/tank/xavier/Oceanography/AI/Color/MODIS_R2019_IOC_aph443_{pargs.year}'
+        save_path = (f'/tank/xavier/Oceanography/AI/OOD/Color/MODIS_R2019_IOC_aph443_{pargs.year}'
                      f'_{pargs.clear_threshold}clear_{pargs.field_size}x{pargs.field_size}_inpaint{istr}.h5')
     else:
         raise IOError("Bad field: {}".format(pargs.field))
