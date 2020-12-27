@@ -11,11 +11,28 @@ extract_path = os.path.join(os.getenv("SST_OOD"), 'Extractions')
 preproc_path = os.path.join(os.getenv("SST_OOD"), 'PreProc')
 
 
-def grab_img(example, itype, ptype='std'):
+def grab_img(example, itype, ptype='std', preproc_file=None):
+    """
 
-    year = example.date.year
+    Parameters
+    ----------
+    example : pandas.Row
+    itype : str  Type of image
+        Extracted =
+        PreProc =
+    ptype : str, optional
+        Processing step
+    preproc_file : str, optional
+        If not provided, the year of the example is used + SST defaults
+
+    Returns
+    -------
+
+    """
+
 
     if itype == 'Extracted':
+        year = example.date.year
         print("Extracting")
         # Grab out of Extraction file
         extract_file = os.path.join(extract_path,
@@ -38,7 +55,9 @@ def grab_img(example, itype, ptype='std'):
         f.close()
     elif itype == 'PreProc':
         # Grab out of PreProc file
-        preproc_file = os.path.join(preproc_path,
+        if preproc_file is None:
+            year = example.date.year
+            preproc_file = os.path.join(preproc_path,
                                     'MODIS_R2019_{}_95clear_128x128_preproc_{}.h5'.format(year, ptype))
         f = h5py.File(preproc_file, mode='r')
         key = 'valid_metadata'
