@@ -3,7 +3,9 @@ import os
 
 from ulmo.ood import ood
 
-model_path = os.path.join(os.getenv("SST_OOD"), 'Models')
+sst_path = '/Volumes/Aqua-1/MODIS/uri-ai-sst/OOD' if os.getenv('SST_OOD') else os.getenv('SST_OOD')
+
+model_path = os.path.join(sst_path, 'Models')
 
 def load(mtype):
     # Load up the model
