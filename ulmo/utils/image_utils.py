@@ -6,7 +6,7 @@ import pandas
 
 from IPython import embed
 
-sst_path = '/Volumes/Aqua-1/MODIS/uri-ai-sst/OOD' if os.getenv('SST_OOD') else os.getenv('SST_OOD')
+sst_path = '/Volumes/Aqua-1/MODIS/uri-ai-sst/OOD' if os.getenv('SST_OOD') is None else os.getenv('SST_OOD')
 eval_path = os.path.join(sst_path, 'Evaluations')
 extract_path = os.path.join(sst_path, 'Extractions')
 preproc_path = os.path.join(sst_path, 'PreProc')
