@@ -6,9 +6,10 @@ import pandas
 
 from IPython import embed
 
-eval_path = os.path.join(os.getenv("SST_OOD"), 'Evaluations')
-extract_path = os.path.join(os.getenv("SST_OOD"), 'Extractions')
-preproc_path = os.path.join(os.getenv("SST_OOD"), 'PreProc')
+sst_path = '/Volumes/Aqua-1/MODIS/uri-ai-sst/OOD' if os.getenv('SST_OOD') else os.getenv('SST_OOD')
+eval_path = os.path.join(sst_path, 'Evaluations')
+extract_path = os.path.join(sst_path, 'Extractions')
+preproc_path = os.path.join(sst_path, 'PreProc')
 
 
 def grab_img(example, itype, ptype='std', preproc_file=None):
