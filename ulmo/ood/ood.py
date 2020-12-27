@@ -548,13 +548,14 @@ class ProbabilisticAutoencoder:
 
 
 
-    def plot_reconstructions(self, save_figure=False):
+    def plot_reconstructions(self, save_figure=False, ivmnx=(-2,2)):
         """
         Generate a grid of plots of reconstructed images
 
         Parameters
         ----------
         save_figure : bool, optional
+        ivmnx : tuple, opional
 
         """
         pal, cm = load_palette()
@@ -581,8 +582,14 @@ class ProbabilisticAutoencoder:
                 t.set_path_effects([PathEffects.withStroke(linewidth=3, foreground='w')])
             else:
                 ax.set_title(f'Image {i}\n{logL_title}')
-            sns.heatmap(x, ax=ax, xticklabels=[], yticklabels=[], cmap=cm, vmin=-2, vmax=2)
-            sns.heatmap(rx, ax=r_ax, xticklabels=[], yticklabels=[], cmap=cm, vmin=-2, vmax=2)
+            if ivmnx[0] is None:
+                vmnx = np.min(x), np.max(x)
+            else:
+                vmnx = ivmnx
+            sns.heatmap(x, ax=ax, xticklabels=[], yticklabels=[], cmap=cm,
+                    vmin=vmnx[0], vmax=vmnx[1])
+            sns.heatmap(rx, ax=r_ax, xticklabels=[], yticklabels=[], cmap=cm,
+                    vmin=vmnx[0], vmax=vmnx[1])
         if save_figure:
             fig_name = 'grid_reconstructions_' + self.stem + '.png'
             plt.savefig(os.path.join(self.logdir, fig_name), bbox_inches='tight')
