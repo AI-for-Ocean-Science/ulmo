@@ -292,7 +292,6 @@ def fig_spatial(pproc, cohort, outfile, nside=64):
     print('Wrote {:s}'.format(outfile))
 
 
-
 def fig_auto_encode(outfile, iexmple=4, vmnx=(-5, 5)):
 
     example = img_exmple(iexmple=iexmple)
@@ -563,25 +562,47 @@ def fig_LL_vs_LL(outfile, evals_tbl_std=None, evals_tbl_grad=None):
     print('Wrote {:s}'.format(outfile))
 
 
-def fig_year_month(outfile, ptype, evals_tbl=None):
+def fig_year_month(outfile, ptype, evals_tbl=None, frac=False,
+                   all=False):
+    """
+    Time evolution in outliers
+
+    Parameters
+    ----------
+    outfile
+    ptype
+    evals_tbl
+
+    Returns
+    -------
+
+    """
 
     # Load
     if evals_tbl is None:
-        evals_tbl = results.load_log_prob(ptype)
+        evals_tbl = results.load_log_prob(ptype, feather=True)
+        print("Loaded..")
 
     # Outliers
     point1 = int(0.001 * len(evals_tbl))
     isortLL = np.argsort(evals_tbl.log_likelihood)
     outliers = evals_tbl.iloc[isortLL[0:point1]]
 
+    # All
+    all_years = [item.year for item in evals_tbl.date]
+    all_months = [item.month for item in evals_tbl.date]
+
     # Parse
     years = [item.year for item in outliers.date]
     months = [item.month for item in outliers.date]
 
-    #
+    # Histogram
     bins_year = np.arange(2002.5, 2020.5)
     bins_month = np.arange(0.5, 13.5)
+
     counts, xedges, yedges = np.histogram2d(months, years,
+                                            bins=(bins_month, bins_year))
+    all_counts, _, _ = np.histogram2d(all_months, all_years,
                                             bins=(bins_month, bins_year))
 
     fig = plt.figure(figsize=(12, 8))
@@ -592,17 +613,24 @@ def fig_year_month(outfile, ptype, evals_tbl=None):
     ax_tot = plt.subplot(gs[0])
 
     cm = plt.get_cmap('Blues')
-    mplt = ax_tot.pcolormesh(xedges, yedges, counts.transpose(), cmap=cm)
+    if frac:
+        mplt = ax_tot.pcolormesh(xedges, yedges,
+                                 counts.transpose()/all_counts.transpose(),
+                                 cmap=cm)
+        lbl = 'Fraction'
+    elif all:
+        cm = plt.get_cmap('Greens')
+        norm = np.sum(all_counts) / np.product(all_counts.shape)
+        mplt = ax_tot.pcolormesh(xedges, yedges, all_counts.transpose()/norm, cmap=cm)
+        lbl = 'Counts (all)'
+    else:
+        mplt = ax_tot.pcolormesh(xedges, yedges, counts.transpose(), cmap=cm)
+        lbl = 'Counts'
     cb = plt.colorbar(mplt, fraction=0.030, pad=0.04)
-    cb.set_label(r'Counts', fontsize=20.)
+    cb.set_label(lbl, fontsize=20.)
 
     ax_tot.set_xlabel('Month')
-    ax_tot.set_ylabel(r'Year')
-    #ax_tot.set_ylim(0.3, 5.0)
-    #ax_tot.minorticks_on()
-
-    #legend = plt.legend(loc='upper right', scatterpoints=1, borderpad=0.3,
-    #                    handletextpad=0.3, fontsize=19, numpoints=1)
+    ax_tot.set_ylabel('Year')
 
     set_fontsize(ax_tot, 19.)
 
@@ -914,8 +942,16 @@ def main(flg_fig):
 
     # Year, Month
     if flg_fig & (2 ** 9):
-        for ptype, outfile in zip(['std', 'loggrad'], ['fig_year_month_std.png', 'fig_year_month_loggrad.png']):
-            fig_year_month(outfile, ptype)
+        # Counts
+        #for ptype, outfile in zip(['std', 'loggrad'], ['fig_year_month_std.png', 'fig_year_month_loggrad.png']):
+        #    fig_year_month(outfile, ptype)
+        # Fractional
+        #for ptype, outfile in zip(['std'], ['fig_year_month_std_frac.png']):
+        #    fig_year_month(outfile, ptype, frac=True)
+        # All
+        for ptype, outfile in zip(['std'], ['fig_year_month_std_all.png']):
+            fig_year_month(outfile, ptype, all=True)
+
 
     # Spatial of outliers
     if flg_fig & (2 ** 10):
@@ -947,7 +983,7 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 8  # LL_SST vs. LL_grad
         flg_fig += 2 ** 9  # year, month
         #flg_fig += 2 ** 10  # Outliers spatial
-        flg_fig += 2 ** 11  # LL vs DT
+        #flg_fig += 2 ** 11  # LL vs DT
     else:
         flg_fig = sys.argv[1]
 
