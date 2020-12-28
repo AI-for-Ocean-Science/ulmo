@@ -589,8 +589,9 @@ def fig_year_month(outfile, ptype, evals_tbl=None, frac=False,
     outliers = evals_tbl.iloc[isortLL[0:point1]]
 
     # All
-    all_years = [item.year for item in evals_tbl.date]
-    all_months = [item.month for item in evals_tbl.date]
+    if all or frac:
+        all_years = [item.year for item in evals_tbl.date]
+        all_months = [item.month for item in evals_tbl.date]
 
     # Parse
     years = [item.year for item in outliers.date]
@@ -602,37 +603,53 @@ def fig_year_month(outfile, ptype, evals_tbl=None, frac=False,
 
     counts, xedges, yedges = np.histogram2d(months, years,
                                             bins=(bins_month, bins_year))
-    all_counts, _, _ = np.histogram2d(all_months, all_years,
+    if all or frac:
+        all_counts, _, _ = np.histogram2d(all_months, all_years,
                                             bins=(bins_month, bins_year))
 
     fig = plt.figure(figsize=(12, 8))
     plt.clf()
-    gs = gridspec.GridSpec(1,1)
+    gs = gridspec.GridSpec(5,6)
 
     # Total NSpax
-    ax_tot = plt.subplot(gs[0])
+    ax_tot = plt.subplot(gs[1:,1:-1])
 
     cm = plt.get_cmap('Blues')
     if frac:
-        mplt = ax_tot.pcolormesh(xedges, yedges,
-                                 counts.transpose()/all_counts.transpose(),
-                                 cmap=cm)
+        values  = counts.transpose()/all_counts.transpose()
         lbl = 'Fraction'
     elif all:
         cm = plt.get_cmap('Greens')
         norm = np.sum(all_counts) / np.product(all_counts.shape)
-        mplt = ax_tot.pcolormesh(xedges, yedges, all_counts.transpose()/norm, cmap=cm)
+        values = all_counts.transpose()/norm
         lbl = 'Counts (all)'
     else:
-        mplt = ax_tot.pcolormesh(xedges, yedges, counts.transpose(), cmap=cm)
+        values = counts.transpose()
         lbl = 'Counts'
-    cb = plt.colorbar(mplt, fraction=0.030, pad=0.04)
-    cb.set_label(lbl, fontsize=20.)
+    mplt = ax_tot.pcolormesh(xedges, yedges, values, cmap=cm)
+
+    # Color bar
+    cbaxes = fig.add_axes([0.03, 0.1, 0.05, 0.7])
+    cb = plt.colorbar(mplt, cax=cbaxes, aspect=20)
+    #cb.set_label(lbl, fontsize=20.)
+    cbaxes.yaxis.set_ticks_position('left')
+    cbaxes.set_xlabel(lbl, fontsize=15.)
 
     ax_tot.set_xlabel('Month')
     ax_tot.set_ylabel('Year')
 
     set_fontsize(ax_tot, 19.)
+
+    # Edges
+    months = np.mean(values, axis=0)
+    ax_m = plt.subplot(gs[0,1:-1])
+    ax_m.step(np.arange(12)+1, months, color='k', where='mid')
+    #ax_m.minorticks_on()
+
+    years = np.mean(values, axis=1)
+    ax_y = plt.subplot(gs[1:,-1])
+    ax_y.invert_xaxis()
+    ax_y.step(years, 2003 + np.arange(17), color='k', where='mid')
 
     # Layout and save
     plt.tight_layout(pad=0.2,h_pad=0.,w_pad=0.1)
@@ -944,6 +961,7 @@ def main(flg_fig):
     if flg_fig & (2 ** 9):
         # Counts
         #for ptype, outfile in zip(['std', 'loggrad'], ['fig_year_month_std.png', 'fig_year_month_loggrad.png']):
+        #for ptype, outfile in zip(['std'], ['fig_year_month_std.png']):
         #    fig_year_month(outfile, ptype)
         # Fractional
         #for ptype, outfile in zip(['std'], ['fig_year_month_std_frac.png']):
