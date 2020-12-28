@@ -51,7 +51,7 @@ def main(pargs):
     # Save em
     np.save(pargs.outroot+'_orig.npy', field, allow_pickle=False)
     np.save(pargs.outroot+'_recon.npy', recons[0,0,...], allow_pickle=False)
-    print("Wrote: {}".format(pargs.outfile))
+    print("Wrote the files")
 
     # Show?
     if pargs.show:
