@@ -1,0 +1,2 @@
+#!/bin/bash -f
+screen -L ulmo_extract_modis --ncores 20 --year 2010 --day
