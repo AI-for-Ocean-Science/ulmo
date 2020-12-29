@@ -49,7 +49,7 @@ def build_mask(dfield, qual, qual_thresh=2, temp_bounds=(-2,33),
     #
     value_masks = np.zeros_like(masks)
     if field == 'SST':
-        value_masks = (dfield[~masks] <= temp_bounds[0]) | (dfield[~masks] > temp_bounds[1])
+        value_masks[~masks] = (dfield[~masks] <= temp_bounds[0]) | (dfield[~masks] > temp_bounds[1])
     # Union
     masks = np.logical_or(masks, qual_masks, value_masks)
     # Return
