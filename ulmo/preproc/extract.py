@@ -43,7 +43,7 @@ def clear_grid(mask, field_size, method, CC_max=0.05,
     mask_edge[:,:field_size//2] = True
     clear = (CC_mask < CC_max) & np.invert(mask_edge)
     if return_fracCC:
-        return np.sum(clear)/((clear.shape[0]-field_size//2)*(clear.shape[1]-field_size//2))
+        return np.sum(clear)/((clear.shape[0]-field_size)*(clear.shape[1]-field_size))
 
     # Indices
     idx_clear = np.where(clear)

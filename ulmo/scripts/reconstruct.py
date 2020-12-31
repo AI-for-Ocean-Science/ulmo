@@ -9,7 +9,7 @@ def parser(options=None):
     parser.add_argument("preproc_file", type=str, help="File+path to Preproc file")
     parser.add_argument("table_file", type=str, help="Evaluation table filename (.csv)")
     parser.add_argument("row", type=int, help="Row in the Table (not the cutout row)")
-    parser.add_argument("outfile", type=str, help="Filename for the output numpy file (.npz)")
+    parser.add_argument("outroot", type=str, help="Filename for the output numpy file without the .npy")
     parser.add_argument("-s","--show", default=False, action="store_true", help="Show pre-processed image?")
 
     if options is None:
@@ -48,9 +48,10 @@ def main(pargs):
     # Reconstruct
     recons = pae.reconstruct(fields)
 
-    # Save
-    np.savez(pargs.outfile, true=field, recon=recons)
-    print("Wrote: {}".format(pargs.outfile))
+    # Save em
+    np.save(pargs.outroot+'_orig.npy', field, allow_pickle=False)
+    np.save(pargs.outroot+'_recon.npy', recons[0,0,...], allow_pickle=False)
+    print("Wrote the files")
 
     # Show?
     if pargs.show:
