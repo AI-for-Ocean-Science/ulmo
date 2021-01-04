@@ -9,6 +9,8 @@ import matplotlib.gridspec as gridspec
 from matplotlib import pyplot as plt
 import matplotlib.ticker as mticker
 
+import cartopy.crs as ccrs
+
 mpl.rcParams['font.family'] = 'stixgeneral'
 
 import healpy as hp
@@ -246,6 +248,7 @@ def fig_in_painting(outfile, iexmple=4, vmnx=(8, 24)):
 
 def fig_spatial(pproc, cohort, outfile, nside=64):
     """
+    Spatial distribution of the evaluations
 
     Parameters
     ----------
@@ -271,19 +274,28 @@ def fig_spatial(pproc, cohort, outfile, nside=64):
         raise IOError("Bad cohort")
 
     # Healpix me
-    hp_events = evals_to_healpix(evals_tbl, nside, log=True)
+    hp_events, hp_lons, hp_lats = evals_to_healpix(evals_tbl, nside, log=True, mask=False)
 
     fig = plt.figure(figsize=(12, 8))
     plt.clf()
 
-    ax = plt.gca()
+    ax = plt.axes(projection=ccrs.Mollweide())
+
+    cm = plt.get_cmap('Blues')
+    img = ax.tricontourf(hp_lons, hp_lats, hp_events, transform=ccrs.Mollweide(),
+                         levels=10, cmap=cm)
+
+    # Colorbar
+    cb = plt.colorbar(img, orientation='horizontal')
+    clbl=r'$\log_{10} \, N_{\rm '+'{}'.format(lbl)+'}$'
+    cb.set_label(clbl, fontsize=20.)
 
     # Median dSST
-    hp.mollview(hp_events, min=0, hold=True,
-                cmap='Blues',
-                flip='geo', title='', unit=r'$\log_{10} \, N_{\rm '+'{}'.format(lbl)+'}$',
-                rot=(0., 180., 180.))
-    plt.gca().coastlines()
+    #hp.mollview(hp_events, min=0, hold=True,
+    #            cmap='Blues',
+    #            flip='geo', title='', unit=r'$\log_{10} \, N_{\rm '+'{}'.format(lbl)+'}$',
+    #            rot=(0., 180., 180.))
+    #plt.gca().coastlines()
 
     # Layout and save
     #plt.tight_layout(pad=0.2,h_pad=0.,w_pad=0.1)
@@ -641,7 +653,7 @@ def fig_year_month(outfile, ptype, evals_tbl=None, frac=False,
     print('Wrote {:s}'.format(outfile))
 
 
-def evals_to_healpix(eval_tbl, nside, log=False):
+def evals_to_healpix(eval_tbl, nside, log=False, mask=True):
     """
     Generate a healpix map of where the input
     MHW Systems are located on the globe
@@ -653,7 +665,7 @@ def evals_to_healpix(eval_tbl, nside, log=False):
 
     Returns
     -------
-    healpix_array : hp.ma
+    healpix_array, lats, lons : hp.ma, np.ndarray, np.ndarray
 
     """
     # Grab lats, lons
@@ -673,16 +685,22 @@ def evals_to_healpix(eval_tbl, nside, log=False):
 
     zero = all_events == 0
     if log:
-        all_events[~zero] = np.log10(all_events[~zero])
+        float_events = np.zeros_like(all_events).astype(float)
+        float_events[~zero] = np.log10(all_events[~zero].astype(float))
+    else:
+        float_events = all_events.astype(float)
+
 
     # Mask
-    hpma = hp.ma(all_events.astype(float))
-    hpma.mask = zero
+    hpma = hp.ma(float_events)
+    if mask:
+        hpma.mask = zero
 
-    embed(header='619 of figs')
+    # Angles
+    hp_lons, hp_lats = hp.pixelfunc.pix2ang(nside, np.arange(npix_hp), lonlat=True)
 
     # Return
-    return hpma
+    return hpma, hp_lons, hp_lats
 
 def set_fontsize(ax,fsz):
     '''
@@ -975,13 +993,13 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 0  # Month histogram
         #flg_fig += 2 ** 1  # <T> histogram
         #flg_fig += 2 ** 2  # CC fractions
-        #flg_fig += 2 ** 3  # All Evals spatial
+        flg_fig += 2 ** 3  # All Evals spatial
         #flg_fig += 2 ** 4  # In-painting
         #flg_fig += 2 ** 5  # Auto-encode
         #flg_fig += 2 ** 6  # LL SSTa
         #flg_fig += 2 ** 7  # Gallery
         #flg_fig += 2 ** 8  # LL_SST vs. LL_grad
-        flg_fig += 2 ** 9  # year, month
+        #flg_fig += 2 ** 9  # year, month
         #flg_fig += 2 ** 10  # Outliers spatial
         #flg_fig += 2 ** 11  # LL vs DT
     else:
