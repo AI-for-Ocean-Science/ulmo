@@ -121,7 +121,7 @@ def random_imgs(evals_tbl, years, dyear, verbose=False):
             used_coords = coords[np.array(for_gallery)]
 
     # Return table of random choices
-    return evals_tbl.iloc[for_gallery]
+    return evals_tbl.iloc[for_gallery].copy()
 
 
 def build_feather():

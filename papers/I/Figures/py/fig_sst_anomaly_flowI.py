@@ -7,7 +7,7 @@ import glob
 import matplotlib as mpl
 import matplotlib.gridspec as gridspec
 from matplotlib import pyplot as plt
-import matplotlib.ticker as mticker
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 import cartopy.crs as ccrs
 
@@ -187,19 +187,26 @@ def fig_CC(outfile):
     print('Wrote {:s}'.format(outfile))
 
 
-def img_exmple(iexmple=4):
+def img_exmple(iexmple=4, cherry=False):
     prob_file = os.path.join(eval_path,
                              'MODIS_R2019_2010_95clear_128x128_preproc_std_log_probs.csv')
     table_files = [prob_file]
     # Find a good example
     print("Grabbing an example")
     df = results.load_log_prob('std', table_files=table_files)
-    cloudy = df.clear_fraction > 0.045
-    df = df[cloudy]
-    i_LL = np.argsort(df.log_likelihood.values)
+    if cherry:
+        bools = np.all([df.filename.values == 'AQUA_MODIS.20100619T062008.L2.SST.nc',
+                     df.row.values == 253, df.column.values == 924], axis=0)
+        icherry = np.where(bools)[0][0]
+        # Replace
+        example = df.iloc[icherry]
+    else:
+        cloudy = df.clear_fraction > 0.045
+        df = df[cloudy]
+        i_LL = np.argsort(df.log_likelihood.values)
 
-    # One, psuedo-random
-    example = df.iloc[i_LL[iexmple]]
+        # One, psuedo-random
+        example = df.iloc[i_LL[iexmple]]
     return example
 
 
@@ -283,10 +290,10 @@ def fig_spatial(pproc, cohort, outfile, nside=64):
 
     cm = plt.get_cmap('Blues')
     img = ax.tricontourf(hp_lons, hp_lats, hp_events, transform=ccrs.Mollweide(),
-                         levels=10, cmap=cm)
+                         levels=20, cmap=cm)
 
     # Colorbar
-    cb = plt.colorbar(img, orientation='horizontal')
+    cb = plt.colorbar(img, orientation='horizontal', pad=0.)
     clbl=r'$\log_{10} \, N_{\rm '+'{}'.format(lbl)+'}$'
     cb.set_label(clbl, fontsize=20.)
 
@@ -295,7 +302,7 @@ def fig_spatial(pproc, cohort, outfile, nside=64):
     #            cmap='Blues',
     #            flip='geo', title='', unit=r'$\log_{10} \, N_{\rm '+'{}'.format(lbl)+'}$',
     #            rot=(0., 180., 180.))
-    #plt.gca().coastlines()
+    plt.gca().coastlines()
 
     # Layout and save
     #plt.tight_layout(pad=0.2,h_pad=0.,w_pad=0.1)
@@ -305,8 +312,26 @@ def fig_spatial(pproc, cohort, outfile, nside=64):
 
 
 def fig_auto_encode(outfile, iexmple=4, vmnx=(-5, 5)):
+    """
+    Reconstruction image
 
-    example = img_exmple(iexmple=iexmple)
+    Parameters
+    ----------
+    outfile
+    iexmple
+    vmnx
+
+    Returns
+    -------
+
+    """
+    all_evals_tbl = results.load_log_prob('std', feather=True)
+    cherry = np.all([all_evals_tbl.filename.values == 'AQUA_MODIS.20100619T062008.L2.SST.nc',
+                     all_evals_tbl.row.values == 253, all_evals_tbl.column.values == 924], axis=0)
+    icherry = np.where(cherry)[0][0]
+    # Replace
+    example = all_evals_tbl.iloc[icherry]
+
     # Grab it
     field, mask = image_utils.grab_img(example, 'PreProc', ptype='std')
     fields = np.reshape(field, (1,1,64,64))
@@ -397,7 +422,7 @@ def fig_LL_SSTa(outfile):
 
 def fig_gallery(outfile, ptype, flavor='outlier'):
 
-    evals_tbl = results.load_log_prob(ptype, feather=True)
+    all_evals_tbl = results.load_log_prob(ptype, feather=True)
 
     # Grab random outliers
     #years = [2008, 2009, 2011, 2012]
@@ -408,20 +433,25 @@ def fig_gallery(outfile, ptype, flavor='outlier'):
     if flavor == 'outlier':
         # Cut
         top = 1000
-        isrt = np.argsort(evals_tbl.log_likelihood)
-        evals_tbl = evals_tbl.iloc[isrt[0:top]]
+        isrt = np.argsort(all_evals_tbl.log_likelihood)
+        evals_tbl = all_evals_tbl.iloc[isrt[0:top]]
     elif flavor == 'inlier':
         bottom = 1000
-        isrt = np.argsort(evals_tbl.log_likelihood)
-        evals_tbl = evals_tbl.iloc[isrt[-bottom:]]
+        isrt = np.argsort(all_evals_tbl.log_likelihood)
+        evals_tbl = all_evals_tbl.iloc[isrt[-bottom:]]
     else:
         raise IOError("Bad flavor")
 
     gallery_tbl = results.random_imgs(evals_tbl, years, dyear)
 
     # Over-ride one?
-    if flavor == 'outlier':
-        embed(header='412 of figs')
+    if flavor == 'outlier' and ptype == 'std':
+        # AQUA_MODIS.20100619T062008.L2.SST.nc	253	924	40.497738	-59.93214	0.049987793	20.64104652	15.69499969	23.97500038	22.65999985	18.38500023	-1234.1112
+        cherry = np.all([all_evals_tbl.filename.values == 'AQUA_MODIS.20100619T062008.L2.SST.nc',
+                  all_evals_tbl.row.values == 253, all_evals_tbl.column.values == 924], axis=0)
+        icherry = np.where(cherry)[0][0]
+        # Replace
+        gallery_tbl.iloc[3] = all_evals_tbl.iloc[icherry]
 
     if len(gallery_tbl) < ngallery:
         raise ValueError("Uh oh")
@@ -947,10 +977,11 @@ def main(flg_fig):
     if flg_fig & (2 ** 7):
         # Outlier
         #for ptype, outfile in zip(['std', 'loggrad'], ['fig_gallery_std.png', 'fig_gallery_loggrad.png']):
-        #    fig_gallery(outfile, ptype)
+        for ptype, outfile in zip(['std'], ['fig_gallery_std.png']):
+            fig_gallery(outfile, ptype)
         # Inlier
-        for ptype, outfile in zip(['std', 'loggrad'], ['fig_inlier_gallery_std.png', 'fig_inlier_gallery_loggrad.png']):
-            fig_gallery(outfile, ptype, flavor='inlier')
+        #for ptype, outfile in zip(['std', 'loggrad'], ['fig_inlier_gallery_std.png', 'fig_inlier_gallery_loggrad.png']):
+        #    fig_gallery(outfile, ptype, flavor='inlier')
 
 
     # LL vs LL
