@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import h5py
+import healpy as hp
 
 import pandas
 
@@ -82,3 +83,52 @@ def grab_img(example, itype, ptype='std', preproc_file=None):
     return field, mask
 
 
+
+def evals_to_healpix(eval_tbl, nside, log=False, mask=True):
+    """
+    Generate a healpix map of where the input
+    MHW Systems are located on the globe
+
+    Parameters
+    ----------
+    mhw_sys : pandas.DataFrame
+    nside : int
+
+    Returns
+    -------
+    healpix_array, lats, lons : hp.ma, np.ndarray, np.ndarray
+
+    """
+    # Grab lats, lons
+    lats = eval_tbl.latitude.values
+    lons = eval_tbl.longitude.values
+
+    # Healpix coords
+    theta = (90 - lats) * np.pi / 180.
+    phi = lons * np.pi / 180.
+    idx_all = hp.pixelfunc.ang2pix(nside, theta, phi)
+
+    # Count events
+    npix_hp = hp.nside2npix(nside)
+    all_events = np.ma.masked_array(np.zeros(npix_hp, dtype='int'))
+    for idx in idx_all:
+        all_events[idx] += 1
+
+    zero = all_events == 0
+    if log:
+        float_events = np.zeros_like(all_events).astype(float)
+        float_events[~zero] = np.log10(all_events[~zero].astype(float))
+    else:
+        float_events = all_events.astype(float)
+
+
+    # Mask
+    hpma = hp.ma(float_events)
+    if mask:
+        hpma.mask = zero
+
+    # Angles
+    hp_lons, hp_lats = hp.pixelfunc.pix2ang(nside, np.arange(npix_hp), lonlat=True)
+
+    # Return
+    return hpma, hp_lons, hp_lats

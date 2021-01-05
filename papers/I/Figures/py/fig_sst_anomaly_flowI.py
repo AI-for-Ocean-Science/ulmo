@@ -281,7 +281,7 @@ def fig_spatial(pproc, cohort, outfile, nside=64):
         raise IOError("Bad cohort")
 
     # Healpix me
-    hp_events, hp_lons, hp_lats = evals_to_healpix(evals_tbl, nside, log=True, mask=False)
+    hp_events, hp_lons, hp_lats = image_utils.evals_to_healpix(evals_tbl, nside, log=True, mask=False)
 
     fig = plt.figure(figsize=(12, 8))
     plt.clf()
@@ -302,7 +302,7 @@ def fig_spatial(pproc, cohort, outfile, nside=64):
     #            cmap='Blues',
     #            flip='geo', title='', unit=r'$\log_{10} \, N_{\rm '+'{}'.format(lbl)+'}$',
     #            rot=(0., 180., 180.))
-    plt.gca().coastlines()
+    ax.coastlines()
 
     # Layout and save
     #plt.tight_layout(pad=0.2,h_pad=0.,w_pad=0.1)
@@ -683,54 +683,6 @@ def fig_year_month(outfile, ptype, evals_tbl=None, frac=False,
     print('Wrote {:s}'.format(outfile))
 
 
-def evals_to_healpix(eval_tbl, nside, log=False, mask=True):
-    """
-    Generate a healpix map of where the input
-    MHW Systems are located on the globe
-
-    Parameters
-    ----------
-    mhw_sys : pandas.DataFrame
-    nside : int
-
-    Returns
-    -------
-    healpix_array, lats, lons : hp.ma, np.ndarray, np.ndarray
-
-    """
-    # Grab lats, lons
-    lats = eval_tbl.latitude.values
-    lons = eval_tbl.longitude.values
-
-    # Healpix coords
-    theta = (90 - lats) * np.pi / 180.
-    phi = lons * np.pi / 180.
-    idx_all = hp.pixelfunc.ang2pix(nside, theta, phi)
-
-    # Count events
-    npix_hp = hp.nside2npix(nside)
-    all_events = np.ma.masked_array(np.zeros(npix_hp, dtype='int'))
-    for idx in idx_all:
-        all_events[idx] += 1
-
-    zero = all_events == 0
-    if log:
-        float_events = np.zeros_like(all_events).astype(float)
-        float_events[~zero] = np.log10(all_events[~zero].astype(float))
-    else:
-        float_events = all_events.astype(float)
-
-
-    # Mask
-    hpma = hp.ma(float_events)
-    if mask:
-        hpma.mask = zero
-
-    # Angles
-    hp_lons, hp_lats = hp.pixelfunc.pix2ang(nside, np.arange(npix_hp), lonlat=True)
-
-    # Return
-    return hpma, hp_lons, hp_lats
 
 def set_fontsize(ax,fsz):
     '''
