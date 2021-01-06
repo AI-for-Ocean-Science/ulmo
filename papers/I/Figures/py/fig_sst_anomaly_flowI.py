@@ -267,6 +267,8 @@ def fig_spatial(pproc, cohort, outfile, nside=64):
     -------
 
     """
+    tform = ccrs.Mollweide()
+    #tform = ccrs.PlateCarree()
     # Load
     evals_tbl = results.load_log_prob(pproc, feather=True)
 
@@ -286,10 +288,10 @@ def fig_spatial(pproc, cohort, outfile, nside=64):
     fig = plt.figure(figsize=(12, 8))
     plt.clf()
 
-    ax = plt.axes(projection=ccrs.Mollweide())
+    ax = plt.axes(projection=tform)
 
     cm = plt.get_cmap('Blues')
-    img = ax.tricontourf(hp_lons, hp_lats, hp_events, transform=ccrs.Mollweide(),
+    img = ax.tricontourf(hp_lons, hp_lats, hp_events, transform=tform,
                          levels=20, cmap=cm)
 
     # Colorbar
@@ -309,6 +311,7 @@ def fig_spatial(pproc, cohort, outfile, nside=64):
     plt.savefig(outfile, dpi=300)
     plt.close()
     print('Wrote {:s}'.format(outfile))
+
 
 
 def fig_auto_encode(outfile, iexmple=4, vmnx=(-5, 5)):
@@ -907,8 +910,9 @@ def main(flg_fig):
 
     # Spatial of all evaluations
     if flg_fig & (2 ** 3):
-        for outfile in ['fig_std_evals_spatial.png']:
-            fig_spatial('std', 'all', outfile)
+        #for outfile in ['fig_std_evals_spatial.png']:
+        #    fig_spatial('std', 'all', outfile)
+        fig_spatial('std', 'outliers', 'fig_std_outliers_spatial.png')
 
     # In-painting
     if flg_fig & (2 ** 4):
