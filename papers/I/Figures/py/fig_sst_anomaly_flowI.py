@@ -267,8 +267,6 @@ def fig_spatial(pproc, cohort, outfile, nside=64):
     -------
 
     """
-    tform = ccrs.Mollweide()
-    #tform = ccrs.PlateCarree()
     # Load
     evals_tbl = results.load_log_prob(pproc, feather=True)
 
@@ -288,25 +286,59 @@ def fig_spatial(pproc, cohort, outfile, nside=64):
     fig = plt.figure(figsize=(12, 8))
     plt.clf()
 
-    ax = plt.axes(projection=tform)
+    tformM = ccrs.Mollweide()
+    tformP = ccrs.PlateCarree()
+
+    ax = plt.axes(projection=tformM)
 
     cm = plt.get_cmap('Blues')
-    img = ax.tricontourf(hp_lons, hp_lats, hp_events, transform=tform,
-                         levels=20, cmap=cm)
+    img = ax.tricontourf(hp_lons, hp_lats, hp_events, transform=tformM,
+                         levels=20, cmap=cm)#, zorder=10)
 
     # Colorbar
     cb = plt.colorbar(img, orientation='horizontal', pad=0.)
     clbl=r'$\log_{10} \, N_{\rm '+'{}'.format(lbl)+'}$'
     cb.set_label(clbl, fontsize=20.)
 
-    # Median dSST
-    ax.coastlines(zorder=10)
+    # Coast lines
+    #ax.coastlines(zorder=10)
+    #ax.set_global()
 
     # Layout and save
     plt.savefig(outfile, dpi=300)
     plt.close()
     print('Wrote {:s}'.format(outfile))
 
+
+def tst():
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import cartopy.crs as ccrs
+
+    fig = plt.figure(figsize=(12, 8))
+    plt.clf()
+
+    ax = plt.axes(projection=ccrs.Mollweide())
+
+    cm = plt.get_cmap('Greens')
+
+    hp_lons = np.random.random(100) * 360 - 180
+    hp_lats = np.random.random(100) * 90 - 45
+    hp_events = np.random.random(100)
+
+    # Cut down
+    img = ax.tricontourf(hp_lons, hp_lats, hp_events, transform=ccrs.PlateCarree(),
+                         levels=20, cmap=cm, zorder=10)
+
+    # Colorbar
+    cb = plt.colorbar(img, orientation='horizontal', pad=0.)
+    clbl = r'$\log_{10} \, N$'
+    cb.set_label(clbl, fontsize=20.)
+
+    ax.coastlines(zorder=10)
+    ax.set_global()
+
+    plt.show()
 
 
 def fig_auto_encode(outfile, iexmple=4, vmnx=(-5, 5)):
@@ -905,9 +937,9 @@ def main(flg_fig):
 
     # Spatial of all evaluations
     if flg_fig & (2 ** 3):
-        #for outfile in ['fig_std_evals_spatial.png']:
-        #    fig_spatial('std', 'all', outfile)
-        fig_spatial('std', 'outliers', 'fig_std_outliers_spatial.png')
+        for outfile in ['fig_std_evals_spatial.png']:
+            fig_spatial('std', 'all', outfile)
+        #fig_spatial('std', 'outliers', 'fig_std_outliers_spatial.png')
 
     # In-painting
     if flg_fig & (2 ** 4):
@@ -967,6 +999,10 @@ def main(flg_fig):
                                    'fig_LL_vs_T_loggrad.png']):
             fig_LL_vs_DT(ptype, outfile)
 
+    # LL vs. DT
+    if flg_fig & (2 ** 20):
+        tst()
+
 # Command line execution
 if __name__ == '__main__':
 
@@ -984,6 +1020,7 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 9  # year, month
         #flg_fig += 2 ** 10  # Outliers spatial
         #flg_fig += 2 ** 11  # LL vs DT
+        #flg_fig += 2 ** 20  # tst
     else:
         flg_fig = sys.argv[1]
 
