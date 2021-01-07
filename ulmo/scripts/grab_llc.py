@@ -11,7 +11,7 @@ def parser(options=None):
     parser.add_argument("--model", type=str, default='LLC4320',
                         help="LLC Model name.  Allowed options are [LLC4320]")
     parser.add_argument("--var", type=str, default='Theta',
-                        help="LLC data variable name.  Allowed options are [Theta]")
+                        help="LLC data variable name.  Allowed options are [Theta, U, V]")
 
     if options is None:
         pargs = parser.parse_args()
