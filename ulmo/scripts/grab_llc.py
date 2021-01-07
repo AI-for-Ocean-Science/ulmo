@@ -37,10 +37,12 @@ def main(pargs):
 
     # Get dataset
     iter_step = tstep_hr*pargs.tstep
-    ds_sst = model.get_dataset(varnames=[pargs.var], k_levels=[0], type='latlon',
+    ds_sst = model.get_dataset(varnames=pargs.var.split(','),
+                               k_levels=[0], type='latlon',
                                iter_step=iter_step)  # , iter_step=960)  # Every 12 hours
     print("Model is ready")
 
+    embed(header='45 of grab')
     # Loop me
     for tt in range(ds_sst.time.size):
         print("Time step = {} of {}".format(tt, ds_sst.time.size))
