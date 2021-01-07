@@ -298,14 +298,9 @@ def fig_spatial(pproc, cohort, outfile, nside=64):
     cb.set_label(clbl, fontsize=20.)
 
     # Median dSST
-    #hp.mollview(hp_events, min=0, hold=True,
-    #            cmap='Blues',
-    #            flip='geo', title='', unit=r'$\log_{10} \, N_{\rm '+'{}'.format(lbl)+'}$',
-    #            rot=(0., 180., 180.))
-    ax.coastlines()
+    ax.coastlines(zorder=10)
 
     # Layout and save
-    #plt.tight_layout(pad=0.2,h_pad=0.,w_pad=0.1)
     plt.savefig(outfile, dpi=300)
     plt.close()
     print('Wrote {:s}'.format(outfile))
