@@ -33,6 +33,8 @@ def write_sst(xr_da, outfile, strip_coord=True, encode=True):
         encoding = {}
         encoding['Theta'] = {'dtype': 'int16', 'scale_factor': 1e-3,
                              'add_offset': 10., 'zlib': True, 'missing_value': -32768}
+        encoding['U'] = {'dtype': 'int16', 'scale_factor': 1e-3,
+                             'add_offset': 10., 'zlib': True, 'missing_value': -32768}
     else:
         encoding = None
 
