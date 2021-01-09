@@ -28,7 +28,7 @@ def main(pargs):
     import warnings
 
     import xmitgcm.llcreader as llcreader
-    from ulmo.llc.slurp import write_sst
+    from ulmo.llc.slurp import write_xr
 
     # Load model
     if pargs.model == 'LLC4320':
@@ -37,24 +37,25 @@ def main(pargs):
 
     # Get dataset
     iter_step = tstep_hr*pargs.tstep
-    ds_sst = model.get_dataset(varnames=pargs.var.split(','),
+    ds = model.get_dataset(varnames=pargs.var.split(','),
                                k_levels=[0], type='latlon',
-                               iter_step=iter_step)  # , iter_step=960)  # Every 12 hours
+                               iter_step=iter_step)  
     print("Model is ready")
 
-    embed(header='45 of grab')
     # Loop me
-    for tt in range(ds_sst.time.size):
-        print("Time step = {} of {}".format(tt, ds_sst.time.size))
-        SST = ds_sst.Theta.isel(time=tt, k=0)  # , i=slice(1000,2000), j=slice(1000,2000))
+    for tt in range(ds.time.size):
+        print("Time step = {} of {}".format(tt, ds.time.size))
+        #SST = ds_sst.Theta.isel(time=tt, k=0)  # , i=slice(1000,2000), j=slice(1000,2000))
+        ds_0 = ds.isel(time=tt, k=0)  # , i=slice(1000,2000), j=slice(1000,2000))
         # Generate outfile name
-        outfile = '{:s}_{:s}.nc'.format(pargs.model, str(SST.time.values)[:19])
+        outfile = '{:s}_{:s}.nc'.format(pargs.model, 
+            str(ds_0.time.values)[:19].replace(':','_'))
         # No clobber
         if os.path.isfile(outfile):
             print("Not clobbering: {}".format(outfile))
             continue
         # Write
-        write_sst(SST, outfile)
+        write_xr(ds_0, outfile)
         print("Wrote: {}".format(outfile))
 
 
