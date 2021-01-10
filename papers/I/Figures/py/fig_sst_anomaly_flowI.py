@@ -272,16 +272,21 @@ def fig_spatial(pproc, cohort, outfile, nside=64):
 
     if cohort == 'all':
         lbl = 'evals'
+        use_log = True
+        use_mask = False
     elif cohort == 'outliers':
         point1 = int(0.001 * len(evals_tbl))
         isortLL = np.argsort(evals_tbl.log_likelihood)
         evals_tbl = evals_tbl.iloc[isortLL[0:point1]]
         lbl = 'outliers'
+        use_mask = True
+        use_log = True
     else:
         raise IOError("Bad cohort")
 
     # Healpix me
-    hp_events, hp_lons, hp_lats = image_utils.evals_to_healpix(evals_tbl, nside, log=True, mask=False)
+    hp_events, hp_lons, hp_lats = image_utils.evals_to_healpix(
+        evals_tbl, nside, log=use_log, mask=use_mask)
 
     fig = plt.figure(figsize=(12, 8))
     plt.clf()
@@ -291,9 +296,20 @@ def fig_spatial(pproc, cohort, outfile, nside=64):
 
     ax = plt.axes(projection=tformM)
 
-    cm = plt.get_cmap('Blues')
-    img = ax.tricontourf(hp_lons, hp_lats, hp_events, transform=tformM,
+    if cohort == 'all':
+        cm = plt.get_cmap('Blues')
+        img = ax.tricontourf(hp_lons, hp_lats, hp_events, transform=tformM,
                          levels=20, cmap=cm)#, zorder=10)
+    else:                    
+        cm = plt.get_cmap('Reds')
+        # Cut
+        good = np.invert(hp_events.mask)
+        img = plt.scatter(x=hp_lons[good], 
+            y=hp_lats[good],
+            c=hp_events[good],
+            cmap=cm,
+            s=1,
+            transform=tformP)
 
     # Colorbar
     cb = plt.colorbar(img, orientation='horizontal', pad=0.)
@@ -301,8 +317,9 @@ def fig_spatial(pproc, cohort, outfile, nside=64):
     cb.set_label(clbl, fontsize=20.)
 
     # Coast lines
-    #ax.coastlines(zorder=10)
-    #ax.set_global()
+    if cohort == 'outliers':
+        ax.coastlines(zorder=10)
+        ax.set_global()
 
     # Layout and save
     plt.savefig(outfile, dpi=300)
@@ -407,8 +424,11 @@ def fig_LL_SSTa(outfile):
 
     """
 
-    evals_tbl = results.load_log_prob('std')
+    evals_tbl = results.load_log_prob('std', feather=True)
     logL = evals_tbl.log_likelihood.values
+
+    isort = np.argsort(logL)
+    LL_a = logL[isort[int(len(logL)*0.001)]]
 
     print("median logL = {}".format(np.median(logL)))
 
@@ -425,11 +445,12 @@ def fig_LL_SSTa(outfile):
     sns.distplot(logL)
     plt.axvline(low_logL, linestyle='--', c='r')
     plt.axvline(high_logL, linestyle='--', c='r')
-    plt.xlabel('Log Likelihood')
-    plt.ylabel('Probability Density')
+    fsz = 17.
+    plt.xlabel('Log Likelihood (LL)', fontsize=fsz)
+    plt.ylabel('Probability Density', fontsize=fsz)
 
     # Inset for lowest LL
-    cut_LL = -1500.
+    cut_LL = LL_a
     lowLL = logL < cut_LL
     axins = ax.inset_axes([0.1, 0.3, 0.57, 0.57])
     #axins.scatter(evals_tbl.date.values[lowLL], evals_tbl.log_likelihood.values[lowLL])
@@ -437,8 +458,9 @@ def fig_LL_SSTa(outfile):
     #out_hist, out_bins = np.histogram(logL[lowLL], bins=bins)
     #embed(header='316 of figs')
     #axins.hist(logL[lowLL], color='k')
-    axins.scatter(evals_tbl.log_likelihood.values[lowLL], evals_tbl.date.values[lowLL],
-                  s=0.1)
+    axins.scatter(evals_tbl.log_likelihood.values[lowLL], 
+        evals_tbl.date.values[lowLL], s=0.1)
+    #axins.axvline(LL_a, color='k', ls='--')
     axins.set_xlim(-8000., cut_LL)
     plt.gcf().autofmt_xdate()
 
@@ -526,6 +548,11 @@ def fig_gallery(outfile, ptype, flavor='outlier'):
 
 def fig_LL_vs_DT(ptype, outfile, evals_tbl=None):
 
+    #sns.set_theme()
+    #sns.set_style('whitegrid')
+    #sns.set_context('paper')
+
+
     # Load
     if evals_tbl is None:
         evals_tbl = results.load_log_prob(ptype, feather=True)
@@ -545,19 +572,31 @@ def fig_LL_vs_DT(ptype, outfile, evals_tbl=None):
     # Total NSpax
     ax_tot = plt.subplot(gs[0])
 
-    # 2D hist
-    hist2d(evals_tbl.log_likelihood.values, evals_tbl.DT.values,
-           bins=[bins_LL, bins_DT], ax=ax_tot, color='b')
+    jg = sns.jointplot(data=evals_tbl, x='DT', y='log_likelihood',
+        kind='hist', bins=200, marginal_kws=dict(bins=200))
 
-    ax_tot.set_xlabel('LL')
-    ax_tot.set_ylabel(r'$\Delta T$')
+    #jg.ax_marg_x.set_xlim(8, 10.5)
+    #jg.ax_marg_y.set_ylim(0.5, 2.0)
+    jg.ax_joint.set_xlabel(r'$\Delta T$ (K)')
+    jg.ax_joint.set_ylabel(r'LL')
+    jg.ax_joint.minorticks_on()
+
+    #jg.ax_joint.yaxis.set_major_locator(plt.MultipleLocator(0.5))
+    #jg.ax_joint.xaxis.set_major_locator(plt.MultipleLocator(1.0)
+
+    # 2D hist
+    #hist2d(evals_tbl.log_likelihood.values, evals_tbl.DT.values,
+    #       bins=[bins_LL, bins_DT], ax=ax_tot, color='b')
+
+    #ax_tot.set_xlabel('LL')
+    #ax_tot.set_ylabel(r'$\Delta T$')
     #ax_tot.set_ylim(0.3, 5.0)
     #ax_tot.minorticks_on()
 
     #legend = plt.legend(loc='upper right', scatterpoints=1, borderpad=0.3,
     #                    handletextpad=0.3, fontsize=19, numpoints=1)
 
-    set_fontsize(ax_tot, 19.)
+    #set_fontsize(ax_tot, 19.)
 
     # Layout and save
     plt.tight_layout(pad=0.2,h_pad=0.,w_pad=0.1)
@@ -644,6 +683,8 @@ def fig_year_month(outfile, ptype, evals_tbl=None, frac=False,
     outfile
     ptype
     evals_tbl
+    all : bool, optional
+
 
     Returns
     -------
@@ -937,9 +978,9 @@ def main(flg_fig):
 
     # Spatial of all evaluations
     if flg_fig & (2 ** 3):
-        for outfile in ['fig_std_evals_spatial.png']:
-            fig_spatial('std', 'all', outfile)
-        #fig_spatial('std', 'outliers', 'fig_std_outliers_spatial.png')
+        #for outfile in ['fig_std_evals_spatial.png']:
+        #    fig_spatial('std', 'all', outfile)
+        fig_spatial('std', 'outliers', 'fig_std_outliers_spatial.png')
 
     # In-painting
     if flg_fig & (2 ** 4):
@@ -994,9 +1035,10 @@ def main(flg_fig):
 
     # LL vs. DT
     if flg_fig & (2 ** 11):
-        for ptype, outfile in zip(['std', 'loggrad'],
-                                  ['fig_LL_vs_T_std.png',
-                                   'fig_LL_vs_T_loggrad.png']):
+        #for ptype, outfile in zip(['std', 'loggrad'],
+        #                          ['fig_LL_vs_T_std.png',
+        #                           'fig_LL_vs_T_loggrad.png']):
+        for ptype, outfile in zip(['std'], ['fig_LL_vs_T_std.png']):
             fig_LL_vs_DT(ptype, outfile)
 
     # LL vs. DT
@@ -1011,7 +1053,7 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 0  # Month histogram
         #flg_fig += 2 ** 1  # <T> histogram
         #flg_fig += 2 ** 2  # CC fractions
-        flg_fig += 2 ** 3  # All Evals spatial
+        #flg_fig += 2 ** 3  # All Evals spatial
         #flg_fig += 2 ** 4  # In-painting
         #flg_fig += 2 ** 5  # Auto-encode
         #flg_fig += 2 ** 6  # LL SSTa
@@ -1019,7 +1061,7 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 8  # LL_SST vs. LL_grad
         #flg_fig += 2 ** 9  # year, month
         #flg_fig += 2 ** 10  # Outliers spatial
-        #flg_fig += 2 ** 11  # LL vs DT
+        flg_fig += 2 ** 11  # LL vs DT
         #flg_fig += 2 ** 20  # tst
     else:
         flg_fig = sys.argv[1]
