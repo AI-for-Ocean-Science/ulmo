@@ -133,7 +133,7 @@ def fig_CC(outfile):
 
     # Average
     mean_fCC = np.mean(fracCC, axis=0)
-    embed(header='136 of figs')
+    #embed(header='136 of figs')
 
     # Differential
     diff_CC = mean_fCC - np.roll(mean_fCC, -1)
@@ -146,12 +146,12 @@ def fig_CC(outfile):
     ax = plt.gca()
 
     # Plot
-    #p1 = ax.plot(1-ulmo_cc.CC_values, diff_CC, label='Differential')
-    p1 = ax.fill_between(np.array(1-ulmo_cc.CC_values), yzero, diff_CC,
-                         step='mid',
-                         alpha=0.5,
-                         color='blue',
-                         label='Differential')
+    p1 = ax.plot(1-ulmo_cc.CC_values, diff_CC, 'o', color='b', label='Fraction')
+    #p1 = ax.fill_between(np.array(1-ulmo_cc.CC_values), yzero, diff_CC,
+    #                     step='mid',
+    #                     alpha=0.5,
+    #                     color='blue',
+    #                     label='Differential')
 
     # Labels
     ax.set_ylabel(r'Fraction of Total Images')
@@ -253,7 +253,7 @@ def fig_in_painting(outfile, iexmple=4, vmnx=(8, 24)):
     print('Wrote {:s}'.format(outfile))
 
 
-def fig_spatial(pproc, cohort, outfile, nside=64):
+def fig_spatial_all(pproc, outfile, nside=64):
     """
     Spatial distribution of the evaluations
 
@@ -270,19 +270,55 @@ def fig_spatial(pproc, cohort, outfile, nside=64):
     # Load
     evals_tbl = results.load_log_prob(pproc, feather=True)
 
-    if cohort == 'all':
-        lbl = 'evals'
-        use_log = True
-        use_mask = False
-    elif cohort == 'outliers':
-        point1 = int(0.001 * len(evals_tbl))
-        isortLL = np.argsort(evals_tbl.log_likelihood)
-        evals_tbl = evals_tbl.iloc[isortLL[0:point1]]
-        lbl = 'outliers'
-        use_mask = True
-        use_log = True
-    else:
-        raise IOError("Bad cohort")
+    lbl = 'evals'
+    use_log = True
+    use_mask = True
+
+    # Healpix me
+    hp_events, hp_lons, hp_lats = image_utils.evals_to_healpix(
+        evals_tbl, nside, log=use_log, mask=use_mask)
+
+    fig = plt.figure(figsize=(12, 8))
+    plt.clf()
+    
+    hp.mollview(hp_events, min=0, max=4.,
+                hold=True,
+                cmap='Blues',
+                flip='geo', title='', unit=r'$\log_{10} \, N_{\rm '+'{}'.format(lbl)+'}$',
+                rot=(0., 180., 180.))
+    #plt.gca().coastlines()
+
+    # Layout and save
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
+
+
+def fig_spatial_outliers(pproc, outfile, nside=64):
+    """
+    Spatial distribution of the evaluations
+
+    Parameters
+    ----------
+    pproc
+    outfile
+    nside
+
+    Returns
+    -------
+
+    """
+    # Load
+    evals_tbl = results.load_log_prob(pproc, feather=True)
+
+    cohort = 'outliers'
+    point1 = int(0.001 * len(evals_tbl))
+    isortLL = np.argsort(evals_tbl.log_likelihood)
+    evals_tbl = evals_tbl.iloc[isortLL[0:point1]]
+    lbl = 'outliers'
+    use_mask = True
+    use_log = True
 
     # Healpix me
     hp_events, hp_lons, hp_lats = image_utils.evals_to_healpix(
@@ -300,11 +336,11 @@ def fig_spatial(pproc, cohort, outfile, nside=64):
         cm = plt.get_cmap('Blues')
         img = ax.tricontourf(hp_lons, hp_lats, hp_events, transform=tformM,
                          levels=20, cmap=cm)#, zorder=10)
-    else:                    
+    else:
         cm = plt.get_cmap('Reds')
         # Cut
         good = np.invert(hp_events.mask)
-        img = plt.scatter(x=hp_lons[good], 
+        img = plt.scatter(x=hp_lons[good],
             y=hp_lats[good],
             c=hp_events[good],
             cmap=cm,
@@ -462,6 +498,8 @@ def fig_LL_SSTa(outfile):
         evals_tbl.date.values[lowLL], s=0.1)
     #axins.axvline(LL_a, color='k', ls='--')
     axins.set_xlim(-8000., cut_LL)
+    axins.minorticks_on()
+    axins.set_title('Outliers (lowest 0.1% in LL)')
     plt.gcf().autofmt_xdate()
 
 
@@ -665,87 +703,6 @@ def fig_LL_vs_LL(outfile, evals_tbl_std=None, evals_tbl_grad=None):
 
     set_fontsize(ax_std, 19.)
     set_fontsize(ax_log, 19.)
-
-    # Layout and save
-    plt.tight_layout(pad=0.2,h_pad=0.,w_pad=0.1)
-    plt.savefig(outfile, dpi=300)
-    plt.close()
-    print('Wrote {:s}'.format(outfile))
-
-
-def fig_year_month(outfile, ptype, evals_tbl=None, frac=False,
-                   all=False):
-    """
-    Time evolution in outliers
-
-    Parameters
-    ----------
-    outfile
-    ptype
-    evals_tbl
-    all : bool, optional
-
-
-    Returns
-    -------
-
-    """
-
-    # Load
-    if evals_tbl is None:
-        evals_tbl = results.load_log_prob(ptype, feather=True)
-        print("Loaded..")
-
-    # Outliers
-    point1 = int(0.001 * len(evals_tbl))
-    isortLL = np.argsort(evals_tbl.log_likelihood)
-    outliers = evals_tbl.iloc[isortLL[0:point1]]
-
-    # All
-    all_years = [item.year for item in evals_tbl.date]
-    all_months = [item.month for item in evals_tbl.date]
-
-    # Parse
-    years = [item.year for item in outliers.date]
-    months = [item.month for item in outliers.date]
-
-    # Histogram
-    bins_year = np.arange(2002.5, 2020.5)
-    bins_month = np.arange(0.5, 13.5)
-
-    counts, xedges, yedges = np.histogram2d(months, years,
-                                            bins=(bins_month, bins_year))
-    all_counts, _, _ = np.histogram2d(all_months, all_years,
-                                            bins=(bins_month, bins_year))
-
-    fig = plt.figure(figsize=(12, 8))
-    plt.clf()
-    gs = gridspec.GridSpec(1,1)
-
-    # Total NSpax
-    ax_tot = plt.subplot(gs[0])
-
-    cm = plt.get_cmap('Blues')
-    if frac:
-        mplt = ax_tot.pcolormesh(xedges, yedges,
-                                 counts.transpose()/all_counts.transpose(),
-                                 cmap=cm)
-        lbl = 'Fraction'
-    elif all:
-        cm = plt.get_cmap('Greens')
-        norm = np.sum(all_counts) / np.product(all_counts.shape)
-        mplt = ax_tot.pcolormesh(xedges, yedges, all_counts.transpose()/norm, cmap=cm)
-        lbl = 'Counts (all)'
-    else:
-        mplt = ax_tot.pcolormesh(xedges, yedges, counts.transpose(), cmap=cm)
-        lbl = 'Counts'
-    cb = plt.colorbar(mplt, fraction=0.030, pad=0.04)
-    cb.set_label(lbl, fontsize=20.)
-
-    ax_tot.set_xlabel('Month')
-    ax_tot.set_ylabel('Year')
-
-    set_fontsize(ax_tot, 19.)
 
     # Layout and save
     plt.tight_layout(pad=0.2,h_pad=0.,w_pad=0.1)
@@ -978,9 +935,9 @@ def main(flg_fig):
 
     # Spatial of all evaluations
     if flg_fig & (2 ** 3):
-        #for outfile in ['fig_std_evals_spatial.png']:
-        #    fig_spatial('std', 'all', outfile)
-        fig_spatial('std', 'outliers', 'fig_std_outliers_spatial.png')
+        for outfile in ['fig_std_evals_spatial.png']:
+            fig_spatial_all('std', outfile)
+        fig_spatial_outliers('std', 'fig_std_outliers_spatial.png')
 
     # In-painting
     if flg_fig & (2 ** 4):
@@ -1026,13 +983,6 @@ def main(flg_fig):
             fig_year_month(outfile, ptype, all=True)
 
 
-    # Spatial of outliers
-    if flg_fig & (2 ** 10):
-        for ptype, outfile in zip(['std', 'loggrad'],
-                                  ['fig_outliers_spatial_std.png',
-                                   'fig_outliers_spatial_loggrad.png']):
-            fig_spatial(ptype, 'outliers', outfile)
-
     # LL vs. DT
     if flg_fig & (2 ** 11):
         #for ptype, outfile in zip(['std', 'loggrad'],
@@ -1052,15 +1002,14 @@ if __name__ == '__main__':
         flg_fig = 0
         #flg_fig += 2 ** 0  # Month histogram
         #flg_fig += 2 ** 1  # <T> histogram
-        flg_fig += 2 ** 2  # CC fractions
+        #flg_fig += 2 ** 2  # CC fractions
         #flg_fig += 2 ** 3  # All Evals spatial
         #flg_fig += 2 ** 4  # In-painting
         #flg_fig += 2 ** 5  # Auto-encode
         #flg_fig += 2 ** 6  # LL SSTa
         #flg_fig += 2 ** 7  # Gallery
         #flg_fig += 2 ** 8  # LL_SST vs. LL_grad
-        #flg_fig += 2 ** 9  # year, month
-        #flg_fig += 2 ** 10  # Outliers spatial
+        flg_fig += 2 ** 9  # year, month
         #flg_fig += 2 ** 11  # LL vs DT
         #flg_fig += 2 ** 20  # tst
     else:
