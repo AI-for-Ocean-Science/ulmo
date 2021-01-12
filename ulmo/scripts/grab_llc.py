@@ -57,5 +57,6 @@ def main(pargs):
         # Write
         write_xr(ds_0, outfile)
         print("Wrote: {}".format(outfile))
+        embed(header='60 of slurp')
 
 
