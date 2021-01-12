@@ -351,6 +351,7 @@ def fig_spatial_outliers(pproc, outfile, nside=64):
     cb = plt.colorbar(img, orientation='horizontal', pad=0.)
     clbl=r'$\log_{10} \, N_{\rm '+'{}'.format(lbl)+'}$'
     cb.set_label(clbl, fontsize=20.)
+    cb.ax.tick_params(labelsize=17)
 
     # Coast lines
     if cohort == 'outliers':
@@ -571,7 +572,7 @@ def fig_gallery(outfile, ptype, flavor='outlier'):
 
         # Label
         lsz = 17.
-        lclr = 'k'
+        lclr = 'white'
         ax.text(0.05, 0.90, '{}'.format(example.date.strftime('%Y-%m-%d')),
                 transform=ax.transAxes, fontsize=lsz, ha='left', color=lclr)
         ax.text(0.05, 0.80, '{:0.3f},{:0.3f}'.format(example.longitude, example.latitude),
@@ -710,6 +711,106 @@ def fig_LL_vs_LL(outfile, evals_tbl_std=None, evals_tbl_grad=None):
     plt.close()
     print('Wrote {:s}'.format(outfile))
 
+
+
+def fig_year_month(outfile, ptype, evals_tbl=None, frac=False,
+                   all=False):
+    """
+    Time evolution in outliers
+
+    Parameters
+    ----------
+    outfile
+    ptype
+    evals_tbl
+
+    Returns
+    -------
+
+    """
+
+    # Load
+    if evals_tbl is None:
+        evals_tbl = results.load_log_prob(ptype, feather=True)
+        print("Loaded..")
+
+    # Outliers
+    point1 = int(0.001 * len(evals_tbl))
+    isortLL = np.argsort(evals_tbl.log_likelihood)
+    outliers = evals_tbl.iloc[isortLL[0:point1]]
+
+    # All
+    if all or frac:
+        all_years = [item.year for item in evals_tbl.date]
+        all_months = [item.month for item in evals_tbl.date]
+
+    # Parse
+    years = [item.year for item in outliers.date]
+    months = [item.month for item in outliers.date]
+
+    # Histogram
+    bins_year = np.arange(2002.5, 2020.5)
+    bins_month = np.arange(0.5, 13.5)
+
+    counts, xedges, yedges = np.histogram2d(months, years,
+                                            bins=(bins_month, bins_year))
+    if all or frac:
+        all_counts, _, _ = np.histogram2d(all_months, all_years,
+                                            bins=(bins_month, bins_year))
+
+    fig = plt.figure(figsize=(12, 8))
+    plt.clf()
+    gs = gridspec.GridSpec(5,6)
+
+    # Total NSpax
+    ax_tot = plt.subplot(gs[1:,1:-1])
+
+    cm = plt.get_cmap('Blues')
+    if frac:
+        values  = counts.transpose()/all_counts.transpose()
+        lbl = 'Fraction'
+    elif all:
+        cm = plt.get_cmap('Greens')
+        norm = np.sum(all_counts) / np.product(all_counts.shape)
+        values = all_counts.transpose()/norm
+        lbl = 'Fraction (all)'
+    else:
+        values = counts.transpose()
+        lbl = 'Counts'
+    mplt = ax_tot.pcolormesh(xedges, yedges, values, cmap=cm)
+
+    # Color bar
+    cbaxes = fig.add_axes([0.03, 0.1, 0.05, 0.7])
+    cb = plt.colorbar(mplt, cax=cbaxes, aspect=20)
+    #cb.set_label(lbl, fontsize=20.)
+    cbaxes.yaxis.set_ticks_position('left')
+    cbaxes.set_xlabel(lbl, fontsize=15.)
+
+    ax_tot.set_xlabel('Month')
+    ax_tot.set_ylabel('Year')
+
+    set_fontsize(ax_tot, 19.)
+
+    # Edges
+    fsz = 15.
+    months = np.mean(values, axis=0)
+    ax_m = plt.subplot(gs[0,1:-1])
+    ax_m.step(np.arange(12)+1, months, color='k', where='mid')
+    set_fontsize(ax_m, fsz)
+    #ax_m.minorticks_on()
+
+    years = np.mean(values, axis=1)
+    ax_y = plt.subplot(gs[1:,-1])
+    ax_y.invert_xaxis()
+    ax_y.step(years, 2003 + np.arange(17), color='k', where='mid')
+    ax_y.set_xlim(40,80)
+    set_fontsize(ax_y, fsz)
+
+    # Layout and save
+    plt.tight_layout(pad=0.2,h_pad=0.,w_pad=0.1)
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
 
 
 def set_fontsize(ax,fsz):
@@ -974,13 +1075,14 @@ def main(flg_fig):
     if flg_fig & (2 ** 9):
         # Counts
         #for ptype, outfile in zip(['std', 'loggrad'], ['fig_year_month_std.png', 'fig_year_month_loggrad.png']):
-        #    fig_year_month(outfile, ptype)
+        for ptype, outfile in zip(['std'], ['fig_year_month_std.png']):
+                fig_year_month(outfile, ptype)
         # Fractional
         #for ptype, outfile in zip(['std'], ['fig_year_month_std_frac.png']):
         #    fig_year_month(outfile, ptype, frac=True)
         # All
-        for ptype, outfile in zip(['std'], ['fig_year_month_std_all.png']):
-            fig_year_month(outfile, ptype, all=True)
+        #for ptype, outfile in zip(['std'], ['fig_year_month_std_all.png']):
+        #    fig_year_month(outfile, ptype, all=True)
 
 
     # LL vs. DT
@@ -1007,9 +1109,9 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 4  # In-painting
         #flg_fig += 2 ** 5  # Auto-encode
         #flg_fig += 2 ** 6  # LL SSTa
-        #flg_fig += 2 ** 7  # Gallery
+        flg_fig += 2 ** 7  # Gallery
         #flg_fig += 2 ** 8  # LL_SST vs. LL_grad
-        flg_fig += 2 ** 9  # year, month
+        #flg_fig += 2 ** 9  # year, month
         #flg_fig += 2 ** 11  # LL vs DT
         #flg_fig += 2 ** 20  # tst
     else:
