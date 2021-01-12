@@ -17,7 +17,8 @@ def clear_grid(mask, field_size, method, CC_max=0.05,
     method : str
         'random'
         'lower_corner'
-    CC_max
+    CC_max : float
+        Maximum cloudy fraction allowed
     ndraw_mnx
     nsgrid_draw : int, optional
         Number of fields to draw per sub-grid
@@ -41,7 +42,7 @@ def clear_grid(mask, field_size, method, CC_max=0.05,
     mask_edge[-field_size//2:,:] = True
     mask_edge[:,-field_size//2:] = True
     mask_edge[:,:field_size//2] = True
-    clear = (CC_mask < CC_max) & np.invert(mask_edge)
+    clear = (CC_mask <= CC_max) & np.invert(mask_edge)  # Added the = sign on 2021-01-12
     if return_fracCC:
         return np.sum(clear)/((clear.shape[0]-field_size)*(clear.shape[1]-field_size))
 

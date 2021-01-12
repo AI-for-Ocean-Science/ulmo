@@ -133,7 +133,7 @@ def fig_CC(outfile):
 
     # Average
     mean_fCC = np.mean(fracCC, axis=0)
-    embed(header='134 of figs')
+    embed(header='136 of figs')
 
     # Differential
     diff_CC = mean_fCC - np.roll(mean_fCC, -1)
@@ -154,9 +154,9 @@ def fig_CC(outfile):
                          label='Differential')
 
     # Labels
-    ax.set_ylabel(r'Differential Fraction')
+    ax.set_ylabel(r'Fraction of Total Images')
     ax.set_xlabel(r'Clear Fraction (CF=1-CC)')
-    ax.set_ylim(0., 0.04)
+    ax.set_ylim(0., 0.18)
 
     # Cumulative
     axC = ax.twinx()
@@ -177,7 +177,7 @@ def fig_CC(outfile):
     plts = p2
     labs = [p.get_label() for p in plts]
 
-    legend = plt.legend(plts, labs, loc='upper left', scatterpoints=1, borderpad=0.3,
+    legend = plt.legend(plts, labs, loc='upper right', scatterpoints=1, borderpad=0.3,
                         handletextpad=0.3, fontsize='large', numpoints=1)
 
     # Layout and save
@@ -1052,7 +1052,7 @@ if __name__ == '__main__':
         flg_fig = 0
         #flg_fig += 2 ** 0  # Month histogram
         #flg_fig += 2 ** 1  # <T> histogram
-        #flg_fig += 2 ** 2  # CC fractions
+        flg_fig += 2 ** 2  # CC fractions
         #flg_fig += 2 ** 3  # All Evals spatial
         #flg_fig += 2 ** 4  # In-painting
         #flg_fig += 2 ** 5  # Auto-encode
@@ -1061,7 +1061,7 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 8  # LL_SST vs. LL_grad
         #flg_fig += 2 ** 9  # year, month
         #flg_fig += 2 ** 10  # Outliers spatial
-        flg_fig += 2 ** 11  # LL vs DT
+        #flg_fig += 2 ** 11  # LL vs DT
         #flg_fig += 2 ** 20  # tst
     else:
         flg_fig = sys.argv[1]
