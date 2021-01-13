@@ -370,6 +370,68 @@ def fig_spatial_outliers(pproc, outfile, nside=64):
     plt.close()
     print('Wrote {:s}'.format(outfile))
 
+def fig_inlier_vs_outlier(outfile='fig_inlier_vs_outlier.png'):
+    """
+    Spatial distribution of the evaluations
+
+    Parameters
+    ----------
+    outfile
+
+    """
+    tformP = ccrs.PlateCarree()
+
+    # Load
+    evals_tbl = results.load_log_prob('std', feather=True)
+
+    # Add in DT
+    if 'DT' not in evals_tbl.keys():
+        evals_tbl['DT'] = evals_tbl.T90 - evals_tbl.T10
+
+    # Cut on DT
+    cut2 = np.abs(evals_tbl.DT.values-2.) < 0.05
+    cut_evals = evals_tbl[cut2].copy()
+    lowLL = np.percentile(cut_evals.log_likelihood, 10.)
+    hiLL = np.percentile(cut_evals.log_likelihood, 90.)
+
+    low = cut_evals.log_likelihood < lowLL
+    high = cut_evals.log_likelihood > hiLL
+
+    fig = plt.figure()#figsize=(14, 8))
+    plt.clf()
+    ax = plt.axes(projection=tformP)
+
+    # Low
+    lw = 0.5
+    psize = 5.
+    img = plt.scatter(
+        x=cut_evals.longitude[low],
+        y=cut_evals.latitude[low],
+        edgecolors='red',
+        facecolors='none',
+        s=psize,
+        lw=lw,
+        transform=tformP)
+
+    # High
+    img = plt.scatter(
+        x=cut_evals.longitude[high],
+        y=cut_evals.latitude[high],
+        edgecolors='b',
+        facecolors='none',
+        s=psize,
+        lw=lw,
+        transform=tformP)
+
+    # Coast lines
+    ax.coastlines(zorder=10)
+    ax.set_global()
+
+    # Layout and save
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
 
 def tst():
     import matplotlib.pyplot as plt
@@ -1107,6 +1169,11 @@ def main(flg_fig):
         for ptype, outfile in zip(['std'], ['fig_LL_vs_T_std.png']):
             fig_LL_vs_DT(ptype, outfile)
 
+    # Spatial of all evaluations
+    if flg_fig & (2 ** 12):
+        fig_inlier_vs_outlier()
+
+
     # LL vs. DT
     if flg_fig & (2 ** 20):
         tst()
@@ -1118,7 +1185,7 @@ if __name__ == '__main__':
         flg_fig = 0
         #flg_fig += 2 ** 0  # Month histogram
         #flg_fig += 2 ** 1  # <T> histogram
-        flg_fig += 2 ** 2  # CC fractions
+        #flg_fig += 2 ** 2  # CC fractions
         #flg_fig += 2 ** 3  # All Evals spatial
         #flg_fig += 2 ** 4  # In-painting
         #flg_fig += 2 ** 5  # Auto-encode
@@ -1127,6 +1194,7 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 8  # LL_SST vs. LL_grad
         #flg_fig += 2 ** 9  # year, month
         #flg_fig += 2 ** 11  # LL vs DT
+        flg_fig += 2 ** 12  # inlier vs outlier for DT = 2
         #flg_fig += 2 ** 20  # tst
     else:
         flg_fig = sys.argv[1]
