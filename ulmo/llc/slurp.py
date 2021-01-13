@@ -39,15 +39,19 @@ def write_xr(xr_d, outfile, strip_coord=True, encode=True):
         encoding = {}
         encoding['Theta'] = {'dtype': 'int16', 'scale_factor': 1e-3,
                              'add_offset': 10., 'zlib': True, 
+                             '_FillValue': -32767,
                              'missing_value': -32767}
         encoding['U'] = {'dtype': 'int16', 'scale_factor': 1e-3,
                              'add_offset': 0., 'zlib': True, 
+                             '_FillValue': -32767,
                              'missing_value': -32767}
         encoding['V'] = {'dtype': 'int16', 'scale_factor': 1e-3,
                              'add_offset': 0., 'zlib': True, 
+                             '_FillValue': -32767,
                              'missing_value': -32767}
         encoding['Salt'] = {'dtype': 'int16', 'scale_factor': 1e-3,
                              'add_offset': 30., 'zlib': True, 
+                             '_FillValue': -32767,
                              'missing_value': -32767}
     else:
         encoding = None
