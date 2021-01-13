@@ -123,6 +123,9 @@ def fig_db_by_meanT(outfile):
     print('Wrote {:s}'.format(outfile))
 
 def fig_CC(outfile):
+    """
+    CC fraction
+    """
 
     # Build by ulmo/analysis/cc.py
     tst_file = os.path.join(os.getenv('SST_OOD'), 'Analysis', 'cc_2010.h5')
@@ -156,18 +159,21 @@ def fig_CC(outfile):
     # Labels
     ax.set_ylabel(r'Fraction of Total Images')
     ax.set_xlabel(r'Clear Fraction (CF=1-CC)')
-    ax.set_ylim(0., 0.18)
+    ax.set_ylim(0., 0.05)
+    #ax.set_ylim(0., 1.0)
 
+    # Font size
+    fsz = 15.
+    set_fontsize(ax, fsz)
+
+    '''
     # Cumulative
     axC = ax.twinx()
     axC.set_ylim(0., 1.)
 
-    p2 = axC.plot(1-ulmo_cc.CC_values, mean_fCC, color='k', label='Cumulative')
+    p2 = axC.plot(1-ulmo_cc.CC_values[1:], mean_fCC[1:], color='k', label='Cumulative')
     axC.set_ylabel(r'Cumulative Distribution')
 
-    # Font sizes
-    fsz = 15.
-    set_fontsize(ax, fsz)
     set_fontsize(axC, fsz)
 
     #ax.set_yscale('log')
@@ -179,6 +185,7 @@ def fig_CC(outfile):
 
     legend = plt.legend(plts, labs, loc='upper right', scatterpoints=1, borderpad=0.3,
                         handletextpad=0.3, fontsize='large', numpoints=1)
+    '''
 
     # Layout and save
     # plt.tight_layout(pad=0.5, h_pad=0.5, w_pad=0.5)
@@ -1111,7 +1118,7 @@ if __name__ == '__main__':
         flg_fig = 0
         #flg_fig += 2 ** 0  # Month histogram
         #flg_fig += 2 ** 1  # <T> histogram
-        #flg_fig += 2 ** 2  # CC fractions
+        flg_fig += 2 ** 2  # CC fractions
         #flg_fig += 2 ** 3  # All Evals spatial
         #flg_fig += 2 ** 4  # In-painting
         #flg_fig += 2 ** 5  # Auto-encode
@@ -1119,7 +1126,7 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 7  # Gallery
         #flg_fig += 2 ** 8  # LL_SST vs. LL_grad
         #flg_fig += 2 ** 9  # year, month
-        flg_fig += 2 ** 11  # LL vs DT
+        #flg_fig += 2 ** 11  # LL vs DT
         #flg_fig += 2 ** 20  # tst
     else:
         flg_fig = sys.argv[1]
