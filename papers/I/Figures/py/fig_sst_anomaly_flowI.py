@@ -600,6 +600,13 @@ def fig_LL_vs_DT(ptype, outfile, evals_tbl=None):
     if 'DT' not in evals_tbl.keys():
         evals_tbl['DT'] = evals_tbl.T90 - evals_tbl.T10
 
+    # Stats
+    cut2 = np.abs(evals_tbl.DT.values-2.) < 0.05
+    print("Min LL: {}".format(np.min(evals_tbl.log_likelihood[cut2])))
+    print("Max LL: {}".format(np.max(evals_tbl.log_likelihood[cut2])))
+    print("Mean LL: {}".format(np.mean(evals_tbl.log_likelihood[cut2])))
+    print("RMS LL: {}".format(np.std(evals_tbl.log_likelihood[cut2])))
+
     # Bins
     bins_LL = np.linspace(-10000., 1100., 22)
     bins_DT = np.linspace(0., 14, 14)
@@ -1109,10 +1116,10 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 4  # In-painting
         #flg_fig += 2 ** 5  # Auto-encode
         #flg_fig += 2 ** 6  # LL SSTa
-        flg_fig += 2 ** 7  # Gallery
+        #flg_fig += 2 ** 7  # Gallery
         #flg_fig += 2 ** 8  # LL_SST vs. LL_grad
         #flg_fig += 2 ** 9  # year, month
-        #flg_fig += 2 ** 11  # LL vs DT
+        flg_fig += 2 ** 11  # LL vs DT
         #flg_fig += 2 ** 20  # tst
     else:
         flg_fig = sys.argv[1]
