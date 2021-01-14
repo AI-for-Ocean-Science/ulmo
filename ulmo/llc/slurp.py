@@ -49,7 +49,7 @@ def write_xr(xr_d, outfile, strip_coord=True, encode=True):
                              'add_offset': 0., 'zlib': True, 
                              '_FillValue': -32767,
                              'missing_value': -32768}
-        encoding['W'] = {'dtype': 'int16', 'scale_factor': 1e-3,
+        encoding['W'] = {'dtype': 'int16', 'scale_factor': 1e-6,
                              'add_offset': 0., 'zlib': True, 
                              '_FillValue': -32767,
                              'missing_value': -32768}
