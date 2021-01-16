@@ -1189,12 +1189,12 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 3  # All Evals spatial
         #flg_fig += 2 ** 4  # In-painting
         #flg_fig += 2 ** 5  # Auto-encode
-        #flg_fig += 2 ** 6  # LL SSTa
+        flg_fig += 2 ** 6  # LL SSTa
         #flg_fig += 2 ** 7  # Gallery
         #flg_fig += 2 ** 8  # LL_SST vs. LL_grad
         #flg_fig += 2 ** 9  # year, month
         #flg_fig += 2 ** 11  # LL vs DT
-        flg_fig += 2 ** 12  # inlier vs outlier for DT = 2
+        #flg_fig += 2 ** 12  # inlier vs outlier for DT = 2
         #flg_fig += 2 ** 20  # tst
     else:
         flg_fig = sys.argv[1]
