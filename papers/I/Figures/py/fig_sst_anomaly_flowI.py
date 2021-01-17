@@ -580,6 +580,75 @@ def fig_LL_SSTa(outfile):
     print('Wrote {:s}'.format(outfile))
 
 
+def fig_brazil(outfile='fig_brazil.png'):
+    """
+    Brazil
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
+    """
+    evals_tbl = results.load_log_prob('std', feather=True)
+    logL = evals_tbl.log_likelihood.values
+
+    # Add in DT
+    if 'DT' not in evals_tbl.keys():
+        evals_tbl['DT'] = evals_tbl.T90 - evals_tbl.T10
+
+    # Cuts
+    in_brazil = ((np.abs(evals_tbl.longitude.values - 300.) < 1.)  & 
+        (np.abs(evals_tbl.latitude.values - 41.5) < 1.5))
+
+    embed(header='605 of figs')
+
+    isort = np.argsort(logL)
+    LL_a = logL[isort[int(len(logL)*0.001)]]
+
+
+    # Plot
+    fig = plt.figure(figsize=(8, 8))
+    plt.clf()
+    gs = gridspec.GridSpec(2,2)
+
+    # Histograms
+    ax = plt.subplot(gs[0])
+
+    low_logL = np.quantile(logL, 0.05)
+    high_logL = np.quantile(logL, 0.95)
+    sns.distplot(logL)
+    plt.axvline(low_logL, linestyle='--', c='r')
+    plt.axvline(high_logL, linestyle='--', c='r')
+    fsz = 17.
+    plt.xlabel('Log Likelihood (LL)', fontsize=fsz)
+    plt.ylabel('Probability Density', fontsize=fsz)
+
+    # Inset for lowest LL
+    cut_LL = LL_a
+    lowLL = logL < cut_LL
+    axins = ax.inset_axes([0.1, 0.3, 0.57, 0.57])
+    #axins.scatter(evals_tbl.date.values[lowLL], evals_tbl.log_likelihood.values[lowLL])
+    #bins = np.arange(-6000., -1000., 250)
+    #out_hist, out_bins = np.histogram(logL[lowLL], bins=bins)
+    #embed(header='316 of figs')
+    #axins.hist(logL[lowLL], color='k')
+    axins.scatter(evals_tbl.log_likelihood.values[lowLL], 
+        evals_tbl.date.values[lowLL], s=0.1)
+    #axins.axvline(LL_a, color='k', ls='--')
+    axins.set_xlim(-8000., cut_LL)
+    axins.minorticks_on()
+    axins.set_title('Outliers (lowest 0.1% in LL)')
+    plt.gcf().autofmt_xdate()
+
+
+    # Layout and save
+    # plt.tight_layout(pad=0.5, h_pad=0.5, w_pad=0.5)
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
 def fig_gallery(outfile, ptype, flavor='outlier'):
 
     all_evals_tbl = results.load_log_prob(ptype, feather=True)
@@ -1173,6 +1242,10 @@ def main(flg_fig):
     if flg_fig & (2 ** 12):
         fig_inlier_vs_outlier()
 
+    # Brazil
+    if flg_fig & (2 ** 13):
+        fig_brazil()
+
 
     # LL vs. DT
     if flg_fig & (2 ** 20):
@@ -1189,12 +1262,13 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 3  # All Evals spatial
         #flg_fig += 2 ** 4  # In-painting
         #flg_fig += 2 ** 5  # Auto-encode
-        flg_fig += 2 ** 6  # LL SSTa
+        #flg_fig += 2 ** 6  # LL SSTa
         #flg_fig += 2 ** 7  # Gallery
         #flg_fig += 2 ** 8  # LL_SST vs. LL_grad
         #flg_fig += 2 ** 9  # year, month
         #flg_fig += 2 ** 11  # LL vs DT
         #flg_fig += 2 ** 12  # inlier vs outlier for DT = 2
+        flg_fig += 2 ** 13  # Brazil
         #flg_fig += 2 ** 20  # tst
     else:
         flg_fig = sys.argv[1]
