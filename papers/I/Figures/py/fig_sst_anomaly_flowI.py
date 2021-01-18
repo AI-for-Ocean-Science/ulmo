@@ -592,20 +592,27 @@ def fig_brazil(outfile='fig_brazil.png'):
 
     """
     evals_tbl = results.load_log_prob('std', feather=True)
-    logL = evals_tbl.log_likelihood.values
 
     # Add in DT
     if 'DT' not in evals_tbl.keys():
         evals_tbl['DT'] = evals_tbl.T90 - evals_tbl.T10
 
-    # Cuts
-    in_brazil = ((np.abs(evals_tbl.longitude.values - 300.) < 1.)  & 
+    # Brazil
+    in_brazil = ((np.abs(evals_tbl.longitude.values + 60.) < 1.)  & 
         (np.abs(evals_tbl.latitude.values - 41.5) < 1.5))
+    evals_bz = evals_tbl[in_brazil].copy()
 
-    embed(header='605 of figs')
+    logL = evals_bz.log_likelihood.values
 
-    isort = np.argsort(logL)
-    LL_a = logL[isort[int(len(logL)*0.001)]]
+    lowLL_val = np.percentile(logL, 10.)
+    hiLL_val = np.percentile(logL, 90.)
+
+    lowLL = logL < lowLL_val
+    hiLL = logL > hiLL_val
+
+    evals_bz['LLtype'] = 'null'
+    evals_bz['LLtype'][lowLL] = 'Low'
+    evals_bz['LLtype'][hiLL] = 'High'
 
 
     # Plot
@@ -616,32 +623,10 @@ def fig_brazil(outfile='fig_brazil.png'):
     # Histograms
     ax = plt.subplot(gs[0])
 
-    low_logL = np.quantile(logL, 0.05)
-    high_logL = np.quantile(logL, 0.95)
-    sns.distplot(logL)
-    plt.axvline(low_logL, linestyle='--', c='r')
-    plt.axvline(high_logL, linestyle='--', c='r')
-    fsz = 17.
-    plt.xlabel('Log Likelihood (LL)', fontsize=fsz)
-    plt.ylabel('Probability Density', fontsize=fsz)
-
-    # Inset for lowest LL
-    cut_LL = LL_a
-    lowLL = logL < cut_LL
-    axins = ax.inset_axes([0.1, 0.3, 0.57, 0.57])
-    #axins.scatter(evals_tbl.date.values[lowLL], evals_tbl.log_likelihood.values[lowLL])
-    #bins = np.arange(-6000., -1000., 250)
-    #out_hist, out_bins = np.histogram(logL[lowLL], bins=bins)
-    #embed(header='316 of figs')
-    #axins.hist(logL[lowLL], color='k')
-    axins.scatter(evals_tbl.log_likelihood.values[lowLL], 
-        evals_tbl.date.values[lowLL], s=0.1)
-    #axins.axvline(LL_a, color='k', ls='--')
-    axins.set_xlim(-8000., cut_LL)
-    axins.minorticks_on()
-    axins.set_title('Outliers (lowest 0.1% in LL)')
-    plt.gcf().autofmt_xdate()
-
+    sns.histplot(data=evals_bz, x='log_likelihood',
+        hue='LLtype', hue_order=['Low', 'High'])
+    #plt.xlabel('Log Likelihood (LL)', fontsize=fsz)
+    #plt.ylabel('Probability Density', fontsize=fsz)
 
     # Layout and save
     # plt.tight_layout(pad=0.5, h_pad=0.5, w_pad=0.5)
