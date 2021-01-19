@@ -8,8 +8,10 @@ import matplotlib as mpl
 import matplotlib.gridspec as gridspec
 from matplotlib import pyplot as plt
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+import matplotlib.ticker as mticker
 
 import cartopy.crs as ccrs
+from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
 mpl.rcParams['font.family'] = 'stixgeneral'
 
@@ -407,7 +409,7 @@ def fig_inlier_vs_outlier(outfile='fig_inlier_vs_outlier.png'):
     img = plt.scatter(
         x=cut_evals.longitude[low],
         y=cut_evals.latitude[low],
-        edgecolors='red',
+        edgecolors='b',
         facecolors='none',
         s=psize,
         lw=lw,
@@ -417,7 +419,7 @@ def fig_inlier_vs_outlier(outfile='fig_inlier_vs_outlier.png'):
     img = plt.scatter(
         x=cut_evals.longitude[high],
         y=cut_evals.latitude[high],
-        edgecolors='b',
+        edgecolors='r',
         facecolors='none',
         s=psize,
         lw=lw,
@@ -598,9 +600,15 @@ def fig_brazil(outfile='fig_brazil.png'):
         evals_tbl['DT'] = evals_tbl.T90 - evals_tbl.T10
 
     # Brazil
-    in_brazil = ((np.abs(evals_tbl.longitude.values + 60.) < 1.)  & 
-        (np.abs(evals_tbl.latitude.values - 41.5) < 1.5))
+    in_brazil = ((np.abs(evals_tbl.longitude.values + 57.5) < 10.)  & 
+        (np.abs(evals_tbl.latitude.values + 43.0) < 10))
     evals_bz = evals_tbl[in_brazil].copy()
+    
+    # Rectangles
+    R1 = dict(lon=-60., dlon=1.,
+        lat=-41.5, dlat=1.5)
+    R2 = dict(lon=-56.5, dlon=1.5,
+        lat=-45, dlat=2)
 
     logL = evals_bz.log_likelihood.values
 
@@ -610,26 +618,113 @@ def fig_brazil(outfile='fig_brazil.png'):
     lowLL = logL < lowLL_val
     hiLL = logL > hiLL_val
 
-    evals_bz['LLtype'] = 'null'
-    evals_bz['LLtype'][lowLL] = 'Low'
-    evals_bz['LLtype'][hiLL] = 'High'
 
 
     # Plot
     fig = plt.figure(figsize=(8, 8))
     plt.clf()
-    gs = gridspec.GridSpec(2,2)
+    gs = gridspec.GridSpec(11,11)
+
+    tformP = ccrs.PlateCarree()
+    ax_b = plt.subplot(gs[:5, :6], projection=tformP)
+
+
+    # LL near Argentina!
+    psize = 0.5
+    cm = plt.get_cmap('coolwarm')
+    img = plt.scatter(
+        x=evals_bz.longitude,
+        y=evals_bz.latitude,
+        s=psize,
+        c=evals_bz.log_likelihood,
+        cmap=cm,
+        vmin=lowLL_val, 
+        vmax=hiLL_val,
+        transform=tformP)
+    # Color bar
+    cb = plt.colorbar(img, fraction=0.020, pad=0.04)
+    cb.ax.set_title('LL', fontsize=13.)
+
+    # Draw rectangles
+    for lbl, R, ls in zip(['R1', 'R2'], [R1, R2], ['k-', 'k--']):
+        xvals = R['lon']-R['dlon'], R['lon']+R['dlon'], R['lon']+R['dlon'], R['lon']-R['dlon'], R['lon']-R['dlon']
+        yvals = R['lat']-R['dlat'], R['lat']-R['dlat'], R['lat']+R['dlat'], R['lat']+R['dlat'], R['lat']-R['dlat']
+        ax_b.plot(xvals, yvals, ls, label=lbl)
+
+    legend = plt.legend(loc='upper left', scatterpoints=1, borderpad=0.3,
+                        handletextpad=0.3, fontsize=13, numpoints=1)
+
+    gl = ax_b.gridlines(crs=ccrs.PlateCarree(), linewidth=1, 
+        color='black', alpha=0.5, linestyle='--', draw_labels=True)
+    gl.xlabels_top = False
+    gl.ylabels_left = True
+    gl.ylabels_right=False
+    gl.xlines = True
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.yformatter = LATITUDE_FORMATTER
+    gl.xlabel_style = {'color': 'black'}# 'weight': 'bold'}
+    gl.ylabel_style = {'color': 'black'}# 'weight': 'bold'}
+    #gl.xlocator = mticker.FixedLocator([-180., -160, -140, -120, -60, -20.])
+    #gl.xlocator = mticker.FixedLocator([-240., -180., -120, -65, -60, -55, 0, 60, 120.])
+    #gl.ylocator = mticker.FixedLocator([0., 15., 30., 45, 60.])
+
+    plt.gca().coastlines()
 
     # Histograms
-    ax = plt.subplot(gs[0])
+    in_R1, in_R2 = [((np.abs(evals_bz.longitude.values - R['lon']) < R['dlon'])  & 
+        (np.abs(evals_bz.latitude.values - R['lat']) < R['dlat'])) for R in [R1,R2]]
+    evals_bz['LLtype'] = 'null'
+    evals_bz['LLtype'][in_R1] = 'R1'
+    evals_bz['LLtype'][in_R2] = 'R2'
 
-    sns.histplot(data=evals_bz, x='log_likelihood',
-        hue='LLtype', hue_order=['Low', 'High'])
+    df_rects = pandas.DataFrame(dict(
+        LL=evals_bz.log_likelihood.values[in_R1 | in_R2],
+        LLtype=evals_bz.LLtype.values[in_R1 | in_R2]))
+
+    ax_h = plt.subplot(gs[:5, 6:])
+
+    sns.histplot(data=df_rects, x='LL',
+        hue='LLtype', hue_order=['R1', 'R2'], ax=ax_h)
+    ax_h.set_xlim(-800, 500)
     #plt.xlabel('Log Likelihood (LL)', fontsize=fsz)
     #plt.ylabel('Probability Density', fontsize=fsz)
 
+    # Gallery
+    nGal = 25
+    vmin, vmax = None, None
+    pal, cm = plotting.load_palette()
+
+    # R1
+    idx_R1 = np.where(in_R1)[0]
+    rand_R1 = np.random.choice(idx_R1, nGal, replace=False)
+
+    for ss in range(nGal):
+        example = evals_bz.iloc[rand_R1[ss]]
+        field, mask = image_utils.grab_img(example, 'PreProc', ptype='std')
+        # Axis
+        row = 6 + ss//5
+        col = ss % 5
+        ax_0 = plt.subplot(gs[row, col])
+        sns.heatmap(field[0], ax=ax_0, xticklabels=[], yticklabels=[], cmap=cm,
+                    vmin=vmin, vmax=vmax, cbar=False)
+
+    # R2
+    idx_R2 = np.where(in_R2)[0]
+    rand_R2 = np.random.choice(idx_R2, nGal, replace=False)
+
+    for ss in range(nGal):
+        example = evals_bz.iloc[rand_R2[ss]]
+        field, mask = image_utils.grab_img(example, 'PreProc', ptype='std')
+        # Axis
+        row = 6 + ss//5
+        col = 6 + ss % 5
+        ax_0 = plt.subplot(gs[row, col])
+        sns.heatmap(field[0], ax=ax_0, xticklabels=[], yticklabels=[], cmap=cm,
+                    vmin=vmin, vmax=vmax, cbar=False)
+
+
     # Layout and save
-    # plt.tight_layout(pad=0.5, h_pad=0.5, w_pad=0.5)
+    #plt.tight_layout(pad=0.0, h_pad=0.0, w_pad=0.0)
     plt.savefig(outfile, dpi=300)
     plt.close()
     print('Wrote {:s}'.format(outfile))
@@ -749,6 +844,8 @@ def fig_LL_vs_DT(ptype, outfile, evals_tbl=None):
     jg.ax_joint.set_xlabel(r'$\Delta T$ (K)')
     jg.ax_joint.set_ylabel(r'LL')
     jg.ax_joint.minorticks_on()
+
+    set_fontsize(jg.ax_joint, 17.)
 
     #jg.ax_joint.yaxis.set_major_locator(plt.MultipleLocator(0.5))
     #jg.ax_joint.xaxis.set_major_locator(plt.MultipleLocator(1.0)
