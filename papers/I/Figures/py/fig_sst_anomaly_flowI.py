@@ -366,6 +366,22 @@ def fig_spatial_outliers(pproc, outfile, nside=64):
     if cohort == 'outliers':
         ax.coastlines(zorder=10)
         ax.set_global()
+    
+    if cohort != 'all':
+        gl = ax.gridlines(crs=ccrs.PlateCarree(), linewidth=1, 
+            color='black', alpha=0.5, linestyle='--', draw_labels=True)
+        gl.xlabels_top = False
+        gl.ylabels_left = True
+        gl.ylabels_right=False
+        gl.xlines = True
+        gl.xformatter = LONGITUDE_FORMATTER
+        gl.yformatter = LATITUDE_FORMATTER
+        gl.xlabel_style = {'color': 'black'}# 'weight': 'bold'}
+        gl.ylabel_style = {'color': 'black'}# 'weight': 'bold'}
+        #gl.xlocator = mticker.FixedLocator([-180., -160, -140, -120, -60, -20.])
+        #gl.xlocator = mticker.FixedLocator([-240., -180., -120, -65, -60, -55, 0, 60, 120.])
+        #gl.ylocator = mticker.FixedLocator([0., 15., 30., 45, 60.])
+
 
     # Layout and save
     plt.savefig(outfile, dpi=300)
@@ -605,9 +621,11 @@ def fig_brazil(outfile='fig_brazil.png'):
     evals_bz = evals_tbl[in_brazil].copy()
     
     # Rectangles
-    R1 = dict(lon=-60., dlon=1.,
-        lat=-41.5, dlat=1.5)
-    R2 = dict(lon=-56.5, dlon=1.5,
+    #R2 = dict(lon=-60., dlon=1.,
+    #    lat=-41.5, dlat=1.5)
+    R2 = dict(lon=-62.0, dlon=1.,
+        lat=-45., dlat=2)
+    R1 = dict(lon=-56.5, dlon=1.5,
         lat=-45, dlat=2)
 
     logL = evals_bz.log_likelihood.values
@@ -629,6 +647,9 @@ def fig_brazil(outfile='fig_brazil.png'):
     ax_b = plt.subplot(gs[:5, :6], projection=tformP)
 
 
+    ax_b.set_ylabel('Latitude')
+    ax_b.set_xlabel('Longitude')
+
     # LL near Argentina!
     psize = 0.5
     cm = plt.get_cmap('coolwarm')
@@ -643,7 +664,7 @@ def fig_brazil(outfile='fig_brazil.png'):
         transform=tformP)
     # Color bar
     cb = plt.colorbar(img, fraction=0.020, pad=0.04)
-    cb.ax.set_title('LL', fontsize=13.)
+    cb.ax.set_title('LL', fontsize=11.)
 
     # Draw rectangles
     for lbl, R, ls in zip(['R1', 'R2'], [R1, R2], ['k-', 'k--']):
@@ -652,7 +673,7 @@ def fig_brazil(outfile='fig_brazil.png'):
         ax_b.plot(xvals, yvals, ls, label=lbl)
 
     legend = plt.legend(loc='upper left', scatterpoints=1, borderpad=0.3,
-                        handletextpad=0.3, fontsize=13, numpoints=1)
+                        handletextpad=0.3, fontsize=11, numpoints=1)
 
     gl = ax_b.gridlines(crs=ccrs.PlateCarree(), linewidth=1, 
         color='black', alpha=0.5, linestyle='--', draw_labels=True)
@@ -673,24 +694,25 @@ def fig_brazil(outfile='fig_brazil.png'):
     # Histograms
     in_R1, in_R2 = [((np.abs(evals_bz.longitude.values - R['lon']) < R['dlon'])  & 
         (np.abs(evals_bz.latitude.values - R['lat']) < R['dlat'])) for R in [R1,R2]]
-    evals_bz['LLtype'] = 'null'
-    evals_bz['LLtype'][in_R1] = 'R1'
-    evals_bz['LLtype'][in_R2] = 'R2'
+    evals_bz['Subsample'] = 'null'
+    evals_bz['Subsample'][in_R1] = 'R1'
+    evals_bz['Subsample'][in_R2] = 'R2'
 
     df_rects = pandas.DataFrame(dict(
         LL=evals_bz.log_likelihood.values[in_R1 | in_R2],
-        LLtype=evals_bz.LLtype.values[in_R1 | in_R2]))
+        Subsample=evals_bz.Subsample.values[in_R1 | in_R2]))
 
-    ax_h = plt.subplot(gs[:5, 6:])
+    ax_h = plt.subplot(gs[:4, 8:])
 
     sns.histplot(data=df_rects, x='LL',
-        hue='LLtype', hue_order=['R1', 'R2'], ax=ax_h)
-    ax_h.set_xlim(-800, 500)
-    #plt.xlabel('Log Likelihood (LL)', fontsize=fsz)
+        hue='Subsample', hue_order=['R1', 'R2'], ax=ax_h)
+    ax_h.set_xlim(-800, 900)
+    ax_h.set_xlabel('Log Likelihood (LL)')#, fontsize=fsz)
     #plt.ylabel('Probability Density', fontsize=fsz)
 
     # Gallery
     nGal = 25
+    #nGal = 1
     vmin, vmax = None, None
     pal, cm = plotting.load_palette()
 
@@ -843,7 +865,21 @@ def fig_LL_vs_DT(ptype, outfile, evals_tbl=None):
     #jg.ax_marg_y.set_ylim(0.5, 2.0)
     jg.ax_joint.set_xlabel(r'$\Delta T$ (K)')
     jg.ax_joint.set_ylabel(r'LL')
+    xmnx = (0., 14.5)
+    jg.ax_joint.set_xlim(xmnx[0], xmnx[1])
+    #ymnx = (-11400., 1700)
+    #jg.ax_joint.set_ylim(ymnx[0], ymnx[1])
     jg.ax_joint.minorticks_on()
+
+    # Horizontal line
+    lowLL_val = np.percentile(evals_tbl.log_likelihood, 0.1)
+    jg.ax_joint.plot(xmnx, [lowLL_val]*2, '--', color='gray')
+    
+    '''
+    # Vertical lines
+    jg.ax_joint.plot([2.]*2, ymnx, '-', color='gray', lw=1)
+    jg.ax_joint.plot([2.1]*2, ymnx, '-', color='gray', lw=1)
+    '''
 
     set_fontsize(jg.ax_joint, 17.)
 
@@ -1263,8 +1299,8 @@ def main(flg_fig):
 
     # Spatial of all evaluations
     if flg_fig & (2 ** 3):
-        for outfile in ['fig_std_evals_spatial.png']:
-            fig_spatial_all('std', outfile)
+        #for outfile in ['fig_std_evals_spatial.png']:
+        #    fig_spatial_all('std', outfile)
         fig_spatial_outliers('std', 'fig_std_outliers_spatial.png')
 
     # In-painting
