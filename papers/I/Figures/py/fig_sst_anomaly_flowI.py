@@ -369,7 +369,7 @@ def fig_spatial_outliers(pproc, outfile, nside=64):
     
     if cohort != 'all':
         gl = ax.gridlines(crs=ccrs.PlateCarree(), linewidth=1, 
-            color='black', alpha=0.5, linestyle='--', draw_labels=True)
+            color='black', alpha=0.5, linestyle=':', draw_labels=True)
         gl.xlabels_top = False
         gl.ylabels_left = True
         gl.ylabels_right=False
@@ -702,7 +702,7 @@ def fig_brazil(outfile='fig_brazil.png'):
         LL=evals_bz.log_likelihood.values[in_R1 | in_R2],
         Subsample=evals_bz.Subsample.values[in_R1 | in_R2]))
 
-    ax_h = plt.subplot(gs[:4, 8:])
+    ax_h = plt.subplot(gs[:5, 8:])
 
     sns.histplot(data=df_rects, x='LL',
         hue='Subsample', hue_order=['R1', 'R2'], ax=ax_h)
@@ -712,7 +712,7 @@ def fig_brazil(outfile='fig_brazil.png'):
 
     # Gallery
     nGal = 25
-    #nGal = 1
+    nGal = 1
     vmin, vmax = None, None
     pal, cm = plotting.load_palette()
 
