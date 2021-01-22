@@ -618,12 +618,13 @@ def fig_brazil(outfile='fig_brazil.png'):
     # Brazil
     in_brazil = ((np.abs(evals_tbl.longitude.values + 57.5) < 10.)  & 
         (np.abs(evals_tbl.latitude.values + 43.0) < 10))
-    evals_bz = evals_tbl[in_brazil].copy()
+    in_DT = np.abs(evals_tbl.DT - 2.05) < 0.05
+    evals_bz = evals_tbl[in_brazil & in_DT].copy()
     
     # Rectangles
     #R2 = dict(lon=-60., dlon=1.,
     #    lat=-41.5, dlat=1.5)
-    R2 = dict(lon=-62.0, dlon=1.,
+    R2 = dict(lon=-61.0, dlon=1.,
         lat=-45., dlat=2)
     R1 = dict(lon=-56.5, dlon=1.5,
         lat=-45, dlat=2)
@@ -632,10 +633,6 @@ def fig_brazil(outfile='fig_brazil.png'):
 
     lowLL_val = np.percentile(logL, 10.)
     hiLL_val = np.percentile(logL, 90.)
-
-    lowLL = logL < lowLL_val
-    hiLL = logL > hiLL_val
-
 
 
     # Plot
@@ -647,8 +644,6 @@ def fig_brazil(outfile='fig_brazil.png'):
     ax_b = plt.subplot(gs[:5, :6], projection=tformP)
 
 
-    ax_b.set_ylabel('Latitude')
-    ax_b.set_xlabel('Longitude')
 
     # LL near Argentina!
     psize = 0.5
@@ -662,6 +657,8 @@ def fig_brazil(outfile='fig_brazil.png'):
         vmin=lowLL_val, 
         vmax=hiLL_val,
         transform=tformP)
+    plt.ylabel('Latitude')
+    plt.xlabel('Longitude')
     # Color bar
     cb = plt.colorbar(img, fraction=0.020, pad=0.04)
     cb.ax.set_title('LL', fontsize=11.)
@@ -672,10 +669,7 @@ def fig_brazil(outfile='fig_brazil.png'):
         yvals = R['lat']-R['dlat'], R['lat']-R['dlat'], R['lat']+R['dlat'], R['lat']+R['dlat'], R['lat']-R['dlat']
         ax_b.plot(xvals, yvals, ls, label=lbl)
 
-    legend = plt.legend(loc='upper left', scatterpoints=1, borderpad=0.3,
-                        handletextpad=0.3, fontsize=11, numpoints=1)
-
-    gl = ax_b.gridlines(crs=ccrs.PlateCarree(), linewidth=1, 
+    gl = ax_b.gridlines(crs=ccrs.PlateCarree(), linewidth=1,
         color='black', alpha=0.5, linestyle='--', draw_labels=True)
     gl.xlabels_top = False
     gl.ylabels_left = True
@@ -690,6 +684,41 @@ def fig_brazil(outfile='fig_brazil.png'):
     #gl.ylocator = mticker.FixedLocator([0., 15., 30., 45, 60.])
 
     plt.gca().coastlines()
+
+    # Bathymetry
+    df_200 = pandas.read_csv('Patagonian_Bathymetry_200m.txt')
+    cut_df200 = (df_200.lat > -50.) & (df_200.lon > -65.) & (df_200.lat < -33.)
+    img2 = plt.scatter(
+        x=df_200[cut_df200].lon,
+        y=df_200[cut_df200].lat,
+        s=0.05,
+        color='green',
+        transform=tformP, label='200m')
+
+    '''
+    df_2500 = pandas.read_csv('Patagonian_Bathymetry_2500m.txt')
+    cut_df2500 = (df_2500.lat > -50.) & (df_2500.lon > -65.) & (df_2500.lat < -33.) & (
+        df_2500.lon < -50.)
+    img3 = plt.scatter(
+        x=df_2500[cut_df2500].lon,
+        y=df_2500[cut_df2500].lat,
+        s=0.05,
+        color='orange',
+        transform=tformP, label='2500m')
+    '''
+
+    legend = plt.legend(loc='upper left', scatterpoints=1, borderpad=0.3,
+                        handletextpad=0.3, fontsize=11, numpoints=1)
+
+    # Histograms
+    in_R1, in_R2 = [((np.abs(evals_bz.longitude.values - R['lon']) < R['dlon'])  &
+                     (np.abs(evals_bz.latitude.values - R['lat']) < R['dlat'])) for R in [R1,R2]]
+    evals_bz['Subsample'] = 'null'
+    evals_bz['Subsample'][in_R1] = 'R1'
+    evals_bz['Subsample'][in_R2] = 'R2'
+
+    legend = plt.legend(loc='upper left', scatterpoints=3, borderpad=0.3,
+                        handletextpad=0.3, fontsize=11, numpoints=1)
 
     # Histograms
     in_R1, in_R2 = [((np.abs(evals_bz.longitude.values - R['lon']) < R['dlon'])  & 
@@ -706,10 +735,11 @@ def fig_brazil(outfile='fig_brazil.png'):
 
     sns.histplot(data=df_rects, x='LL',
         hue='Subsample', hue_order=['R1', 'R2'], ax=ax_h)
-    ax_h.set_xlim(-800, 900)
+    ax_h.set_xlim(-800, 500)
     ax_h.set_xlabel('Log Likelihood (LL)')#, fontsize=fsz)
     #plt.ylabel('Probability Density', fontsize=fsz)
 
+    '''
     # Gallery
     nGal = 25
     nGal = 1
@@ -743,7 +773,7 @@ def fig_brazil(outfile='fig_brazil.png'):
         ax_0 = plt.subplot(gs[row, col])
         sns.heatmap(field[0], ax=ax_0, xticklabels=[], yticklabels=[], cmap=cm,
                     vmin=vmin, vmax=vmax, cbar=False)
-
+    '''
 
     # Layout and save
     #plt.tight_layout(pad=0.0, h_pad=0.0, w_pad=0.0)
