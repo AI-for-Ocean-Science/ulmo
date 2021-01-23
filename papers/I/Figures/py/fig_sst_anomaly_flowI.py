@@ -643,7 +643,8 @@ def fig_brazil(outfile='fig_brazil.png'):
     tformP = ccrs.PlateCarree()
     ax_b = plt.subplot(gs[:5, :6], projection=tformP)
 
-
+    ax_b.text(0.05, 1.03, '(a)', transform=ax_b.transAxes,
+              fontsize=15, ha='left', color='k')
 
     # LL near Argentina!
     psize = 0.5
@@ -710,6 +711,8 @@ def fig_brazil(outfile='fig_brazil.png'):
     legend = plt.legend(loc='upper left', scatterpoints=1, borderpad=0.3,
                         handletextpad=0.3, fontsize=11, numpoints=1)
 
+    # ######################################################################33
+    # ######################################################################33
     # Histograms
     in_R1, in_R2 = [((np.abs(evals_bz.longitude.values - R['lon']) < R['dlon'])  &
                      (np.abs(evals_bz.latitude.values - R['lat']) < R['dlat'])) for R in [R1,R2]]
@@ -732,6 +735,8 @@ def fig_brazil(outfile='fig_brazil.png'):
         Subsample=evals_bz.Subsample.values[in_R1 | in_R2]))
 
     ax_h = plt.subplot(gs[:5, 8:])
+    ax_h.text(0.05, 1.03, '(b)', transform=ax_h.transAxes,
+              fontsize=15, ha='left', color='k')
 
     sns.histplot(data=df_rects, x='LL',
         hue='Subsample', hue_order=['R1', 'R2'], ax=ax_h)
@@ -739,11 +744,11 @@ def fig_brazil(outfile='fig_brazil.png'):
     ax_h.set_xlabel('Log Likelihood (LL)')#, fontsize=fsz)
     #plt.ylabel('Probability Density', fontsize=fsz)
 
-    '''
     # Gallery
     nGal = 25
-    nGal = 1
+    #nGal = 1
     vmin, vmax = None, None
+    vmin, vmax = -1, 1
     pal, cm = plotting.load_palette()
 
     # R1
@@ -755,7 +760,8 @@ def fig_brazil(outfile='fig_brazil.png'):
         field, mask = image_utils.grab_img(example, 'PreProc', ptype='std')
         # Axis
         row = 6 + ss//5
-        col = ss % 5
+        col = 6 + ss % 5
+        #
         ax_0 = plt.subplot(gs[row, col])
         sns.heatmap(field[0], ax=ax_0, xticklabels=[], yticklabels=[], cmap=cm,
                     vmin=vmin, vmax=vmax, cbar=False)
@@ -769,11 +775,11 @@ def fig_brazil(outfile='fig_brazil.png'):
         field, mask = image_utils.grab_img(example, 'PreProc', ptype='std')
         # Axis
         row = 6 + ss//5
-        col = 6 + ss % 5
+        col = ss % 5
+        #
         ax_0 = plt.subplot(gs[row, col])
         sns.heatmap(field[0], ax=ax_0, xticklabels=[], yticklabels=[], cmap=cm,
                     vmin=vmin, vmax=vmax, cbar=False)
-    '''
 
     # Layout and save
     #plt.tight_layout(pad=0.0, h_pad=0.0, w_pad=0.0)
