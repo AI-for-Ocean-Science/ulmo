@@ -36,7 +36,7 @@ def parser(options=None):
     parser.add_argument('--temp_upper_bound', type=float, default=33.,
                         help='Maximum temperature considered')
     parser.add_argument('--nrepeat', type=int, default=1,
-                        help='Repeats for each good block')
+                        help='Number of images drawn from each good block')
     parser.add_argument('--nmin_patches', type=int, default=2,
                         help='Mininum number of random patches to consider from each file')
     parser.add_argument('--nmax_patches', type=int, default=1000,
