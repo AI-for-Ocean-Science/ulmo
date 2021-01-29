@@ -118,6 +118,9 @@ class ProbabilisticAutoencoder:
         torch.save(self.autoencoder.state_dict(), self.savepath['autoencoder'])
         
     def load_autoencoder(self):
+        """
+        Load autoencoder from pytorch file
+        """
         print(f"Loading autoencoder model from: {self.savepath['autoencoder']}")
         self.autoencoder.load_state_dict(torch.load(self.savepath['autoencoder'], map_location=self.device))
         
@@ -148,6 +151,20 @@ class ProbabilisticAutoencoder:
         print(f"Wrote model parameters to {self.savepath['model']}")
 
     def _make_loaders(self, kind, batch_size, drop_last=True):
+        """
+
+        Parameters
+        ----------
+        kind
+        batch_size : int
+        drop_last : bool, optional
+
+        Returns
+        -------
+        train_loader, valid_loader :
+            torch.utils.data.DataLoader, torch.utils.data.DataLoader,
+
+        """
         filepath = self.filepath[kind]
             
         train_dset = HDF5Dataset(filepath, partition='train')
@@ -170,6 +187,23 @@ class ProbabilisticAutoencoder:
     def _train_module(self, module, n_epochs, batch_size, lr,
                      summary_interval=50, eval_interval=500,
                      show_plots=True):
+        """
+        Train one of the sub-systems, either autoencoder or flow
+
+        Parameters
+        ----------
+        module
+        n_epochs
+        batch_size
+        lr
+        summary_interval
+        eval_interval
+        show_plots
+
+        Returns
+        -------
+
+        """
         try:
             module = module.strip().lower()
             if module == 'autoencoder':
