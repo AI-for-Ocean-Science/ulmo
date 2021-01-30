@@ -36,7 +36,7 @@ def parser(options=None):
     parser.add_argument('--temp_upper_bound', type=float, default=33.,
                         help='Maximum temperature considered')
     parser.add_argument('--nrepeat', type=int, default=1,
-                        help='Number of images drawn from each good block')
+                        help='Repeats for each good block')
     parser.add_argument('--nmin_patches', type=int, default=2,
                         help='Mininum number of random patches to consider from each file')
     parser.add_argument('--nmax_patches', type=int, default=1000,
@@ -46,6 +46,7 @@ def parser(options=None):
     parser.add_argument("--debug", default=False, action="store_true", help="Debug?")
     parser.add_argument("--wolverine", default=False, action="store_true", help="Run on Wolverine")
     parser.add_argument("--no_inpaint", default=False, action="store_true", help="Turn off inpainting?")
+    parser.add_argument("--day", default=False, action="store_true", help="Day time?")
     args = parser.parse_args()
 
     if options is None:
@@ -148,15 +149,24 @@ def main(pargs):
     """
     # Filenames
     istr = 'F' if pargs.no_inpaint else 'T'
-    #load_path = f'/Volumes/Aqua-1/MODIS/night/night/{pargs.year}'
+
     if pargs.field == 'SST':
-        load_path = f'/Volumes/Aqua-1/MODIS_R2019/night/{pargs.year}'
-        save_path = (f'/Volumes/Aqua-1/MODIS/uri-ai-sst/OOD/Extractions/MODIS_R2019_{pargs.year}'
+        if pargs.day:
+            load_path = f'/Volumes/Aqua-1/MODIS/day/{pargs.year}'
+            save_path = (f'/Volumes/Aqua-1/MODIS/uri-ai-sst/OOD/Extractions/MODIS_R2016_day_{pargs.year}'
+                     f'_{pargs.clear_threshold}clear_{pargs.field_size}x{pargs.field_size}_inpaint{istr}.h5')
+        else:
+            load_path = f'/Volumes/Aqua-1/MODIS_R2019/night/{pargs.year}'
+            save_path = (f'/Volumes/Aqua-1/MODIS/uri-ai-sst/OOD/Extractions/MODIS_R2019_{pargs.year}'
                  f'_{pargs.clear_threshold}clear_{pargs.field_size}x{pargs.field_size}_inpaint{istr}.h5')
     elif pargs.field == 'aph_443':
-        load_path = f'/tank/xavier/Oceanography/data/MODIS/MODIS_R2019_IOC/{pargs.year}'
-        save_path = (f'/tank/xavier/Oceanography/AI/OOD/Color/MODIS_R2019_IOC_aph443_{pargs.year}'
-                     f'_{pargs.clear_threshold}clear_{pargs.field_size}x{pargs.field_size}_inpaint{istr}.h5')
+        #load_path = f'/tank/xavier/Oceanography/data/MODIS/MODIS_R2019_IOC/{pargs.year}'
+        #save_path = (f'/tank/xavier/Oceanography/AI/OOD/Color/MODIS_R2019_IOC_aph443_{pargs.year}'
+        #             f'_{pargs.clear_threshold}clear_{pargs.field_size}x{pargs.field_size}_inpaint{istr}.h5')
+        opath = os.path.join(os.getenv('SST_OOD'), 'Color')
+        load_path = f'/home/xavier/Projects/Oceanography/data/MODIS/MODIS_R2019_IOC/{pargs.year}'
+        save_path = (os.path.join(opath, f'MODIS_R2019_IOC_aph443_{pargs.year}'
+                                         f'_{pargs.clear_threshold}clear_{pargs.field_size}x{pargs.field_size}_inpaint{istr}.h5'))
     else:
         raise IOError("Bad field: {}".format(pargs.field))
 
