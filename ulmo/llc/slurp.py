@@ -38,27 +38,28 @@ def write_xr(xr_d, outfile, strip_coord=True, encode=True):
     if encode:
         encoding = {}
         encoding['Theta'] = {'dtype': 'int16', 'scale_factor': 1e-3,
-                             'add_offset': 10., 'zlib': True, 
-                             '_FillValue': -32767,
+                             'add_offset': 10., 'zlib': True,
+                             '_FillValue': -32768,
                              'missing_value': -32768}
         encoding['U'] = {'dtype': 'int16', 'scale_factor': 1e-3,
-                             'add_offset': 0., 'zlib': True, 
-                             '_FillValue': -32767,
+                             'add_offset': 0., 'zlib': True,
+                             '_FillValue': -32768,
                              'missing_value': -32768}
         encoding['V'] = {'dtype': 'int16', 'scale_factor': 1e-3,
-                             'add_offset': 0., 'zlib': True, 
-                             '_FillValue': -32767,
+                             'add_offset': 0., 'zlib': True,
+                             '_FillValue': -32768,
                              'missing_value': -32768}
         encoding['W'] = {'dtype': 'int16', 'scale_factor': 1e-6,
-                             'add_offset': 0., 'zlib': True, 
-                             '_FillValue': -32767,
+                             'add_offset': 0., 'zlib': True,
+                             '_FillValue': -32768,
                              'missing_value': -32768}
         encoding['Salt'] = {'dtype': 'int16', 'scale_factor': 1e-3,
-                             'add_offset': 30., 'zlib': True, 
-                             '_FillValue': -32767,
+                             'add_offset': 30., 'zlib': True,
+                             '_FillValue': -32768,
                              'missing_value': -32768}
     else:
         encoding = None
 
     # Write
     xr_ds.to_netcdf(outfile, encoding=encoding)
+
