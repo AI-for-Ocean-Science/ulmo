@@ -59,6 +59,7 @@ def build_mask(dfield, qual, qual_thresh=2, temp_bounds=(-2,33),
 def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
                   downscale=True, dscale_size=(2,2), sigmoid=False, scale=None,
                   expon=None, only_inpaint=False, gradient=False,
+                  min_mean=None, de_mean=True,
                   log_scale=False, **kwargs):
     """
     Preprocess an input field image with a series of steps:
@@ -92,6 +93,10 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
         Exponate the SSTa values by this exponent
     gradient : bool, optional
         If True, apply a Sobel gradient enhancing filter
+    de_mean : bool, optional
+        If True, subtract the mean
+    min_mean : float, optional
+        If provided, require the image has a mean exceeding this value
     **kwargs : catches extraction keywords
 
     Returns
@@ -134,10 +139,17 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
     if np.any(np.isnan(field)):
         return None, None
 
-    # De-mean the field
+    # Check mean
     mu = np.mean(field)
-    pp_field = field - mu
     meta_dict['mu'] = mu
+    if min_mean is not None and mu < min_mean:
+        return None, None
+
+    # De-mean the field
+    if de_mean:
+        pp_field = field - mu
+    else:
+        pp_field = field
 
     # Sigmoid?
     if sigmoid:

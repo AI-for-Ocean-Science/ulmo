@@ -34,6 +34,7 @@ def parser(options=None):
     parser.add_argument('--ncores', type=int, help='Number of cores for processing')
     parser.add_argument('--nsub_fields', type=int, default=10000,
                         help='Number of fields to parallel process at a time')
+    parser.add_argument('--min_mean', type=float, help='Minimum mean to keep')
     parser.add_argument("--debug", default=False, action="store_true", help="Debug?")
     parser.add_argument("--kludge", default=False, action="store_true", help="X Kludge")
 
@@ -97,6 +98,9 @@ def main(pargs):
 
     # Pre-processing dict
     pdict = pp_io.load_options(pargs.preproc_root)
+
+    if pargs.min_mean is not None:
+        pdict['min_mean'] = pargs.min_mean
 
     # Setup for parallel
     map_fn = partial(preproc_image,
