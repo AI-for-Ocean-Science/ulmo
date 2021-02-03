@@ -6,3 +6,7 @@ ulmo_extract_modis --field aph_443 --year 2010 --field_size 128 --ncores 10 --nr
 
 # Pre-process
 ulmo_preproc_h5 Extractions/MODIS_R2019_IOC_aph443_2010_95clear_128x128_inpaintT.h5 0.2 stdcolor PreProc/MODIS_R2019_IOC_aph443_2010_95clear_128x128_preproc.h5 
+  # Only 42,278 images..
+
+# Train
+#  Notebook on Nautilus
