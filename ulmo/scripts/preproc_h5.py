@@ -169,7 +169,8 @@ def main(pargs):
     pp_fields = np.stack(pp_fields)
     pp_fields = pp_fields[:, None, :, :]  # Shaped for training
 
-    print("After pre-processing, there are {} images ready for analysis".format(pp_fields.shape[0]))
+    print("After pre-processing, there are {} images ready for analysis".format(
+        pp_fields.shape[0]))
 
     # Modify metadata
     metadata = metadata.iloc[img_idx]
