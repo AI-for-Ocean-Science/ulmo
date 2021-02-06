@@ -95,6 +95,8 @@ def main(pargs):
     metadata = pandas.DataFrame(meta[:].astype(np.unicode_),
                                 columns=clms)
 
+    # Define train/validation here using MODIS
+
     # Pre-processing dict
     pdict = pp_io.load_options(pargs.preproc_root)
 
@@ -116,10 +118,12 @@ def main(pargs):
     print("There are {} images to process in the input file".format(nimages))
     f.close()
 
+
     # Process them all, then deal with train/validation
     pp_fields, meta, img_idx = [], [], []
     for kk in range(nloop):
         f = h5py.File(pargs.infile, mode='r')
+
         # Load the images into memory
         i0 = kk*pargs.nsub_fields
         i1 = min((kk+1)*pargs.nsub_fields, nimages)
