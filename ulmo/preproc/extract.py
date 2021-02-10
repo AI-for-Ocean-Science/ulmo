@@ -3,6 +3,8 @@
 import numpy as np
 from scipy.ndimage import uniform_filter
 
+import datetime
+
 from IPython import embed
 
 
@@ -65,7 +67,7 @@ def clear_grid(mask, field_size, method, CC_max=0.05,
     # Work through each sub_grid
     sub_values = sub_grid[idx_clear]
     uni_sub, counts = np.unique(sub_values, return_counts=True)
-    for iuni, icount in zip(uni_sub, counts):
+    for ss, iuni, icount in zip(np.arange(counts.size), uni_sub, counts):
         mt = np.where(sub_values == iuni)[0]
         if method == 'random':
             r_idx = np.random.choice(icount, size=min(icount, nsgrid_draw))
@@ -82,8 +84,12 @@ def clear_grid(mask, field_size, method, CC_max=0.05,
             # Min and keep
             imin = np.argmin(dist2)
             keep[mt[imin]] = True
+            if (ss % 100) == 0:
+                print('ss=', ss, counts.size, datetime.datetime.now())
         else:
             raise IOError("Bad method option")
+        #if ss > 1000:
+        #    break
 
     # Offset to lower left corner
     picked_row = idx_clear[0][keep] - field_size//2

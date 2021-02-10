@@ -32,14 +32,24 @@ def build_mask(sst, qual, qual_thresh=2, temp_bounds=(-2,33)):
         mask;  True = bad
 
     """
+    # Deal with NANs
     sst[np.isnan(sst)] = np.nan
-    qual[np.isnan(qual)] = np.nan
-    # Deal with NaN
-    masks = np.logical_or(np.isnan(sst), np.isnan(qual))
+    if qual is not None:
+        qual[np.isnan(qual)] = np.nan
+        masks = np.logical_or(np.isnan(sst), np.isnan(qual))
+    else:
+        masks = np.isnan(sst)
+
     # Temperature bounds and quality
     qual_masks = np.zeros_like(masks)
-    qual_masks[~masks] = (qual[~masks] > qual_thresh) | (sst[~masks] <= temp_bounds[0]) | (sst[~masks] > temp_bounds[1])
+    if qual is not None:
+        qual_masks[~masks] = (qual[~masks] > qual_thresh) | (sst[~masks] <= temp_bounds[0]) | (sst[~masks] > temp_bounds[1])
+    else:
+        qual_masks[~masks] = (sst[~masks] <= temp_bounds[0]) | (sst[~masks] > temp_bounds[1])
+
+    # Finish
     masks = np.logical_or(masks, qual_masks)
+
     # Return
     return masks
 

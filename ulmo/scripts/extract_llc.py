@@ -10,6 +10,8 @@ import multiprocessing
 
 from tqdm import tqdm
 
+import xarray as xr
+
 from ulmo import io as ulmo_io
 from ulmo.preproc import utils as pp_utils
 from ulmo.preproc import extract
@@ -20,16 +22,10 @@ def parser(options=None):
     import argparse
     # Parse
     parser = argparse.ArgumentParser(description='Ulmo LLC extraction')
-    parser.add_argument('--year', type=int, default=2010,
-                        help='Data year to parse')
     parser.add_argument('--clear_threshold', type=int, default=95,
                         help='Percent of field required to be clear')
     parser.add_argument('--field_size', type=int, default=64,
                         help='Pixel width/height of field')
-    #parser.add_argument('--quality_threshold', type=int, default=2,
-    #                    help='Maximum quality value considered')
-    #parser.add_argument('--nadir_offset', type=int, default=480,
-    #                    help='Maximum pixel offset from satellite nadir')
     parser.add_argument('--temp_lower_bound', type=float, default=-2.,
                         help='Minimum temperature considered')
     parser.add_argument('--temp_upper_bound', type=float, default=33.,
@@ -41,7 +37,8 @@ def parser(options=None):
     #parser.add_argument('--nmax_patches', type=int, default=1000,
     #                    help='Maximum number of random patches to consider from each file')
     parser.add_argument('--ncores', type=int, help='Number of cores for processing')
-    #parser.add_argument('--nsub_files', type=int, default=20000, help='Number of files to process at a time')
+    parser.add_argument('--nsub_files', type=int, default=100, 
+        help='Number of files to process at a time')
     parser.add_argument("--debug", default=False, action="store_true", help="Debug?")
     parser.add_argument("--wolverine", default=False, action="store_true", help="Run on Wolverine")
     args = parser.parse_args()
@@ -53,21 +50,23 @@ def parser(options=None):
     return pargs
 
 
-def extract_file(ifile, load_path, field_size=(64,64),
+def extract_file(ifile, load_path, latitude=None, longitude=None,
+                 field_size=(64,64),
                  nadir_offset=None,
                  CC_max=0.05,
-                 temp_bounds=(-2, 33),
+                 temp_bounds=(-3, 34),
                  nrepeat=1,
                  inpaint=False, debug=False):
 
     filename = os.path.join(load_path, ifile)
 
     # Load the image
-    sst, qual, latitude, longitude = ulmo_io.load_nc(filename, verbose=False)
+    #sst, qual = ulmo_io.load_nc(filename, verbose=False)
+    ds = xr.load_dataset(filename)
+    sst = ds.Theta.values
 
     # Generate the masks
-    masks = pp_utils.build_mask(sst, qual, qual_thresh=qual_thresh,
-                                temp_bounds=temp_bounds)
+    masks = pp_utils.build_mask(sst, None, temp_bounds=temp_bounds)
 
     # Restrict to near nadir
     if nadir_offset is not None:
@@ -76,6 +75,8 @@ def extract_file(ifile, load_path, field_size=(64,64),
         ub = nadir_pix + nadir_offset
         sst = sst[:, lb:ub]
         masks = masks[:, lb:ub].astype(np.uint8)
+    else:
+        lb = 0
 
     # Random clear rows, cols
     rows, cols, clear_fracs = extract.clear_grid(masks, field_size[0], 'center',
@@ -107,39 +108,62 @@ def main(pargs):
     """ Run
     """
     # Filenames
-    istr = 'F' if pargs.no_inpaint else 'T'
+    load_path = f'/home/xavier/Projects/Oceanography/data/LLC/ThetaUVSalt'
+    save_path = os.path.join(os.getenv('SST_OOD'), f'LLC', f'Extractions',
+        f'LLC_{pargs.clear_threshold}clear_{pargs.field_size}x{pargs.field_size}.h5')
 
-    load_path = f'/home/xavier/Projects/Oceanography/data/LLC'
-    save_path = os.path.join(os.getenv('SST_OOD'), f'LLC', f'Extractions')
+    # Load up latitude, longitude
+    coord_file = f'/home/xavier/Projects/Oceanography/data/LLC/LLC_coords.nc'
+    coord_ds = xr.load_dataset(coord_file)
+    longitude = coord_ds.lon.values
+    latitude = coord_ds.lat.values
+    print('Coordinates loaded..')
 
     # Setup for preproc
     map_fn = partial(extract_file,
+                     longitude=longitude,
+                     latitude=latitude,
                      load_path=load_path,
                      field_size=(pargs.field_size, pargs.field_size),
                      CC_max=1.-pargs.clear_threshold / 100.,
-                     qual_thresh=pargs.quality_threshold,
                      temp_bounds=(pargs.temp_lower_bound, pargs.temp_upper_bound),
                      nrepeat=pargs.nrepeat,
                      debug=pargs.debug)
 
-    '''
+
     if pargs.debug:
         files = [f for f in os.listdir(load_path) if f.endswith('.nc')]
         if not pargs.wolverine:
-            files = files[0:100]
+            files = files[0:1]
         answers = []
         for kk, ifile in enumerate(files):
             answers.append(extract_file(ifile,
+                     longitude=longitude,
+                     latitude=latitude,
                      load_path=load_path,
                      field_size=(pargs.field_size, pargs.field_size),
                      CC_max=1.-pargs.clear_threshold / 100.,
-                     qual_thresh=pargs.quality_threshold,
-                     nadir_offset=pargs.nadir_offset,
                      temp_bounds=(pargs.temp_lower_bound, pargs.temp_upper_bound),
                      nrepeat=pargs.nrepeat))
             print("kk: {}".format(kk))
-        embed(header='123 of extract')
-    '''
+        # Unpack and save
+        answers = [f for f in answers if f is not None]
+        fields = np.concatenate([item[0] for item in answers])
+        masks = np.concatenate([item[1] for item in answers])
+        metadata = np.concatenate([item[2] for item in answers])
+
+        # Write
+        columns = ['filename', 'row', 'column', 'latitude', 'longitude', 'clear_fraction']
+
+        save_path = os.path.join(os.getenv('SST_OOD'), f'LLC', f'Extractions', 
+                                 f'debug_one_for_coords.h5')
+        with h5py.File(save_path, 'w') as f:
+            f.create_dataset('fields', data=fields)
+            f.create_dataset('masks', data=masks.astype(np.uint8))
+            dset = f.create_dataset('metadata', data=metadata.astype('S'))
+            dset.attrs['columns'] = columns
+    embed(header='165 of exLLC')
+
 
     if pargs.ncores is None:
         n_cores = multiprocessing.cpu_count()
@@ -157,6 +181,7 @@ def main(pargs):
 
     nloop = len(files) // pargs.nsub_files + ((len(files) % pargs.nsub_files) > 0)
     print('Processing {} files in {} loops of {}'.format(len(files), nloop, pargs.nsub_files))
+    embed(header='161 of exLLC')
 
     fields, masks, metadata = None, None, None
     for kk in range(nloop):
