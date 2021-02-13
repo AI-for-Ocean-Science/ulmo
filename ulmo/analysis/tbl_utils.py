@@ -10,7 +10,8 @@ from ulmo import defs
 
 from IPython import embed
 
-def load_log_prob(pproc, table_files=None, add_UID=False, feather=False):
+def load_log_prob(pproc, table_files=None, add_UID=False, feather=False,
+                  date_format='YYYYMMDDHHMM'):
     """
     Load log probabilities
 
@@ -41,18 +42,29 @@ def load_log_prob(pproc, table_files=None, add_UID=False, feather=False):
     table_files.sort()
 
 
-    ioff = 10
     evals_tbl = pandas.DataFrame()
     for table_file in table_files:
         print("Loading: {}".format(table_file))
         df = pandas.read_csv(table_file)
         # Dates
-        dtimes = [datetime.datetime(int(ifile[1+ioff:5+ioff]),
+        if date_format == 'YYYYMMDDHHMM':
+            ioff = 10
+            dtimes = [datetime.datetime(int(ifile[1+ioff:5+ioff]),
                                     int(ifile[5+ioff:7+ioff]),
                                     int(ifile[7 + ioff:9+ioff]),
                                     int(ifile[10+ioff:12+ioff]),
                                     int(ifile[12+ioff:14+ioff]))
                   for ifile in df['filename'].values]
+        elif date_format == 'YYYYDDDHHMMSS':
+            ioff = 0
+            dtimes = [datetime.datetime(int(ifile[1+ioff:5+ioff]), 1, 1) + datetime.timedelta(
+                days=int(ifile[5+ioff:8+ioff])-1,
+                hours=int(ifile[8 + ioff:10+ioff]),
+                minutes=int(ifile[10+ioff:12+ioff]),
+                seconds= int(ifile[12+ioff:14+ioff]))
+                  for ifile in df['filename'].values]
+        else:
+            raise IOError("Bad date_format")
 
         df['date'] = dtimes
         # Unique identifier
