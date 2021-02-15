@@ -40,7 +40,6 @@ def parser(options=None):
     parser.add_argument('--nsub_files', type=int, default=100, 
         help='Number of files to process at a time')
     parser.add_argument("--debug", default=False, action="store_true", help="Debug?")
-    parser.add_argument("--wolverine", default=False, action="store_true", help="Run on Wolverine")
     args = parser.parse_args()
 
     if options is None:
@@ -133,8 +132,7 @@ def main(pargs):
 
     if pargs.debug:
         files = [f for f in os.listdir(load_path) if f.endswith('.nc')]
-        if not pargs.wolverine:
-            files = files[0:1]
+        files = files[0:1]
         answers = []
         for kk, ifile in enumerate(files):
             answers.append(extract_file(ifile,

@@ -1,0 +1,10 @@
+# Grab LLC data
+ulmo_grab_llc 12 --var Theta,U,V,W,Salt # --istart 480
+
+# Coordinates
+  # See LLC_coord.ipynb Notebook
+
+# Extract
+
+## Grab one for the mapping
+ulmo_extract_llc --debug
