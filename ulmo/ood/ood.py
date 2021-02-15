@@ -546,6 +546,9 @@ class ProbabilisticAutoencoder:
             self._log_probs_to_csv(df, output_file, csv_name,
                                    dataset=dataset)
 
+        # Latents
+        return latents
+
     def _log_probs_to_csv(self, df, log_file, outfile, dataset='valid'):
         """
 
