@@ -106,7 +106,7 @@ def extract_preproc_for_analysis(resol=0.5, preproc_root='llc_std',
     
     idx = 0
     pp_fields, meta, img_idx = [], [], []
-    for filename in model_files[0:9]:
+    for filename in model_files[0:10]:
         ds = xr.load_dataset(filename)
         sst = ds.Theta.values
         # Load up the cutouts
