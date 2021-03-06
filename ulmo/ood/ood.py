@@ -118,15 +118,18 @@ class ProbabilisticAutoencoder:
         torch.save(self.autoencoder.state_dict(), self.savepath['autoencoder'])
         
     def load_autoencoder(self):
+        """
+        Load autoencoder from pytorch file
+        """
         print(f"Loading autoencoder model from: {self.savepath['autoencoder']}")
-        self.autoencoder.load_state_dict(torch.load(self.savepath['autoencoder']))
+        self.autoencoder.load_state_dict(torch.load(self.savepath['autoencoder'], map_location=self.device))
         
     def save_flow(self):
         torch.save(self.flow.state_dict(), self.savepath['flow'])
     
     def load_flow(self):
         print(f"Loading flow model from: {self.savepath['flow']}")
-        self.flow.load_state_dict(torch.load(self.savepath['flow']))
+        self.flow.load_state_dict(torch.load(self.savepath['flow'], map_location=self.device))
 
     def write_model(self):
         # Generate the dict
@@ -148,6 +151,20 @@ class ProbabilisticAutoencoder:
         print(f"Wrote model parameters to {self.savepath['model']}")
 
     def _make_loaders(self, kind, batch_size, drop_last=True):
+        """
+
+        Parameters
+        ----------
+        kind
+        batch_size : int
+        drop_last : bool, optional
+
+        Returns
+        -------
+        train_loader, valid_loader :
+            torch.utils.data.DataLoader, torch.utils.data.DataLoader,
+
+        """
         filepath = self.filepath[kind]
             
         train_dset = HDF5Dataset(filepath, partition='train')
@@ -170,6 +187,23 @@ class ProbabilisticAutoencoder:
     def _train_module(self, module, n_epochs, batch_size, lr,
                      summary_interval=50, eval_interval=500,
                      show_plots=True):
+        """
+        Train one of the sub-systems, either autoencoder or flow
+
+        Parameters
+        ----------
+        module
+        n_epochs
+        batch_size
+        lr
+        summary_interval
+        eval_interval
+        show_plots
+
+        Returns
+        -------
+
+        """
         try:
             module = module.strip().lower()
             if module == 'autoencoder':
@@ -407,6 +441,20 @@ class ProbabilisticAutoencoder:
         return x
     
     def reconstruct(self, x):
+        """
+        Use the AutoEncoder to reconstruct an input image
+
+        Parameters
+        ----------
+        x : np.ndarray
+            Image
+
+        Returns
+        -------
+        rx : np.ndarray
+            Reconstructed image
+
+        """
         t = type(x)
         self.autoencoder.eval()
         x = self.to_tensor(x)
@@ -425,7 +473,7 @@ class ProbabilisticAutoencoder:
         return log_prob
     
     def compute_log_probs(self, input_file, dataset, output_file,
-                          scaler=None, csv=False):
+                          scaler=None, csv=False, query=False):
         """
         Computer log probs on an input HDF file of images
 
@@ -435,6 +483,8 @@ class ProbabilisticAutoencoder:
         dataset
         output_file
         scaler
+        query : bool, optional
+            If True, query the user
 
         Returns
         -------
@@ -445,7 +495,10 @@ class ProbabilisticAutoencoder:
             scaler_path = os.path.join(self.logdir, self.stem + '_scaler.pkl')
             if self.scaler is None:
                 if os.path.exists(scaler_path):
-                    load = input("Scaler file found in logdir. Use this (y/n)?") == 'y'
+                    if query:
+                        load = input("Scaler file found in logdir. Use this (y/n)?") == 'y'
+                    else:
+                        load = True
                     if load:
                         with open(scaler_path, 'rb') as f:
                             scaler = pickle.load(f)
@@ -470,7 +523,6 @@ class ProbabilisticAutoencoder:
         with torch.no_grad():
             latents = [self.autoencoder.encode(data[0].to(self.device)).detach().cpu().numpy()
                      for data in loader]
-                     #for data in tqdm(loader, total=len(loader), unit='batch', desc='Computing latents')]
 
         latents = scaler.transform(np.concatenate(latents))
 
@@ -531,6 +583,14 @@ class ProbabilisticAutoencoder:
 
 
     def plot_reconstructions(self, save_figure=False):
+        """
+        Generate a grid of plots of reconstructed images
+
+        Parameters
+        ----------
+        save_figure : bool, optional
+
+        """
         pal, cm = load_palette()
         
         with h5py.File(self.filepath['data'], 'r') as f:

@@ -1,4 +1,12 @@
 {
+    "field_size": 128,
+    "quality_thresh": 2,
+    "nadir_offset": 480,
+    "nrepeat": 1,
+    "temp_bounds": [
+        -2,
+        33
+    ],
     "downscale": true,
     "dscale_size": [
         2,

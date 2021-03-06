@@ -10,6 +10,15 @@ from matplotlib.gridspec import GridSpec
 
 
 def load_palette(pfile=None):
+    """ Load the color pallette
+
+    Args:
+        pfile (str, optional): Filename of the pallette. Defaults to None.
+
+    Returns:
+        color pallette, LinearSegmentedColormap: pallette for sns, colormap
+    """
+    
     if pfile is None:
         pfile = os.path.join(resource_filename('ulmo', 'plotting'), 'color_palette.txt')
     # Load me up
@@ -23,6 +32,15 @@ def load_palette(pfile=None):
 
 
 def grid_plot(nrows, ncols):
+    """ Grid plot
+
+    Args:
+        nrows (int): Number of rows in the grid
+        ncols (int): Number of cols in the grid
+
+    Returns:
+        plt.Figure, plt.axis: Plot and axes
+    """
     
     # Make plot grid
     n, m = nrows, ncols # rows, columns

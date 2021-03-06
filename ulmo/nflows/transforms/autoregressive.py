@@ -40,14 +40,19 @@ class AutoregressiveTransform(Transform):
         return outputs, logabsdet
 
     def inverse(self, inputs, context=None):
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        outputs = torch.zeros_like(inputs).to(device)
+        #outputs = torch.zeros_like(inputs)
         num_inputs = np.prod(inputs.shape[1:])
-        outputs = torch.zeros_like(inputs)
         logabsdet = None
         for _ in range(num_inputs):
             autoregressive_params = self.autoregressive_net(outputs, context)
-            outputs, logabsdet = self._elementwise_inverse(
-                inputs, autoregressive_params
-            )
+            try:
+                outputs, logabsdet = self._elementwise_inverse(
+                    inputs.to(device), autoregressive_params
+                )
+            except:
+                import pdb; pdb.set_trace()
         return outputs, logabsdet
 
     def _output_dim_multiplier(self):

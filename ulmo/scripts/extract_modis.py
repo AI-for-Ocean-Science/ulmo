@@ -10,11 +10,11 @@ import multiprocessing
 
 from tqdm import tqdm
 
-from IPython import embed
 from ulmo import io as ulmo_io
 from ulmo.preproc import utils as pp_utils
 from ulmo.preproc import extract
 
+from IPython import embed
 
 def parser(options=None):
     import argparse
@@ -54,14 +54,23 @@ def parser(options=None):
     return pargs
 
 
-def extract_file(ifile, load_path, field_size=(128,128), nadir_offset=480,
-                 CC_max=0.05, qual_thresh=2, temp_bounds = (-2, 33), nrepeat=1,
+def extract_file(ifile, load_path, field_size=(128,128),
+                 nadir_offset=480,
+                 CC_max=0.05, qual_thresh=2,
+                 temp_bounds = (-2, 33),
+                 nrepeat=1,
                  inpaint=True, debug=False):
 
     filename = os.path.join(load_path, ifile)
 
     # Load the image
-    sst, qual, latitude, longitude = ulmo_io.load_nc(filename, verbose=False)
+    try:
+        sst, qual, latitude, longitude = ulmo_io.load_nc(filename, verbose=False)
+    except:
+        print("File {} is junk".format(filename))
+        return
+    if sst is None:
+        return
 
     # Generate the masks
     masks = pp_utils.build_mask(sst, qual, qual_thresh=qual_thresh,
@@ -99,8 +108,6 @@ def extract_file(ifile, load_path, field_size=(128,128), nadir_offset=480,
         lat = latitude[row + field_size[0] // 2, col + field_size[1] // 2]
         lon = longitude[row + field_size[0] // 2, col + field_size[1] // 2]
         metadata.append([ifile, str(row), str(col), str(lat), str(lon), str(clear_frac)])
-    #if debug:
-    #    print("f: {}, n_field = {}".format(ifile, len(fields)))
 
     del sst, masks
 
@@ -113,7 +120,7 @@ def main(pargs):
     istr = 'F' if pargs.no_inpaint else 'T'
     #load_path = f'/Volumes/Aqua-1/MODIS/night/night/{pargs.year}'
     load_path = f'/Volumes/Aqua-1/MODIS_R2019/night/{pargs.year}'
-    save_path = (f'/Volumes/Aqua-1/MODIS/uri-ai-sst/xavier/MODIS_R2019_{pargs.year}'
+    save_path = (f'/Volumes/Aqua-1/MODIS/uri-ai-sst/OOD/Extractions/MODIS_R2019_{pargs.year}'
                  f'_{pargs.clear_threshold}clear_{pargs.field_size}x{pargs.field_size}_inpaint{istr}.h5')
     if pargs.wolverine:
         load_path = f'/home/xavier/Projects/Oceanography/AI/OOD'
