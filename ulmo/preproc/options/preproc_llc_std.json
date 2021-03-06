@@ -12,6 +12,6 @@
         3,
         1
     ],
-    "median": true,
+    "median": false,
     "only_inpaint": false
 }

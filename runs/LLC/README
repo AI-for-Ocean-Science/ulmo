@@ -7,4 +7,4 @@ ulmo_grab_llc 12 --var Theta,U,V,W,Salt # --istart 480
 # Extract
 
 ## Grab one for the mapping
-ulmo_extract_llc --debug
+ulmo_extract_llc --debug --clear_threshold=99.99

@@ -72,8 +72,9 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
     Parameters
     ----------
     field : np.ndarray
-    mask : np.ndarray
+    mask : np.ndarray or None
         Data mask.  True = masked
+        Required for inpainting
     inpaint : bool, optional
         if True, inpaint masked values
     median : bool, optional

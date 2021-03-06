@@ -22,7 +22,7 @@ def parser(options=None):
     import argparse
     # Parse
     parser = argparse.ArgumentParser(description='Ulmo LLC extraction')
-    parser.add_argument('--clear_threshold', type=int, default=95,
+    parser.add_argument('--clear_threshold', type=float, default=99.99,  # No clouds, but 100 breaks
                         help='Percent of field required to be clear')
     parser.add_argument('--field_size', type=int, default=64,
                         help='Pixel width/height of field')
@@ -109,7 +109,7 @@ def main(pargs):
     # Filenames
     load_path = f'/home/xavier/Projects/Oceanography/data/LLC/ThetaUVSalt'
     save_path = os.path.join(os.getenv('SST_OOD'), f'LLC', f'Extractions',
-        f'LLC_{pargs.clear_threshold}clear_{pargs.field_size}x{pargs.field_size}.h5')
+        f'LLC_{int(pargs.clear_threshold)}clear_{pargs.field_size}x{pargs.field_size}.h5')
 
     # Load up latitude, longitude
     coord_file = f'/home/xavier/Projects/Oceanography/data/LLC/LLC_coords.nc'
@@ -124,7 +124,7 @@ def main(pargs):
                      latitude=latitude,
                      load_path=load_path,
                      field_size=(pargs.field_size, pargs.field_size),
-                     CC_max=1.-pargs.clear_threshold / 100.,
+                     CC_max=1.- pargs.clear_threshold/100.,
                      temp_bounds=(pargs.temp_lower_bound, pargs.temp_upper_bound),
                      nrepeat=pargs.nrepeat,
                      debug=pargs.debug)
@@ -140,7 +140,7 @@ def main(pargs):
                      latitude=latitude,
                      load_path=load_path,
                      field_size=(pargs.field_size, pargs.field_size),
-                     CC_max=1.-pargs.clear_threshold / 100.,
+                     CC_max=1.- pargs.clear_threshold/100.,
                      temp_bounds=(pargs.temp_lower_bound, pargs.temp_upper_bound),
                      nrepeat=pargs.nrepeat))
             print("kk: {}".format(kk))
