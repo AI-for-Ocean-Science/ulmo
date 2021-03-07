@@ -52,6 +52,7 @@ def parser(options=None):
     parser = argparse.ArgumentParser(description='Preproc images in an H5 file.')
     parser.add_argument("years", type=str, help="Begin, end year:  e.g. 2010,2012")
     parser.add_argument("flavor", type=str, help="Model (std, loggrad)")
+    parser.add_argument("--clobber", default=False, action="store_true", help="Debug?")
 
     if options is None:
         pargs = parser.parse_args()
@@ -70,4 +71,4 @@ def main(pargs):
     year0, year1 = [int(year) for year in pargs.years.split(',')]
     years = np.arange(year0, year1+1).astype(int)
 
-    run_evals(years, pargs.flavor)
+    run_evals(years, pargs.flavor, clobber=pargs.clobber)
