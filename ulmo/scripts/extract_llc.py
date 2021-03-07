@@ -154,7 +154,7 @@ def main(pargs):
         columns = ['filename', 'row', 'column', 'latitude', 'longitude', 'clear_fraction']
 
         save_path = os.path.join(os.getenv('SST_OOD'), f'LLC', f'Extractions', 
-                                 f'debug_one_for_coords.h5')
+                                 f'LLC_extract_coords.h5')
         with h5py.File(save_path, 'w') as f:
             f.create_dataset('fields', data=fields)
             f.create_dataset('masks', data=masks.astype(np.uint8))
