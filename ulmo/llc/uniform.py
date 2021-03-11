@@ -16,6 +16,7 @@ from tqdm import tqdm
 
 from ulmo.preproc import io as pp_io
 from ulmo.preproc import utils as pp_utils
+from ulmo.llc import extract
 
 # Astronomy tools
 import astropy_healpix
@@ -25,32 +26,6 @@ from astropy.coordinates import SkyCoord, match_coordinates_sky
 from sklearn.utils import shuffle
 
 from IPython import embed
-
-def setup_coords(resol):
-    # Load up full grid of row, col
-    allex_file = os.path.join(os.getenv('SST_OOD'), 'LLC', 
-                           'Extractions', 'all_extract_coords_LLC.csv')
-    df = pandas.read_csv(allex_file, index_col=0)
-
-    # Healpix time
-    nside = astropy_healpix.pixel_resolution_to_nside(resol*units.deg)
-    hp = astropy_healpix.HEALPix(nside=nside)
-    hp_lon, hp_lat = hp.healpix_to_lonlat(np.arange(hp.npix))
-
-    # Coords
-    hp_coord = SkyCoord(hp_lon, hp_lat, frame='galactic')
-    llc_coord = SkyCoord(df.longitude.values*units.deg + 180.*units.deg, 
-                         df.latitude.values*units.deg, frame='galactic')
-                        
-    # Cross-match
-    idx, sep2d, _ = match_coordinates_sky(hp_coord, llc_coord, nthneighbor=1)
-    flag = np.zeros(len(llc_coord), dtype='bool')
-    good = sep2d < hp.pixel_resolution
-    
-    # Return the cut table
-    for ii in np.where(good)[0]:
-        flag[idx[ii]] = True
-    return df[flag]
 
 
 def preproc_image(item, pdict):
@@ -84,7 +59,7 @@ def preproc_image(item, pdict):
 
 
 
-def extract_preproc_for_analysis(resol=0.5, preproc_root='llc_std', 
+def extract_preproc_for_analysis(llc_table, preproc_root='llc_std', 
                                  field_size=(64,64), n_cores=10,
                                  valid_fraction=1., 
                                  outfile='LLC_uniform_preproc.h5'):
@@ -92,11 +67,8 @@ def extract_preproc_for_analysis(resol=0.5, preproc_root='llc_std',
     pdict = pp_io.load_options(preproc_root)
 
     # Setup for parallel
-    map_fn = partial(preproc_image,
-                     pdict=pdict)
+    map_fn = partial(preproc_image, pdict=pdict)
 
-    # Coordinate table
-    coord_tbl = setup_coords(resol)
 
     # Loop on files
     load_path = f'/home/xavier/Projects/Oceanography/data/LLC/ThetaUVSalt'
@@ -191,8 +163,21 @@ def main(flg):
     else:
         flg= int(flg)
 
+    # Testing
     if flg & (2**0):  
-        extract_preproc_for_analysis()
+        # Generate the extraction file
+        resol = 0.5  # deg
+        outfile = os.path.join(os.getenv('SST_OOD'), 'LLC', 'Tables', 'test_uniform_0.5.csv')
+        if os.path.isfile(outfile):
+            print("{} exists.  Am loading it.".format(outfile))
+            llc_table = pandas.read_csv(outfile)
+        else:
+            llc_table = extract.uniform_coords(resol=resol, field_size=(64,64),
+                                               outfile=outfile)
+        extract.plot_extraction(llc_table, s=1)#, resol=resol)
+
+        # Extract 5 days across the full range
+
 
 # Command line execution
 if __name__ == '__main__':
