@@ -1,3 +1,4 @@
+""" OOD Class """
 import os
 import time
 import io, json
@@ -22,6 +23,7 @@ from ulmo.plotting import load_palette, grid_plot
 from ulmo.utils import HDF5Dataset, id_collate, get_quantiles
 from ulmo.models import DCAE, ConditionalFlow
 
+from IPython import embed
 
 try:
     import cartopy.crs as ccrs
@@ -526,6 +528,11 @@ class ProbabilisticAutoencoder:
 
         latents = scaler.transform(np.concatenate(latents))
 
+        # Write latents
+        latent_file = output_file.replace('log_prob', 'latents')
+        with h5py.File(latent_file, 'w') as f:
+            f.create_dataset('latents', data=latents)
+
         dset = torch.utils.data.TensorDataset(torch.from_numpy(latents).float())
         loader = torch.utils.data.DataLoader(
             dset, batch_size=1024, shuffle=False, 
@@ -544,6 +551,9 @@ class ProbabilisticAutoencoder:
             df = self.load_meta(dataset+'_metadata', filename=input_file)
             self._log_probs_to_csv(df, output_file, csv_name,
                                    dataset=dataset)
+
+        # Latents
+        return latents
 
     def _log_probs_to_csv(self, df, log_file, outfile, dataset='valid'):
         """
