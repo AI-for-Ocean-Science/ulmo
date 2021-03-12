@@ -32,6 +32,26 @@ from astropy.coordinates import SkyCoord, match_coordinates_sky
 
 from IPython import embed
 
+def add_days(llc_table, dti, outfile=None):
+    # Check
+    if 'datetime' in llc_table.keys():
+        print("Dates already specified.  Not modifying")
+        return llc_table
+
+    # Do it
+    llc_table['datetime'] = dti[0]
+    for date in dti[1:]:
+        new_tbl = llc_table[llc_table['datetime'] == dti[0]].copy()
+        new_tbl['datetime'] = date
+        llc_table = llc_table.append(new_tbl, ignore_index=True)
+
+    # Write
+    if outfile is not None:
+        llc_io.write_llc_table(llc_table, outfile)
+
+    # Return
+    return llc_table
+
 def build_CC_mask(filename=None, temp_bounds=(-3, 34), 
                   field_size=(64,64)):
 
@@ -116,10 +136,8 @@ def uniform_coords(resol, field_size, CC_max=1e-4, outfile=None):
     llc_table['row'] = good_CC_idx[0][idx[good_sep]] - field_size[0]//2 # Lower left corner
     llc_table['col'] = good_CC_idx[1][idx[good_sep]] - field_size[0]//2 # Lower left corner
     
-
     if outfile is not None:
-        llc_table.to_csv(outfile)
-        print("Wrote LLC Table: {}".format(outfile))
+        llc_io.write_llc_table(llc_table, outfile)
     return llc_table
 
 

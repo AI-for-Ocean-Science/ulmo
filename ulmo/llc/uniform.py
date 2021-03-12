@@ -17,6 +17,7 @@ from tqdm import tqdm
 from ulmo.preproc import io as pp_io
 from ulmo.preproc import utils as pp_utils
 from ulmo.llc import extract
+from ulmo.llc import io as llc_io
 
 # Astronomy tools
 import astropy_healpix
@@ -69,28 +70,36 @@ def extract_preproc_for_analysis(llc_table, preproc_root='llc_std',
     # Setup for parallel
     map_fn = partial(preproc_image, pdict=pdict)
 
+    # File path
 
-    # Loop on files
-    load_path = f'/home/xavier/Projects/Oceanography/data/LLC/ThetaUVSalt'
-    model_files = glob.glob(os.path.join(load_path, 'LLC4320*'))
+    # Setup for dates
+    uni_date = np.unique(llc_table.datetime)
+    if len(uni_date) > 10:
+        raise IOError("You are likely to exceed the RAM.  Deal")
 
-    metadata = pandas.DataFrame()
-    
-    idx = 0
+    # Init
     pp_fields, meta, img_idx = [], [], []
-    for filename in model_files[0:10]:
+
+    # Loop
+    for udate in uni_date:
+        # Parse filename
+        filename = llc_io.build_llc_datafile(udate)
+
         ds = xr.load_dataset(filename)
         sst = ds.Theta.values
+        # Parse 
+        gd_date = llc_table.datetime == udate
+        sub_idx = np.where(gd_date)[0]
+        coord_tbl = llc_table[gd_date]
         # Load up the cutouts
-        print("Loading up the cutouts")
         fields = []
-        for r, c in zip(coord_tbl.row, coord_tbl.column):
+        for r, c in zip(coord_tbl.row, coord_tbl.col):
             fields.append(sst[r:r+field_size[0], c:c+field_size[1]])
         print("Cutouts loaded for {}".format(filename))
 
         # Multi-process time
-        sub_idx = np.arange(idx, idx+len(fields)).tolist()
-        idx += len(fields)
+        #sub_idx = np.arange(idx, idx+len(fields)).tolist()
+        #idx += len(fields)
         # 
         items = [item for item in zip(fields,sub_idx)]
 
@@ -108,9 +117,9 @@ def extract_preproc_for_analysis(llc_table, preproc_root='llc_std',
         meta += [item[2] for item in answers]
 
         # Update the metadata
-        tmp_tbl = coord_tbl.copy()
-        tmp_tbl['filename'] = os.path.basename(filename)
-        metadata = metadata.append(tmp_tbl, ignore_index=True)
+        #tmp_tbl = coord_tbl.copy()
+        #tmp_tbl['filename'] = os.path.basename(filename)
+        #metadata = metadata.append(tmp_tbl, ignore_index=True)
 
         del answers, fields, items
         ds.close()
@@ -119,21 +128,17 @@ def extract_preproc_for_analysis(llc_table, preproc_root='llc_std',
     pp_fields = np.stack(pp_fields)
     pp_fields = pp_fields[:, None, :, :]  # Shaped for training
 
-    
     print("After pre-processing, there are {} images ready for analysis".format(pp_fields.shape[0]))
     
-    # TODO -- Move the following to preproc
-
-    # Modify metadata
-    metadata = metadata.iloc[img_idx]
+    # Reorder llc_table (probably no change)
+    llc_table = llc_table.iloc[img_idx]
     # Mu
-    metadata['mean_temperature'] = [imeta['mu'] for imeta in meta]
-    clms = list(metadata.keys())
-    clms += ['mean_temperature']
+    llc_table['mean_temperature'] = [imeta['mu'] for imeta in meta]
+    clms = list(llc_table.keys())
     # Others
     for key in ['Tmin', 'Tmax', 'T90', 'T10']:
         if key in meta[0].keys():
-            metadata[key] = [imeta[key] for imeta in meta]
+            llc_table[key] = [imeta[key] for imeta in meta]
             clms += [key]
 
     # Train/validation
@@ -143,19 +148,21 @@ def extract_preproc_for_analysis(llc_table, preproc_root='llc_std',
 
     # ###################
     # Write to disk
-
     with h5py.File(outfile, 'w') as f:
         # Validation
         f.create_dataset('valid', data=pp_fields[valid_idx].astype(np.float32))
         # Metadata
-        dset = f.create_dataset('valid_metadata', data=metadata.iloc[valid_idx].to_numpy(dtype=str).astype('S'))
+        dset = f.create_dataset('valid_metadata', data=llc_table.iloc[valid_idx].to_numpy(dtype=str).astype('S'))
         dset.attrs['columns'] = clms
         # Train
         if valid_fraction < 1:
             f.create_dataset('train', data=pp_fields[train_idx].astype(np.float32))
-            dset = f.create_dataset('train_metadata', data=metadata.iloc[train_idx].to_numpy(dtype=str).astype('S'))
+            dset = f.create_dataset('train_metadata', data=llc_table.iloc[train_idx].to_numpy(dtype=str).astype('S'))
             dset.attrs['columns'] = clms
     print("Wrote: {}".format(outfile))
+
+    # Return
+    return llc_table
 
 def main(flg):
     if flg== 'all':
@@ -170,13 +177,25 @@ def main(flg):
         outfile = os.path.join(os.getenv('SST_OOD'), 'LLC', 'Tables', 'test_uniform_0.5.csv')
         if os.path.isfile(outfile):
             print("{} exists.  Am loading it.".format(outfile))
-            llc_table = pandas.read_csv(outfile)
+            llc_table = llc_io.load_llc_table(outfile)
         else:
             llc_table = extract.uniform_coords(resol=resol, field_size=(64,64),
                                                outfile=outfile)
-        extract.plot_extraction(llc_table, s=1, resol=resol)
+        # Plot
+        if False:
+            extract.plot_extraction(llc_table, s=1, resol=resol)
 
-        # Extract 5 days across the full range
+        # Extract 6 days across the full range;  ends of months
+        dti = pandas.date_range('2011-09-01', periods=6, freq='2M')
+        llc_table = extract.add_days(llc_table, dti, outfile=outfile)
+
+
+        # Giddy up (will take a bit of memory!)
+        pp_file = os.path.join(os.getenv('SST_OOD'), 'LLC', 'PreProc', 
+                               'LLC_uniform_preproc_test.h5')
+        llc_table = extract_preproc_for_analysis(llc_table, outfile=pp_file)
+        # Final write
+        llc_io.write_llc_table(llc_table, outfile)
 
 
 # Command line execution
