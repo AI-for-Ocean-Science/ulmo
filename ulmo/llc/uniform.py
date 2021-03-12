@@ -174,7 +174,7 @@ def main(flg):
         else:
             llc_table = extract.uniform_coords(resol=resol, field_size=(64,64),
                                                outfile=outfile)
-        extract.plot_extraction(llc_table, s=1)#, resol=resol)
+        extract.plot_extraction(llc_table, s=1, resol=resol)
 
         # Extract 5 days across the full range
 
