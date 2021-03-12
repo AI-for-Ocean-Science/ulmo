@@ -8,8 +8,10 @@ import matplotlib as mpl
 import matplotlib.gridspec as gridspec
 from matplotlib import pyplot as plt
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+import matplotlib.ticker as mticker
 
 import cartopy.crs as ccrs
+from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
 mpl.rcParams['font.family'] = 'stixgeneral'
 
@@ -123,6 +125,9 @@ def fig_db_by_meanT(outfile):
     print('Wrote {:s}'.format(outfile))
 
 def fig_CC(outfile):
+    """
+    CC fraction
+    """
 
     # Build by ulmo/analysis/cc.py
     tst_file = os.path.join(os.getenv('SST_OOD'), 'Analysis', 'cc_2010.h5')
@@ -133,7 +138,7 @@ def fig_CC(outfile):
 
     # Average
     mean_fCC = np.mean(fracCC, axis=0)
-    embed(header='134 of figs')
+    #embed(header='136 of figs')
 
     # Differential
     diff_CC = mean_fCC - np.roll(mean_fCC, -1)
@@ -146,28 +151,31 @@ def fig_CC(outfile):
     ax = plt.gca()
 
     # Plot
-    #p1 = ax.plot(1-ulmo_cc.CC_values, diff_CC, label='Differential')
-    p1 = ax.fill_between(np.array(1-ulmo_cc.CC_values), yzero, diff_CC,
-                         step='mid',
-                         alpha=0.5,
-                         color='blue',
-                         label='Differential')
+    p1 = ax.plot(1-ulmo_cc.CC_values, diff_CC, 'o', color='b', label='Fraction')
+    #p1 = ax.fill_between(np.array(1-ulmo_cc.CC_values), yzero, diff_CC,
+    #                     step='mid',
+    #                     alpha=0.5,
+    #                     color='blue',
+    #                     label='Differential')
 
     # Labels
-    ax.set_ylabel(r'Differential Fraction')
+    ax.set_ylabel(r'Fraction of Total Images')
     ax.set_xlabel(r'Clear Fraction (CF=1-CC)')
-    ax.set_ylim(0., 0.04)
+    ax.set_ylim(0., 0.05)
+    #ax.set_ylim(0., 1.0)
 
+    # Font size
+    fsz = 15.
+    set_fontsize(ax, fsz)
+
+    '''
     # Cumulative
     axC = ax.twinx()
     axC.set_ylim(0., 1.)
 
-    p2 = axC.plot(1-ulmo_cc.CC_values, mean_fCC, color='k', label='Cumulative')
+    p2 = axC.plot(1-ulmo_cc.CC_values[1:], mean_fCC[1:], color='k', label='Cumulative')
     axC.set_ylabel(r'Cumulative Distribution')
 
-    # Font sizes
-    fsz = 15.
-    set_fontsize(ax, fsz)
     set_fontsize(axC, fsz)
 
     #ax.set_yscale('log')
@@ -177,8 +185,9 @@ def fig_CC(outfile):
     plts = p2
     labs = [p.get_label() for p in plts]
 
-    legend = plt.legend(plts, labs, loc='upper left', scatterpoints=1, borderpad=0.3,
+    legend = plt.legend(plts, labs, loc='upper right', scatterpoints=1, borderpad=0.3,
                         handletextpad=0.3, fontsize='large', numpoints=1)
+    '''
 
     # Layout and save
     # plt.tight_layout(pad=0.5, h_pad=0.5, w_pad=0.5)
@@ -253,7 +262,7 @@ def fig_in_painting(outfile, iexmple=4, vmnx=(8, 24)):
     print('Wrote {:s}'.format(outfile))
 
 
-def fig_spatial(pproc, cohort, outfile, nside=64):
+def fig_spatial_all(pproc, outfile, nside=64):
     """
     Spatial distribution of the evaluations
 
@@ -270,45 +279,207 @@ def fig_spatial(pproc, cohort, outfile, nside=64):
     # Load
     evals_tbl = results.load_log_prob(pproc, feather=True)
 
-    if cohort == 'all':
-        lbl = 'evals'
-    elif cohort == 'outliers':
-        point1 = int(0.001 * len(evals_tbl))
-        isortLL = np.argsort(evals_tbl.log_likelihood)
-        evals_tbl = evals_tbl.iloc[isortLL[0:point1]]
-        lbl = 'outliers'
-    else:
-        raise IOError("Bad cohort")
+    lbl = 'evals'
+    use_log = True
+    use_mask = True
 
     # Healpix me
-    hp_events, hp_lons, hp_lats = image_utils.evals_to_healpix(evals_tbl, nside, log=True, mask=False)
+    hp_events, hp_lons, hp_lats = image_utils.evals_to_healpix(
+        evals_tbl, nside, log=use_log, mask=use_mask)
+
+    fig = plt.figure(figsize=(12, 8))
+    plt.clf()
+    
+    hp.mollview(hp_events, min=0, max=4.,
+                hold=True,
+                cmap='Blues',
+                flip='geo', title='', unit=r'$\log_{10} \, N_{\rm '+'{}'.format(lbl)+'}$',
+                rot=(0., 180., 180.))
+    #plt.gca().coastlines()
+
+    # Layout and save
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
+
+
+def fig_spatial_outliers(pproc, outfile, nside=64):
+    """
+    Spatial distribution of the evaluations
+
+    Parameters
+    ----------
+    pproc
+    outfile
+    nside
+
+    Returns
+    -------
+
+    """
+    # Load
+    evals_tbl = results.load_log_prob(pproc, feather=True)
+
+    cohort = 'outliers'
+    point1 = int(0.001 * len(evals_tbl))
+    isortLL = np.argsort(evals_tbl.log_likelihood)
+    evals_tbl = evals_tbl.iloc[isortLL[0:point1]]
+    lbl = 'outliers'
+    use_mask = True
+    use_log = True
+
+    # Healpix me
+    hp_events, hp_lons, hp_lats = image_utils.evals_to_healpix(
+        evals_tbl, nside, log=use_log, mask=use_mask)
+
+    fig = plt.figure(figsize=(12, 8))
+    plt.clf()
+
+    tformM = ccrs.Mollweide()
+    tformP = ccrs.PlateCarree()
+
+    ax = plt.axes(projection=tformM)
+
+    if cohort == 'all':
+        cm = plt.get_cmap('Blues')
+        img = ax.tricontourf(hp_lons, hp_lats, hp_events, transform=tformM,
+                         levels=20, cmap=cm)#, zorder=10)
+    else:
+        cm = plt.get_cmap('Reds')
+        # Cut
+        good = np.invert(hp_events.mask)
+        img = plt.scatter(x=hp_lons[good],
+            y=hp_lats[good],
+            c=hp_events[good],
+            cmap=cm,
+            s=1,
+            transform=tformP)
+
+    # Colorbar
+    cb = plt.colorbar(img, orientation='horizontal', pad=0.)
+    clbl=r'$\log_{10} \, N_{\rm '+'{}'.format(lbl)+'}$'
+    cb.set_label(clbl, fontsize=20.)
+    cb.ax.tick_params(labelsize=17)
+
+    # Coast lines
+    if cohort == 'outliers':
+        ax.coastlines(zorder=10)
+        ax.set_global()
+    
+    if cohort != 'all':
+        gl = ax.gridlines(crs=ccrs.PlateCarree(), linewidth=1, 
+            color='black', alpha=0.5, linestyle=':', draw_labels=True)
+        gl.xlabels_top = False
+        gl.ylabels_left = True
+        gl.ylabels_right=False
+        gl.xlines = True
+        gl.xformatter = LONGITUDE_FORMATTER
+        gl.yformatter = LATITUDE_FORMATTER
+        gl.xlabel_style = {'color': 'black'}# 'weight': 'bold'}
+        gl.ylabel_style = {'color': 'black'}# 'weight': 'bold'}
+        #gl.xlocator = mticker.FixedLocator([-180., -160, -140, -120, -60, -20.])
+        #gl.xlocator = mticker.FixedLocator([-240., -180., -120, -65, -60, -55, 0, 60, 120.])
+        #gl.ylocator = mticker.FixedLocator([0., 15., 30., 45, 60.])
+
+
+    # Layout and save
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
+def fig_inlier_vs_outlier(outfile='fig_inlier_vs_outlier.png'):
+    """
+    Spatial distribution of the evaluations
+
+    Parameters
+    ----------
+    outfile
+
+    """
+    tformP = ccrs.PlateCarree()
+
+    # Load
+    evals_tbl = results.load_log_prob('std', feather=True)
+
+    # Add in DT
+    if 'DT' not in evals_tbl.keys():
+        evals_tbl['DT'] = evals_tbl.T90 - evals_tbl.T10
+
+    # Cut on DT
+    cut2 = np.abs(evals_tbl.DT.values-2.) < 0.05
+    cut_evals = evals_tbl[cut2].copy()
+    lowLL = np.percentile(cut_evals.log_likelihood, 10.)
+    hiLL = np.percentile(cut_evals.log_likelihood, 90.)
+
+    low = cut_evals.log_likelihood < lowLL
+    high = cut_evals.log_likelihood > hiLL
+
+    fig = plt.figure()#figsize=(14, 8))
+    plt.clf()
+    ax = plt.axes(projection=tformP)
+
+    # Low
+    lw = 0.5
+    psize = 5.
+    img = plt.scatter(
+        x=cut_evals.longitude[low],
+        y=cut_evals.latitude[low],
+        edgecolors='b',
+        facecolors='none',
+        s=psize,
+        lw=lw,
+        transform=tformP)
+
+    # High
+    img = plt.scatter(
+        x=cut_evals.longitude[high],
+        y=cut_evals.latitude[high],
+        edgecolors='r',
+        facecolors='none',
+        s=psize,
+        lw=lw,
+        transform=tformP)
+
+    # Coast lines
+    ax.coastlines(zorder=10)
+    ax.set_global()
+
+    # Layout and save
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
+
+def tst():
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import cartopy.crs as ccrs
 
     fig = plt.figure(figsize=(12, 8))
     plt.clf()
 
     ax = plt.axes(projection=ccrs.Mollweide())
 
-    cm = plt.get_cmap('Blues')
-    img = ax.tricontourf(hp_lons, hp_lats, hp_events, transform=ccrs.Mollweide(),
-                         levels=20, cmap=cm)
+    cm = plt.get_cmap('Greens')
+
+    hp_lons = np.random.random(100) * 360 - 180
+    hp_lats = np.random.random(100) * 90 - 45
+    hp_events = np.random.random(100)
+
+    # Cut down
+    img = ax.tricontourf(hp_lons, hp_lats, hp_events, transform=ccrs.PlateCarree(),
+                         levels=20, cmap=cm, zorder=10)
 
     # Colorbar
     cb = plt.colorbar(img, orientation='horizontal', pad=0.)
-    clbl=r'$\log_{10} \, N_{\rm '+'{}'.format(lbl)+'}$'
+    clbl = r'$\log_{10} \, N$'
     cb.set_label(clbl, fontsize=20.)
 
-    # Median dSST
-    #hp.mollview(hp_events, min=0, hold=True,
-    #            cmap='Blues',
-    #            flip='geo', title='', unit=r'$\log_{10} \, N_{\rm '+'{}'.format(lbl)+'}$',
-    #            rot=(0., 180., 180.))
-    ax.coastlines()
+    ax.coastlines(zorder=10)
+    ax.set_global()
 
-    # Layout and save
-    #plt.tight_layout(pad=0.2,h_pad=0.,w_pad=0.1)
-    plt.savefig(outfile, dpi=300)
-    plt.close()
-    print('Wrote {:s}'.format(outfile))
+    plt.show()
 
 
 def fig_auto_encode(outfile, iexmple=4, vmnx=(-5, 5)):
@@ -377,8 +548,11 @@ def fig_LL_SSTa(outfile):
 
     """
 
-    evals_tbl = results.load_log_prob('std')
+    evals_tbl = results.load_log_prob('std', feather=True)
     logL = evals_tbl.log_likelihood.values
+
+    isort = np.argsort(logL)
+    LL_a = logL[isort[int(len(logL)*0.001)]]
 
     print("median logL = {}".format(np.median(logL)))
 
@@ -395,11 +569,12 @@ def fig_LL_SSTa(outfile):
     sns.distplot(logL)
     plt.axvline(low_logL, linestyle='--', c='r')
     plt.axvline(high_logL, linestyle='--', c='r')
-    plt.xlabel('Log Likelihood')
-    plt.ylabel('Probability Density')
+    fsz = 17.
+    plt.xlabel('Log Likelihood (LL)', fontsize=fsz)
+    plt.ylabel('Probability Density', fontsize=fsz)
 
     # Inset for lowest LL
-    cut_LL = -1500.
+    cut_LL = LL_a
     lowLL = logL < cut_LL
     axins = ax.inset_axes([0.1, 0.3, 0.57, 0.57])
     #axins.scatter(evals_tbl.date.values[lowLL], evals_tbl.log_likelihood.values[lowLL])
@@ -407,9 +582,12 @@ def fig_LL_SSTa(outfile):
     #out_hist, out_bins = np.histogram(logL[lowLL], bins=bins)
     #embed(header='316 of figs')
     #axins.hist(logL[lowLL], color='k')
-    axins.scatter(evals_tbl.log_likelihood.values[lowLL], evals_tbl.date.values[lowLL],
-                  s=0.1)
+    axins.scatter(evals_tbl.log_likelihood.values[lowLL], 
+        evals_tbl.date.values[lowLL], s=0.1)
+    #axins.axvline(LL_a, color='k', ls='--')
     axins.set_xlim(-8000., cut_LL)
+    axins.minorticks_on()
+    axins.set_title('Outliers (lowest 0.1% in LL)')
     plt.gcf().autofmt_xdate()
 
 
@@ -419,6 +597,195 @@ def fig_LL_SSTa(outfile):
     plt.close()
     print('Wrote {:s}'.format(outfile))
 
+
+def fig_brazil(outfile='fig_brazil.png'):
+    """
+    Brazil
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
+    """
+    evals_tbl = results.load_log_prob('std', feather=True)
+
+    # Add in DT
+    if 'DT' not in evals_tbl.keys():
+        evals_tbl['DT'] = evals_tbl.T90 - evals_tbl.T10
+
+    # Brazil
+    in_brazil = ((np.abs(evals_tbl.longitude.values + 57.5) < 10.)  & 
+        (np.abs(evals_tbl.latitude.values + 43.0) < 10))
+    in_DT = np.abs(evals_tbl.DT - 2.05) < 0.05
+    evals_bz = evals_tbl[in_brazil & in_DT].copy()
+    
+    # Rectangles
+    #R2 = dict(lon=-60., dlon=1.,
+    #    lat=-41.5, dlat=1.5)
+    R2 = dict(lon=-61.0, dlon=1.,
+        lat=-45., dlat=2)
+    R1 = dict(lon=-56.5, dlon=1.5,
+        lat=-45, dlat=2)
+
+    logL = evals_bz.log_likelihood.values
+
+    lowLL_val = np.percentile(logL, 10.)
+    hiLL_val = np.percentile(logL, 90.)
+
+
+    # Plot
+    fig = plt.figure(figsize=(8, 8))
+    plt.clf()
+    gs = gridspec.GridSpec(11,11)
+
+    tformP = ccrs.PlateCarree()
+    ax_b = plt.subplot(gs[:5, :6], projection=tformP)
+
+    ax_b.text(0.05, 1.03, '(a)', transform=ax_b.transAxes,
+              fontsize=15, ha='left', color='k')
+
+    # LL near Argentina!
+    psize = 0.5
+    cm = plt.get_cmap('coolwarm')
+    img = plt.scatter(
+        x=evals_bz.longitude,
+        y=evals_bz.latitude,
+        s=psize,
+        c=evals_bz.log_likelihood,
+        cmap=cm,
+        vmin=lowLL_val, 
+        vmax=hiLL_val,
+        transform=tformP)
+    plt.ylabel('Latitude')
+    plt.xlabel('Longitude')
+    # Color bar
+    cb = plt.colorbar(img, fraction=0.020, pad=0.04)
+    cb.ax.set_title('LL', fontsize=11.)
+
+    # Draw rectangles
+    for lbl, R, ls in zip(['R1', 'R2'], [R1, R2], ['k-', 'k--']):
+        xvals = R['lon']-R['dlon'], R['lon']+R['dlon'], R['lon']+R['dlon'], R['lon']-R['dlon'], R['lon']-R['dlon']
+        yvals = R['lat']-R['dlat'], R['lat']-R['dlat'], R['lat']+R['dlat'], R['lat']+R['dlat'], R['lat']-R['dlat']
+        ax_b.plot(xvals, yvals, ls, label=lbl)
+
+    gl = ax_b.gridlines(crs=ccrs.PlateCarree(), linewidth=1,
+        color='black', alpha=0.5, linestyle='--', draw_labels=True)
+    gl.xlabels_top = False
+    gl.ylabels_left = True
+    gl.ylabels_right=False
+    gl.xlines = True
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.yformatter = LATITUDE_FORMATTER
+    gl.xlabel_style = {'color': 'black'}# 'weight': 'bold'}
+    gl.ylabel_style = {'color': 'black'}# 'weight': 'bold'}
+    #gl.xlocator = mticker.FixedLocator([-180., -160, -140, -120, -60, -20.])
+    #gl.xlocator = mticker.FixedLocator([-240., -180., -120, -65, -60, -55, 0, 60, 120.])
+    #gl.ylocator = mticker.FixedLocator([0., 15., 30., 45, 60.])
+
+    plt.gca().coastlines()
+
+    # Bathymetry
+    df_200 = pandas.read_csv('Patagonian_Bathymetry_200m.txt')
+    cut_df200 = (df_200.lat > -50.) & (df_200.lon > -65.) & (df_200.lat < -33.)
+    img2 = plt.scatter(
+        x=df_200[cut_df200].lon,
+        y=df_200[cut_df200].lat,
+        s=0.05,
+        color='green',
+        transform=tformP, label='200m')
+
+    '''
+    df_2500 = pandas.read_csv('Patagonian_Bathymetry_2500m.txt')
+    cut_df2500 = (df_2500.lat > -50.) & (df_2500.lon > -65.) & (df_2500.lat < -33.) & (
+        df_2500.lon < -50.)
+    img3 = plt.scatter(
+        x=df_2500[cut_df2500].lon,
+        y=df_2500[cut_df2500].lat,
+        s=0.05,
+        color='orange',
+        transform=tformP, label='2500m')
+    '''
+
+    legend = plt.legend(loc='upper left', scatterpoints=1, borderpad=0.3,
+                        handletextpad=0.3, fontsize=11, numpoints=1)
+
+    # ######################################################################33
+    # ######################################################################33
+    # Histograms
+    in_R1, in_R2 = [((np.abs(evals_bz.longitude.values - R['lon']) < R['dlon'])  &
+                     (np.abs(evals_bz.latitude.values - R['lat']) < R['dlat'])) for R in [R1,R2]]
+    evals_bz['Subsample'] = 'null'
+    evals_bz['Subsample'][in_R1] = 'R1'
+    evals_bz['Subsample'][in_R2] = 'R2'
+
+    legend = plt.legend(loc='upper left', scatterpoints=3, borderpad=0.3,
+                        handletextpad=0.3, fontsize=11, numpoints=1)
+
+    # Histograms
+    in_R1, in_R2 = [((np.abs(evals_bz.longitude.values - R['lon']) < R['dlon'])  & 
+        (np.abs(evals_bz.latitude.values - R['lat']) < R['dlat'])) for R in [R1,R2]]
+    evals_bz['Subsample'] = 'null'
+    evals_bz['Subsample'][in_R1] = 'R1'
+    evals_bz['Subsample'][in_R2] = 'R2'
+
+    df_rects = pandas.DataFrame(dict(
+        LL=evals_bz.log_likelihood.values[in_R1 | in_R2],
+        Subsample=evals_bz.Subsample.values[in_R1 | in_R2]))
+
+    ax_h = plt.subplot(gs[:5, 8:])
+    ax_h.text(0.05, 1.03, '(b)', transform=ax_h.transAxes,
+              fontsize=15, ha='left', color='k')
+
+    sns.histplot(data=df_rects, x='LL',
+        hue='Subsample', hue_order=['R1', 'R2'], ax=ax_h)
+    ax_h.set_xlim(-800, 500)
+    ax_h.set_xlabel('Log Likelihood (LL)')#, fontsize=fsz)
+    #plt.ylabel('Probability Density', fontsize=fsz)
+
+    # Gallery
+    nGal = 25
+    #nGal = 1
+    vmin, vmax = None, None
+    vmin, vmax = -1, 1
+    pal, cm = plotting.load_palette()
+
+    # R1
+    idx_R1 = np.where(in_R1)[0]
+    rand_R1 = np.random.choice(idx_R1, nGal, replace=False)
+
+    for ss in range(nGal):
+        example = evals_bz.iloc[rand_R1[ss]]
+        field, mask = image_utils.grab_img(example, 'PreProc', ptype='std')
+        # Axis
+        row = 6 + ss//5
+        col = 6 + ss % 5
+        #
+        ax_0 = plt.subplot(gs[row, col])
+        sns.heatmap(field[0], ax=ax_0, xticklabels=[], yticklabels=[], cmap=cm,
+                    vmin=vmin, vmax=vmax, cbar=False)
+
+    # R2
+    idx_R2 = np.where(in_R2)[0]
+    rand_R2 = np.random.choice(idx_R2, nGal, replace=False)
+
+    for ss in range(nGal):
+        example = evals_bz.iloc[rand_R2[ss]]
+        field, mask = image_utils.grab_img(example, 'PreProc', ptype='std')
+        # Axis
+        row = 6 + ss//5
+        col = ss % 5
+        #
+        ax_0 = plt.subplot(gs[row, col])
+        sns.heatmap(field[0], ax=ax_0, xticklabels=[], yticklabels=[], cmap=cm,
+                    vmin=vmin, vmax=vmax, cbar=False)
+
+    # Layout and save
+    #plt.tight_layout(pad=0.0, h_pad=0.0, w_pad=0.0)
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
 
 def fig_gallery(outfile, ptype, flavor='outlier'):
 
@@ -481,7 +848,7 @@ def fig_gallery(outfile, ptype, flavor='outlier'):
 
         # Label
         lsz = 17.
-        lclr = 'k'
+        lclr = 'white'
         ax.text(0.05, 0.90, '{}'.format(example.date.strftime('%Y-%m-%d')),
                 transform=ax.transAxes, fontsize=lsz, ha='left', color=lclr)
         ax.text(0.05, 0.80, '{:0.3f},{:0.3f}'.format(example.longitude, example.latitude),
@@ -496,6 +863,11 @@ def fig_gallery(outfile, ptype, flavor='outlier'):
 
 def fig_LL_vs_DT(ptype, outfile, evals_tbl=None):
 
+    #sns.set_theme()
+    #sns.set_style('whitegrid')
+    #sns.set_context('paper')
+
+
     # Load
     if evals_tbl is None:
         evals_tbl = results.load_log_prob(ptype, feather=True)
@@ -503,6 +875,13 @@ def fig_LL_vs_DT(ptype, outfile, evals_tbl=None):
     # Add in DT
     if 'DT' not in evals_tbl.keys():
         evals_tbl['DT'] = evals_tbl.T90 - evals_tbl.T10
+
+    # Stats
+    cut2 = np.abs(evals_tbl.DT.values-2.) < 0.05
+    print("Min LL: {}".format(np.min(evals_tbl.log_likelihood[cut2])))
+    print("Max LL: {}".format(np.max(evals_tbl.log_likelihood[cut2])))
+    print("Mean LL: {}".format(np.mean(evals_tbl.log_likelihood[cut2])))
+    print("RMS LL: {}".format(np.std(evals_tbl.log_likelihood[cut2])))
 
     # Bins
     bins_LL = np.linspace(-10000., 1100., 22)
@@ -515,19 +894,47 @@ def fig_LL_vs_DT(ptype, outfile, evals_tbl=None):
     # Total NSpax
     ax_tot = plt.subplot(gs[0])
 
-    # 2D hist
-    hist2d(evals_tbl.log_likelihood.values, evals_tbl.DT.values,
-           bins=[bins_LL, bins_DT], ax=ax_tot, color='b')
+    jg = sns.jointplot(data=evals_tbl, x='DT', y='log_likelihood',
+        kind='hist', bins=200, marginal_kws=dict(bins=200))
 
-    ax_tot.set_xlabel('LL')
-    ax_tot.set_ylabel(r'$\Delta T$')
+    #jg.ax_marg_x.set_xlim(8, 10.5)
+    #jg.ax_marg_y.set_ylim(0.5, 2.0)
+    jg.ax_joint.set_xlabel(r'$\Delta T$ (K)')
+    jg.ax_joint.set_ylabel(r'LL')
+    xmnx = (0., 14.5)
+    jg.ax_joint.set_xlim(xmnx[0], xmnx[1])
+    #ymnx = (-11400., 1700)
+    #jg.ax_joint.set_ylim(ymnx[0], ymnx[1])
+    jg.ax_joint.minorticks_on()
+
+    # Horizontal line
+    lowLL_val = np.percentile(evals_tbl.log_likelihood, 0.1)
+    jg.ax_joint.plot(xmnx, [lowLL_val]*2, '--', color='gray')
+    
+    '''
+    # Vertical lines
+    jg.ax_joint.plot([2.]*2, ymnx, '-', color='gray', lw=1)
+    jg.ax_joint.plot([2.1]*2, ymnx, '-', color='gray', lw=1)
+    '''
+
+    set_fontsize(jg.ax_joint, 17.)
+
+    #jg.ax_joint.yaxis.set_major_locator(plt.MultipleLocator(0.5))
+    #jg.ax_joint.xaxis.set_major_locator(plt.MultipleLocator(1.0)
+
+    # 2D hist
+    #hist2d(evals_tbl.log_likelihood.values, evals_tbl.DT.values,
+    #       bins=[bins_LL, bins_DT], ax=ax_tot, color='b')
+
+    #ax_tot.set_xlabel('LL')
+    #ax_tot.set_ylabel(r'$\Delta T$')
     #ax_tot.set_ylim(0.3, 5.0)
     #ax_tot.minorticks_on()
 
     #legend = plt.legend(loc='upper right', scatterpoints=1, borderpad=0.3,
     #                    handletextpad=0.3, fontsize=19, numpoints=1)
 
-    set_fontsize(ax_tot, 19.)
+    #set_fontsize(ax_tot, 19.)
 
     # Layout and save
     plt.tight_layout(pad=0.2,h_pad=0.,w_pad=0.1)
@@ -604,6 +1011,7 @@ def fig_LL_vs_LL(outfile, evals_tbl_std=None, evals_tbl_grad=None):
     print('Wrote {:s}'.format(outfile))
 
 
+
 def fig_year_month(outfile, ptype, evals_tbl=None, frac=False,
                    all=False):
     """
@@ -631,8 +1039,9 @@ def fig_year_month(outfile, ptype, evals_tbl=None, frac=False,
     outliers = evals_tbl.iloc[isortLL[0:point1]]
 
     # All
-    all_years = [item.year for item in evals_tbl.date]
-    all_months = [item.month for item in evals_tbl.date]
+    if all or frac:
+        all_years = [item.year for item in evals_tbl.date]
+        all_months = [item.month for item in evals_tbl.date]
 
     # Parse
     years = [item.year for item in outliers.date]
@@ -644,44 +1053,63 @@ def fig_year_month(outfile, ptype, evals_tbl=None, frac=False,
 
     counts, xedges, yedges = np.histogram2d(months, years,
                                             bins=(bins_month, bins_year))
-    all_counts, _, _ = np.histogram2d(all_months, all_years,
+    if all or frac:
+        all_counts, _, _ = np.histogram2d(all_months, all_years,
                                             bins=(bins_month, bins_year))
 
     fig = plt.figure(figsize=(12, 8))
     plt.clf()
-    gs = gridspec.GridSpec(1,1)
+    gs = gridspec.GridSpec(5,6)
 
     # Total NSpax
-    ax_tot = plt.subplot(gs[0])
+    ax_tot = plt.subplot(gs[1:,1:-1])
 
     cm = plt.get_cmap('Blues')
     if frac:
-        mplt = ax_tot.pcolormesh(xedges, yedges,
-                                 counts.transpose()/all_counts.transpose(),
-                                 cmap=cm)
+        values  = counts.transpose()/all_counts.transpose()
         lbl = 'Fraction'
     elif all:
         cm = plt.get_cmap('Greens')
         norm = np.sum(all_counts) / np.product(all_counts.shape)
-        mplt = ax_tot.pcolormesh(xedges, yedges, all_counts.transpose()/norm, cmap=cm)
-        lbl = 'Counts (all)'
+        values = all_counts.transpose()/norm
+        lbl = 'Fraction (all)'
     else:
-        mplt = ax_tot.pcolormesh(xedges, yedges, counts.transpose(), cmap=cm)
+        values = counts.transpose()
         lbl = 'Counts'
-    cb = plt.colorbar(mplt, fraction=0.030, pad=0.04)
-    cb.set_label(lbl, fontsize=20.)
+    mplt = ax_tot.pcolormesh(xedges, yedges, values, cmap=cm)
+
+    # Color bar
+    cbaxes = fig.add_axes([0.03, 0.1, 0.05, 0.7])
+    cb = plt.colorbar(mplt, cax=cbaxes, aspect=20)
+    #cb.set_label(lbl, fontsize=20.)
+    cbaxes.yaxis.set_ticks_position('left')
+    cbaxes.set_xlabel(lbl, fontsize=15.)
 
     ax_tot.set_xlabel('Month')
     ax_tot.set_ylabel('Year')
 
     set_fontsize(ax_tot, 19.)
 
+    # Edges
+    fsz = 15.
+    months = np.mean(values, axis=0)
+    ax_m = plt.subplot(gs[0,1:-1])
+    ax_m.step(np.arange(12)+1, months, color='k', where='mid')
+    set_fontsize(ax_m, fsz)
+    #ax_m.minorticks_on()
+
+    years = np.mean(values, axis=1)
+    ax_y = plt.subplot(gs[1:,-1])
+    ax_y.invert_xaxis()
+    ax_y.step(years, 2003 + np.arange(17), color='k', where='mid')
+    ax_y.set_xlim(40,80)
+    set_fontsize(ax_y, fsz)
+
     # Layout and save
     plt.tight_layout(pad=0.2,h_pad=0.,w_pad=0.1)
     plt.savefig(outfile, dpi=300)
     plt.close()
     print('Wrote {:s}'.format(outfile))
-
 
 
 def set_fontsize(ax,fsz):
@@ -907,8 +1335,9 @@ def main(flg_fig):
 
     # Spatial of all evaluations
     if flg_fig & (2 ** 3):
-        for outfile in ['fig_std_evals_spatial.png']:
-            fig_spatial('std', 'all', outfile)
+        #for outfile in ['fig_std_evals_spatial.png']:
+        #    fig_spatial_all('std', outfile)
+        fig_spatial_outliers('std', 'fig_std_outliers_spatial.png')
 
     # In-painting
     if flg_fig & (2 ** 4):
@@ -945,28 +1374,36 @@ def main(flg_fig):
     if flg_fig & (2 ** 9):
         # Counts
         #for ptype, outfile in zip(['std', 'loggrad'], ['fig_year_month_std.png', 'fig_year_month_loggrad.png']):
-        #    fig_year_month(outfile, ptype)
+        for ptype, outfile in zip(['std'], ['fig_year_month_std.png']):
+                fig_year_month(outfile, ptype)
         # Fractional
         #for ptype, outfile in zip(['std'], ['fig_year_month_std_frac.png']):
         #    fig_year_month(outfile, ptype, frac=True)
         # All
-        for ptype, outfile in zip(['std'], ['fig_year_month_std_all.png']):
-            fig_year_month(outfile, ptype, all=True)
+        #for ptype, outfile in zip(['std'], ['fig_year_month_std_all.png']):
+        #    fig_year_month(outfile, ptype, all=True)
 
-
-    # Spatial of outliers
-    if flg_fig & (2 ** 10):
-        for ptype, outfile in zip(['std', 'loggrad'],
-                                  ['fig_outliers_spatial_std.png',
-                                   'fig_outliers_spatial_loggrad.png']):
-            fig_spatial(ptype, 'outliers', outfile)
 
     # LL vs. DT
     if flg_fig & (2 ** 11):
-        for ptype, outfile in zip(['std', 'loggrad'],
-                                  ['fig_LL_vs_T_std.png',
-                                   'fig_LL_vs_T_loggrad.png']):
+        #for ptype, outfile in zip(['std', 'loggrad'],
+        #                          ['fig_LL_vs_T_std.png',
+        #                           'fig_LL_vs_T_loggrad.png']):
+        for ptype, outfile in zip(['std'], ['fig_LL_vs_T_std.png']):
             fig_LL_vs_DT(ptype, outfile)
+
+    # Spatial of all evaluations
+    if flg_fig & (2 ** 12):
+        fig_inlier_vs_outlier()
+
+    # Brazil
+    if flg_fig & (2 ** 13):
+        fig_brazil()
+
+
+    # LL vs. DT
+    if flg_fig & (2 ** 20):
+        tst()
 
 # Command line execution
 if __name__ == '__main__':
@@ -976,15 +1413,17 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 0  # Month histogram
         #flg_fig += 2 ** 1  # <T> histogram
         #flg_fig += 2 ** 2  # CC fractions
-        flg_fig += 2 ** 3  # All Evals spatial
+        #flg_fig += 2 ** 3  # All Evals spatial
         #flg_fig += 2 ** 4  # In-painting
         #flg_fig += 2 ** 5  # Auto-encode
         #flg_fig += 2 ** 6  # LL SSTa
         #flg_fig += 2 ** 7  # Gallery
         #flg_fig += 2 ** 8  # LL_SST vs. LL_grad
         #flg_fig += 2 ** 9  # year, month
-        #flg_fig += 2 ** 10  # Outliers spatial
         #flg_fig += 2 ** 11  # LL vs DT
+        #flg_fig += 2 ** 12  # inlier vs outlier for DT = 2
+        flg_fig += 2 ** 13  # Brazil
+        #flg_fig += 2 ** 20  # tst
     else:
         flg_fig = sys.argv[1]
 

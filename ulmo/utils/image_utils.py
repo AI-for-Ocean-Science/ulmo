@@ -93,6 +93,7 @@ def evals_to_healpix(eval_tbl, nside, log=False, mask=True):
     ----------
     mhw_sys : pandas.DataFrame
     nside : int
+    mask : bool, optional
 
     Returns
     -------
