@@ -528,7 +528,7 @@ class ProbabilisticAutoencoder:
 
         latents = scaler.transform(np.concatenate(latents))
 
-        # Write latents
+        # Write latents (into Evaluations/ most likely)
         latent_file = output_file.replace('log_prob', 'latents')
         with h5py.File(latent_file, 'w') as f:
             f.create_dataset('latents', data=latents)

@@ -1,0 +1,19 @@
+# 
+FROM continuumio/anaconda:latest
+
+# This and that. Mainly for data
+RUN  apt-get update && \
+     apt-get install -y wget glances 
+#     apt install curl 
+#     curl https://rclone.org/install.sh | bash
+
+# This is for packages not standard in conda
+RUN  pip install s4cmd
+RUN  pip install smart-open[s3]
+
+# ulmo time
+COPY ./ulmo/ /ulmo/
+
+# Should I do python setup.py develop here?? or in Kuber??  Here
+RUN cd ulmo; python setup.py develop
+

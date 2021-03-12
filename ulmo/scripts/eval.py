@@ -6,6 +6,7 @@ import os
 import numpy as np
 
 from ulmo.ood import ood
+from ulmo.models import io as model_io
 
 from IPython import embed
 
@@ -13,19 +14,7 @@ from IPython import embed
 def run_evals(years, flavor, clobber=False):
 
     # Load model
-    if flavor == 'loggrad':
-        datadir = './Models/R2019_2010_128x128_loggrad'
-        filepath = 'PreProc/MODIS_R2019_2010_95clear_128x128_preproc_loggrad.h5'
-    elif flavor == 'std':
-        datadir = './Models/R2019_2010_128x128_std'
-        filepath = 'PreProc/MODIS_R2019_2010_95clear_128x128_preproc_std.h5'
-    pae = ood.ProbabilisticAutoencoder.from_json(datadir + '/model.json',
-                                                 datadir=datadir,
-                                                 filepath=filepath,
-                                                 logdir=datadir)
-    pae.load_autoencoder()
-    pae.load_flow()
-
+    pae = model_io.load_modis_l2(flavor=flavor)
     print("Model loaded!")
 
     # Prep
@@ -53,6 +42,7 @@ def parser(options=None):
     parser.add_argument("years", type=str, help="Begin, end year:  e.g. 2010,2012")
     parser.add_argument("flavor", type=str, help="Model (std, loggrad)")
     parser.add_argument("--clobber", default=False, action="store_true", help="Debug?")
+    parser.add_argument("--local", default=False, action="store_true", help="Use local storage")
 
     if options is None:
         pargs = parser.parse_args()
