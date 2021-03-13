@@ -7,13 +7,13 @@ RUN  apt-get update && \
 #     apt install curl 
 #     curl https://rclone.org/install.sh | bash
 
-# This is for packages not standard in conda
+# Storage
 RUN  pip install s4cmd
 RUN  pip install smart-open[s3]
 
 # ulmo time
 COPY ulmo/ /ulmo/
 
-# Should I do python setup.py develop here?? or in Kuber??  Here
+# Other bits and dependencies
 RUN cd ulmo; python setup.py develop
 
