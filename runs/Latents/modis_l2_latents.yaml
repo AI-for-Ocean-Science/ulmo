@@ -1,14 +1,14 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-MODIS_L2_latents
+  name: xavier-modis2-latents-2019
 spec:
   backoffLimit: 0
   template:
     spec:
       containers:
       - name: container
-        image: localhost:30081/USERNAME/CONTAINER:latest  # UPDATE
+        image: localhost:30081/profxj/ulmo:latest  # UPDATE
         imagePullPolicy: Always
         resources:
           requests:
@@ -22,7 +22,8 @@ spec:
             nvidia:  "1"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]
         args:
-          - ulmo_eval 2003,2019 std  # Can you do multiple commands this way?
+          - cd tmp; mkdir foo; cd foo; mkdir Evaluations; ulmo_eval 2019,2019 std; aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp foo s3://test --recursive
+#          - ulmo_eval 2003,2019 std  # Can you do multiple commands this way?
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"

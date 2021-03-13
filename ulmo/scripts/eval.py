@@ -14,7 +14,7 @@ from IPython import embed
 def run_evals(years, flavor, clobber=False, local=False):
 
     # Load model
-    pae = model_io.load_modis_l2(flavor=flavor)
+    pae = model_io.load_modis_l2(flavor=flavor, local=local)
     print("Model loaded!")
 
     # Prep
