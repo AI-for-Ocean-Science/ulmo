@@ -31,7 +31,7 @@ def load_modis_l2(flavor='std', datadir=None, local=False):
     elif flavor == 'std':
         if datadir is None:
             if local:
-                datadir = os.path.join(os.environ('SST_OOD'),
+                datadir = os.path.join(os.getenv('SST_OOD'),
                                        'MODIS_L2', 'Models',
                                        'R2019_2010_128x128_std')
             else:  # s3
