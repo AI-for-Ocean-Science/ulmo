@@ -397,13 +397,13 @@ class ProbabilisticAutoencoder:
         if filename is None:
             filename = self.filepath['data']
         # Proceed
-        with ulmo_io.open(filename, 'rb') as f1:
-            with h5py.File(f1, 'r') as f:
-                if key in f.keys():
-                    meta = f[key]
-                    df = pd.DataFrame(meta[:].astype(np.unicode_), columns=meta.attrs['columns'])
-                else:
-                    df = pd.DataFrame()
+        f1 = ulmo_io.open(filename, 'rb')
+        with h5py.File(f1, 'r') as f:
+            if key in f.keys():
+                meta = f[key]
+                df = pd.DataFrame(meta[:].astype(np.unicode_), columns=meta.attrs['columns'])
+            else:
+                df = pd.DataFrame()
         return df
 
     def to_tensor(self, x):
