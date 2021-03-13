@@ -484,7 +484,8 @@ class ProbabilisticAutoencoder:
         return log_prob
     
     def compute_log_probs(self, input_file, dataset, output_file,
-                          scaler=None, csv=False, query=False):
+                          scaler=None, csv=False, query=False,
+                          num_workers=8):
         """
         Computer log probs on an input HDF file of images
 
@@ -496,6 +497,8 @@ class ProbabilisticAutoencoder:
         scaler
         query : bool, optional
             If True, query the user
+        num_workers: int, optional
+            Was set to 16.  Having memory issues..
 
         Returns
         -------
@@ -524,7 +527,7 @@ class ProbabilisticAutoencoder:
         loader = torch.utils.data.DataLoader(
             dset, batch_size=1024, shuffle=False, 
             drop_last=False, collate_fn=id_collate,
-            num_workers=16)
+            num_workers=num_workers)
         
         self.autoencoder.eval()
         self.flow.eval()
@@ -545,7 +548,7 @@ class ProbabilisticAutoencoder:
         dset = torch.utils.data.TensorDataset(torch.from_numpy(latents).float())
         loader = torch.utils.data.DataLoader(
             dset, batch_size=1024, shuffle=False, 
-            drop_last=False, num_workers=16)
+            drop_last=False, num_workers=num_workers)
         
         print("Probabilities now")
         with h5py.File(output_file, 'w') as f:

@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-modis2-latents-2019f
+  name: xavier-modis2-latents-2019h
 spec:
   backoffLimit: 0
   template:
@@ -12,7 +12,7 @@ spec:
         imagePullPolicy: Always
         resources:
           requests:
-            cpu: "1"
+            cpu: "0"
             memory: "64Gi"
             ephemeral-storage: 120Gi
           limits:
