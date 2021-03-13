@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-modis2-latents-2019d
+  name: xavier-modis2-latents-2019e
 spec:
   backoffLimit: 0
   template:
@@ -13,11 +13,11 @@ spec:
         resources:
           requests:
             cpu: "1"
-            memory: "16Gi"
+            memory: "48Gi"
             ephemeral-storage: 120Gi
           limits:
             cpu: "4"
-            memory: "16Gi"
+            memory: "64Gi"
             ephemeral-storage: 150Gi
             nvidia.com/gpu:  "1"  # See docs to exlude certain types
             # https://ucsd-prp.gitlab.io/userdocs/running/gpu-pods/
