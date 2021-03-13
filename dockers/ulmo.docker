@@ -1,4 +1,4 @@
-# 
+#docker build -t ulmo -f ../ulmo/dockers/ulmo.docker .
 FROM continuumio/anaconda3:latest
 
 # This and that. Mainly for data
@@ -7,12 +7,19 @@ RUN  apt-get update && \
 #     apt install curl 
 #     curl https://rclone.org/install.sh | bash
 
+# Code and storage
+RUN  apt-get install -y git awscli
+
 # Storage
-RUN  pip install s4cmd
 RUN  pip install smart-open[s3]
 
+# Some bigger packages
+RUN  pip install torch
+RUN  pip install scikit-learn
+RUN  pip install scikit-image
+
 # ulmo time
-COPY ulmo/ /ulmo/
+RUN git clone https://github.com/AI-for-Ocean-Science/ulmo.git
 
 # Other bits and dependencies
 RUN cd ulmo; python setup.py develop

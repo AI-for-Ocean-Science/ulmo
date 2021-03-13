@@ -1,0 +1,46 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: xavier-MODIS_L2_latents
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      containers:
+      - name: container
+        image: localhost:30081/profxj/ulmo:latest  # UPDATE
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: "1"
+            memory: "16Gi"
+            ephemeral-storage: 120Gi
+          limits:
+            cpu: "4"
+            memory: "16Gi"
+            ephemeral-storage: 150Gi
+        command: ["/bin/bash", "-c"]
+        args:
+          - cd tmp; touch foobar7; aws --endpoint https://s3.nautilus.optiputer.net s3 cp foobar7 s3://test
+        env:
+          - name: "ENDPOINT_URL"
+            value: "http://rook-ceph-rgw-nautiluss3.rook"
+          - name: "S3_ENDPOINT"
+            value: "rook-ceph-rgw-nautiluss3.rook"
+        volumeMounts:
+          - name: prp-s3-credentials
+            mountPath: "/root/.aws/credentials"
+            subPath: "credentials"
+          - name: ephemeral
+            mountPath: "/tmp"
+      nodeSelector:
+        nautilus.io/disktype: nvme
+      restartPolicy: Never
+      volumes:
+        # Secrets file for nautilus s3 credentials .aws/credentials and .s3cfg
+        - name: prp-s3-credentials
+          secret:
+            secretName: prp-s3-credentials
+        # Ephemeral storage
+        - name: ephemeral
+          emptyDir: {}
