@@ -1,5 +1,6 @@
 """ Basic I/O methods"""
 
+import os
 import numpy as np
 import xarray as xr
 
@@ -12,7 +13,7 @@ import functools
 open = functools.partial(smart_open.open, 
                          transport_params={'resource_kwargs': 
                              {'endpoint_url': 
-                                 'https://s3.nautilus.optiputer.net'}})
+                                 os.getenv('ENDPOINT_URL')}})
 
 def load_nc(filename, verbose=True):
     """
