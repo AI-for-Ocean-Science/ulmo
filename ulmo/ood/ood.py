@@ -22,6 +22,7 @@ from sklearn.preprocessing import StandardScaler
 from ulmo.plotting import load_palette, grid_plot
 from ulmo.utils import HDF5Dataset, id_collate, get_quantiles
 from ulmo.models import DCAE, ConditionalFlow
+from ulmo import io as ulmo_io
 
 from IPython import embed
 
@@ -32,10 +33,7 @@ except:
 
 class ProbabilisticAutoencoder:
     @classmethod
-    def from_json(cls, json_file, **kwargs):
-        # Load JSON
-        with open(json_file, 'rt') as fh:
-            model_dict = json.load(fh)
+    def from_dict(cls, model_dict, **kwargs):
         # Tuples
         tuples = ['image_shape']
         for key in model_dict.keys():
@@ -48,6 +46,13 @@ class ProbabilisticAutoencoder:
         # Do it!
         pae = cls(autoencoder=autoencoder, flow=flow, write_model=False, **kwargs)
         return pae
+
+    @classmethod
+    def from_json(cls, json_file, **kwargs):
+        # Load JSON
+        with open(json_file, 'rt') as fh:
+            model_dict = json.load(fh)
+        return cls.from_dict(model_dict, **kwargs)
 
     """A probabilistic autoencoder (see arxiv.org/abs/2006.05479)."""
     def __init__(self, autoencoder, flow, filepath, datadir=None, 
@@ -124,14 +129,16 @@ class ProbabilisticAutoencoder:
         Load autoencoder from pytorch file
         """
         print(f"Loading autoencoder model from: {self.savepath['autoencoder']}")
-        self.autoencoder.load_state_dict(torch.load(self.savepath['autoencoder'], map_location=self.device))
+        with ulmo_io.open(self.savepath['autoencoder'], 'rb') as f:
+            self.autoencoder.load_state_dict(torch.load(f, map_location=self.device))
         
     def save_flow(self):
         torch.save(self.flow.state_dict(), self.savepath['flow'])
     
     def load_flow(self):
         print(f"Loading flow model from: {self.savepath['flow']}")
-        self.flow.load_state_dict(torch.load(self.savepath['flow'], map_location=self.device))
+        with ulmo_io.open(self.savepath['flow'], 'rb') as f:
+            self.flow.load_state_dict(torch.load(f, map_location=self.device))
 
     def write_model(self):
         # Generate the dict
@@ -492,22 +499,20 @@ class ProbabilisticAutoencoder:
         -------
 
         """
-        if scaler is None:
-            scaler = self.scaler
+        if self.scaler is None:
             scaler_path = os.path.join(self.logdir, self.stem + '_scaler.pkl')
-            if self.scaler is None:
-                if os.path.exists(scaler_path):
-                    if query:
-                        load = input("Scaler file found in logdir. Use this (y/n)?") == 'y'
-                    else:
-                        load = True
-                    if load:
-                        with open(scaler_path, 'rb') as f:
-                            scaler = pickle.load(f)
-                    else:
-                        raise RuntimeError("No scaler provided. Saved scaler found but not loaded.")
+            if os.path.exists(scaler_path):
+                if query:
+                    load = input("Scaler file found in logdir. Use this (y/n)?") == 'y'
                 else:
-                    raise RuntimeError("No scaler found or provided.")
+                    load = True
+                if load:
+                    with ulmo_io.open(scaler_path, 'rb') as f:
+                        self.scaler = pickle.load(f)
+                else:
+                    raise RuntimeError("No scaler provided. Saved scaler found but not loaded.")
+            else:
+                raise RuntimeError("No scaler found or provided.")
 
         # Make PyTorch dataset from HDF5 file
         assert input_file.endswith('.h5'), "Input file must be in .h5 format."
@@ -526,7 +531,8 @@ class ProbabilisticAutoencoder:
             latents = [self.autoencoder.encode(data[0].to(self.device)).detach().cpu().numpy()
                      for data in loader]
 
-        latents = scaler.transform(np.concatenate(latents))
+        print("Calculating latents")
+        latents = self.scaler.transform(np.concatenate(latents))
 
         # Write latents (into Evaluations/ most likely)
         latent_file = output_file.replace('log_prob', 'latents')

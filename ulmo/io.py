@@ -3,6 +3,17 @@
 import numpy as np
 import xarray as xr
 
+# DO NOT IMOPRT ANY ULMO!
+
+# s3
+import smart_open
+import functools
+
+open = functools.partial(smart_open.open, 
+                         transport_params={'resource_kwargs': 
+                             {'endpoint_url': 
+                                 'https://s3.nautilus.optiputer.net'}})
+
 def load_nc(filename, verbose=True):
     """
     Load a MODIS or equivalent .nc file

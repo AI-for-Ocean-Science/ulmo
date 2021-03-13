@@ -11,7 +11,7 @@ from ulmo.models import io as model_io
 from IPython import embed
 
 
-def run_evals(years, flavor, clobber=False):
+def run_evals(years, flavor, clobber=False, local=False):
 
     # Load model
     pae = model_io.load_modis_l2(flavor=flavor)
@@ -21,9 +21,12 @@ def run_evals(years, flavor, clobber=False):
     for year in years:
         # Input
         data_file = 'PreProc/MODIS_R2019_{}_95clear_128x128_preproc_{}.h5'.format(year, flavor)
+        if not local:
+            data_file = 's3://modis-l2/'+data_file
         # Check
-        if not os.path.isfile(data_file):
-            raise IOError("This data file does not exist! {}".format(data_file))
+        if local:
+            if not os.path.isfile(data_file):
+                raise IOError("This data file does not exist! {}".format(data_file))
 
         # Output
         log_prob_file = 'Evaluations/R2010_on_{}_95clear_128x128_preproc_{}_log_prob.h5'.format(year, flavor)
@@ -61,4 +64,4 @@ def main(pargs):
     year0, year1 = [int(year) for year in pargs.years.split(',')]
     years = np.arange(year0, year1+1).astype(int)
 
-    run_evals(years, pargs.flavor, clobber=pargs.clobber)
+    run_evals(years, pargs.flavor, clobber=pargs.clobber, local=pargs.local)

@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-test-s3
+  name: xavier-test-s3-2
 spec:
   backoffLimit: 0
   template:
