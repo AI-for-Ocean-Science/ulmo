@@ -1,26 +1,47 @@
 #docker build -t ulmo -f ../ulmo/dockers/ulmo.docker .
-FROM continuumio/anaconda3:latest
+#FROM continuumio/anaconda3:latest
+
+FROM nvidia/cuda:11.2.1-runtime-ubuntu20.04
 
 # This and that. Mainly for data
+ENV DEBIAN_FRONTEND="noninteractive" TZ="US"
 RUN  apt-get update && \
+     apt-get install -y tzdata && \
      apt-get install -y wget glances 
-#     apt install curl 
 #     curl https://rclone.org/install.sh | bash
 
 # Code and storage
 RUN  apt-get install -y git awscli
 
+# Download and install Anaconda.
+RUN apt-get update && apt-get install curl -y
+
+RUN mkdir tmp2 && cd /tmp2 && curl -O https://repo.anaconda.com/archive/Anaconda3-2020.11-Linux-x86_64.sh
+RUN cd && chmod +x /tmp2/Anaconda3-2020.11-Linux-x86_64.sh
+RUN mkdir /root/.conda
+#RUN bash -c "/tmp2/Anaconda3-2020.11-Linux-x86_64.sh -b -p ${CONDA_PATH}"
+
+# Initializes Conda for bash shell interaction.
+#RUN ${CONDA_PATH}/bin/conda init bash
+
+# Upgrade Conda to the latest version
+#RUN ${CONDA_PATH}/bin/conda update -n base -c defaults conda -y
+
+# Create the work environment and setup its activation on start.
+#RUN ${CONDA_PATH}/bin/conda create --name ${ENVIRONMENT_NAME} -y
+#RUN echo conda activate ${ENVIRONMENT_NAME} >> /root/.bashrc
+
 # Storage
-RUN  pip install smart-open[s3]
+#RUN  pip install smart-open[s3]
 
 # Some bigger packages
-RUN  pip install torch
-RUN  pip install scikit-learn
-RUN  pip install scikit-image
+#RUN  pip install torch
+#RUN  pip install scikit-learn
+#RUN  pip install scikit-image
 
 # ulmo time
-RUN git clone https://github.com/AI-for-Ocean-Science/ulmo.git
+#RUN git clone https://github.com/AI-for-Ocean-Science/ulmo.git
 
 # Other bits and dependencies
-RUN cd ulmo; python setup.py develop
+#RUN cd ulmo; python setup.py develop
 

@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-modis2-latents-2019h
+  name: xavier-modis2-latents-2019k
 spec:
   backoffLimit: 0
   template:
@@ -13,7 +13,7 @@ spec:
         resources:
           requests:
             cpu: "1"
-            memory: "64Gi"
+            memory: "32Gi"
             ephemeral-storage: 120Gi
           limits:
             cpu: "4"
@@ -47,7 +47,7 @@ spec:
             mountPath: "/tmp"
       nodeSelector:
         nautilus.io/disktype: nvme
-        gpu-type: "1080Ti"
+        gpu-type: "titan-xp"  # titan-xp
       restartPolicy: Never
       volumes:
         # Secrets file for nautilus s3 credentials .aws/credentials and .s3cfg
