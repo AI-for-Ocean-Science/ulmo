@@ -12,6 +12,17 @@ from IPython import embed
 
 
 def run_evals(years, flavor, clobber=False, local=False):
+    """[summary]
+
+    Args:
+        years ([type]): [description]
+        flavor ([type]): [description]
+        clobber (bool, optional): [description]. Defaults to False.
+        local (bool, optional): [description]. Defaults to False.
+
+    Raises:
+        IOError: [description]
+    """
 
     # Load model
     pae = model_io.load_modis_l2(flavor=flavor, local=local)

@@ -380,13 +380,14 @@ class ProbabilisticAutoencoder:
 
     def load_meta(self, key, filename=None):
         """
+        Load meta data from the input file
 
         Parameters
         ----------
         key : str
             Group name for metadata, e.g. "valid_metadata"
         filename : str, optional
-            File for meta data
+            File for meta data.  If not provided, use self.filepath['data']
 
         Returns
         -------
@@ -396,12 +397,13 @@ class ProbabilisticAutoencoder:
         if filename is None:
             filename = self.filepath['data']
         # Proceed
-        with h5py.File(filename, 'r') as f:
-            if key in f.keys():
-                meta = f[key]
-                df = pd.DataFrame(meta[:].astype(np.unicode_), columns=meta.attrs['columns'])
-            else:
-                df = pd.DataFrame()
+        with ulmo_io.open(filename, 'rb') as f1:
+            with h5py.File(f1, 'r') as f:
+                if key in f.keys():
+                    meta = f[key]
+                    df = pd.DataFrame(meta[:].astype(np.unicode_), columns=meta.attrs['columns'])
+                else:
+                    df = pd.DataFrame()
         return df
 
     def to_tensor(self, x):
@@ -538,12 +540,14 @@ class ProbabilisticAutoencoder:
         latent_file = output_file.replace('log_prob', 'latents')
         with h5py.File(latent_file, 'w') as f:
             f.create_dataset('latents', data=latents)
+        print("Wrote latents to {}".format(latent_file))
 
         dset = torch.utils.data.TensorDataset(torch.from_numpy(latents).float())
         loader = torch.utils.data.DataLoader(
             dset, batch_size=1024, shuffle=False, 
             drop_last=False, num_workers=16)
         
+        print("Probabilities now")
         with h5py.File(output_file, 'w') as f:
             with torch.no_grad():
                 log_prob = [self.flow.log_prob(data[0].to(self.device)).detach().cpu().numpy()
