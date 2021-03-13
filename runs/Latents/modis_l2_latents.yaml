@@ -12,7 +12,7 @@ spec:
         imagePullPolicy: Always
         resources:
           requests:
-            cpu: "0"
+            cpu: "1"
             memory: "64Gi"
             ephemeral-storage: 120Gi
           limits:

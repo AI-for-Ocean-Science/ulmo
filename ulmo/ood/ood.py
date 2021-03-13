@@ -485,7 +485,7 @@ class ProbabilisticAutoencoder:
     
     def compute_log_probs(self, input_file, dataset, output_file,
                           scaler=None, csv=False, query=False,
-                          num_workers=8):
+                          num_workers=4):
         """
         Computer log probs on an input HDF file of images
 
