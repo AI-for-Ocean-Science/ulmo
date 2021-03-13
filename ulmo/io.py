@@ -8,12 +8,15 @@ import xarray as xr
 
 # s3
 import smart_open
+import boto3
 import functools
 
+s3 = boto3.resource('s3', endpoint_url='http://rook-ceph-rgw-nautiluss3.rook')
 open = functools.partial(smart_open.open, 
                          transport_params={'resource_kwargs': 
                              {'endpoint_url': 
                                  os.getenv('ENDPOINT_URL')}})
+                                
 
 def load_nc(filename, verbose=True):
     """

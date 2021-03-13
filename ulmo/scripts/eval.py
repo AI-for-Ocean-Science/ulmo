@@ -7,6 +7,7 @@ import numpy as np
 
 from ulmo.ood import ood
 from ulmo.models import io as model_io
+from ulmo import io as ulmo_io
 
 from IPython import embed
 
@@ -32,8 +33,12 @@ def run_evals(years, flavor, clobber=False, local=False):
     for year in years:
         # Input
         data_file = 'PreProc/MODIS_R2019_{}_95clear_128x128_preproc_{}.h5'.format(year, flavor)
+        # Grab from s3 (faster local runnin)
         if not local:
-            data_file = 's3://modis-l2/'+data_file
+            if not os.path.isdir('PreProc'):
+                os.mkdir('PreProc')
+            ulmo_io.s3.Bucket('modis-l2').download_file(data_file, data_file)
+            print("Dowloaded: {} from s3".format(data_file))
         # Check
         if local:
             if not os.path.isfile(data_file):
@@ -47,6 +52,10 @@ def run_evals(years, flavor, clobber=False, local=False):
 
         # Run
         pae.compute_log_probs(data_file, 'valid', log_prob_file, csv=True)
+
+        # Remove local
+        if not local:
+            os.remove(data_file)
 
 
 def parser(options=None):
