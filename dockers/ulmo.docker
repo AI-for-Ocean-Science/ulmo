@@ -1,4 +1,9 @@
+# https://www.techrepublic.com/article/how-to-create-a-docker-image-and-push-it-to-docker-hub/
+# https://medium.com/faun/how-to-build-a-docker-container-from-scratch-docker-basics-a-must-know-395cba82897b
 #docker build -t ulmo -f ../ulmo/dockers/ulmo.docker .
+#docker tag ulmo_nvidia:latest profxj/ulmo_nvidia:latest
+#docker push profxj/ulmo_nvidia:latest
+
 #FROM continuumio/anaconda3:latest
 
 FROM nvidia/cuda:11.2.1-runtime-ubuntu20.04
@@ -7,7 +12,7 @@ FROM nvidia/cuda:11.2.1-runtime-ubuntu20.04
 ENV DEBIAN_FRONTEND="noninteractive" TZ="US"
 RUN  apt-get update && \
      apt-get install -y tzdata && \
-     apt-get install -y wget glances 
+     apt-get install -y wget glances git 
 #     curl https://rclone.org/install.sh | bash
 
 # Code and storage
@@ -16,32 +21,39 @@ RUN  apt-get install -y git awscli
 # Download and install Anaconda.
 RUN apt-get update && apt-get install curl -y
 
-RUN mkdir tmp2 && cd /tmp2 && curl -O https://repo.anaconda.com/archive/Anaconda3-2020.11-Linux-x86_64.sh
-RUN cd && chmod +x /tmp2/Anaconda3-2020.11-Linux-x86_64.sh
-RUN mkdir /root/.conda
-#RUN bash -c "/tmp2/Anaconda3-2020.11-Linux-x86_64.sh -b -p ${CONDA_PATH}"
+# Miniconda
+ENV PATH="/root/miniconda3/bin:${PATH}"
+ARG PATH="/root/miniconda3/bin:${PATH}"
+RUN wget https://repo.anaconda.com/miniconda/Miniconda3-py38_4.9.2-Linux-x86_64.sh \
+    && mkdir /root/.conda \
+    && bash Miniconda3-py38_4.9.2-Linux-x86_64.sh -b \
+    && rm -f Miniconda3-py38_4.9.2-Linux-x86_64.sh \
 
-# Initializes Conda for bash shell interaction.
-#RUN ${CONDA_PATH}/bin/conda init bash
-
-# Upgrade Conda to the latest version
-#RUN ${CONDA_PATH}/bin/conda update -n base -c defaults conda -y
-
-# Create the work environment and setup its activation on start.
-#RUN ${CONDA_PATH}/bin/conda create --name ${ENVIRONMENT_NAME} -y
-#RUN echo conda activate ${ENVIRONMENT_NAME} >> /root/.bashrc
+# Other apt
+RUN  apt-get update && \
+     apt-get install -y vim
 
 # Storage
-#RUN  pip install smart-open[s3]
+RUN  pip install smart-open[s3]
+
+# Some basics
+RUN  pip install ipython
 
 # Some bigger packages
-#RUN  pip install torch
-#RUN  pip install scikit-learn
-#RUN  pip install scikit-image
+RUN  pip install torch
+RUN  pip install scikit-learn
+RUN  pip install scikit-image
+RUN  pip install xarray
+RUN  pip install pandas
 
 # ulmo time
-#RUN git clone https://github.com/AI-for-Ocean-Science/ulmo.git
+RUN git clone https://github.com/AI-for-Ocean-Science/ulmo.git
 
 # Other bits and dependencies
-#RUN cd ulmo; python setup.py develop
+RUN cd ulmo; python setup.py develop
 
+# Test
+#ENV ENDPOINT_URL="https://s3.nautilus.optiputer.net"
+
+# Credentials
+#COPY credentials /root/.aws/
