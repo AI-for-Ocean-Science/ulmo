@@ -93,6 +93,7 @@ class ProbabilisticAutoencoder:
                 os.makedirs(datadir)
         
         self.device = device
+        print("Using device={}".format(device))
         self.scaler = None
         self.autoencoder = autoencoder.to(device)
         self.flow = flow.to(device)
