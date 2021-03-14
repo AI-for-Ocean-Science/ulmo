@@ -562,7 +562,6 @@ class ProbabilisticAutoencoder:
         # CSV?
         if csv:
             csv_name = output_file.replace('h5', 'csv')
-            time.sleep(10)
             df = self.load_meta(dataset+'_metadata', filename=input_file)
             self._log_probs_to_csv(df, output_file, csv_name,
                                    dataset=dataset)
