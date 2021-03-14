@@ -3,6 +3,7 @@
 #docker build -t ulmo -f ../ulmo/dockers/ulmo.docker .
 #docker tag ulmo_nvidia:latest profxj/ulmo_nvidia:latest
 #docker push profxj/ulmo_nvidia:latest
+# Testing: docker exec -it <container> /bin/bash
 
 #FROM continuumio/anaconda3:latest
 
