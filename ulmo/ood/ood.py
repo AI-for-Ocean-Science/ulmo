@@ -546,9 +546,6 @@ class ProbabilisticAutoencoder:
             f.create_dataset('latents', data=latents)
         print("Wrote latents to {}".format(latent_file))
 
-        # Close HDF5 (CSV may crash otherwise)
-        dset.h5f.close()
-
         dset = torch.utils.data.TensorDataset(torch.from_numpy(latents).float())
         loader = torch.utils.data.DataLoader(
             dset, batch_size=1024, shuffle=False, 
@@ -565,6 +562,7 @@ class ProbabilisticAutoencoder:
         # CSV?
         if csv:
             csv_name = output_file.replace('h5', 'csv')
+            time.sleep(10)
             df = self.load_meta(dataset+'_metadata', filename=input_file)
             self._log_probs_to_csv(df, output_file, csv_name,
                                    dataset=dataset)
@@ -577,9 +575,10 @@ class ProbabilisticAutoencoder:
 
         Parameters
         ----------
-        df : pnadas.DataFrame
+        df : pandas.DataFrame
         log_file : str
         outfile : str
+            Output file
         dataset : str, optional
 
         """

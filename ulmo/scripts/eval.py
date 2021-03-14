@@ -51,7 +51,8 @@ def run_evals(years, flavor, clobber=False, local=False):
             continue
 
         # Run
-        pae.compute_log_probs(data_file, 'valid', log_prob_file, csv=True)
+        pae.compute_log_probs(data_file, 'valid', 
+                              log_prob_file, csv=True)
 
         # Remove local
         if not local:
