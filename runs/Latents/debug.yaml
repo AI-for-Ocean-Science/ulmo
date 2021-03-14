@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-modis2-latents-debug-c
+  name: xavier-modis2-latents-debug-d
 spec:
   backoffLimit: 0
   template:
