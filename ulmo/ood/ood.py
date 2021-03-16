@@ -34,6 +34,14 @@ except:
 class ProbabilisticAutoencoder:
     @classmethod
     def from_dict(cls, model_dict, **kwargs):
+        """Instantiate the class from a dict
+
+        Args:
+            model_dict (dict): Describes the model, in full
+
+        Returns:
+            ood.ProbabilisticAutoencoder: PAE object
+        """
         # Tuples
         tuples = ['image_shape']
         for key in model_dict.keys():
@@ -49,6 +57,14 @@ class ProbabilisticAutoencoder:
 
     @classmethod
     def from_json(cls, json_file, **kwargs):
+        """Instantiate the class from a dict
+
+        Args:
+            json_file (str): JSON file containing the model
+
+        Returns:
+            ood.ProbabilisticAutoencoder: PAE object
+        """
         # Load JSON
         with open(json_file, 'rt') as fh:
             model_dict = json.load(fh)
@@ -128,6 +144,8 @@ class ProbabilisticAutoencoder:
     def load_autoencoder(self):
         """
         Load autoencoder from pytorch file
+
+        Held in self.savepath['autoencoder']
         """
         print(f"Loading autoencoder model from: {self.savepath['autoencoder']}")
         with ulmo_io.open(self.savepath['autoencoder'], 'rb') as f:
@@ -557,7 +575,7 @@ class ProbabilisticAutoencoder:
                 log_prob = [self.flow.log_prob(data[0].to(self.device)).detach().cpu().numpy()
                      for data in tqdm(loader, total=len(loader), unit='batch', desc='Computing log probs')]
                 f.create_dataset(dataset, data=np.concatenate(log_prob))
-        print(f"Log probabilities saved to {output_file}.")
+        print("Log probabilities saved to {output_file}.")
 
         # CSV?
         if csv:
