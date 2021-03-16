@@ -2,7 +2,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-modis2-latents-2019m
+  name: xavier-modis2-latents-all
 spec:
   backoffLimit: 0
   template:
@@ -32,10 +32,10 @@ spec:
             mkdir foo; 
             cd foo; 
             mkdir Evaluations;   
-            ulmo_eval 2019,2019 std; 
+            ulmo_eval 2003,2019 std; 
             rm PreProc/*;
             cd ..;
-            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp foo s3://test --recursive;
+            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp foo s3://modis-l2 --recursive;
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"

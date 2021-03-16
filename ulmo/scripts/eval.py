@@ -13,13 +13,17 @@ from IPython import embed
 
 
 def run_evals(years, flavor, clobber=False, local=False):
-    """[summary]
+    """Main method to evaluate the model
+
+    Outputs are written to hard-drive in a sub-folder
+    named Evaluations/
 
     Args:
-        years ([type]): [description]
-        flavor ([type]): [description]
-        clobber (bool, optional): [description]. Defaults to False.
-        local (bool, optional): [description]. Defaults to False.
+        years (tuple): (start year [int], end year [int])
+        flavor (str): Model to apply.  ['std']
+        clobber (bool, optional): Clobber existing outputs. Defaults to False.
+        local (bool, optional): Load model and data locally. 
+            Otherwise use s3 storage. Defaults to False.
 
     Raises:
         IOError: [description]
@@ -52,7 +56,8 @@ def run_evals(years, flavor, clobber=False, local=False):
 
         # Run
         pae.compute_log_probs(data_file, 'valid', 
-                              log_prob_file, csv=False)
+                              log_prob_file, 
+                              csv=False)  # Tends to crash on kuber
 
         # Remove local
         if not local:
