@@ -1,11 +1,10 @@
 """
-Simple script to run Evals
+Simple script to run Evals on MODIS L2 data
 """
 
 import os
 import numpy as np
 
-from ulmo.ood import ood
 from ulmo.models import io as model_io
 from ulmo import io as ulmo_io
 
@@ -24,6 +23,7 @@ def run_evals(years, flavor, clobber=False, local=False):
         clobber (bool, optional): Clobber existing outputs. Defaults to False.
         local (bool, optional): Load model and data locally. 
             Otherwise use s3 storage. Defaults to False.
+        dataset (str, optional): Dataset to work on.  Defaults to 'MODIS_L2'
 
     Raises:
         IOError: [description]
@@ -33,10 +33,14 @@ def run_evals(years, flavor, clobber=False, local=False):
     pae = model_io.load_modis_l2(flavor=flavor, local=local)
     print("Model loaded!")
 
+    # Allow for various datasets
+    preproc_folder = 'PreProc'
+
     # Prep
     for year in years:
         # Input
-        data_file = 'PreProc/MODIS_R2019_{}_95clear_128x128_preproc_{}.h5'.format(year, flavor)
+        data_file = os.path.join(preproc_folder, 
+                                 'MODIS_R2019_{}_95clear_128x128_preproc_{}.h5'.format(year, flavor))
         # Grab from s3 (faster local runnin)
         if not local:
             if not os.path.isdir('PreProc'):
