@@ -31,7 +31,8 @@ spec:
             mkdir foo; 
             cd foo; 
             mkdir Evaluations;   
-            python -u /ulmo/runs/LLC/llc_evaluate_test.py
+            cp /ulmo/runs/LLC/llc_evaluate_test.py .;
+            python -u llc_evaluate_test.py;
             rm PreProc/*;
             cd ..;
             aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp foo s3://llc --recursive;
