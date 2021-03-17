@@ -32,9 +32,11 @@ def u_extract():
     # Giddy up (will take a bit of memory!)
     llc_table = ulmo_io.load_main_table(tbl_file)
     root_file = 'LLC_uniform_preproc_test.h5'
-    pp_local_file = os.path.join(os.getenv('SST_OOD'), '..', 'LLC', 
-                           'PreProc', root_file)
+    pp_local_file = 'PreProc/'+root_file
     pp_s3_file = 's3://llc/PreProc/'+root_file
+    if not os.path.isdir('PreProc'):
+        os.mkdir('PreProc')
+
     # Run it
     llc_table = extract.preproc_for_analysis(llc_table, 
                                              pp_local_file,

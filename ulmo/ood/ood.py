@@ -1,11 +1,9 @@
 """ OOD Class """
 import os
-import time
 import io, json
 import h5py
 import pickle
 import sklearn
-import multiprocessing
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -16,7 +14,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from tqdm.auto import tqdm
 from skimage import filters
-from matplotlib.gridspec import GridSpec
 from sklearn.preprocessing import StandardScaler
 
 from ulmo.plotting import load_palette, grid_plot
@@ -586,7 +583,7 @@ class ProbabilisticAutoencoder:
                                    dataset=dataset)
 
         # Latents
-        return
+        return np.concatenate(log_prob)
 
     def _log_probs_to_csv(self, df, log_file, outfile, dataset='valid'):
         """

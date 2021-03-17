@@ -219,7 +219,7 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
     # Loop
     for udate in uni_date:
         # Parse filename
-        filename = llc_io.build_llc_datafile(udate, local=dlocal)
+        filename = llc_io.grab_llc_datafile(udate, local=dlocal)
 
         # Allow for s3
         with ulmo_io.open(filename, 'rb') as f:

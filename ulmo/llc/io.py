@@ -42,7 +42,7 @@ def load_CC_mask(field_size=(64,64), verbose=True, local=True):
     return CC_mask
 
 
-def build_llc_datafile(date=None, root='LLC4320_', chk=True, local=False):
+def grab_llc_datafile(date=None, root='LLC4320_', chk=True, local=False):
     """Generate the LLC datafile name from the inputs
 
     Args:
