@@ -37,7 +37,7 @@ from astropy import units
 from IPython import embed
 
 def add_days(llc_table:pandas.DataFrame, dti:pandas.DatetimeIndex, outfile=None):
-    """[summary]
+    """Add dates to an LLC table
 
     Args:
         llc_table (pandas.DataFrame): [description]
