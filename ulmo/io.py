@@ -72,17 +72,19 @@ def load_nc(filename, verbose=True):
     # Return
     return sst, qual, latitude, longitude
 
-def load_main_table(tbl_file, verbose=True):
+def load_main_table(tbl_file, verbose=True, local=False):
     _, file_extension = os.path.splitext(tbl_file)
     if file_extension == '.csv':
         main_table = pandas.read_csv(tbl_file, index_col=0)
+        # Set time
+        if 'datetime' in main_table.keys():
+            main_table.datetime = pandas.to_datetime(main_table.datetime)
     elif file_extension == '.feather':
-        main_table = pandas.read_feather(tbl_file, index_col=0)
+        # Allow for s3
+        with open(tbl_file, 'rb') as f:
+            main_table = pandas.read_feather(f)
     else:
         raise IOError("Bad table extension: ")
-    # Set time
-    if 'datetime' in main_table.keys():
-        llc_table.datetime = pandas.to_datetime(llc_table.datetime)
     return main_table
 
 
@@ -128,5 +130,3 @@ def write_pandas_to_s3_feather(data:pandas.DataFrame,
     s3.meta.client.upload_fileobj(Fileobj=bytes_, 
                              Bucket=parsed_s3.netloc, 
                              Key=parsed_s3.path[1:])
-
-    print("Wrote: {}".format(s3_uri))

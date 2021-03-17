@@ -30,7 +30,6 @@ import astropy_healpix
 from astropy import units
 from astropy.coordinates import SkyCoord, match_coordinates_sky
 
-
 from IPython import embed
 
 def add_days(llc_table, dti, outfile=None):
@@ -48,14 +47,24 @@ def add_days(llc_table, dti, outfile=None):
 
     # Write
     if outfile is not None:
-        llc_io.write_llc_table(llc_table, outfile)
+        ulmo_io.write_main_table(llc_table, outfile)
 
     # Return
     return llc_table
 
 def build_CC_mask(filename=None, temp_bounds=(-3, 34), 
                   field_size=(64,64)):
+    """Build a CC mask for the LLC
 
+    Args:
+        filename ([type], optional): [description]. Defaults to None.
+        temp_bounds (tuple, optional): [description]. Defaults to (-3, 34).
+        field_size (tuple, optional): [description]. Defaults to (64,64).
+
+    Returns:
+        np.ndarray: CC_mask
+    """
+    # Load effectively any file
     if filename is None:
         filename = os.path.join(os.getenv('LLC_DATA'), 
                                 'ThetaUVSalt',
@@ -88,7 +97,8 @@ def build_CC_mask(filename=None, temp_bounds=(-3, 34),
     # Return
     return CC_mask
 
-def uniform_coords(resol, field_size, CC_max=1e-4, outfile=None):
+
+def uniform_coords(resol, field_size, CC_max=1e-4, outfile=None, localCC=True):
     """
     Use healpix to setup a uniform extraction grid
     Args:
@@ -96,12 +106,14 @@ def uniform_coords(resol, field_size, CC_max=1e-4, outfile=None):
         field_size (tuple): Cutout size in pixels
         outfile (str, optional): If provided, write the table to this outfile.
             Defaults to None.
+        localCC (bool, optional):  If True, load the CC_mask locally.
 
     Returns:
         pandas.DataFrame: Table containing the coords
     """
     # Load up CC_mask
-    CC_mask = llc_io.load_CC_mask(field_size=field_size)
+    CC_mask = llc_io.load_CC_mask(field_size=field_size, local=localCC)
+
     # Cut
     good_CC = CC_mask.CC_mask.values < CC_max
     good_CC_idx = np.where(good_CC)
@@ -137,8 +149,10 @@ def uniform_coords(resol, field_size, CC_max=1e-4, outfile=None):
     llc_table['row'] = good_CC_idx[0][idx[good_sep]] - field_size[0]//2 # Lower left corner
     llc_table['col'] = good_CC_idx[1][idx[good_sep]] - field_size[0]//2 # Lower left corner
     
+    # Write
     if outfile is not None:
-        llc_io.write_main_table(llc_table, outfile)
+        ulmo_io.write_main_table(llc_table, outfile)
+    # Return
     return llc_table
 
 
@@ -203,6 +217,7 @@ def main(flg):
                                            lon=(['x','y'], coord_ds.lon),
                                            lat=(['x','y'], coord_ds.lat)))
         # Write
+        raise IOError("Write to s3!")
         filename = os.path.join(os.getenv('LLC_DATA'), 
                                 'LLC_CC_mask_64.nc')
         ds.to_netcdf(filename)
