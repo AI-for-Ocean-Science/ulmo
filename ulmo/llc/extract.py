@@ -2,6 +2,7 @@
 
 import os
 import numpy as np
+import datetime
 
 import pandas
 
@@ -35,7 +36,18 @@ from astropy import units
 
 from IPython import embed
 
-def add_days(llc_table, dti, outfile=None):
+def add_days(llc_table:pandas.DataFrame, dti:pandas.DatetimeIndex, outfile=None):
+    """[summary]
+
+    Args:
+        llc_table (pandas.DataFrame): [description]
+        dti (pandas.DatetimeIndex): [description]
+        outfile ([type], optional): [description]. Defaults to None.
+
+    Returns:
+        [type]: [description]
+    """
+    
     # Check
     if 'datetime' in llc_table.keys():
         print("Dates already specified.  Not modifying")
@@ -60,9 +72,9 @@ def build_CC_mask(filename=None, temp_bounds=(-3, 34),
     """Build a CC mask for the LLC
 
     Args:
-        filename ([type], optional): [description]. Defaults to None.
-        temp_bounds (tuple, optional): [description]. Defaults to (-3, 34).
-        field_size (tuple, optional): [description]. Defaults to (64,64).
+        filename ([type], optional): Filename for coord info. Defaults to None.
+        temp_bounds (tuple, optional): Temperature bounds for masking. Defaults to (-3, 34).
+        field_size (tuple, optional): Field size of cutouts. Defaults to (64,64).
 
     Returns:
         np.ndarray: CC_mask
