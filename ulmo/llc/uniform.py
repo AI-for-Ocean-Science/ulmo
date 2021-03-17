@@ -172,7 +172,8 @@ def main(flg):
     if flg & (2**0):  
         # Generate the extraction file
         resol = 0.5  # deg
-        outfile = os.path.join(os.getenv('SST_OOD'), 'LLC', 'Tables', 'test_uniform_0.5.csv')
+        #outfile = os.path.join(os.getenv('SST_OOD'), 'LLC', 'Tables', 'test_uniform_0.5.csv')
+        outfile = 's3://llc/Tables/test_uniform_0.5.csv'
         if os.path.isfile(outfile):
             print("{} exists.  Am loading it.".format(outfile))
             llc_table = llc_io.load_llc_table(outfile)

@@ -23,6 +23,7 @@ import seaborn as sns
 from ulmo.preproc import utils as pp_utils
 from ulmo.preproc import extract as pp_extract
 from ulmo.llc import io as llc_io
+from ulmo import io as ulmo_io
 
 # Astronomy tools
 import astropy_healpix
@@ -137,7 +138,7 @@ def uniform_coords(resol, field_size, CC_max=1e-4, outfile=None):
     llc_table['col'] = good_CC_idx[1][idx[good_sep]] - field_size[0]//2 # Lower left corner
     
     if outfile is not None:
-        llc_io.write_llc_table(llc_table, outfile)
+        llc_io.write_main_table(llc_table, outfile)
     return llc_table
 
 

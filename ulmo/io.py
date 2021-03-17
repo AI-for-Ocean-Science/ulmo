@@ -86,13 +86,14 @@ def load_main_table(tbl_file, verbose=True):
     return main_table
 
 
-def write_main_table(main_table:pandas.DataFrame, outfile:str):
+def write_main_table(main_table:pandas.DataFrame, outfile:str, to_s3=True):
     """Write Main table for ULMO analysis
+    Format is determined from the outfile extension.
+        Options are ".csv", ".feather"
 
     Args:
-        main_table (pandas.DataFrame): [description]
+        main_table (pandas.DataFrame): Main table for ULMO analysis
         outfile (str): Output filename.  Its extension sets the format
-        format (str, optional): Table format for output. Defaults to 'feather'.
 
     Raises:
         IOError: [description]
@@ -100,8 +101,11 @@ def write_main_table(main_table:pandas.DataFrame, outfile:str):
     _, file_extension = os.path.splitext(outfile)
     if file_extension == '.csv':
         main_table.to_csv(outfile, date_format='%Y-%m-%d %H:%M:%S')
-    if file_extension == '.feather':
-        main_table.to_feather(outfile) 
+    elif file_extension == '.feather':
+        if to_s3:
+            write_pandas_to_s3_feather(main_table, s3_uri=outfile)
+        else:
+            main_table.to_feather(outfile) 
     else:
         raise IOError("Not ready for this")
     print("Wrote Analysis Table: {}".format(outfile))
