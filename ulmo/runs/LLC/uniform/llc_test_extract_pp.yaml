@@ -31,10 +31,9 @@ spec:
             mkdir foo; 
             cd foo; 
             mkdir PreProc;   
-            cp /ulmo/runs/LLC/llc_evaluate_test.py .;
-            python -u /ulmo/runs/LLC/llc_test_extract.py;
-            cd ..;
-            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp foo s3://llc --recursive --force;
+            python -u /ulmo/ulmo/runs/LLC/uniform/llc_uniform_test.py 2;
+            #cd ..;
+            #aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp foo s3://llc --recursive --force;
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"

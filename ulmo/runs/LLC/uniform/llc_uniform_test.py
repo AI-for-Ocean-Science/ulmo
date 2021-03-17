@@ -1,5 +1,6 @@
 """ Script to evaluate a test of LLC data """
 import os
+import numpy as np
 
 import pandas
 
@@ -8,38 +9,39 @@ from ulmo.llc import extract
 from ulmo.llc import uniform
 from ulmo import io as ulmo_io
 
+tbl_file = 's3://llc/Tables/test_uniform_r0.5_test.feather'
 
 def u_init():
     # Generate the extraction file
     resol = 0.5  # deg
     #outfile = os.path.join(os.getenv('SST_OOD'), 'LLC', 'Tables', 'test_uniform_0.5.csv')
-    outfile = 's3://llc/Tables/test_uniform_r0.5_test.feather'
-    if os.path.isfile(outfile):
-        print("{} exists.  Am loading it.".format(outfile))
-        llc_table = llc_io.load_llc_table(outfile)
-    else:
-        llc_table = extract.uniform_coords(resol=resol, 
-                                            field_size=(64,64),
-                                            outfile=outfile)
+    llc_table = uniform.coords(resol=resol, 
+                               field_size=(64,64), outfile=tbl_file)
     # Plot
     extract.plot_extraction(llc_table, s=1, resol=resol)
 
     # Extract 6 days across the full range;  ends of months
     dti = pandas.date_range('2011-09-01', periods=6, freq='2M')
-    llc_table = extract.add_days(llc_table, dti, outfile=outfile)
+    llc_table = extract.add_days(llc_table, dti, outfile=tbl_file)
 
-    print("All done")
+    print("All done with init")
 
 
 def u_extract():
+
     # Giddy up (will take a bit of memory!)
-    #  Move to cloud
-    llc_table = ulmo_io.load_main_table(outfile)
-    pp_file = os.path.join(os.getenv('SST_OOD'), 'LLC', 'PreProc', 
-                            'LLC_uniform_preproc_test.h5')
-    llc_table = uniform.extract_preproc_for_analysis(llc_table, outfile=pp_file)
+    llc_table = ulmo_io.load_main_table(tbl_file)
+    root_file = 'LLC_uniform_preproc_test.h5'
+    pp_local_file = os.path.join(os.getenv('SST_OOD'), '..', 'LLC', 
+                           'PreProc', root_file)
+    pp_s3_file = 's3://llc/PreProc/'+root_file
+    # Run it
+    llc_table = extract.preproc_for_analysis(llc_table, 
+                                             pp_local_file,
+                                             s3_file=pp_s3_file,
+                                             dlocal=False)
     # Final write
-    ulmo_io.write_main_table(llc_table, outfile)
+    ulmo_io.write_main_table(llc_table, tbl_file)
     
 
 def u_evaluate():
@@ -87,7 +89,8 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg = 0
-        flg += 2 ** 0  # Setup coords
+        #flg += 2 ** 0  # 1 -- Setup coords
+        #flg += 2 ** 1  # 2 -- Extract
     else:
         flg = sys.argv[1]
 

@@ -2,14 +2,14 @@
 
 import os
 
-import pandas
 import xarray as xr
 
 from ulmo import io as ulmo_io
 
 from IPython import embed
 
-llc_files_path = os.path.join(os.getenv('LLC_DATA'), 'ThetaUVSalt')
+local_llc_files_path = os.path.join(os.getenv('LLC_DATA'), 'ThetaUVSalt')
+s3_llc_files_path = 's3://llc/ThetaUVSalt'
 
 def load_coords(verbose=True):
     coord_file = os.path.join(os.getenv('LLC_DATA'), 'LLC_coords.nc')
@@ -41,11 +41,26 @@ def load_CC_mask(field_size=(64,64), verbose=True, local=True):
         CC_mask = xr.load_dataset(f)
     return CC_mask
 
-def build_llc_datafile(date=None, root='LLC4320_', chk=True):
+
+def build_llc_datafile(date=None, root='LLC4320_', chk=True, local=False):
+    """Generate the LLC datafile name from the inputs
+
+    Args:
+        date ([type], optional): [description]. Defaults to None.
+        root (str, optional): [description]. Defaults to 'LLC4320_'.
+        chk (bool, optional): [description]. Defaults to True.
+        local (bool, optional): [description]. Defaults to False.
+
+    Returns:
+        str: LLC datafile name
+    """
+    # Path
+    llc_files_path = local_llc_files_path if local else s3_llc_files_path
+        
     if date is not None:
         sdate = str(date).replace(':','_')[:19]
         datafile = os.path.join(llc_files_path, root+sdate+'.nc')
-    if chk:
+    if chk and local:
         try:
             assert os.path.isfile(datafile)
         except:

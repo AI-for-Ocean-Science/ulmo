@@ -104,29 +104,39 @@ def write_main_table(main_table:pandas.DataFrame, outfile:str, to_s3=True):
     if file_extension == '.csv':
         main_table.to_csv(outfile, date_format='%Y-%m-%d %H:%M:%S')
     elif file_extension == '.feather':
+        bytes_ = BytesIO()
+        main_table.to_feather(path=bytes_)
         if to_s3:
-            write_pandas_to_s3_feather(main_table, s3_uri=outfile)
+            write_bytes_to_s3(bytes_, outfile)
         else:
-            main_table.to_feather(outfile) 
+            write_bytes_to_local(bytes_, outfile)
     else:
         raise IOError("Not ready for this")
     print("Wrote Analysis Table: {}".format(outfile))
 
+def upload_file_to_s3(local_file:str, s3_uri:str):
+    # https://boto3.amazonaws.com/v1/documentation/api/latest/guide/s3-uploading-files.html
+    parsed_s3 = urlparse(s3_uri)
+    s3.meta.client.upload_file(local_file,
+                             parsed_s3.netloc, 
+                             parsed_s3.path[1:])
     
-def write_pandas_to_s3_feather(data:pandas.DataFrame, 
-                               s3_uri:str, **kwargs):
-    """Write pandas to s3 as a feather file
+def write_bytes_to_local(bytes_:BytesIO, outfile:str):
+    bytes_.seek(0)
+    with open(outfile, 'wb') as f:
+        f.write(bytes_.getvalue())
+
+
+def write_bytes_to_s3(bytes_:BytesIO, s3_uri:str):
+    """Write bytes to s3 
 
     Args:
-        data (pandas.DataFrame): pandas table
+        bytes_ (BytesIO): bytes
         s3_uri (str): Path to s3 bucket including filename
-        **kwargs: Passed to to_feather()
     """
-    parsed_s3 = urlparse(s3_uri)
-    bytes_ = BytesIO()
-    data.to_feather(path=bytes_, **kwargs)
     bytes_.seek(0)
     # Do it
+    parsed_s3 = urlparse(s3_uri)
     s3.meta.client.upload_fileobj(Fileobj=bytes_, 
                              Bucket=parsed_s3.netloc, 
                              Key=parsed_s3.path[1:])

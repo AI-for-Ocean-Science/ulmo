@@ -1,7 +1,6 @@
 """ Module for uniform analyses of LLC outputs"""
 
 import os
-import glob
 import numpy as np
 
 import pandas
@@ -9,26 +8,30 @@ import pandas
 import xarray as xr
 import h5py
 
+from sklearn.utils import shuffle
+
 from matplotlib import pyplot as plt
-import matplotlib as mpl
-import matplotlib.gridspec as gridspec
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-import matplotlib.ticker as mticker
 
 import cartopy.crs as ccrs
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
-import seaborn as sns
+
+from functools import partial
+from concurrent.futures import ProcessPoolExecutor
+from tqdm import tqdm
 
 from ulmo.preproc import utils as pp_utils
 from ulmo.preproc import extract as pp_extract
 from ulmo.llc import io as llc_io
 from ulmo import io as ulmo_io
+from ulmo.preproc import io as pp_io
+from ulmo.llc import io as llc_io
+from ulmo import io as ulmo_io
+
 
 # Astronomy tools
 import astropy_healpix
 from astropy import units
-from astropy.coordinates import SkyCoord, match_coordinates_sky
 
 from IPython import embed
 
@@ -98,64 +101,6 @@ def build_CC_mask(filename=None, temp_bounds=(-3, 34),
     return CC_mask
 
 
-def uniform_coords(resol, field_size, CC_max=1e-4, outfile=None, localCC=True):
-    """
-    Use healpix to setup a uniform extraction grid
-    Args:
-        resol (float): Typical separation on the healpix grid
-        field_size (tuple): Cutout size in pixels
-        outfile (str, optional): If provided, write the table to this outfile.
-            Defaults to None.
-        localCC (bool, optional):  If True, load the CC_mask locally.
-
-    Returns:
-        pandas.DataFrame: Table containing the coords
-    """
-    # Load up CC_mask
-    CC_mask = llc_io.load_CC_mask(field_size=field_size, local=localCC)
-
-    # Cut
-    good_CC = CC_mask.CC_mask.values < CC_max
-    good_CC_idx = np.where(good_CC)
-
-    # Build coords
-    llc_lon = CC_mask.lon.values[good_CC].flatten()
-    llc_lat = CC_mask.lat.values[good_CC].flatten()
-    print("Building LLC SkyCoord")
-    llc_coord = SkyCoord(llc_lon*units.deg + 180.*units.deg, 
-                         llc_lat*units.deg, 
-                         frame='galactic')
-
-    # Healpix time
-    nside = astropy_healpix.pixel_resolution_to_nside(resol*units.deg)
-    hp = astropy_healpix.HEALPix(nside=nside)
-    hp_lon, hp_lat = hp.healpix_to_lonlat(np.arange(hp.npix))
-
-    # Coords
-    hp_coord = SkyCoord(hp_lon, hp_lat, frame='galactic')
-                        
-    # Cross-match
-    print("Cross-match")
-    idx, sep2d, _ = match_coordinates_sky(hp_coord, llc_coord, nthneighbor=1)
-    flag = np.zeros(len(llc_coord), dtype='bool')
-    good_sep = sep2d < hp.pixel_resolution
-    good_sep_idx = np.where(good_sep)
-
-    # Build the table
-    llc_table = pandas.DataFrame()
-    llc_table['lat'] = llc_lat[idx[good_sep]]  # Center of cutout
-    llc_table['lon'] = llc_lon[idx[good_sep]]  # Center of cutout
-
-    llc_table['row'] = good_CC_idx[0][idx[good_sep]] - field_size[0]//2 # Lower left corner
-    llc_table['col'] = good_CC_idx[1][idx[good_sep]] - field_size[0]//2 # Lower left corner
-    
-    # Write
-    if outfile is not None:
-        ulmo_io.write_main_table(llc_table, outfile)
-    # Return
-    return llc_table
-
-
 def plot_extraction(llc_table, resol=None, cbar=False, s=0.01):
 
     fig = plt.figure(figsize=(7, 4))
@@ -200,6 +145,167 @@ def plot_extraction(llc_table, resol=None, cbar=False, s=0.01):
 
     return
 
+def preproc_image(item, pdict):
+    """
+    Simple wrapper for preproc_field()
+
+    Parameters
+    ----------
+    item : tuple
+        field, idx
+    pdict : dict
+        Preprocessing dict
+
+    Returns
+    -------
+    pp_field, idx, meta : np.ndarray, int, dict
+
+    """
+    # Unpack
+    field, idx = item
+
+    # Run
+    pp_field, meta = pp_utils.preproc_field(field, None, **pdict)
+
+    # Failed?
+    if pp_field is None:
+        return None
+
+    # Return
+    return pp_field.astype(np.float32), idx, meta
+
+
+def preproc_for_analysis(llc_table:pandas.DataFrame, 
+                         local_file:str,
+                         preproc_root='llc_std', 
+                         field_size=(64,64), 
+                         n_cores=10,
+                         valid_fraction=1., 
+                         dlocal=False,
+                         s3_file=None):
+    # Preprocess options
+    pdict = pp_io.load_options(preproc_root)
+
+    # Setup for parallel
+    map_fn = partial(preproc_image, pdict=pdict)
+
+    # Setup for dates
+    uni_date = np.unique(llc_table.datetime)
+    if len(uni_date) > 10:
+        raise IOError("You are likely to exceed the RAM.  Deal")
+
+    # Init
+    pp_fields, meta, img_idx = [], [], []
+
+    # Prep LLC Table
+    for key in ['LLC_file', 'pp_file']:
+        if key not in llc_table.keys():
+            llc_table[key] = ''
+    llc_table['pp_root'] = preproc_root
+    llc_table['field_size'] = field_size[0]
+
+    # Loop
+    for udate in uni_date:
+        # Parse filename
+        filename = llc_io.build_llc_datafile(udate, local=dlocal)
+
+        # Allow for s3
+        with ulmo_io.open(filename, 'rb') as f:
+            ds = xr.open_dataset(f)
+        sst = ds.Theta.values
+        # Parse 
+        gd_date = llc_table.datetime == udate
+        sub_idx = np.where(gd_date)[0]
+        coord_tbl = llc_table[gd_date]
+
+        # Add to table
+        llc_table.loc[gd_date, 'LLC_file'] = filename
+
+        # Load up the cutouts
+        fields = []
+        for r, c in zip(coord_tbl.row, coord_tbl.col):
+            fields.append(sst[r:r+field_size[0], c:c+field_size[1]])
+        print("Cutouts loaded for {}".format(filename))
+
+        # Multi-process time
+        #sub_idx = np.arange(idx, idx+len(fields)).tolist()
+        #idx += len(fields)
+        # 
+        items = [item for item in zip(fields,sub_idx)]
+
+        with ProcessPoolExecutor(max_workers=n_cores) as executor:
+            chunksize = len(items) // n_cores if len(items) // n_cores > 0 else 1
+            answers = list(tqdm(executor.map(map_fn, items,
+                                             chunksize=chunksize), total=len(items)))
+
+        # Deal with failures
+        answers = [f for f in answers if f is not None]
+
+        # Slurp
+        pp_fields += [item[0] for item in answers]
+        img_idx += [item[1] for item in answers]
+        meta += [item[2] for item in answers]
+
+        # Update the metadata
+        #tmp_tbl = coord_tbl.copy()
+        #tmp_tbl['filename'] = os.path.basename(filename)
+        #metadata = metadata.append(tmp_tbl, ignore_index=True)
+
+        del answers, fields, items
+        ds.close()
+
+    # Recast
+    pp_fields = np.stack(pp_fields)
+    pp_fields = pp_fields[:, None, :, :]  # Shaped for training
+
+    print("After pre-processing, there are {} images ready for analysis".format(pp_fields.shape[0]))
+    
+    # Reorder llc_table (probably no change)
+    llc_table = llc_table.iloc[img_idx]
+    # Fill up
+    llc_table['pp_file'] = os.path.basename(local_file) 
+    # Mu
+    llc_table['mean_temperature'] = [imeta['mu'] for imeta in meta]
+    clms = list(llc_table.keys())
+    # Others
+    for key in ['Tmin', 'Tmax', 'T90', 'T10']:
+        if key in meta[0].keys():
+            llc_table[key] = [imeta[key] for imeta in meta]
+            clms += [key]
+
+    # Train/validation
+    n = int(valid_fraction * pp_fields.shape[0])
+    idx = shuffle(np.arange(pp_fields.shape[0]))
+    valid_idx, train_idx = idx[:n], idx[n:]
+
+    # ###################
+    # Write to disk (avoids holding another 20Gb in memory)
+    with h5py.File(local_file, 'w') as f:
+        # Validation
+        f.create_dataset('valid', data=pp_fields[valid_idx].astype(np.float32))
+        # Metadata
+        dset = f.create_dataset('valid_metadata', data=llc_table.iloc[valid_idx].to_numpy(dtype=str).astype('S'))
+        dset.attrs['columns'] = clms
+        # Train
+        if valid_fraction < 1:
+            f.create_dataset('train', data=pp_fields[train_idx].astype(np.float32))
+            dset = f.create_dataset('train_metadata', data=llc_table.iloc[train_idx].to_numpy(dtype=str).astype('S'))
+            dset.attrs['columns'] = clms
+    print("Wrote: {}".format(local_file))
+
+    # Clean up
+    del pp_fields
+
+    # Upload to s3? 
+    if s3_file is not None:
+        ulmo_io.upload_file_to_s3(local_file, s3_file)
+        print("Wrote: {}".format(s3_file))
+        # Delete local?
+
+    # Return
+    return llc_table
+
+# TODO -- Move to runs/LLC/
 def main(flg):
     if flg== 'all':
         flg= np.sum(np.array([2 ** ii for ii in range(25)]))
