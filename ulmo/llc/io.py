@@ -24,13 +24,6 @@ def load_CC_mask(field_size=(64,64), verbose=True):
     CC_mask = xr.load_dataset(CC_mask_file)
     return CC_mask
 
-def load_llc_table(tbl_file, verbose=True):
-    llc_table = pandas.read_csv(tbl_file, index_col=0)
-    # Set time
-    if 'datetime' in llc_table.keys():
-        llc_table.datetime = pandas.to_datetime(llc_table.datetime)
-    return llc_table
-
 def build_llc_datafile(date=None, root='LLC4320_', chk=True):
     if date is not None:
         sdate = str(date).replace(':','_')[:19]
@@ -43,9 +36,3 @@ def build_llc_datafile(date=None, root='LLC4320_', chk=True):
     # Return
     return datafile
                     
-def write_llc_table(llc_table, outfile, CSV=True):
-    if CSV:
-        llc_table.to_csv(outfile, date_format='%Y-%m-%d %H:%M:%S')
-    else:
-        raise IOError("Not ready for this")
-    print("Wrote LLC Table: {}".format(outfile))

@@ -70,8 +70,6 @@ def extract_preproc_for_analysis(llc_table, preproc_root='llc_std',
     # Setup for parallel
     map_fn = partial(preproc_image, pdict=pdict)
 
-    # File path
-
     # Setup for dates
     uni_date = np.unique(llc_table.datetime)
     if len(uni_date) > 10:
