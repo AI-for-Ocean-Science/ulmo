@@ -100,13 +100,12 @@ def u_evaluate():
             log_prob_file, csv=False)  
     
         # Add to table
-        embed(header='103 of u test')
-        pp_idx = llc_table.iloc[using_pp & valid]['pp_idx']
+        pp_idx = llc_table[using_pp & valid]['pp_idx']
         assert len(pp_idx) == len(LL)
         llc_table.loc[using_pp & valid, 'LL'] = LL[pp_idx]
 
         # Remove 
-        os.remove(data_file)
+        os.remove(local_file)
 
     # Write table
     ulmo_io.write_main_table(llc_table, tbl_file)
