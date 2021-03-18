@@ -1,6 +1,7 @@
 """ Script to evaluate a test of LLC data """
 import os
 import numpy as np
+from urllib.parse import urlparse
 
 import pandas
 
@@ -75,15 +76,18 @@ def u_evaluate():
 
     # Loop on PreProc files
     for pp_file in uni_pp_files:
+        # Parse me
+        parsed_s3 = urlparse(pp_file)
+        data_file = os.path.join(preproc_folder, os.path.basename(pp_file))
 
         # Subset
         using_pp = llc_table.pp_file == pp_file
         valid = llc_table.pp_type == ulmo_defs.mtbl_dmodel['pp_type']['valid']
 
         # Download preproc file for speed
-        data_file = os.path.join(preproc_folder, pp_file)
-        print("Downloading from s3: {}".format(data_file))
-        ulmo_io.s3.Bucket('llc').download_file(data_file, data_file)
+        print("Downloading from s3: {}".format(pp_file))
+        ulmo_io.s3.Bucket(parsed_s3.netloc).download_file(
+            parsed_s3[1:], data_file)
 
         log_prob_file = os.path.join(output_folder, 
                                      pp_file.replace('preproc', 'log_prob'))
