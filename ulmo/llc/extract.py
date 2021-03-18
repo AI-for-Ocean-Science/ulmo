@@ -221,7 +221,7 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
     # Reorder llc_table (probably no change)
     llc_table = llc_table.iloc[img_idx]
     # Fill up
-    llc_table['pp_file'] = os.path.basename(local_file) 
+    llc_table['pp_file'] = os.path.basename(local_file) if s3_file is None else s3_file
     # Mu
     llc_table['mean_temperature'] = [imeta['mu'] for imeta in meta]
     clms = list(llc_table.keys())

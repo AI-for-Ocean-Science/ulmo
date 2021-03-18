@@ -47,6 +47,8 @@ RUN  pip install scikit-image
 RUN  pip install xarray
 RUN  pip install pandas
 RUN  pip install astropy
+RUN  pip install pyarrow  
+RUN  pip install astropy-healpix
 
 # ulmo time
 RUN git clone https://github.com/AI-for-Ocean-Science/ulmo.git
