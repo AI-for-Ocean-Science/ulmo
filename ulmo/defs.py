@@ -3,9 +3,10 @@
 import os
 
 # MODIS L2
-extract_path = os.path.join(os.getenv("SST_OOD"), 'Extractions')
-model_path = os.path.join(os.getenv("SST_OOD"), 'Models')
-eval_path = os.path.join(os.getenv("SST_OOD"), 'MODIS_L2', 'Evaluations')
+if os.getenv('SST_OOD') is not None:
+    extract_path = os.path.join(os.getenv("SST_OOD"), 'Extractions')
+    model_path = os.path.join(os.getenv("SST_OOD"), 'Models')
+    eval_path = os.path.join(os.getenv("SST_OOD"), 'MODIS_L2', 'Evaluations')
 
 # Main Table definitions
 
