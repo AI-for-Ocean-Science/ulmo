@@ -85,6 +85,9 @@ def load_main_table(tbl_file, verbose=True, local=False):
             main_table = pandas.read_feather(f)
     else:
         raise IOError("Bad table extension: ")
+    # Report
+    if verbose:
+        print("Read main table: {}".format(tbl_file))
     return main_table
 
 

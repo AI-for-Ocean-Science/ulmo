@@ -8,6 +8,7 @@ from ulmo.models import io as model_io
 from ulmo.llc import extract 
 from ulmo.llc import uniform
 from ulmo import io as ulmo_io
+from ulmo import defs as ulmo_defs
 
 from IPython import embed
 
@@ -29,7 +30,7 @@ def u_init():
     print("All done with init")
 
 
-def u_extract():
+def u_extract(debug_local=False):
 
     # Giddy up (will take a bit of memory!)
     llc_table = ulmo_io.load_main_table(tbl_file)
@@ -40,6 +41,8 @@ def u_extract():
         os.mkdir('PreProc')
 
     # Run it
+    if debug_local:
+        pp_s3_file = None  
     llc_table = extract.preproc_for_analysis(llc_table, 
                                              pp_local_file,
                                              s3_file=pp_s3_file,
@@ -55,7 +58,7 @@ def u_evaluate():
     uni_pp_files = np.unique(llc_table.pp_file).tolist()
     
     # Init
-    llc_table['LL'] = 0.
+    llc_table['LL'] = np.nan
 
     # Load model
     pae = model_io.load_modis_l2(flavor='std', local=False)
@@ -75,23 +78,23 @@ def u_evaluate():
 
         # Subset
         using_pp = llc_table.pp_file == pp_file
+        valid = llc_table.pp_type == ulmo_defs.mtbl_dmodel['pp_type']['valid']
 
         # Download preproc file for speed
         data_file = os.path.join(preproc_folder, pp_file)
         ulmo_io.s3.Bucket('llc').download_file(data_file, data_file)
-
-        # Confirm table and PreProc is aligned
-        embed(header='84 of utest')
 
         log_prob_file = os.path.join(output_folder, 
                                      pp_file.replace('preproc', 'log_prob'))
 
         # Run
         LL = pae.compute_log_probs(data_file, 'valid', 
-            log_prob_file, csv=False)  # Tends to crash on kuber
+            log_prob_file, csv=False)  
     
         # Add to table
-        llc_table.loc[using_pp, 'LL'] = LL
+        pp_idx = llc_table.iloc[using_pp & valid]['pp_idx']
+        assert len(pp_idx) == len(LL)
+        llc_table.loc[using_pp & valid, 'LL'] = LL[pp_idx]
 
         # Remove 
         os.remove(data_file)

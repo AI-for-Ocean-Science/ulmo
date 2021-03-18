@@ -21,6 +21,7 @@ from ulmo import io as ulmo_io
 from ulmo.preproc import io as pp_io
 from ulmo.llc import io as llc_io
 from ulmo import io as ulmo_io
+from ulmo import defs as ulmo_defs
 
 
 
@@ -161,6 +162,8 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
             llc_table[key] = ''
     llc_table['pp_root'] = preproc_root
     llc_table['field_size'] = field_size[0]
+    llc_table['pp_idx'] = -1
+    llc_table['pp_type'] = ulmo_defs.mtbl_dmodel['pp_type']['init']
 
     # Loop
     for udate in uni_date:
@@ -204,11 +207,6 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         img_idx += [item[1] for item in answers]
         meta += [item[2] for item in answers]
 
-        # Update the metadata
-        #tmp_tbl = coord_tbl.copy()
-        #tmp_tbl['filename'] = os.path.basename(filename)
-        #metadata = metadata.append(tmp_tbl, ignore_index=True)
-
         del answers, fields, items
         ds.close()
 
@@ -220,6 +218,7 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
     
     # Reorder llc_table (probably no change)
     llc_table = llc_table.iloc[img_idx]
+
     # Fill up
     llc_table['pp_file'] = os.path.basename(local_file) if s3_file is None else s3_file
     # Mu
@@ -229,12 +228,20 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
     for key in ['Tmin', 'Tmax', 'T90', 'T10']:
         if key in meta[0].keys():
             llc_table[key] = [imeta[key] for imeta in meta]
-            clms += [key]
+            # Add to clms
+            if key not in clms:
+                clms += [key]
 
     # Train/validation
     n = int(valid_fraction * pp_fields.shape[0])
     idx = shuffle(np.arange(pp_fields.shape[0]))
     valid_idx, train_idx = idx[:n], idx[n:]
+
+    # Update table
+    llc_table.loc[valid_idx, 'pp_idx'] = np.arange(valid_idx.size)
+    llc_table.loc[train_idx, 'pp_idx'] = np.arange(train_idx.size)
+    llc_table.loc[valid_idx, 'pp_type'] = ulmo_defs.mtbl_dmodel['pp_type']['valid']
+    llc_table.loc[train_idx, 'pp_type'] = ulmo_defs.mtbl_dmodel['pp_type']['train']
 
     # ###################
     # Write to disk (avoids holding another 20Gb in memory)

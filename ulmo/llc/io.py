@@ -3,6 +3,8 @@
 import os
 
 import xarray as xr
+import pandas
+import h5py
 
 from ulmo import io as ulmo_io
 
@@ -43,11 +45,11 @@ def load_CC_mask(field_size=(64,64), verbose=True, local=True):
     return CC_mask
 
 
-def grab_llc_datafile(date=None, root='LLC4320_', chk=True, local=False):
+def grab_llc_datafile(datetime=None, root='LLC4320_', chk=True, local=False):
     """Generate the LLC datafile name from the inputs
 
     Args:
-        date ([type], optional): [description]. Defaults to None.
+        datetime (pandas.TimeStamp, optional): Date. Defaults to None.
         root (str, optional): [description]. Defaults to 'LLC4320_'.
         chk (bool, optional): [description]. Defaults to True.
         local (bool, optional): [description]. Defaults to False.
@@ -58,8 +60,12 @@ def grab_llc_datafile(date=None, root='LLC4320_', chk=True, local=False):
     # Path
     llc_files_path = local_llc_files_path if local else s3_llc_files_path
         
-    if date is not None:
-        sdate = str(date).replace(':','_')[:19]
+    if datetime is not None:
+        sdate = str(datetime).replace(':','_')[:19]
+        # Add T?
+        if sdate[10] == ' ':
+            sdate = sdate.replace(' ', 'T')
+        # Finish
         datafile = os.path.join(llc_files_path, root+sdate+'.nc')
     if chk and local:
         try:
@@ -69,3 +75,17 @@ def grab_llc_datafile(date=None, root='LLC4320_', chk=True, local=False):
     # Return
     return datafile
                     
+def grab_image(cutout:pandas.core.series.Series, 
+               close=True, pp_hf=None):                
+    # Open?
+    if pp_hf is None:
+        with ulmo_io.open(cutout.pp_file, 'rb') as f:
+            pp_hf = h5py.File(f, 'r')
+    img = pp_hf['valid'][cutout.name, 0, ...]
+
+    # Close?
+    if close:
+        pp_hf.close()
+        return img
+    else:
+        return img, pp_hf
