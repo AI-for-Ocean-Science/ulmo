@@ -11,6 +11,6 @@ if os.getenv('SST_OOD') is not None:
 # Main Table definitions
 
 mtbl_dmodel = {'pp_type': dict(dtype=int, allowed=(-1, 0,1), 
-                             valid=0, test=1, init=-1,
+                             valid=0, train=1, init=-1,
                              help='-1: illdefined, 0: valid, 1: test')
     }
