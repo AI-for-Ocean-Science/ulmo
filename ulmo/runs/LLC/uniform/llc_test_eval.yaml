@@ -17,7 +17,7 @@ spec:
             ephemeral-storage: 32Gi
           limits:
             cpu: "4"
-            memory: "128Gi"
+            memory: "64Gi"
             ephemeral-storage: 150Gi
             nvidia.com/gpu:  "1"  # See docs to exlude certain types
             # https://ucsd-prp.gitlab.io/userdocs/running/gpu-pods/
@@ -31,8 +31,7 @@ spec:
             mkdir foo; 
             cd foo; 
             mkdir Evaluations;   
-            cp /ulmo/runs/LLC/llc_evaluate_test.py .;
-            python -u llc_evaluate_test.py;
+            python -u /ulmo/ulmo/runs/LLC/uniform/llc_uniform_test.py 4;
             rm PreProc/*;
             cd ..;
             aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp foo s3://llc --recursive;

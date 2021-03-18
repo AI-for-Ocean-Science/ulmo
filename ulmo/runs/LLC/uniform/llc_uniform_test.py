@@ -82,6 +82,7 @@ def u_evaluate():
 
         # Download preproc file for speed
         data_file = os.path.join(preproc_folder, pp_file)
+        print("Downloading from s3: {}".format(data_file))
         ulmo_io.s3.Bucket('llc').download_file(data_file, data_file)
 
         log_prob_file = os.path.join(output_folder, 
