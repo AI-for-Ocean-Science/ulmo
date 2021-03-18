@@ -9,6 +9,8 @@ from ulmo.llc import extract
 from ulmo.llc import uniform
 from ulmo import io as ulmo_io
 
+from IPython import embed
+
 tbl_file = 's3://llc/Tables/test_uniform_r0.5_test.feather'
 
 def u_init():
@@ -31,7 +33,7 @@ def u_extract():
 
     # Giddy up (will take a bit of memory!)
     llc_table = ulmo_io.load_main_table(tbl_file)
-    root_file = 'LLC_uniform_preproc_test.h5'
+    root_file = 'LLC_uniform_test_preproc.h5'
     pp_local_file = 'PreProc/'+root_file
     pp_s3_file = 's3://llc/PreProc/'+root_file
     if not os.path.isdir('PreProc'):
@@ -47,30 +49,55 @@ def u_extract():
     
 
 def u_evaluate():
+    
+    # Load table
+    llc_table = ulmo_io.load_main_table(tbl_file)
+    uni_pp_files = np.unique(llc_table.pp_file).tolist()
+    
+    # Init
+    llc_table['LL'] = 0.
+
     # Load model
     pae = model_io.load_modis_l2(flavor='std', local=False)
     print("Model loaded!")
 
-    # Download preproc file for speed
+    # Prep
     preproc_folder = 'PreProc'
     if not os.path.isdir(preproc_folder):
         os.mkdir(preproc_folder)
-    data_file = os.path.join(preproc_folder, 'LLC_uniform_preproc_test.h5') 
-    ulmo_io.s3.Bucket('llc').download_file(data_file, data_file)
-
     # Output file
     output_folder = 'Evaluations'
     if not os.path.isdir(output_folder):
         os.mkdir(output_folder)
-    log_prob_file = os.path.join(output_folder, 
-                                'LLC_uniform_test_std_log_prob.h5')
 
-    # Run
-    pae.compute_log_probs(data_file, 'valid', 
-        log_prob_file, csv=False)  # Tends to crash on kuber
+    # Loop on PreProc files
+    for pp_file in uni_pp_files:
 
-    # Remove 
-    os.remove(data_file)
+        # Subset
+        using_pp = llc_table.pp_file == pp_file
+
+        # Download preproc file for speed
+        data_file = os.path.join(preproc_folder, pp_file)
+        ulmo_io.s3.Bucket('llc').download_file(data_file, data_file)
+
+        # Confirm table and PreProc is aligned
+        embed(header='84 of utest')
+
+        log_prob_file = os.path.join(output_folder, 
+                                     pp_file.replace('preproc', 'log_prob'))
+
+        # Run
+        LL = pae.compute_log_probs(data_file, 'valid', 
+            log_prob_file, csv=False)  # Tends to crash on kuber
+    
+        # Add to table
+        llc_table.loc[using_pp, 'LL'] = LL
+
+        # Remove 
+        os.remove(data_file)
+
+    # Write table
+    ulmo_io.write_main_table(llc_table, tbl_file)
 
 def main(flg):
     if flg== 'all':
@@ -85,6 +112,9 @@ def main(flg):
     if flg & (2**1):
         u_extract()
 
+    if flg & (2**2):
+        u_evaluate()
+
 # Command line execution
 if __name__ == '__main__':
     import sys
@@ -93,6 +123,7 @@ if __name__ == '__main__':
         flg = 0
         #flg += 2 ** 0  # 1 -- Setup coords
         #flg += 2 ** 1  # 2 -- Extract
+        #flg += 2 ** 2  # 4 -- Evaluate
     else:
         flg = sys.argv[1]
 
