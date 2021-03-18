@@ -78,7 +78,7 @@ def u_evaluate():
     for pp_file in uni_pp_files:
         # Parse me
         parsed_s3 = urlparse(pp_file)
-        data_file = os.path.join(preproc_folder, os.path.basename(pp_file))
+        local_file = os.path.join(preproc_folder, os.path.basename(pp_file))
 
         # Subset
         using_pp = llc_table.pp_file == pp_file
@@ -87,13 +87,16 @@ def u_evaluate():
         # Download preproc file for speed
         print("Downloading from s3: {}".format(pp_file))
         ulmo_io.s3.Bucket(parsed_s3.netloc).download_file(
-            parsed_s3.path[1:], data_file)
+            parsed_s3.path[1:], local_file)
+        print("Done!")
 
-        log_prob_file = os.path.join(output_folder, 
-                                     pp_file.replace('preproc', 'log_prob'))
+        # Output file for LL (local)
+        log_prob_file = os.path.join(
+            output_folder, os.path.basename(local_file).replace(
+                'preproc', 'log_prob'))
 
         # Run
-        LL = pae.compute_log_probs(data_file, 'valid', 
+        LL = pae.compute_log_probs(local_file, 'valid', 
             log_prob_file, csv=False)  
     
         # Add to table
