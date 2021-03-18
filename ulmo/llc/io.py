@@ -8,7 +8,8 @@ from ulmo import io as ulmo_io
 
 from IPython import embed
 
-local_llc_files_path = os.path.join(os.getenv('LLC_DATA'), 'ThetaUVSalt')
+if os.getenv('LLC_DATA') is not None:
+    local_llc_files_path = os.path.join(os.getenv('LLC_DATA'), 'ThetaUVSalt')
 s3_llc_files_path = 's3://llc/ThetaUVSalt'
 
 def load_coords(verbose=True):
