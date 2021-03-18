@@ -100,6 +100,7 @@ def u_evaluate():
             log_prob_file, csv=False)  
     
         # Add to table
+        embed(header='103 of u test')
         pp_idx = llc_table.iloc[using_pp & valid]['pp_idx']
         assert len(pp_idx) == len(LL)
         llc_table.loc[using_pp & valid, 'LL'] = LL[pp_idx]
