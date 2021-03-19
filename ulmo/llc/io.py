@@ -81,7 +81,7 @@ def grab_image(cutout:pandas.core.series.Series,
     if pp_hf is None:
         with ulmo_io.open(cutout.pp_file, 'rb') as f:
             pp_hf = h5py.File(f, 'r')
-    img = pp_hf['valid'][cutout.name, 0, ...]
+    img = pp_hf['valid'][cutout.pp_idx, 0, ...]
 
     # Close?
     if close:
