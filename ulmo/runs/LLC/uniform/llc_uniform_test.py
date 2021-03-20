@@ -52,7 +52,7 @@ def u_extract(debug_local=False):
     ulmo_io.write_main_table(llc_table, tbl_file)
     
 
-def u_evaluate():
+def u_evaluate(clobber_local=False):
     
     # Load table
     llc_table = ulmo_io.load_main_table(tbl_file)
@@ -85,10 +85,11 @@ def u_evaluate():
         valid = llc_table.pp_type == ulmo_defs.mtbl_dmodel['pp_type']['valid']
 
         # Download preproc file for speed
-        print("Downloading from s3: {}".format(pp_file))
-        ulmo_io.s3.Bucket(parsed_s3.netloc).download_file(
-            parsed_s3.path[1:], local_file)
-        print("Done!")
+        if not os.path.isfile(local_file) or clobber_local:
+            print("Downloading from s3: {}".format(pp_file))
+            ulmo_io.s3.Bucket(parsed_s3.netloc).download_file(
+                parsed_s3.path[1:], local_file)
+            print("Done!")
 
         # Output file for LL (local)
         log_prob_file = os.path.join(
