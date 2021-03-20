@@ -49,7 +49,8 @@ class ProbabilisticAutoencoder:
         autoencoder = DCAE(**model_dict['AE'])
         flow = ConditionalFlow(**model_dict['flow'])
         # Do it!
-        pae = cls(autoencoder=autoencoder, flow=flow, write_model=False, **kwargs)
+        pae = cls(autoencoder=autoencoder, flow=flow, write_model=False, 
+                  skip_mkdir=True, **kwargs)
         return pae
 
     @classmethod
