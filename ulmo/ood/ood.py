@@ -507,7 +507,8 @@ class ProbabilisticAutoencoder:
         # Setup
         dset = torch.utils.data.TensorDataset(torch.from_numpy(rimg).float())
 
-        latents, LL = self.compute_log_probs(dset, batch_size=1, **kwargs)
+        latents, LL = self.compute_log_probs(dset, batch_size=1, 
+                                             collate_fn=None, **kwargs)
 
         # Return
         return latents, float(LL[0])
@@ -543,7 +544,8 @@ class ProbabilisticAutoencoder:
             self._log_probs_to_csv(df, output_file, csv_name,
                                    dataset=dataset)
 
-    def compute_log_probs(self, dset, num_workers=16, batch_size=1024):
+    def compute_log_probs(self, dset, num_workers=16, batch_size=1024,
+                          collate_fn=id_collate):
         """
         Computer log probs on an input HDF file of images
 
@@ -578,7 +580,7 @@ class ProbabilisticAutoencoder:
         # Generate DataLoader
         loader = torch.utils.data.DataLoader(
             dset, batch_size=batch_size, shuffle=False, 
-            drop_last=False, collate_fn=id_collate,
+            drop_last=False, collate_fn=collate_fn,
             num_workers=num_workers)
         
         self.autoencoder.eval()
