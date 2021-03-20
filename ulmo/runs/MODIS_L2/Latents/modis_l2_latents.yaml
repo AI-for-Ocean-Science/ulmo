@@ -25,14 +25,15 @@ spec:
         command: ["/bin/bash", "-c"]
         args:
           - cd ulmo; 
-            git checkout latent_exploration; 
+            git fetch;
+            git checkout modis_latents; 
             git pull; 
             python setup.py develop;
             cd ../tmp; 
             mkdir foo; 
             cd foo; 
             mkdir Evaluations;   
-            ulmo_eval 2003,2019 std; 
+            python -u /ulmo/ulmo/runs/MODIS_L2/Latents/modis_l2_latents.py 1;
             rm PreProc/*;
             cd ..;
             aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp foo s3://modis-l2 --recursive;

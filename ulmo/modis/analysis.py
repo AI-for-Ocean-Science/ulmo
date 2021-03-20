@@ -42,7 +42,8 @@ def build_main_from_old():
     pp_files = glob.glob(os.path.join(pp_dir, 
                          'MODIS_R2019_20*_95clear_128x128_preproc_std.h5'))
     pp_files.sort()                    
-    for pp_file in pp_files[0:1]:        
+    for pp_file in pp_files:
+        print("Working on: {}".format(pp_file))
         # Load up meta
         pp_hf2 = h5py.File(pp_file, 'r')
         meta = pp_hf2['valid_metadata']
@@ -120,8 +121,7 @@ def build_main_from_old():
 
     # Finish!
     outfile = os.path.join(os.getenv('SST_OOD'), 'MODIS_L2/Tables/MODIS_L2_std.feather')
-    embed(header='95 of analysis')
     main.to_feather(outfile)
 
-#build_main_from_old()
+build_main_from_old()
 

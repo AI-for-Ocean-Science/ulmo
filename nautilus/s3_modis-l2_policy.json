@@ -1,0 +1,16 @@
+{
+    "Owner": {
+        "DisplayName": "Xavier Prochaska",
+        "ID": "profx"
+    },
+    "Grants": [
+        {
+            "Grantee": {
+                "DisplayName": "Xavier Prochaska",
+                "ID": "profx",
+                "Type": "CanonicalUser"
+            },
+            "Permission": "FULL_CONTROL"
+        }
+    ]
+}
