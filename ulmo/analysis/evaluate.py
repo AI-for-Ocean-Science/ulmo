@@ -50,6 +50,8 @@ def eval_from_main(main_table, model='modis-l2-std',
             ulmo_io.s3.Bucket(parsed_s3.netloc).download_file(
                 parsed_s3.path[1:], local_file)
             print("Done!")
+        else:
+            print("Using existing local file: {}".format(local_file))
 
         # Output file for LL (local)
         log_prob_file = os.path.join(

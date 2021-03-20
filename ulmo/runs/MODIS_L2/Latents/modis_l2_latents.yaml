@@ -1,7 +1,8 @@
+# RUn with -- 
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-llc-eval-test
+  name: xavier-modis2-latents-all
 spec:
   backoffLimit: 0
   template:
@@ -14,27 +15,27 @@ spec:
           requests:
             cpu: "1"
             memory: "32Gi"
-            ephemeral-storage: 32Gi
+            ephemeral-storage: 120Gi
           limits:
             cpu: "4"
-            memory: "64Gi"
+            memory: "128Gi"
             ephemeral-storage: 150Gi
             nvidia.com/gpu:  "1"  # See docs to exlude certain types
             # https://ucsd-prp.gitlab.io/userdocs/running/gpu-pods/
         command: ["/bin/bash", "-c"]
         args:
           - cd ulmo; 
-            git checkout modis_latents; 
+            git checkout latent_exploration; 
             git pull; 
             python setup.py develop;
             cd ../tmp; 
             mkdir foo; 
             cd foo; 
             mkdir Evaluations;   
-            python -u /ulmo/ulmo/runs/LLC/uniform/llc_uniform_test.py 4;
+            ulmo_eval 2003,2019 std; 
             rm PreProc/*;
             cd ..;
-            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp foo s3://llc --recursive;
+            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp foo s3://modis-l2 --recursive;
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"
