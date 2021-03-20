@@ -5,6 +5,8 @@ import torch
 from torch.utils import data
 from torch.utils.data.dataloader import default_collate
 
+from ulmo import io as ulmo_io
+
 
 class HDF5Dataset(data.Dataset):
     """Represents an abstract HDF5 dataset.
@@ -19,7 +21,9 @@ class HDF5Dataset(data.Dataset):
         self.file_path = file_path
         self.partition = partition
         self.meta_dset = partition + '_metadata'
-        self.h5f = h5py.File(file_path, 'r')
+        # Deal with s3
+        f = ulmo_io.open(file_path, 'rb')
+        self.h5f = h5py.File(f, 'r')
 
     def __len__(self):
         return self.h5f[self.partition].shape[0]

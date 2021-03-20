@@ -1,0 +1,60 @@
+# https://www.techrepublic.com/article/how-to-create-a-docker-image-and-push-it-to-docker-hub/
+# https://medium.com/faun/how-to-build-a-docker-container-from-scratch-docker-basics-a-must-know-395cba82897b
+#docker build -t ulmo -f ../ulmo/dockers/ulmo.docker .
+#docker tag ulmo_nvidia:latest profxj/ulmo_nvidia:latest
+#docker push profxj/ulmo_nvidia:latest
+# Testing: docker exec -it <container> /bin/bash
+
+#FROM continuumio/anaconda3:latest
+
+FROM nvidia/cuda:11.2.1-runtime-ubuntu20.04
+
+# This and that. Mainly for data
+ENV DEBIAN_FRONTEND="noninteractive" TZ="US"
+RUN  apt-get update && \
+     apt-get install -y tzdata && \
+     apt-get install -y wget glances git 
+#     curl https://rclone.org/install.sh | bash
+
+# Code and storage
+RUN  apt-get install -y git awscli
+
+# Download and install Anaconda.
+RUN apt-get update && apt-get install curl -y
+
+# Miniconda
+ENV PATH="/root/miniconda3/bin:${PATH}"
+ARG PATH="/root/miniconda3/bin:${PATH}"
+RUN wget https://repo.anaconda.com/miniconda/Miniconda3-py38_4.9.2-Linux-x86_64.sh \
+    && mkdir /root/.conda \
+    && bash Miniconda3-py38_4.9.2-Linux-x86_64.sh -b \
+    && rm -f Miniconda3-py38_4.9.2-Linux-x86_64.sh \
+
+# Other apt
+RUN  apt-get update && \
+     apt-get install -y vim
+
+# Storage
+RUN  pip install smart-open[s3]
+
+# Some basics
+RUN  pip install ipython
+
+# Some bigger packages
+RUN  pip install torch
+RUN  pip install scikit-learn
+RUN  pip install scikit-image
+RUN  pip install xarray
+RUN  pip install pandas
+
+# ulmo time
+RUN git clone https://github.com/AI-for-Ocean-Science/ulmo.git
+
+# Other bits and dependencies
+RUN cd ulmo; python setup.py develop
+
+# Test
+#ENV ENDPOINT_URL="https://s3.nautilus.optiputer.net"
+
+# Credentials
+#COPY credentials /root/.aws/

@@ -22,6 +22,7 @@ from sklearn.preprocessing import StandardScaler
 from ulmo.plotting import load_palette, grid_plot
 from ulmo.utils import HDF5Dataset, id_collate, get_quantiles
 from ulmo.models import DCAE, ConditionalFlow
+from ulmo import io as ulmo_io
 
 from IPython import embed
 
@@ -32,10 +33,15 @@ except:
 
 class ProbabilisticAutoencoder:
     @classmethod
-    def from_json(cls, json_file, **kwargs):
-        # Load JSON
-        with open(json_file, 'rt') as fh:
-            model_dict = json.load(fh)
+    def from_dict(cls, model_dict, **kwargs):
+        """Instantiate the class from a dict
+
+        Args:
+            model_dict (dict): Describes the model, in full
+
+        Returns:
+            ood.ProbabilisticAutoencoder: PAE object
+        """
         # Tuples
         tuples = ['image_shape']
         for key in model_dict.keys():
@@ -48,6 +54,21 @@ class ProbabilisticAutoencoder:
         # Do it!
         pae = cls(autoencoder=autoencoder, flow=flow, write_model=False, **kwargs)
         return pae
+
+    @classmethod
+    def from_json(cls, json_file, **kwargs):
+        """Instantiate the class from a dict
+
+        Args:
+            json_file (str): JSON file containing the model
+
+        Returns:
+            ood.ProbabilisticAutoencoder: PAE object
+        """
+        # Load JSON
+        with open(json_file, 'rt') as fh:
+            model_dict = json.load(fh)
+        return cls.from_dict(model_dict, **kwargs)
 
     """A probabilistic autoencoder (see arxiv.org/abs/2006.05479)."""
     def __init__(self, autoencoder, flow, filepath, datadir=None, 
@@ -88,6 +109,7 @@ class ProbabilisticAutoencoder:
                 os.makedirs(datadir)
         
         self.device = device
+        print("Using device={}".format(device))
         self.scaler = None
         self.autoencoder = autoencoder.to(device)
         self.flow = flow.to(device)
@@ -122,16 +144,20 @@ class ProbabilisticAutoencoder:
     def load_autoencoder(self):
         """
         Load autoencoder from pytorch file
+
+        Held in self.savepath['autoencoder']
         """
         print(f"Loading autoencoder model from: {self.savepath['autoencoder']}")
-        self.autoencoder.load_state_dict(torch.load(self.savepath['autoencoder'], map_location=self.device))
+        with ulmo_io.open(self.savepath['autoencoder'], 'rb') as f:
+            self.autoencoder.load_state_dict(torch.load(f, map_location=self.device))
         
     def save_flow(self):
         torch.save(self.flow.state_dict(), self.savepath['flow'])
     
     def load_flow(self):
         print(f"Loading flow model from: {self.savepath['flow']}")
-        self.flow.load_state_dict(torch.load(self.savepath['flow'], map_location=self.device))
+        with ulmo_io.open(self.savepath['flow'], 'rb') as f:
+            self.flow.load_state_dict(torch.load(f, map_location=self.device))
 
     def write_model(self):
         # Generate the dict
@@ -373,13 +399,14 @@ class ProbabilisticAutoencoder:
 
     def load_meta(self, key, filename=None):
         """
+        Load meta data from the input file
 
         Parameters
         ----------
         key : str
             Group name for metadata, e.g. "valid_metadata"
         filename : str, optional
-            File for meta data
+            File for meta data.  If not provided, use self.filepath['data']
 
         Returns
         -------
@@ -389,7 +416,8 @@ class ProbabilisticAutoencoder:
         if filename is None:
             filename = self.filepath['data']
         # Proceed
-        with h5py.File(filename, 'r') as f:
+        f1 = ulmo_io.open(filename, 'rb')
+        with h5py.File(f1, 'r') as f:
             if key in f.keys():
                 meta = f[key]
                 df = pd.DataFrame(meta[:].astype(np.unicode_), columns=meta.attrs['columns'])
@@ -475,7 +503,8 @@ class ProbabilisticAutoencoder:
         return log_prob
     
     def compute_log_probs(self, input_file, dataset, output_file,
-                          scaler=None, csv=False, query=False):
+                          scaler=None, csv=False, query=False,
+                          num_workers=16):
         """
         Computer log probs on an input HDF file of images
 
@@ -487,27 +516,27 @@ class ProbabilisticAutoencoder:
         scaler
         query : bool, optional
             If True, query the user
+        num_workers: int, optional
+            Was set to 16.  Having memory issues..
 
         Returns
         -------
 
         """
-        if scaler is None:
-            scaler = self.scaler
+        if self.scaler is None:
             scaler_path = os.path.join(self.logdir, self.stem + '_scaler.pkl')
-            if self.scaler is None:
-                if os.path.exists(scaler_path):
-                    if query:
-                        load = input("Scaler file found in logdir. Use this (y/n)?") == 'y'
-                    else:
-                        load = True
-                    if load:
-                        with open(scaler_path, 'rb') as f:
-                            scaler = pickle.load(f)
-                    else:
-                        raise RuntimeError("No scaler provided. Saved scaler found but not loaded.")
+            if os.path.exists(scaler_path):
+                if query:
+                    load = input("Scaler file found in logdir. Use this (y/n)?") == 'y'
                 else:
-                    raise RuntimeError("No scaler found or provided.")
+                    load = True
+                if load:
+                    with ulmo_io.open(scaler_path, 'rb') as f:
+                        self.scaler = pickle.load(f)
+                else:
+                    raise RuntimeError("No scaler provided. Saved scaler found but not loaded.")
+            else:
+                raise RuntimeError("No scaler found or provided.")
 
         # Make PyTorch dataset from HDF5 file
         assert input_file.endswith('.h5'), "Input file must be in .h5 format."
@@ -517,7 +546,7 @@ class ProbabilisticAutoencoder:
         loader = torch.utils.data.DataLoader(
             dset, batch_size=1024, shuffle=False, 
             drop_last=False, collate_fn=id_collate,
-            num_workers=16)
+            num_workers=num_workers)
         
         self.autoencoder.eval()
         self.flow.eval()
@@ -526,24 +555,27 @@ class ProbabilisticAutoencoder:
             latents = [self.autoencoder.encode(data[0].to(self.device)).detach().cpu().numpy()
                      for data in loader]
 
-        latents = scaler.transform(np.concatenate(latents))
+        print("Calculating latents")
+        latents = self.scaler.transform(np.concatenate(latents))
 
-        # Write latents
+        # Write latents (into Evaluations/ most likely)
         latent_file = output_file.replace('log_prob', 'latents')
         with h5py.File(latent_file, 'w') as f:
             f.create_dataset('latents', data=latents)
+        print("Wrote latents to {}".format(latent_file))
 
         dset = torch.utils.data.TensorDataset(torch.from_numpy(latents).float())
         loader = torch.utils.data.DataLoader(
             dset, batch_size=1024, shuffle=False, 
-            drop_last=False, num_workers=16)
+            drop_last=False, num_workers=num_workers)
         
+        print("Probabilities now")
         with h5py.File(output_file, 'w') as f:
             with torch.no_grad():
                 log_prob = [self.flow.log_prob(data[0].to(self.device)).detach().cpu().numpy()
                      for data in tqdm(loader, total=len(loader), unit='batch', desc='Computing log probs')]
                 f.create_dataset(dataset, data=np.concatenate(log_prob))
-        print(f"Log probabilities saved to {output_file}.")
+        print("Log probabilities saved to {output_file}.")
 
         # CSV?
         if csv:
@@ -553,16 +585,17 @@ class ProbabilisticAutoencoder:
                                    dataset=dataset)
 
         # Latents
-        return latents
+        return
 
     def _log_probs_to_csv(self, df, log_file, outfile, dataset='valid'):
         """
 
         Parameters
         ----------
-        df : pnadas.DataFrame
+        df : pandas.DataFrame
         log_file : str
         outfile : str
+            Output file
         dataset : str, optional
 
         """

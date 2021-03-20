@@ -7,13 +7,19 @@ import pandas
 
 from IPython import embed
 
-sst_path = '/Volumes/Aqua-1/MODIS/uri-ai-sst/OOD' if os.getenv('SST_OOD') is None else os.getenv('SST_OOD')
-eval_path = os.path.join(sst_path, 'Evaluations')
-extract_path = os.path.join(sst_path, 'Extractions')
-preproc_path = os.path.join(sst_path, 'PreProc')
+# Deal with paths
+
+# MODIS L2
+def set_paths(root):
+    paths = {}
+    paths['sst'] = '/Volumes/Aqua-1/MODIS/uri-ai-sst/OOD' if os.getenv('SST_OOD') is None else os.getenv('SST_OOD')
+    paths['eval'] = os.path.join(sst_path, root, 'Evaluations')
+    paths['extract'] = os.path.join(sst_path, root, 'Extractions')
+    paths['preproc'] = os.path.join(sst_path, root, 'PreProc')
+    return paths
 
 
-def grab_img(example, itype, ptype='std', preproc_file=None):
+def grab_modis_l2_img(example, itype, ptype='std', preproc_file=None):
     """
 
     Parameters
@@ -31,13 +37,13 @@ def grab_img(example, itype, ptype='std', preproc_file=None):
     -------
 
     """
-
+    paths = set_paths('MODIS_L2')
 
     if itype == 'Extracted':
         year = example.date.year
         print("Extracting")
         # Grab out of Extraction file
-        extract_file = os.path.join(extract_path,
+        extract_file = os.path.join(paths['extract'],
                                     'MODIS_R2019_{}_95clear_128x128_inpaintT.h5'.format(year))
         f = h5py.File(extract_file, mode='r')
         key = 'metadata'
@@ -59,7 +65,7 @@ def grab_img(example, itype, ptype='std', preproc_file=None):
         # Grab out of PreProc file
         if preproc_file is None:
             year = example.date.year
-            preproc_file = os.path.join(preproc_path,
+            preproc_file = os.path.join(paths['preproc'],
                                     'MODIS_R2019_{}_95clear_128x128_preproc_{}.h5'.format(year, ptype))
         f = h5py.File(preproc_file, mode='r')
         key = 'valid_metadata'
