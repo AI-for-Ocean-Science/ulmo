@@ -609,8 +609,8 @@ class ProbabilisticAutoencoder:
                     for data in tqdm(loader, total=len(loader), unit='batch', desc='Computing log probs')]
         #f.create_dataset(dataset, data=np.concatenate(log_prob))
 
-        # Latents
-        return np.concatenate(log_prob)
+        # Return
+        return latents, np.concatenate(log_prob)
 
     def _log_probs_to_csv(self, df, log_file, outfile, dataset='valid'):
         """
