@@ -543,6 +543,7 @@ class ProbabilisticAutoencoder:
             df = self.load_meta(dataset+'_metadata', filename=data_file)
             self._log_probs_to_csv(df, output_file, csv_name,
                                    dataset=dataset)
+        return LL
 
     def compute_log_probs(self, dset, num_workers=16, batch_size=1024,
                           collate_fn=id_collate):

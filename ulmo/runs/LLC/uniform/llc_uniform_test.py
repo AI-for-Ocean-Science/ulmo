@@ -96,7 +96,7 @@ def u_evaluate():
                 'preproc', 'log_prob'))
 
         # Run
-        LL = pae.compute_log_probs(local_file, 'valid', 
+        LL = pae.eval_data_file(local_file, 'valid', 
             log_prob_file, csv=False)  
     
         # Add to table
