@@ -59,7 +59,7 @@ def run_evals(years, flavor, clobber=False, local=False):
             continue
 
         # Run
-        pae.compute_log_probs(data_file, 'valid', 
+        pae.eval_data_file(data_file, 'valid', 
                               log_prob_file, 
                               csv=False)  # Tends to crash on kuber
 
