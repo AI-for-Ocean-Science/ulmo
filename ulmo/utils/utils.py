@@ -22,8 +22,9 @@ class HDF5Dataset(data.Dataset):
         self.partition = partition
         self.meta_dset = partition + '_metadata'
         # Deal with s3
-        f = ulmo_io.open(file_path, 'rb')
-        self.h5f = h5py.File(f, 'r')
+        #f = ulmo_io.open(file_path, 'rb')
+        #self.h5f = h5py.File(f, 'r')
+        self.h5f = h5py.File(file_path, 'r')
 
     def __len__(self):
         return self.h5f[self.partition].shape[0]
