@@ -591,12 +591,12 @@ class ProbabilisticAutoencoder:
         # Latents
         print("Calculating latents..")
         with torch.no_grad():
-            latents = [self.autoencoder.encode(data[0].to(self.device)).detach().cpu().numpy()
+            pre_latents = [self.autoencoder.encode(data[0].to(self.device)).detach().cpu().numpy()
                      for data in loader]
 
         # Sscaling
         print("Scaling..")
-        latents = self.scaler.transform(np.concatenate(latents))
+        latents = self.scaler.transform(np.concatenate(pre_latents))
 
         # Load for LL
         dset_l = torch.utils.data.TensorDataset(torch.from_numpy(latents).float())
