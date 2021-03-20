@@ -49,7 +49,8 @@ class ProbabilisticAutoencoder:
         autoencoder = DCAE(**model_dict['AE'])
         flow = ConditionalFlow(**model_dict['flow'])
         # Do it!
-        pae = cls(autoencoder=autoencoder, flow=flow, write_model=False, **kwargs)
+        pae = cls(autoencoder=autoencoder, flow=flow, write_model=False, 
+                  skip_mkdir=True, **kwargs)
         return pae
 
     @classmethod
@@ -507,7 +508,8 @@ class ProbabilisticAutoencoder:
         # Setup
         dset = torch.utils.data.TensorDataset(torch.from_numpy(rimg).float())
 
-        latents, LL = self.compute_log_probs(dset, batch_size=1, **kwargs)
+        latents, LL = self.compute_log_probs(dset, batch_size=1, 
+                                             collate_fn=None, **kwargs)
 
         # Return
         return latents, float(LL[0])
@@ -542,8 +544,10 @@ class ProbabilisticAutoencoder:
             df = self.load_meta(dataset+'_metadata', filename=data_file)
             self._log_probs_to_csv(df, output_file, csv_name,
                                    dataset=dataset)
+        return LL
 
-    def compute_log_probs(self, dset, num_workers=16, batch_size=1024):
+    def compute_log_probs(self, dset, num_workers=16, batch_size=1024,
+                          collate_fn=id_collate):
         """
         Computer log probs on an input HDF file of images
 
@@ -578,7 +582,7 @@ class ProbabilisticAutoencoder:
         # Generate DataLoader
         loader = torch.utils.data.DataLoader(
             dset, batch_size=batch_size, shuffle=False, 
-            drop_last=False, collate_fn=id_collate,
+            drop_last=False, collate_fn=collate_fn,
             num_workers=num_workers)
         
         self.autoencoder.eval()
@@ -607,8 +611,8 @@ class ProbabilisticAutoencoder:
                     for data in tqdm(loader, total=len(loader), unit='batch', desc='Computing log probs')]
         #f.create_dataset(dataset, data=np.concatenate(log_prob))
 
-        # Latents
-        return np.concatenate(log_prob)
+        # Return
+        return latents, np.concatenate(log_prob)
 
     def _log_probs_to_csv(self, df, log_file, outfile, dataset='valid'):
         """
