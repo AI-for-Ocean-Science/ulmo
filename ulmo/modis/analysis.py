@@ -123,5 +123,5 @@ def build_main_from_old():
     outfile = os.path.join(os.getenv('SST_OOD'), 'MODIS_L2/Tables/MODIS_L2_std.feather')
     main.to_feather(outfile)
 
-build_main_from_old()
+#build_main_from_old()
 

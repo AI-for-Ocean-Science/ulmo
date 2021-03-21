@@ -69,3 +69,4 @@ def eval_from_main(main_table, model='modis-l2-std',
 
         # Remove 
         os.remove(local_file)
+        print("Removed: {}".format(local_file))
