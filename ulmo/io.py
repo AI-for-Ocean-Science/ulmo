@@ -113,6 +113,13 @@ def write_main_table(main_table:pandas.DataFrame, outfile:str, to_s3=True):
             write_bytes_to_s3(bytes_, outfile)
         else:
             write_bytes_to_local(bytes_, outfile)
+    elif file_extension == '.parquet':
+        bytes_ = BytesIO()
+        main_table.to_parquet(path=bytes_)
+        if to_s3:
+            write_bytes_to_s3(bytes_, outfile)
+        else:
+            write_bytes_to_local(bytes_, outfile)
     else:
         raise IOError("Not ready for this")
     print("Wrote Analysis Table: {}".format(outfile))
