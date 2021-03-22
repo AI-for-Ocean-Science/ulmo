@@ -18,7 +18,8 @@ def eval_from_main(main_table, model='modis-l2-std',
     uni_pp_files = np.unique(main_table.pp_file).tolist()
     
     # Init
-    main_table['LL'] = np.nan
+    if 'LL' not in main_table.keys():
+        main_table['LL'] = np.nan
 
     # Load model
     if model == 'modis-l2-std':
@@ -65,7 +66,6 @@ def eval_from_main(main_table, model='modis-l2-std',
             log_prob_file, csv=False)  
     
         # Add to table
-        embed(header='66 of evaluate')
         pp_idx = main_table[using_pp & valid]['pp_idx']
         assert len(pp_idx) == len(LL)
         main_table.loc[using_pp & valid, 'LL'] = LL[pp_idx]
