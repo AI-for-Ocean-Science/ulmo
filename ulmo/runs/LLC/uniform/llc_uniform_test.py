@@ -43,7 +43,7 @@ def u_extract(debug_local=False):
     # Run it
     if debug_local:
         pp_s3_file = None  
-    llc_table = extract.preproc_for_analysis(llc_table, 
+    extract.preproc_for_analysis(llc_table, 
                                              pp_local_file,
                                              s3_file=pp_s3_file,
                                              dlocal=False)

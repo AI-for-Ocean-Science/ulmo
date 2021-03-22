@@ -1,6 +1,7 @@
 """ Module for uniform analyses of LLC outputs"""
 
 import os
+import glob
 import numpy as np
 
 import pandas
@@ -142,6 +143,24 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
                          valid_fraction=1., 
                          dlocal=False,
                          s3_file=None):
+    """Main routine to extract and pre-process LLC data for later SST analysis
+    The llc_table is modified in place.
+
+    Args:
+        llc_table (pandas.DataFrame): [description]
+        local_file (str): [description]
+        preproc_root (str, optional): [description]. Defaults to 'llc_std'.
+        field_size (tuple, optional): [description]. Defaults to (64,64).
+        n_cores (int, optional): [description]. Defaults to 10.
+        valid_fraction ([type], optional): [description]. Defaults to 1..
+        dlocal (bool, optional): [description]. Defaults to False.
+        s3_file ([type], optional): [description]. Defaults to None.
+
+    Raises:
+        IOError: [description]
+
+    """
+    
     # Preprocess options
     pdict = pp_io.load_options(preproc_root)
 
@@ -268,7 +287,78 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         # Delete local?
 
     # Return
-    return llc_table
+    return 
+
+
+def cutout_vel_stat(item):
+    """
+    Simple function to measure velocity stats
+
+    Parameters
+    ----------
+    item : tuple
+        field, idx
+
+    Returns
+    -------
+    idx, stats : int, dict
+
+    """
+    # Unpack
+    U_cutout, V_cutout, idx = item
+
+    # Stat dict
+    v_stats = {}
+    v_stats['U_mean'] = np.mean(U_cutout)
+    v_stats['V_mean'] = np.mean(V_cutout)
+    v_stats['U_rms'] = np.std(U_cutout)
+    v_stats['V_rms'] = np.std(V_cutout)
+    UV_cutout = np.sqrt(U_cutout**2 + U_cutout**2)
+    v_stats['UV_mean'] = np.mean(UV_cutout)
+    v_stats['UV_rms'] = np.std(UV_cutout)
+
+    # Return
+    return idx, v_stats
+
+def velocity_stats(llc_table:pandas.DataFrame, n_cores=10): 
+    # Identify all the files to load up
+    llc_files = glob.glob(llc_table.LLC_file)
+    llc_files.sort()
+
+    # Prep
+    field_size = (llc_table.field_size[0], llc_table.field_size[0])
+    map_fn = partial(cutout_vel_stat)
+
+    # Loop me
+    for llc_file in llc_files:
+        # Allow for s3 + Lazy
+        with ulmo_io.open(llc_file, 'rb') as f:
+            ds = xr.open_dataset(f)
+        # Unlazy
+        U = ds.U.values
+        V = ds.V.values
+        # Identify all the fields with this LLC file
+        cutouts = llc_table.LLC_file == llc_file
+        cutout_idx = np.where(cutouts)[0]
+        coord_tbl = llc_table[cutouts]
+        # Load up the cutouts
+        U_fields, V_fields = [], []
+        for r, c in zip(coord_tbl.row, coord_tbl.col):
+            U_fields.append(U[r:r+field_size[0], c:c+field_size[1]])
+            V_fields.append(V[r:r+field_size[0], c:c+field_size[1]])
+
+        items = [item for item in zip(U_fields,V_fields,cutout_idx)]
+        
+        # Parallel
+        with ProcessPoolExecutor(max_workers=n_cores) as executor:
+            chunksize = len(items) // n_cores if len(items) // n_cores > 0 else 1
+            answers = list(tqdm(executor.map(map_fn, items,
+                                             chunksize=chunksize), total=len(items)))
+        # Slurp
+        cutout_idx = [item[0] for item in answers]
+        v_stats = [item[1] for item in answers]
+
+        embed(header='361 of extract')
 
 # TODO -- Move to runs/LLC/
 def main(flg):
@@ -294,6 +384,12 @@ def main(flg):
         ds.to_netcdf(filename)
         print("Wrote: {}".format(filename))
 
+    # Test vel_stats
+    if flg & (2**1):  
+        tbl_file = 's3://llc/Tables/test_uniform_r0.5_test.feather'
+        llc_table = ulmo_io.load_main_table(tbl_file)
+        velocity_stats(llc_table)
+
 
 # Command line execution
 if __name__ == '__main__':
@@ -302,6 +398,7 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         flg = 0
         #flg += 2 ** 0  # Build CC mask
+        flg += 2 ** 1  # Test velocity stats
     else:
         flg = sys.argv[1]
 
