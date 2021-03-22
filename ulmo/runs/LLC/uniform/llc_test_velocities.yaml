@@ -24,16 +24,14 @@ spec:
         command: ["/bin/bash", "-c"]
         args:
           - cd ulmo; 
-            git checkout models; 
+            git fetch;
+            git checkout modis_latents; 
             git pull; 
             python setup.py develop;
             cd ../tmp; 
             mkdir foo; 
             cd foo; 
-            mkdir PreProc;   
             python -u /ulmo/ulmo/runs/LLC/uniform/llc_uniform_test.py 8;
-            #cd ..;
-            #aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp foo s3://llc --recursive --force;
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"
