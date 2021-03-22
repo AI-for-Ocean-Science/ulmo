@@ -9,6 +9,8 @@ from ulmo import io as ulmo_io
 from ulmo.models import io as model_io
 from ulmo import defs as ulmo_defs
 
+from IPython import embed
+
 def eval_from_main(main_table, model='modis-l2-std', 
                    clobber_local=False):
 
@@ -63,6 +65,7 @@ def eval_from_main(main_table, model='modis-l2-std',
             log_prob_file, csv=False)  
     
         # Add to table
+        embed(header='66 of evaluate')
         pp_idx = main_table[using_pp & valid]['pp_idx']
         assert len(pp_idx) == len(LL)
         main_table.loc[using_pp & valid, 'LL'] = LL[pp_idx]
