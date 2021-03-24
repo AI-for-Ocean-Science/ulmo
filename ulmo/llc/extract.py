@@ -307,31 +307,43 @@ def cutout_vel_stat(item):
     # Unpack
     U_cutout, V_cutout, idx = item
 
+    # Deal with nan
+    gdU = np.isfinite(U_cutout)
+    gdV = np.isfinite(V_cutout)
+
     # Stat dict
     v_stats = {}
-    v_stats['U_mean'] = np.mean(U_cutout)
-    v_stats['V_mean'] = np.mean(V_cutout)
-    v_stats['U_rms'] = np.std(U_cutout)
-    v_stats['V_rms'] = np.std(V_cutout)
+    v_stats['U_mean'] = np.mean(U_cutout[gdU])
+    v_stats['V_mean'] = np.mean(V_cutout[gdV])
+    v_stats['U_rms'] = np.std(U_cutout[gdU])
+    v_stats['V_rms'] = np.std(V_cutout[gdV])
     UV_cutout = np.sqrt(U_cutout**2 + U_cutout**2)
-    v_stats['UV_mean'] = np.mean(UV_cutout)
-    v_stats['UV_rms'] = np.std(UV_cutout)
+    v_stats['UV_mean'] = np.mean(UV_cutout[gdU & gdV])
+    v_stats['UV_rms'] = np.std(UV_cutout[gdU & gdV])
 
     # Return
     return idx, v_stats
 
 def velocity_stats(llc_table:pandas.DataFrame, n_cores=10): 
     # Identify all the files to load up
-    llc_files = glob.glob(llc_table.LLC_file)
+    llc_files = llc_table.LLC_file.values
     llc_files.sort()
+    uni_files = np.unique(llc_files)
 
     # Prep
     field_size = (llc_table.field_size[0], llc_table.field_size[0])
     map_fn = partial(cutout_vel_stat)
 
+    # Vel keys
+    vel_keys = ['U_mean', 'V_mean', 'U_rms', 'V_rms', 'UV_mean', 'UV_rms']
+    for key in vel_keys:
+        if key not in llc_table.keys():
+            llc_table[key] = 0.
+
     # Loop me
-    for llc_file in llc_files:
+    for llc_file in uni_files:
         # Allow for s3 + Lazy
+        print("Loading: {}".format(llc_file))
         with ulmo_io.open(llc_file, 'rb') as f:
             ds = xr.open_dataset(f)
         # Unlazy
@@ -358,7 +370,10 @@ def velocity_stats(llc_table:pandas.DataFrame, n_cores=10):
         cutout_idx = [item[0] for item in answers]
         v_stats = [item[1] for item in answers]
 
-        embed(header='361 of extract')
+        # Add
+        for key in vel_keys:
+            llc_table.loc[cutout_idx, key] = [v_stat[key] for v_stat in v_stats]
+
 
 # TODO -- Move to runs/LLC/
 def main(flg):

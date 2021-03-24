@@ -501,7 +501,16 @@ class ProbabilisticAutoencoder:
         return log_prob
     
 
-    def eval_numpy_img(self, img, **kwargs):
+    def eval_numpy_img(self, img:np.ndarray, **kwargs):
+        """Run ulmo on an input numpy image
+
+        Args:
+            img (np.ndarray): Image to analyze.  Must be the
+            shape that Ulmo expects
+
+        Returns:
+            np.ndarray, float: latent vector, LL
+        """
         # Resize
         fsize = max(img.shape)
         rimg = np.resize(img, (1, 1, fsize, fsize))

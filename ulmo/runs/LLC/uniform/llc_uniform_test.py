@@ -62,6 +62,16 @@ def u_evaluate(clobber_local=False):
     # Write 
     ulmo_io.write_main_table(llc_table, tbl_file)
 
+def u_add_velocities():
+    # Load
+    llc_table = ulmo_io.load_main_table(tbl_file)
+    
+    # Velocities
+    extract.velocity_stats(llc_table)
+
+    # Write 
+    ulmo_io.write_main_table(llc_table, tbl_file)
+
 def main(flg):
     if flg== 'all':
         flg= np.sum(np.array([2 ** ii for ii in range(25)]))
@@ -78,6 +88,9 @@ def main(flg):
     if flg & (2**2):
         u_evaluate()
 
+    if flg & (2**3):
+        u_add_velocities()
+
 # Command line execution
 if __name__ == '__main__':
     import sys
@@ -87,6 +100,7 @@ if __name__ == '__main__':
         #flg += 2 ** 0  # 1 -- Setup coords
         #flg += 2 ** 1  # 2 -- Extract
         #flg += 2 ** 2  # 4 -- Evaluate
+        #flg += 2 ** 3  # 8 -- Velocities
     else:
         flg = sys.argv[1]
 

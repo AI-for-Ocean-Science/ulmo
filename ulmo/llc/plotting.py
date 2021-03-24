@@ -12,6 +12,9 @@ from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 import astropy_healpix
 from astropy import units
 
+from ulmo.plotting import plotting
+from ulmo.llc import io as llc_io
+
 def plot_extraction(llc_table, resol=None, cbar=False, s=0.01):
 
     fig = plt.figure(figsize=(7, 4))
@@ -55,3 +58,12 @@ def plot_extraction(llc_table, resol=None, cbar=False, s=0.01):
     plt.show()
 
     return
+
+
+def show_cutout(cutout):
+
+    # Load image
+    img = llc_io.grab_image(cutout, close=True)
+
+    # Plot
+    plotting.show_cutout(img)
