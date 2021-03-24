@@ -60,3 +60,12 @@ def grid_plot(nrows, ncols):
         axes.append((fig.add_subplot(gso[i]), fig.add_subplot(gse[i])))
     
     return fig, axes
+
+def show_cutout(img:np.ndarray, cm=None, cbar=True):
+    if cm is None:
+        _, cm = load_palette()
+    #
+    ax = sns.heatmap(img, xticklabels=[], yticklabels=[], cmap=cm,
+             cbar=cbar)
+    #
+    return ax

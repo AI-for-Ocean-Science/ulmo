@@ -75,8 +75,19 @@ def grab_llc_datafile(datetime=None, root='LLC4320_', chk=True, local=False):
     # Return
     return datafile
                     
+                    
 def grab_image(cutout:pandas.core.series.Series, 
                close=True, pp_hf=None):                
+    """Grab the cutout image
+
+    Args:
+        cutout (pandas.core.series.Series): [description]
+        close (bool, optional): [description]. Defaults to True.
+        pp_hf ([type], optional): [description]. Defaults to None.
+
+    Returns:
+        [type]: [description]
+    """
     # Open?
     if pp_hf is None:
         with ulmo_io.open(cutout.pp_file, 'rb') as f:
