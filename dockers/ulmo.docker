@@ -1,6 +1,6 @@
 # https://www.techrepublic.com/article/how-to-create-a-docker-image-and-push-it-to-docker-hub/
 # https://medium.com/faun/how-to-build-a-docker-container-from-scratch-docker-basics-a-must-know-395cba82897b
-#docker build -t ulmo -f ../ulmo/dockers/ulmo.docker .
+#docker build -t ulmo_nvidia -f ../ulmo/dockers/ulmo.docker .
 #docker tag ulmo_nvidia:latest profxj/ulmo_nvidia:latest
 #docker push profxj/ulmo_nvidia:latest
 # Testing: docker exec -it <container> /bin/bash
@@ -46,6 +46,9 @@ RUN  pip install scikit-learn
 RUN  pip install scikit-image
 RUN  pip install xarray
 RUN  pip install pandas
+RUN  pip install astropy
+RUN  pip install pyarrow  
+RUN  pip install astropy-healpix
 
 # ulmo time
 RUN git clone https://github.com/AI-for-Ocean-Science/ulmo.git

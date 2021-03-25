@@ -107,8 +107,8 @@ def evals_to_healpix(eval_tbl, nside, log=False, mask=True):
 
     """
     # Grab lats, lons
-    lats = eval_tbl.latitude.values
-    lons = eval_tbl.longitude.values
+    lats = eval_tbl.lat.values
+    lons = eval_tbl.lon.values
 
     # Healpix coords
     theta = (90 - lats) * np.pi / 180.

@@ -1,11 +1,9 @@
 """ OOD Class """
 import os
-import time
 import io, json
 import h5py
 import pickle
 import sklearn
-import multiprocessing
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -16,7 +14,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from tqdm.auto import tqdm
 from skimage import filters
-from matplotlib.gridspec import GridSpec
 from sklearn.preprocessing import StandardScaler
 
 from ulmo.plotting import load_palette, grid_plot
@@ -52,7 +49,8 @@ class ProbabilisticAutoencoder:
         autoencoder = DCAE(**model_dict['AE'])
         flow = ConditionalFlow(**model_dict['flow'])
         # Do it!
-        pae = cls(autoencoder=autoencoder, flow=flow, write_model=False, **kwargs)
+        pae = cls(autoencoder=autoencoder, flow=flow, write_model=False, 
+                  skip_mkdir=True, **kwargs)
         return pae
 
     @classmethod
@@ -502,90 +500,128 @@ class ProbabilisticAutoencoder:
         log_prob = self.to_type(log_prob, t)
         return log_prob
     
-    def compute_log_probs(self, input_file, dataset, output_file,
-                          scaler=None, csv=False, query=False,
-                          num_workers=16):
+
+    def eval_numpy_img(self, img:np.ndarray, **kwargs):
+        """Run ulmo on an input numpy image
+
+        Args:
+            img (np.ndarray): Image to analyze.  Must be the
+            shape that Ulmo expects
+
+        Returns:
+            np.ndarray, float: latent vector, LL
         """
-        Computer log probs on an input HDF file of images
+        # Resize
+        fsize = max(img.shape)
+        rimg = np.resize(img, (1, 1, fsize, fsize))
+        # Setup
+        dset = torch.utils.data.TensorDataset(torch.from_numpy(rimg).float())
 
-        Parameters
-        ----------
-        input_file
-        dataset
-        output_file
-        scaler
-        query : bool, optional
-            If True, query the user
-        num_workers: int, optional
-            Was set to 16.  Having memory issues..
+        latents, LL = self.compute_log_probs(dset, batch_size=1, 
+                                             collate_fn=None, **kwargs)
 
-        Returns
-        -------
+        # Return
+        return latents, float(LL[0])
 
-        """
-        if self.scaler is None:
-            scaler_path = os.path.join(self.logdir, self.stem + '_scaler.pkl')
-            if os.path.exists(scaler_path):
-                if query:
-                    load = input("Scaler file found in logdir. Use this (y/n)?") == 'y'
-                else:
-                    load = True
-                if load:
-                    with ulmo_io.open(scaler_path, 'rb') as f:
-                        self.scaler = pickle.load(f)
-                else:
-                    raise RuntimeError("No scaler provided. Saved scaler found but not loaded.")
-            else:
-                raise RuntimeError("No scaler found or provided.")
 
+    def eval_data_file(self, data_file, dataset, output_file,
+                       csv=False, **kwargs):
         # Make PyTorch dataset from HDF5 file
-        assert input_file.endswith('.h5'), "Input file must be in .h5 format."
+        assert data_file.endswith('.h5'), "Input file must be in .h5 format."
         assert output_file.endswith('.h5'), "Output file must be in .h5 format."
         
-        dset = HDF5Dataset(input_file, partition=dataset)
-        loader = torch.utils.data.DataLoader(
-            dset, batch_size=1024, shuffle=False, 
-            drop_last=False, collate_fn=id_collate,
-            num_workers=num_workers)
-        
-        self.autoencoder.eval()
-        self.flow.eval()
-        
-        with torch.no_grad():
-            latents = [self.autoencoder.encode(data[0].to(self.device)).detach().cpu().numpy()
-                     for data in loader]
+        # Generate dataset
+        dset = HDF5Dataset(data_file, partition=dataset)
 
-        print("Calculating latents")
-        latents = self.scaler.transform(np.concatenate(latents))
-
+        # Run
+        latents, LL = self.compute_log_probs(dset, **kwargs)
+        
         # Write latents (into Evaluations/ most likely)
         latent_file = output_file.replace('log_prob', 'latents')
         with h5py.File(latent_file, 'w') as f:
             f.create_dataset('latents', data=latents)
         print("Wrote latents to {}".format(latent_file))
 
-        dset = torch.utils.data.TensorDataset(torch.from_numpy(latents).float())
-        loader = torch.utils.data.DataLoader(
-            dset, batch_size=1024, shuffle=False, 
-            drop_last=False, num_workers=num_workers)
-        
-        print("Probabilities now")
+        # Write LL
         with h5py.File(output_file, 'w') as f:
-            with torch.no_grad():
-                log_prob = [self.flow.log_prob(data[0].to(self.device)).detach().cpu().numpy()
-                     for data in tqdm(loader, total=len(loader), unit='batch', desc='Computing log probs')]
-                f.create_dataset(dataset, data=np.concatenate(log_prob))
-        print("Log probabilities saved to {output_file}.")
+            f.create_dataset(dataset, data=LL)
+        print(f"Log probabilities saved to {output_file}.")
 
         # CSV?
         if csv:
             csv_name = output_file.replace('h5', 'csv')
-            df = self.load_meta(dataset+'_metadata', filename=input_file)
+            df = self.load_meta(dataset+'_metadata', filename=data_file)
             self._log_probs_to_csv(df, output_file, csv_name,
                                    dataset=dataset)
+        return LL
 
+    def compute_log_probs(self, dset, num_workers=16, batch_size=1024,
+                          collate_fn=id_collate):
+        """
+        Computer log probs on an input HDF file of images
+
+        Parameters
+        ----------
+        dset : DataSet
+        num_workers: int, optional
+            Was set to 16.  Having memory issues..
+        batch_size : int, optional
+
+        Returns
+        -------
+        latents, LL : np.ndarray, np.ndarray
+            Scaled latent vectors,  LL probabilities
+
+        """
+        #if self.scaler is None:
+        #    scaler_path = os.path.join(self.logdir, self.stem + '_scaler.pkl')
+        #    if os.path.exists(scaler_path):
+        #        if query:
+        #            load = input("Scaler file found in logdir. Use this (y/n)?") == 'y'
+        #        else:
+        #            load = True
+        #        if load:
+        #            with ulmo_io.open(scaler_path, 'rb') as f:
+        #                self.scaler = pickle.load(f)
+        #        else:
+        #            raise RuntimeError("No scaler provided. Saved scaler found but not loaded.")
+        #    else:
+        #        raise RuntimeError("No scaler found or provided.")
+
+        # Generate DataLoader
+        loader = torch.utils.data.DataLoader(
+            dset, batch_size=batch_size, shuffle=False, 
+            drop_last=False, collate_fn=collate_fn,
+            num_workers=num_workers)
+        
+        self.autoencoder.eval()
+        self.flow.eval()
+        
         # Latents
-        return
+        print("Calculating latents..")
+        with torch.no_grad():
+            pre_latents = [self.autoencoder.encode(data[0].to(self.device)).detach().cpu().numpy()
+                     for data in loader]
+
+        # Sscaling
+        print("Scaling..")
+        latents = self.scaler.transform(np.concatenate(pre_latents))
+
+        # Load for LL
+        dset_l = torch.utils.data.TensorDataset(torch.from_numpy(latents).float())
+        loader = torch.utils.data.DataLoader(
+            dset_l, batch_size=batch_size, shuffle=False, 
+            drop_last=False, num_workers=num_workers)
+        
+        print("Probabilities now")
+        #with h5py.File(output_file, 'w') as f:
+        with torch.no_grad():
+            log_prob = [self.flow.log_prob(data[0].to(self.device)).detach().cpu().numpy()
+                    for data in tqdm(loader, total=len(loader), unit='batch', desc='Computing log probs')]
+        #f.create_dataset(dataset, data=np.concatenate(log_prob))
+
+        # Return
+        return latents, np.concatenate(log_prob)
 
     def _log_probs_to_csv(self, df, log_file, outfile, dataset='valid'):
         """

@@ -11,7 +11,9 @@ def parser(options=None):
     parser.add_argument("--model", type=str, default='LLC4320',
                         help="LLC Model name.  Allowed options are [LLC4320]")
     parser.add_argument("--var", type=str, default='Theta',
-                        help="LLC data variable name.  Allowed options are [Theta]")
+                        help="LLC data variable name.  Allowed options are [Theta, U, V, Salt]")
+    parser.add_argument("--istart", type=int, default=0,
+                        help="Index of model to start with")
 
     if options is None:
         pargs = parser.parse_args()
@@ -28,31 +30,44 @@ def main(pargs):
     import warnings
 
     import xmitgcm.llcreader as llcreader
-    from ulmo.llc.slurp import write_sst
+    from ulmo.llc.slurp import write_xr
 
-    # Load model
+    # Load model once
     if pargs.model == 'LLC4320':
         model = llcreader.ECCOPortalLLC4320Model()
         tstep_hr = 144  # Time steps per hour
 
     # Get dataset
     iter_step = tstep_hr*pargs.tstep
-    ds_sst = model.get_dataset(varnames=[pargs.var], k_levels=[0], type='latlon',
-                               iter_step=iter_step)  # , iter_step=960)  # Every 12 hours
+    ds = model.get_dataset(varnames=pargs.var.split(','),
+                               k_levels=[0], type='latlon',
+                               iter_step=iter_step)
+    tsize = ds.time.size
     print("Model is ready")
 
     # Loop me
-    for tt in range(ds_sst.time.size):
-        print("Time step = {} of {}".format(tt, ds_sst.time.size))
-        SST = ds_sst.Theta.isel(time=tt, k=0)  # , i=slice(1000,2000), j=slice(1000,2000))
+    for tt in range(pargs.istart, tsize):
+        # Get dataset
+        iter_step = tstep_hr*pargs.tstep
+        ds = model.get_dataset(varnames=pargs.var.split(','),
+                                k_levels=[0], type='latlon',
+                               iter_step=iter_step)
+        #
+        print("Time step = {} of {}".format(tt, ds.time.size))
+        #SST = ds_sst.Theta.isel(time=tt, k=0)  # , i=slice(1000,2000), j=slice(1000,2000))
+        ds_0 = ds.isel(time=tt, k=0)  # , i=slice(1000,2000), j=slice(1000,2000))
         # Generate outfile name
-        outfile = '{:s}_{:s}.nc'.format(pargs.model, str(SST.time.values)[:19])
+        outfile = '{:s}_{:s}.nc'.format(pargs.model,
+            str(ds_0.time.values)[:19].replace(':','_'))
         # No clobber
         if os.path.isfile(outfile):
             print("Not clobbering: {}".format(outfile))
             continue
         # Write
-        write_sst(SST, outfile)
+        write_xr(ds_0, outfile)
         print("Wrote: {}".format(outfile))
+        del(ds)
+        #embed(header='60 of slurp')
 
 
+# ulmo_grab_llc 12 --var Theta,U,V,W,Salt --istart 480
