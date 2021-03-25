@@ -42,14 +42,15 @@ def load_CC_mask(field_size=(64,64), verbose=True, local=True):
         xr.DataSet: CC_mask
     """
     if local:
-        CC_mask_file = os.path.join(os.getenv('LLC_DATA'), 
+        CC_mask_file = os.path.join(os.getenv('LLC_DATA'), 'CC',
                                    'LLC_CC_mask_{}.nc'.format(field_size[0]))
+        CC_mask = xr.open_dataset(CC_mask_file)
     else:
         CC_mask_file = 's3://llc/CC/'+'LLC_CC_mask_{}.nc'.format(field_size[0])
+        with ulmo_io.open(CC_mask_file, 'rb') as f:
+            CC_mask = xr.open_dataset(f)
     if verbose:
         print("Loading LLC CC mask from {}".format(CC_mask_file))
-    with ulmo_io.open(CC_mask_file, 'rb') as f:
-        CC_mask = xr.load_dataset(f)
     return CC_mask
 
 

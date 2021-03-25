@@ -23,7 +23,14 @@ s3 = boto3.resource('s3', endpoint_url=endpoint_url)
 open = functools.partial(smart_open.open, 
                          transport_params={'resource_kwargs': 
                              {'endpoint_url': endpoint_url}})
-                                
+
+import boto3
+
+
+def list_of_bucket_files(bucket_name, prefix='/', delimiter='/'):
+    prefix = prefix[1:] if prefix.startswith(delimiter) else prefix
+    bucket = s3.Bucket(bucket_name)
+    return list(_.key for _ in bucket.objects.filter(Prefix=prefix))                                
 
 def load_nc(filename, verbose=True):
     """
