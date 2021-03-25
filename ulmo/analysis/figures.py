@@ -2,17 +2,35 @@
 
 import numpy as np
 
+import pandas
+
 from matplotlib import pyplot as plt
 import cartopy.crs as ccrs
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
 from ulmo.utils import image_utils
 
-def show_spatial(main_tbl, nside=64, use_log=True, 
+def show_spatial(main_tbl:pandas.DataFrame, 
+                 nside=64, use_log=True, 
                  use_mask=True, tricontour=False,
                  lbl=None, figsize=(12,8), 
                  color='Reds'):
+    """Generate a global map of the location of the input
+    cutouts
 
+    Args:
+        main_tbl (pandas.DataFrame): table of cutouts
+        nside (int, optional): [description]. Defaults to 64.
+        use_log (bool, optional): [description]. Defaults to True.
+        use_mask (bool, optional): [description]. Defaults to True.
+        tricontour (bool, optional): [description]. Defaults to False.
+        lbl ([type], optional): [description]. Defaults to None.
+        figsize (tuple, optional): [description]. Defaults to (12,8).
+        color (str, optional): [description]. Defaults to 'Reds'.
+
+    Returns:
+        matplotlib.Axis: axis holding the plot
+    """
     # Healpix me
     hp_events, hp_lons, hp_lats = image_utils.evals_to_healpix(
         main_tbl, nside, log=use_log, mask=use_mask)

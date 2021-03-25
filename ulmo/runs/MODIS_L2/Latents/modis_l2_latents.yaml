@@ -1,4 +1,4 @@
-# RUn with -- 
+# Script to generate the MODIS latent vectors
 apiVersion: batch/v1
 kind: Job
 metadata:

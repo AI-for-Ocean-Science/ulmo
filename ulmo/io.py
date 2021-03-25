@@ -72,8 +72,21 @@ def load_nc(filename, verbose=True):
     # Return
     return sst, qual, latitude, longitude
 
-def load_main_table(tbl_file, verbose=True, local=False):
+def load_main_table(tbl_file:str, verbose=True):
+    """Load the table of cutouts 
+
+    Args:
+        tbl_file (str): Path to table of cutouts. Local or s3
+        verbose (bool, optional): [description]. Defaults to True.
+
+    Raises:
+        IOError: [description]
+
+    Returns:
+        pandas.DataFrame: table of cutouts
+    """
     _, file_extension = os.path.splitext(tbl_file)
+    # Allow for various formats
     if file_extension == '.csv':
         main_table = pandas.read_csv(tbl_file, index_col=0)
         # Set time
@@ -94,7 +107,7 @@ def load_main_table(tbl_file, verbose=True, local=False):
 def write_main_table(main_table:pandas.DataFrame, outfile:str, to_s3=True):
     """Write Main table for ULMO analysis
     Format is determined from the outfile extension.
-        Options are ".csv", ".feather"
+        Options are ".csv", ".feather", ".parquet"
 
     Args:
         main_table (pandas.DataFrame): Main table for ULMO analysis
@@ -125,6 +138,12 @@ def write_main_table(main_table:pandas.DataFrame, outfile:str, to_s3=True):
     print("Wrote Analysis Table: {}".format(outfile))
 
 def upload_file_to_s3(local_file:str, s3_uri:str):
+    """Upload a single file to s3 storage
+
+    Args:
+        local_file (str): path to local file
+        s3_uri (str): URL for s3 file 
+    """
     # https://boto3.amazonaws.com/v1/documentation/api/latest/guide/s3-uploading-files.html
     parsed_s3 = urlparse(s3_uri)
     s3.meta.client.upload_file(local_file,
@@ -132,6 +151,12 @@ def upload_file_to_s3(local_file:str, s3_uri:str):
                              parsed_s3.path[1:])
     
 def write_bytes_to_local(bytes_:BytesIO, outfile:str):
+    """Write a binary object to disk
+
+    Args:
+        bytes_ (BytesIO): contains the binary object
+        outfile (str): [description]
+    """
     bytes_.seek(0)
     with open(outfile, 'wb') as f:
         f.write(bytes_.getvalue())
@@ -141,7 +166,7 @@ def write_bytes_to_s3(bytes_:BytesIO, s3_uri:str):
     """Write bytes to s3 
 
     Args:
-        bytes_ (BytesIO): bytes
+        bytes_ (BytesIO): contains the binary object
         s3_uri (str): Path to s3 bucket including filename
     """
     bytes_.seek(0)

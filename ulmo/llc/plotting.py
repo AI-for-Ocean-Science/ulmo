@@ -2,6 +2,7 @@
 # Hiding cartopy
 
 import numpy as np
+import pandas
 
 from matplotlib import pyplot as plt
 
@@ -15,7 +16,16 @@ from astropy import units
 from ulmo.plotting import plotting
 from ulmo.llc import io as llc_io
 
-def plot_extraction(llc_table, resol=None, cbar=False, s=0.01):
+def plot_extraction(llc_table:pandas.DataFrame, 
+                    resol=None, cbar=False, s=0.01):
+    """Plot the extractions to check
+
+    Args:
+        llc_table (pandas.DataFrame): table of cutouts
+        resol (float, optional): Angle in deg for healpix check. Defaults to None.
+        cbar (bool, optional): [description]. Defaults to False.
+        s (float, optional): [description]. Defaults to 0.01.
+    """
 
     fig = plt.figure(figsize=(7, 4))
     plt.clf()
@@ -60,7 +70,13 @@ def plot_extraction(llc_table, resol=None, cbar=False, s=0.01):
     return
 
 
-def show_cutout(cutout):
+def show_cutout(cutout:pandas.core.series.Series): 
+    """Simple wrapper for showing the input cutout
+
+    Args:
+        cutout (pandas.core.series.Series): Cutout to display
+    """
+
 
     # Load image
     img = llc_io.grab_image(cutout, close=True)

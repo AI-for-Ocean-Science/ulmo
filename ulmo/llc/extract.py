@@ -64,7 +64,7 @@ def build_CC_mask(filename=None, temp_bounds=(-3, 34),
     """Build a CC mask for the LLC
 
     Args:
-        filename ([type], optional): Filename for coord info. Defaults to None.
+        filename (str, optional): Filename for coord info. Defaults to None.
         temp_bounds (tuple, optional): Temperature bounds for masking. Defaults to (-3, 34).
         field_size (tuple, optional): Field size of cutouts. Defaults to (64,64).
 
@@ -105,7 +105,7 @@ def build_CC_mask(filename=None, temp_bounds=(-3, 34),
     return CC_mask
 
 
-def preproc_image(item, pdict):
+def preproc_image(item:tuple, pdict:dict):
     """
     Simple wrapper for preproc_field()
 
@@ -147,14 +147,14 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
     The llc_table is modified in place.
 
     Args:
-        llc_table (pandas.DataFrame): [description]
-        local_file (str): [description]
-        preproc_root (str, optional): [description]. Defaults to 'llc_std'.
-        field_size (tuple, optional): [description]. Defaults to (64,64).
-        n_cores (int, optional): [description]. Defaults to 10.
-        valid_fraction ([type], optional): [description]. Defaults to 1..
+        llc_table (pandas.DataFrame): cutout table
+        local_file (str): path to PreProc file
+        preproc_root (str, optional): Preprocessing steps. Defaults to 'llc_std'.
+        field_size (tuple, optional): Defines cutout size. Defaults to (64,64).
+        n_cores (int, optional): Number of cores for parallel processing. Defaults to 10.
+        valid_fraction (float, optional): [description]. Defaults to 1..
         dlocal (bool, optional): [description]. Defaults to False.
-        s3_file ([type], optional): [description]. Defaults to None.
+        s3_file (str, optional): s3 URL for file to write. Defaults to None.
 
     Raises:
         IOError: [description]
@@ -290,9 +290,10 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
     return 
 
 
-def cutout_vel_stat(item):
+def cutout_vel_stat(item:tuple):
     """
     Simple function to measure velocity stats
+    Enable multi-processing
 
     Parameters
     ----------
@@ -325,6 +326,12 @@ def cutout_vel_stat(item):
     return idx, v_stats
 
 def velocity_stats(llc_table:pandas.DataFrame, n_cores=10): 
+    """Routine to measure velocity stats for a set of cutouts
+
+    Args:
+        llc_table (pandas.DataFrame): table of cutouts
+        n_cores (int, optional): Number of cores for multi-processing. Defaults to 10.
+    """
     # Identify all the files to load up
     llc_files = llc_table.LLC_file.values
     llc_files.sort()

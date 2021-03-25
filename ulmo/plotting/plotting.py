@@ -62,6 +62,17 @@ def grid_plot(nrows, ncols):
     return fig, axes
 
 def show_cutout(img:np.ndarray, cm=None, cbar=True):
+    """Dispay the cutout image
+
+    Args:
+        img (np.ndarray): cutout image
+        cm ([type], optional): Color map to use. Defaults to None.
+            If None, load the heatmap above
+        cbar (bool, optional): If True, show a color bar. Defaults to True.
+
+    Returns:
+        matplotlib.Axis: axis containing the plot
+    """
     if cm is None:
         _, cm = load_palette()
     #
