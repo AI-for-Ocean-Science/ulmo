@@ -25,7 +25,7 @@ spec:
         command: ["/bin/bash", "-c"]
         args:
           - cd ulmo; 
-            git fetch
+            git fetch;
             git checkout llc_modis_match; 
             git pull; 
             python setup.py develop;
