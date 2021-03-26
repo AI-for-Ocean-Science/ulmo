@@ -123,7 +123,7 @@ def modis_init_test(field_size=(64,64), CC_max=1e-4, show=False):
     # Write
     ulmo_io.write_main_table(modis_llc, tbl_test_file)
 
-    print("All done with init")
+    print("All done with test init")
 
 
 def modis_extract(test=True, debug_local=False):
@@ -183,7 +183,7 @@ def main(flg):
         modis_init_test(show=True)
 
     if flg & (2**1):
-        u_extract()
+        modis_extract()
 
     if flg & (2**2):
         u_evaluate()
