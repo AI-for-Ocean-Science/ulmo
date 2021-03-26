@@ -4,30 +4,32 @@ import numpy as np
 
 import pandas
 
-from ulmo.models import io as model_io
 from ulmo.llc import extract 
-from ulmo.llc import uniform
 from ulmo.llc import io as llc_io
 from ulmo import io as ulmo_io
 from ulmo.analysis import evaluate as ulmo_evaluate 
+from ulmo.utils import catalog as cat_utils
+
+from ulmo.preproc import plotting as pp_plotting
 
 from astropy import units
 from astropy.coordinates import SkyCoord, match_coordinates_sky
 
 from IPython import embed
 
-tbl_test_file = 's3://llc/Tables/test_modis_2019.feather'
+tbl_test_file = 's3://llc/Tables/test_modis2012.parquet'
 modis_file = 's3://modis-l2/Tables/MODIS_L2_std.feather'
 
-def modis_init_test(field_size=(64,64), CC_max=1e-4):
-    """Build the main table for 1 year of MODIS (2019)
+def modis_init_test(field_size=(64,64), CC_max=1e-4, show=False):
+    """Build the main table for ~1 year of MODIS (2012)
     """
     # Load MODIS
+    print("Loading MODIS...")
     modisl2_table = ulmo_io.load_main_table(modis_file)
 
     # Load up CC_mask
     CC_mask = llc_io.load_CC_mask(field_size=field_size, 
-                                  local=False)
+                                  local=True)
     # Cut
     good_CC = CC_mask.CC_mask.values < CC_max
     good_CC_idx = np.where(good_CC)
@@ -39,28 +41,100 @@ def modis_init_test(field_size=(64,64), CC_max=1e-4):
     llc_coord = SkyCoord(llc_lon*units.deg + 180.*units.deg, 
                          llc_lat*units.deg, 
                          frame='galactic')
-                                
+    del CC_mask                            
     
-    # Build total cutout matrix                                
+    # Times
     
-    llc_table = uniform.coords(resol=resol, 
-                               field_size=field_size, 
-                               outfile=tbl_test_file)
-    # Plot
-    extract.plot_extraction(llc_table, s=1, resol=resol)
+    # LLC files
+    llc_files = np.array(
+        ulmo_io.list_of_bucket_files('llc', prefix='/ThetaUVSalt'))
+    times = [os.path.basename(ifile)[8:-3].replace('_',':') for ifile in llc_files]
+    llc_dti = pandas.to_datetime(times)
 
-    # Extract 6 days across the full range;  ends of months
-    dti = pandas.date_range('2011-09-01', periods=6, freq='2M')
-    llc_table = extract.add_days(llc_table, dti, outfile=tbl_file)
+    # Final grid for extractions
+    llc_grid = np.zeros((len(llc_coord), len(llc_dti)), dtype=bool)
+
+    # Cuts
+    y2012 = modisl2_table.pp_file == 's3://modis-l2/PreProc/MODIS_R2019_2012_95clear_128x128_preproc_std.h5'
+    in_llc = modisl2_table.datetime < llc_dti.max()
+    modis_2012 = modisl2_table.loc[y2012&in_llc].copy()
+
+    # Coords
+    modis_coord = SkyCoord(modis_2012.lon.values*units.deg + 180.*units.deg, 
+                     modis_2012.lat.values*units.deg, 
+                     frame='galactic')
+
+    # Match up
+    print("Matching on coords...")
+    idx, sep2d, _ = match_coordinates_sky(modis_coord, llc_coord, 
+                                          nthneighbor=1)
+
+    # Match in time
+    
+    # Pivot around 2012
+    modis_dt = modis_2012.datetime - pandas.Timestamp('2012-01-01')                                        
+    hours = np.round(modis_dt.values / np.timedelta64(1, 'h')).astype(int)
+    
+    # Round to every 12 hours
+    hour_12 = 12*np.round(hours / 12).astype(int)
+    modis_2012['hour_12'] = hour_12
+
+    # LLC
+    llc_hours = np.round((llc_dti-pandas.Timestamp('2012-01-01')).values / np.timedelta64(1, 'h')).astype(int)
+
+    # Finally match!
+    mt_t = cat_utils.match_ids(hour_12, llc_hours)#, require_in_match=False)
+
+    # Indexing and Assigning
+    assert mt_t.max() < 1000
+    tot_idx = idx*1000 + mt_t
+    complete = np.zeros(tot_idx.size, dtype=bool)
+
+    # Unique
+    uval, uidx = np.unique(tot_idx, return_index=True)
+
+    # Update grid
+    llc_grid[idx[uidx], mt_t[uidx]] = True
+    complete[uidx] = True
+
+    # HERE IS WHERE WE WOULD DEAL WITH DUPS
+
+    # Table time
+    modis_llc = modis_2012.iloc[uidx].copy()
+
+    # Rename
+    modis_llc = modis_llc.rename(columns=dict(lat='modis_lat', lon='modis_lon',
+                                         row='modis_row', col='modis_col',
+                                         datetime='modis_datetime'))
+
+    # Fill in LLC
+    modis_llc['lat'] = llc_lat[idx[uidx]]
+    modis_llc['lon'] = llc_lon[idx[uidx]]
+    s3_llc_files = np.array(['s3://llc/'+llc_file for llc_file in llc_files])
+    modis_llc['pp_file'] = s3_llc_files[mt_t[uidx]]
+
+    modis_llc['row'] = good_CC_idx[0][idx[uidx]] - field_size[0]//2 # Lower left corner
+    modis_llc['col'] = good_CC_idx[1][idx[uidx]] - field_size[0]//2 # Lower left corner
+    
+    # Plot
+    if show: 
+        pp_plotting.plot_extraction(modis_llc, figsize=(9,6))
+
+    # Write
+    ulmo_io.write_main_table(modis_llc, tbl_test_file)
 
     print("All done with init")
 
 
-def u_extract(debug_local=False):
+def modis_extract(test=True, debug_local=False):
 
     # Giddy up (will take a bit of memory!)
+    if test:
+        tbl_file = tbl_test_file
+        root_file = 'LLC_modis2012_test_preproc.h5'
+    else:
+        raise IOError("Not ready for anything but testing..")
     llc_table = ulmo_io.load_main_table(tbl_file)
-    root_file = 'LLC_uniform_test_preproc.h5'
     pp_local_file = 'PreProc/'+root_file
     pp_s3_file = 's3://llc/PreProc/'+root_file
     if not os.path.isdir('PreProc'):
@@ -70,9 +144,9 @@ def u_extract(debug_local=False):
     if debug_local:
         pp_s3_file = None  
     extract.preproc_for_analysis(llc_table, 
-                                             pp_local_file,
-                                             s3_file=pp_s3_file,
-                                             dlocal=False)
+                                 pp_local_file,
+                                 s3_file=pp_s3_file,
+                                 dlocal=False)
     # Final write
     ulmo_io.write_main_table(llc_table, tbl_file)
     
@@ -106,7 +180,7 @@ def main(flg):
 
         # MMT/MMIRS
     if flg & (2**0):
-        u_init()
+        modis_init_test(show=True)
 
     if flg & (2**1):
         u_extract()
