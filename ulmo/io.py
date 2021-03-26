@@ -103,6 +103,10 @@ def load_main_table(tbl_file:str, verbose=True):
         # Allow for s3
         with open(tbl_file, 'rb') as f:
             main_table = pandas.read_feather(f)
+    elif file_extension == '.parquet':
+        # Allow for s3
+        with open(tbl_file, 'rb') as f:
+            main_table = pandas.read_parquet(f)
     else:
         raise IOError("Bad table extension: ")
     # Report
