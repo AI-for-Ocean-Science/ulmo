@@ -17,7 +17,7 @@ from astropy.coordinates import SkyCoord, match_coordinates_sky
 from IPython import embed
 
 tbl_test_file = 's3://llc/Tables/test_modis2012.parquet'
-modis_file = 's3://modis-l2/Tables/MODIS_L2_std.feather'
+modis_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
 
 def modis_init_test(field_size=(64,64), CC_max=1e-4, show=False):
     """Build the main table for ~1 year of MODIS (2012)

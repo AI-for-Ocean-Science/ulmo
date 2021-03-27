@@ -39,9 +39,15 @@ def match_ids(IDs, match_IDs, require_in_match=True):
     return rows
 
 
-def vet_main_table(table:pandas.DataFrame, cut_prefix=None):
+def vet_main_table(table:pandas.DataFrame, cut_prefix=None,
+                   data_model=None):
+    if data_model is None:
+        data_model = defs.mtbl_dmodel
 
+    chk = True
     # Loop on the keys
+    disallowed_keys = []
+    badtype_keys = []
     for key in table.keys():
         # Allow for cut prefix
         if cut_prefix is not None and len(key) > len(cut_prefix) and (
@@ -49,10 +55,29 @@ def vet_main_table(table:pandas.DataFrame, cut_prefix=None):
             skey = key[len(cut_prefix):]
         else:
             skey = key
-        assert skey in defs.mtbl_dmodel.keys(), f'{key} not in data model'
+        # In data model?
+        if not skey in data_model.keys():
+            disallowed_keys.append(key)
+            chk = False
         # Check datat type
-        assert isinstance(table.iloc[0][key], 
-                          defs.mtbl_dmodel[skey]['dtype']), \
-                            f'Bad data type for {key}'
+        if not isinstance(table.iloc[0][key], 
+                          data_model[skey]['dtype']):
+            badtype_keys.append(key)
+            chk = False
+    # Required
+    missing_required = []
+    if 'required' in data_model.keys():
+        for key in data_model['required']:
+            if key not in table.keys():
+                chk=False
+                missing_required.append(key)
+    # Report
+    if len(disallowed_keys) > 0:
+        print("These keys are not in the datamodel: {}".format(disallowed_keys))
+    if len(badtype_keys) > 0:
+        print("These keys have the wrong data type: {}".format(badtype_keys))
+    if len(missing_required) > 0:
+        print("These required keys were not present: {}".format(missing_required))
+
     # Return
-    return True
+    return chk
