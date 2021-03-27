@@ -1,6 +1,10 @@
 """ Catalog utility methods """
 import numpy as np
 
+from ulmo import defs
+
+import pandas
+
 def match_ids(IDs, match_IDs, require_in_match=True):
     """ Match input IDs to another array of IDs (usually in a table)
     Return the rows aligned with input IDs
@@ -31,3 +35,11 @@ def match_ids(IDs, match_IDs, require_in_match=True):
     indices = xsorted[ypos]
     rows[in_match] = indices
     return rows
+
+def blah():
+    pass
+
+def vet_main_table(table:pandas.DataFrame):
+    # Loop on the keys
+    for key in table.keys():
+        pass

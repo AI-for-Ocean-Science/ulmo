@@ -10,7 +10,6 @@ from ulmo import io as ulmo_io
 from ulmo.analysis import evaluate as ulmo_evaluate 
 from ulmo.utils import catalog as cat_utils
 
-from ulmo.preproc import plotting as pp_plotting
 
 from astropy import units
 from astropy.coordinates import SkyCoord, match_coordinates_sky
@@ -118,6 +117,8 @@ def modis_init_test(field_size=(64,64), CC_max=1e-4, show=False):
     
     # Plot
     if show: 
+        # Hide cartopy
+        from ulmo.preproc import plotting as pp_plotting
         pp_plotting.plot_extraction(modis_llc, figsize=(9,6))
 
     # Write
