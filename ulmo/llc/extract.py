@@ -169,7 +169,7 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
 
     # Setup for dates
     uni_date = np.unique(llc_table.datetime)
-    if len(uni_date) > 10:
+    if len(llc_table) > 1000000:
         raise IOError("You are likely to exceed the RAM.  Deal")
 
     # Init
@@ -226,7 +226,7 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         img_idx += [item[1] for item in answers]
         meta += [item[2] for item in answers]
 
-        del answers, fields, items
+        del answers, fields, items, sst
         ds.close()
 
     # Recast

@@ -113,7 +113,7 @@ def modis_init_test(field_size=(64,64), CC_max=1e-4, show=False):
     modis_llc['row'] = good_CC_idx[0][idx[uidx]] - field_size[0]//2 # Lower left corner
     modis_llc['col'] = good_CC_idx[1][idx[uidx]] - field_size[0]//2 # Lower left corner
 
-    modis_llc['datetime'] = llc_dti[idx[uidx]]
+    modis_llc['datetime'] = llc_dti[mt_t[uidx]]
     
     # Plot
     if show: 
@@ -151,11 +151,18 @@ def modis_extract(test=True, debug_local=False):
                                  pp_local_file,
                                  s3_file=pp_s3_file,
                                  dlocal=False)
+    # Vet
+    assert cat_utils.vet_main_table(llc_table, cut_prefix='modis_')
     # Final write
     ulmo_io.write_main_table(llc_table, tbl_file)
     
 
-def u_evaluate(clobber_local=False):
+def modis_evaluate(test=True, clobber_local=False):
+
+    if test:
+        tbl_file = tbl_test_file
+    else:
+        raise IOError("Not ready for anything but testing..")
     
     # Load
     llc_table = ulmo_io.load_main_table(tbl_file)
@@ -164,6 +171,7 @@ def u_evaluate(clobber_local=False):
     ulmo_evaluate.eval_from_main(llc_table)
 
     # Write 
+    assert cat_utils.vet_main_table(llc_table, cut_prefix='modis_')
     ulmo_io.write_main_table(llc_table, tbl_file)
 
 def u_add_velocities():
@@ -190,7 +198,7 @@ def main(flg):
         modis_extract()
 
     if flg & (2**2):
-        u_evaluate()
+        modis_evaluate()
 
     if flg & (2**3):
         u_add_velocities()
