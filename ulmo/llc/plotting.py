@@ -19,4 +19,4 @@ def show_cutout(cutout:pandas.core.series.Series):
     img = llc_io.grab_image(cutout, close=True)
 
     # Plot
-    plotting.show_cutout(img)
+    plotting.show_image(img)

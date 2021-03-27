@@ -61,7 +61,7 @@ def grid_plot(nrows, ncols):
     
     return fig, axes
 
-def show_cutout(img:np.ndarray, cm=None, cbar=True):
+def show_image(img:np.ndarray, cm=None, cbar=True, flipud=True):
     """Dispay the cutout image
 
     Args:
@@ -69,6 +69,7 @@ def show_cutout(img:np.ndarray, cm=None, cbar=True):
         cm ([type], optional): Color map to use. Defaults to None.
             If None, load the heatmap above
         cbar (bool, optional): If True, show a color bar. Defaults to True.
+        flipud (bool, optional): If True, flip the image up/down. Defaults to True.
 
     Returns:
         matplotlib.Axis: axis containing the plot
@@ -76,7 +77,7 @@ def show_cutout(img:np.ndarray, cm=None, cbar=True):
     if cm is None:
         _, cm = load_palette()
     #
-    ax = sns.heatmap(img, xticklabels=[], yticklabels=[], cmap=cm,
-             cbar=cbar)
+    ax = sns.heatmap(np.flipud(img), xticklabels=[], 
+                     yticklabels=[], cmap=cm, cbar=cbar)
     #
     return ax
