@@ -123,6 +123,7 @@ def write_main_table(main_table:pandas.DataFrame, outfile:str, to_s3=True):
     Args:
         main_table (pandas.DataFrame): Main table for ULMO analysis
         outfile (str): Output filename.  Its extension sets the format
+        to_s3 (bool, optional): If True, write to s3
 
     Raises:
         IOError: [description]

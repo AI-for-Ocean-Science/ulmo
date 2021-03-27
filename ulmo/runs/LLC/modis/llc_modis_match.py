@@ -76,8 +76,6 @@ def modis_init_test(field_size=(64,64), CC_max=1e-4, show=False):
     
     # Round to every 12 hours
     hour_12 = 12*np.round(hours / 12).astype(int)
-    modis_2012['hour_12'] = hour_12
-
     # LLC
     llc_hours = np.round((llc_dti-pandas.Timestamp('2012-01-01')).values / np.timedelta64(1, 'h')).astype(int)
 
@@ -114,12 +112,17 @@ def modis_init_test(field_size=(64,64), CC_max=1e-4, show=False):
 
     modis_llc['row'] = good_CC_idx[0][idx[uidx]] - field_size[0]//2 # Lower left corner
     modis_llc['col'] = good_CC_idx[1][idx[uidx]] - field_size[0]//2 # Lower left corner
+
+    modis_llc['datetime'] = llc_dti[idx[uidx]]
     
     # Plot
     if show: 
         # Hide cartopy
         from ulmo.preproc import plotting as pp_plotting
         pp_plotting.plot_extraction(modis_llc, figsize=(9,6))
+
+    # Vet
+    assert cat_utils.vet_main_table(modis_llc, cut_prefix='modis_')
 
     # Write
     ulmo_io.write_main_table(modis_llc, tbl_test_file)

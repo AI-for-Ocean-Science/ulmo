@@ -1,6 +1,7 @@
 """ Definitons for OOD analysis """
 
 import os
+import numpy as np
 
 import pandas
 
@@ -12,15 +13,15 @@ if os.getenv('SST_OOD') is not None:
 
 # Main Table definitions
 mtbl_dmodel = {
-    'field_size': dict(dtype=int,
+    'field_size': dict(dtype=(int, np.integer),
                 help='Size of the cutout side (pixels)'),
     'lat': dict(dtype=float,
                 help='Latitude of lower-left corner of the cutout (deg)'),
     'lon': dict(dtype=float,
                 help='Longitude of lower-left corner of the cutout (deg)'),
-    'col': dict(dtype=int,
+    'col': dict(dtype=(int, np.integer),
                 help='Column of lower-left corner of the cutout'),
-    'row': dict(dtype=int,
+    'row': dict(dtype=(int, np.integer),
                 help='Row of lower-left corner of the cutout'),
     'filename': dict(dtype=str,
                 help='Filename of the original file from which the cutout was extracted'),
@@ -44,11 +45,11 @@ mtbl_dmodel = {
                 help='Describes the pre-processing steps applied'),
     'pp_file': dict(dtype=str,
                 help='Filename of the pre-processed file holding the cutout'),
-    'pp_idx': dict(dtype=int, 
+    'pp_idx': dict(dtype=(int,np.integer), 
                 help='Index describing position of the cutout in the pp_file'),
-    'pp_type': dict(dtype=int, allowed=(-1, 0,1), 
+    'pp_type': dict(dtype=(int, np.integer), allowed=(-1, 0,1), 
                     valid=0, train=1, init=-1,
                     help='-1: illdefined, 0: valid, 1: test'),
-    'UID': dict(dtype=int, 
+    'UID': dict(dtype=(int, np.integer),
                 help='Unique identifier generated for each cutout'),
     }
