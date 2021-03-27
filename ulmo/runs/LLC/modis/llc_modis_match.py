@@ -139,6 +139,9 @@ def modis_extract(test=True, debug_local=False):
     else:
         raise IOError("Not ready for anything but testing..")
     llc_table = ulmo_io.load_main_table(tbl_file)
+    # Rename MODIS columns
+    llc_table = llc_table.rename(columns=dict(filename='modis_filename'))
+
     pp_local_file = 'PreProc/'+root_file
     pp_s3_file = 's3://llc/PreProc/'+root_file
     if not os.path.isdir('PreProc'):
@@ -147,12 +150,13 @@ def modis_extract(test=True, debug_local=False):
     # Run it
     if debug_local:
         pp_s3_file = None  
-    extract.preproc_for_analysis(llc_table, 
+    llc_table = extract.preproc_for_analysis(llc_table, 
                                  pp_local_file,
                                  s3_file=pp_s3_file,
                                  dlocal=False)
     # Vet
     assert cat_utils.vet_main_table(llc_table, cut_prefix='modis_')
+
     # Final write
     ulmo_io.write_main_table(llc_table, tbl_file)
     
@@ -166,6 +170,7 @@ def modis_evaluate(test=True, clobber_local=False):
     
     # Load
     llc_table = ulmo_io.load_main_table(tbl_file)
+
 
     # Evaluate
     ulmo_evaluate.eval_from_main(llc_table)

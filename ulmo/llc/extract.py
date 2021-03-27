@@ -176,7 +176,7 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
     pp_fields, meta, img_idx = [], [], []
 
     # Prep LLC Table
-    for key in ['LLC_file', 'pp_file']:
+    for key in ['filename', 'pp_file']:
         if key not in llc_table.keys():
             llc_table[key] = ''
     llc_table['pp_root'] = preproc_root
@@ -190,8 +190,11 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         filename = llc_io.grab_llc_datafile(udate, local=dlocal)
 
         # Allow for s3
-        with ulmo_io.open(filename, 'rb') as f:
-            ds = xr.open_dataset(f)
+        if not dlocal:
+            with ulmo_io.open(filename, 'rb') as f:
+                ds = xr.open_dataset(f)
+        else:
+            ds = xr.open_dataset(filename)
         sst = ds.Theta.values
         # Parse 
         gd_date = llc_table.datetime == udate
@@ -199,7 +202,7 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         coord_tbl = llc_table[gd_date]
 
         # Add to table
-        llc_table.loc[gd_date, 'LLC_file'] = filename
+        llc_table.loc[gd_date, 'filename'] = filename
 
         # Load up the cutouts
         fields = []
@@ -236,7 +239,8 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
     print("After pre-processing, there are {} images ready for analysis".format(pp_fields.shape[0]))
     
     # Reorder llc_table (probably no change)
-    llc_table = llc_table.iloc[img_idx]
+    llc_table = llc_table.iloc[img_idx].copy()
+    llc_table.reset_index(drop=True, inplace=True)
 
     # Fill up
     llc_table['pp_file'] = os.path.basename(local_file) if s3_file is None else s3_file
@@ -287,7 +291,7 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         # Delete local?
 
     # Return
-    return 
+    return llc_table 
 
 
 def cutout_vel_stat(item:tuple):
@@ -333,7 +337,7 @@ def velocity_stats(llc_table:pandas.DataFrame, n_cores=10):
         n_cores (int, optional): Number of cores for multi-processing. Defaults to 10.
     """
     # Identify all the files to load up
-    llc_files = llc_table.LLC_file.values
+    llc_files = llc_table.filename.values
     llc_files.sort()
     uni_files = np.unique(llc_files)
 
@@ -357,7 +361,7 @@ def velocity_stats(llc_table:pandas.DataFrame, n_cores=10):
         U = ds.U.values
         V = ds.V.values
         # Identify all the fields with this LLC file
-        cutouts = llc_table.LLC_file == llc_file
+        cutouts = llc_table.filename == llc_file
         cutout_idx = np.where(cutouts)[0]
         coord_tbl = llc_table[cutouts]
         # Load up the cutouts
