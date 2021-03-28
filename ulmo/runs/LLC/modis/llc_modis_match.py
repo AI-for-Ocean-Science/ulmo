@@ -226,7 +226,7 @@ def main(flg):
         modis_evaluate()
 
     if flg & (2**3):
-        modis_init_test(show=True, noise=True, localM=True)
+        modis_init_test(show=True, noise=True)#, localM=False)
 
     if flg & (2**4):
         modis_extract(noise=True)
