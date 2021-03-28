@@ -17,18 +17,32 @@ from astropy.coordinates import SkyCoord, match_coordinates_sky
 from IPython import embed
 
 tbl_test_file = 's3://llc/Tables/test_modis2012.parquet'
+tbl_test_noise_file = 's3://llc/Tables/test_noise_modis2012.parquet'
 modis_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
+local_modis_file = '/home/xavier/Projects/Oceanography/AI/OOD/MODIS_L2/Tables/MODIS_L2_std.parquet'
 
-def modis_init_test(field_size=(64,64), CC_max=1e-4, show=False):
+
+def modis_init_test(field_size=(64,64), CC_max=1e-4, show=False,
+                    noise=False, localM=False, localCC=True):
     """Build the main table for ~1 year of MODIS (2012)
+
+    Args:
+        field_size (tuple, optional): [description]. Defaults to (64,64).
+        CC_max ([type], optional): [description]. Defaults to 1e-4.
+        show (bool, optional): [description]. Defaults to False.
+        noise (bool, optional): [description]. Defaults to False.
+        localM (bool, optional): Load MODIS from local disk. Defaults to False.
     """
     # Load MODIS
     print("Loading MODIS...")
-    modisl2_table = ulmo_io.load_main_table(modis_file)
+    if localM:
+        modisl2_table = ulmo_io.load_main_table(local_modis_file)
+    else:
+        modisl2_table = ulmo_io.load_main_table(modis_file)
 
     # Load up CC_mask
     CC_mask = llc_io.load_CC_mask(field_size=field_size, 
-                                  local=True)
+                                  local=localCC)
     # Cut
     good_CC = CC_mask.CC_mask.values < CC_max
     good_CC_idx = np.where(good_CC)
@@ -51,6 +65,7 @@ def modis_init_test(field_size=(64,64), CC_max=1e-4, show=False):
     llc_dti = pandas.to_datetime(times)
 
     # Final grid for extractions
+    #  This requires ~100Gb of RAM
     llc_grid = np.zeros((len(llc_coord), len(llc_dti)), dtype=bool)
 
     # Cuts
@@ -125,17 +140,23 @@ def modis_init_test(field_size=(64,64), CC_max=1e-4, show=False):
     assert cat_utils.vet_main_table(modis_llc, cut_prefix='modis_')
 
     # Write
-    ulmo_io.write_main_table(modis_llc, tbl_test_file)
+    if noise:
+        outfile = tbl_test_noise_file
+    else:
+        outfile = tbl_test_file
+    ulmo_io.write_main_table(modis_llc, outfile)
+    print("All done with test init.")
 
-    print("All done with test init")
 
-
-def modis_extract(test=True, debug_local=False):
+def modis_extract(test=True, debug_local=False, noise=False):
 
     # Giddy up (will take a bit of memory!)
     if test:
-        tbl_file = tbl_test_file
-        root_file = 'LLC_modis2012_test_preproc.h5'
+        if noise:
+            root_file = 'LLC_modis2012_test_noise_preproc.h5'
+        else:
+            tbl_file = tbl_test_file
+            root_file = 'LLC_modis2012_test_preproc.h5'
     else:
         raise IOError("Not ready for anything but testing..")
     llc_table = ulmo_io.load_main_table(tbl_file)
@@ -205,7 +226,10 @@ def main(flg):
         modis_evaluate()
 
     if flg & (2**3):
-        u_add_velocities()
+        modis_init_test(show=True, noise=True, localM=True)
+
+    if flg & (2**4):
+        modis_extract(noise=True)
 
 # Command line execution
 if __name__ == '__main__':
@@ -216,7 +240,8 @@ if __name__ == '__main__':
         #flg += 2 ** 0  # 1 -- Setup coords
         #flg += 2 ** 1  # 2 -- Extract
         #flg += 2 ** 2  # 4 -- Evaluate
-        #flg += 2 ** 3  # 8 -- Velocities
+        #flg += 2 ** 3  # 8 -- Init test + noise
+        #flg += 2 ** 4  # 16 -- Extract + noise
     else:
         flg = sys.argv[1]
 
