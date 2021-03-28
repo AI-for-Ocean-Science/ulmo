@@ -1,8 +1,8 @@
-# Script to perform LLC extractions
+# Script to perform LLC extractions + noise
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-llc-modis2012-extract-test
+  name: xavier-llc-modis2012-noise-extract-test
 spec:
   backoffLimit: 0
   template:
@@ -21,7 +21,6 @@ spec:
             memory: "128Gi"
             ephemeral-storage: 150Gi
             #nvidia.com/gpu:  "1"  # See docs to exlude certain types
-            # https://ucsd-prp.gitlab.io/userdocs/running/gpu-pods/
         command: ["/bin/bash", "-c"]
         args:
           - cd ulmo; 
@@ -33,7 +32,7 @@ spec:
             mkdir foo; 
             cd foo; 
             mkdir PreProc;   
-            python -u /ulmo/ulmo/runs/LLC/modis/llc_modis_match.py 2;
+            python -u /ulmo/ulmo/runs/LLC/modis/llc_modis_match.py 16;
             #cd ..;
             #aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp foo s3://llc --recursive --force;
         env:
