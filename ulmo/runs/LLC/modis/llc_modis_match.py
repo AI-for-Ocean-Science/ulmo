@@ -115,10 +115,11 @@ def modis_init_test(field_size=(64,64), CC_max=1e-4, show=False,
     modis_llc = modis_2012.iloc[uidx].copy()
 
     # Rename
-    modis_llc = modis_llc.rename(columns=dict(lat='modis_lat', lon='modis_lon',
-                                         row='modis_row', col='modis_col',
-                                         datetime='modis_datetime',
-                                         LL='modis_LL'))
+    modis_llc = modis_llc.rename(
+        columns=dict(lat='modis_lat', lon='modis_lon', 
+                     row='modis_row', col='modis_col',
+                     datetime='modis_datetime',
+                     UID='modis_UID', LL='modis_LL'))
 
     # Fill in LLC
     modis_llc['lat'] = llc_lat[idx[uidx]]
@@ -191,10 +192,7 @@ def modis_extract(test=True, debug_local=False, noise=False):
 def modis_evaluate(test=True, noise=False):
 
     if test:
-        if noise:
-            tbl_file = tbl_test_noise_file
-        else:
-            tbl_file = tbl_test_file
+        tbl_file = tbl_test_noise_file if noise else tbl_test_file
     else:
         raise IOError("Not ready for anything but testing..")
     
