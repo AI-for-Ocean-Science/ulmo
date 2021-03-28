@@ -117,7 +117,8 @@ def modis_init_test(field_size=(64,64), CC_max=1e-4, show=False,
     # Rename
     modis_llc = modis_llc.rename(columns=dict(lat='modis_lat', lon='modis_lon',
                                          row='modis_row', col='modis_col',
-                                         datetime='modis_datetime'))
+                                         datetime='modis_datetime',
+                                         LL='modis_LL'))
 
     # Fill in LLC
     modis_llc['lat'] = llc_lat[idx[uidx]]
@@ -151,6 +152,10 @@ def modis_init_test(field_size=(64,64), CC_max=1e-4, show=False,
 def modis_extract(test=True, debug_local=False, noise=False):
 
     # Giddy up (will take a bit of memory!)
+    if noise:
+        preproc_root='llc_noise' 
+    else:
+        preproc_root='llc_std' 
     if test:
         if noise:
             root_file = 'LLC_modis2012_test_noise_preproc.h5'
@@ -182,18 +187,26 @@ def modis_extract(test=True, debug_local=False, noise=False):
     ulmo_io.write_main_table(llc_table, tbl_file)
     
 
-def modis_evaluate(test=True):
+def modis_evaluate(test=True, noise=False):
 
     if test:
-        tbl_file = tbl_test_file
+        if noise:
+            tbl_file = tbl_test_noise_file
+        else:
+            tbl_file = tbl_test_file
     else:
         raise IOError("Not ready for anything but testing..")
     
     # Load
     llc_table = ulmo_io.load_main_table(tbl_file)
 
+    # Rename
+    if 'LL' in llc_table.keys() and 'modis_LL' not in llc_table.keys():
+        llc_table = llc_table.rename(
+            columns=dict(LL='modis_LL'))
+
     # Evaluate
-    ulmo_evaluate.eval_from_main(llc_table)
+    llc_table = ulmo_evaluate.eval_from_main(llc_table)
 
     # Write 
     assert cat_utils.vet_main_table(llc_table, cut_prefix='modis_')
@@ -231,6 +244,9 @@ def main(flg):
     if flg & (2**4):
         modis_extract(noise=True)
 
+    if flg & (2**5):
+        modis_evaluate(noise=True)
+
 # Command line execution
 if __name__ == '__main__':
     import sys
@@ -242,6 +258,7 @@ if __name__ == '__main__':
         #flg += 2 ** 2  # 4 -- Evaluate
         #flg += 2 ** 3  # 8 -- Init test + noise
         #flg += 2 ** 4  # 16 -- Extract + noise
+        #flg += 2 ** 5  # 32 -- Evaluate + noise
     else:
         flg = sys.argv[1]
 
