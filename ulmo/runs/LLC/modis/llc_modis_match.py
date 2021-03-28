@@ -161,7 +161,7 @@ def modis_extract(test=True, debug_local=False):
     ulmo_io.write_main_table(llc_table, tbl_file)
     
 
-def modis_evaluate(test=True, clobber_local=False):
+def modis_evaluate(test=True):
 
     if test:
         tbl_file = tbl_test_file
@@ -170,7 +170,6 @@ def modis_evaluate(test=True, clobber_local=False):
     
     # Load
     llc_table = ulmo_io.load_main_table(tbl_file)
-
 
     # Evaluate
     ulmo_evaluate.eval_from_main(llc_table)
