@@ -319,6 +319,8 @@ class ProbabilisticAutoencoder:
         self._train_module('flow', **kwargs)
                 
     def _compute_latents(self):
+        """Compute latent vectors from the autoencoder
+        """
         if os.path.isfile(self.filepath['latents']):
             compute = input("Existing latents file found. Use file (y) or recompute (n)?").strip().lower() == 'n'
         else:
@@ -348,6 +350,8 @@ class ProbabilisticAutoencoder:
         self.up_to_date_latents = True
     
     def _compute_log_probs(self):
+        """ Compute the LL values in the flow space
+        """ 
         if os.path.isfile(self.filepath['log_probs']):
             compute = input("Existing log probs file found. Use file (y) or recompute (n)?").strip().lower() == 'n'
         else:
