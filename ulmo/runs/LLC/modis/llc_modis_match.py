@@ -158,6 +158,7 @@ def modis_extract(test=True, debug_local=False, noise=False):
         preproc_root='llc_std' 
     if test:
         if noise:
+            tbl_file = tbl_test_noise_file
             root_file = 'LLC_modis2012_test_noise_preproc.h5'
         else:
             tbl_file = tbl_test_file
