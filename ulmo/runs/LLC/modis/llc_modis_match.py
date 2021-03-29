@@ -150,7 +150,8 @@ def modis_init_test(field_size=(64,64), CC_max=1e-4, show=False,
     print("All done with test init.")
 
 
-def modis_extract(test=True, debug_local=False, noise=False):
+def modis_extract(test=True, debug_local=False, 
+                  noise=False, debug=False):
 
     # Giddy up (will take a bit of memory!)
     if noise:
@@ -180,13 +181,16 @@ def modis_extract(test=True, debug_local=False, noise=False):
         pp_s3_file = None  
     llc_table = extract.preproc_for_analysis(llc_table, 
                                  pp_local_file,
+                                 preproc_root=preproc_root,
                                  s3_file=pp_s3_file,
-                                 dlocal=False)
+                                 dlocal=False,
+                                 debug=debug)
     # Vet
     assert cat_utils.vet_main_table(llc_table, cut_prefix='modis_')
 
     # Final write
-    ulmo_io.write_main_table(llc_table, tbl_file)
+    if not debug:
+        ulmo_io.write_main_table(llc_table, tbl_file)
     
 
 def modis_evaluate(test=True, noise=False):
@@ -242,7 +246,7 @@ def main(flg):
         #modis_init_test(show=True, noise=True, localCC=True)#, localM=False)
 
     if flg & (2**4):
-        modis_extract(noise=True)
+        modis_extract(noise=True, debug=True)
 
     if flg & (2**5):
         modis_evaluate(noise=True)
