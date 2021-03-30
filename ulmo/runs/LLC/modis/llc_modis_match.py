@@ -169,7 +169,8 @@ def modis_extract(test=True, debug_local=False,
         raise IOError("Not ready for anything but testing..")
     llc_table = ulmo_io.load_main_table(tbl_file)
     # Rename MODIS columns
-    llc_table = llc_table.rename(columns=dict(filename='modis_filename'))
+    if 'filename' in llc_table.keys() and 'modis_filename' not in llc_table.keys():
+        llc_table = llc_table.rename(columns=dict(filename='modis_filename'))
 
     pp_local_file = 'PreProc/'+root_file
     pp_s3_file = 's3://llc/PreProc/'+root_file
