@@ -119,6 +119,7 @@ def modis_init_test(field_size=(64,64), CC_max=1e-4, show=False,
         columns=dict(lat='modis_lat', lon='modis_lon', 
                      row='modis_row', col='modis_col',
                      datetime='modis_datetime',
+                     filename='modis_filename',
                      UID='modis_UID', LL='modis_LL'))
 
     # Fill in LLC

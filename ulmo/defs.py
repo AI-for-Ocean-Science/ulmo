@@ -52,5 +52,5 @@ mtbl_dmodel = {
                     help='-1: illdefined, 0: valid, 1: test'),
     'UID': dict(dtype=(int, np.integer),
                 help='Unique identifier generated for each cutout'),
-    'required': ('lat', 'lon', 'row', 'col', 'filename', 'datetime')
+    'required': ('lat', 'lon', 'row', 'col', 'datetime')
     }
