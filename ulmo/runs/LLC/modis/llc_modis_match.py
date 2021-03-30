@@ -248,7 +248,7 @@ def main(flg):
         #modis_init_test(show=True, noise=True, localCC=True)#, localM=False)
 
     if flg & (2**4):
-        modis_extract(noise=True, debug=True)
+        modis_extract(noise=True, debug=False)
 
     if flg & (2**5):
         modis_evaluate(noise=True)
