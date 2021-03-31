@@ -16,6 +16,16 @@ s3_llc_files_path = 's3://llc/ThetaUVSalt'
 
 def grab_image(cutout:pandas.core.series.Series, 
                close=True, pp_hf=None):                
+    """Grab the pre-processed image of a cutout
+
+    Args:
+        cutout (pandas.core.series.Series): cutout
+        close (bool, optional): If True, close the file afterwards. Defaults to True.
+        pp_hf ([type], optional): [description]. Defaults to None.
+
+    Returns:
+        np.ndarray: Image of the cutout
+    """
     # Open?
     if pp_hf is None:
         with ulmo_io.open(cutout.pp_file, 'rb') as f:

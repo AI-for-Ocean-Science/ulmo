@@ -5,18 +5,32 @@ import numpy as np
 
 from urllib.parse import urlparse
 
+import pandas
+
 from ulmo import io as ulmo_io
 from ulmo.models import io as model_io
 from ulmo import defs as ulmo_defs
 
 from IPython import embed
 
-def eval_from_main(main_table, model='modis-l2-std', 
+
+def eval_from_main(main_table: pandas.DataFrame,
+                   model='modis-l2-std',
                    clobber_local=False):
+    """Evaluate a set of cutouts guided by the input table
+
+    Args:
+        main_table (pandas.DataFrame): main table describing the cutous
+        model (str, optional): Name of Ulmo model to apply. Defaults to 'modis-l2-std'.
+        clobber_local (bool, optional): Over-write local pre-process file, if True. Defaults to False.
+
+    Raises:
+        IOError: [description]
+    """
 
     # PP files
     uni_pp_files = np.unique(main_table.pp_file).tolist()
-    
+
     # Init
     if 'LL' not in main_table.keys():
         main_table['LL'] = np.nan
@@ -62,14 +76,14 @@ def eval_from_main(main_table, model='modis-l2-std',
                 'preproc', 'log_prob'))
 
         # Run
-        LL = pae.eval_data_file(local_file, 'valid', 
-            log_prob_file, csv=False)  
-    
+        LL = pae.eval_data_file(local_file, 'valid',
+                                log_prob_file, csv=False)
+
         # Add to table
         pp_idx = main_table[using_pp & valid]['pp_idx']
         assert len(pp_idx) == len(LL)
         main_table.loc[using_pp & valid, 'LL'] = LL[pp_idx]
 
-        # Remove 
+        # Remove
         os.remove(local_file)
         print("Removed: {}".format(local_file))

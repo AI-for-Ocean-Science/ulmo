@@ -12,6 +12,8 @@ import h5py
 from IPython import embed
 
 def build_main_from_old():
+    """Turn the original MODIS table into a proper one
+    """
     # On profx and the Google Drive but not s3
 
     old_file = os.path.join(os.getenv('SST_OOD'), 'MODIS_L2/Evaluations/R2010_results_std.feather')

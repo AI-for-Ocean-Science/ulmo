@@ -15,6 +15,14 @@ if os.getenv('LLC_DATA') is not None:
 s3_llc_files_path = 's3://llc/ThetaUVSalt'
 
 def load_coords(verbose=True):
+    """Load LLC coordinates
+
+    Args:
+        verbose (bool, optional): [description]. Defaults to True.
+
+    Returns:
+        xarray.DataSet: contains the LLC coordinates
+    """
     coord_file = os.path.join(os.getenv('LLC_DATA'), 'LLC_coords.nc')
     if verbose:
         print("Loading LLC coords from {}".format(coord_file))
