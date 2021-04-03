@@ -191,6 +191,7 @@ def upload_file_to_s3(local_file:str, s3_uri:str):
     s3.meta.client.upload_file(local_file,
                              parsed_s3.netloc, 
                              parsed_s3.path[1:])
+    print("Uploaded {} to {}".format(local_file, s3_uri))
     
 def write_bytes_to_local(bytes_:BytesIO, outfile:str):
     """Write a binary object to disk

@@ -137,27 +137,17 @@ def modis_day_preproc(test=False):
     # Final write
     ulmo_io.write_main_table(modis_tbl, tbl_file)
 
-def modis_day_evaluate(test=True, noise=False):
+def modis_day_evaluate(test=False):
 
-    if test:
-        tbl_file = tbl_test_noise_file if noise else tbl_test_file
-    else:
-        raise IOError("Not ready for anything but testing..")
-    
     # Load
-    llc_table = ulmo_io.load_main_table(tbl_file)
-
-    # Rename
-    if 'LL' in llc_table.keys() and 'modis_LL' not in llc_table.keys():
-        llc_table = llc_table.rename(
-            columns=dict(LL='modis_LL'))
+    modis_tbl = ulmo_io.load_main_table(tbl_file)
 
     # Evaluate
-    llc_table = ulmo_evaluate.eval_from_main(llc_table)
+    modis_tbl = ulmo_evaluate.eval_from_main(modis_tbl)
 
     # Write 
-    assert cat_utils.vet_main_table(llc_table, cut_prefix='modis_')
-    ulmo_io.write_main_table(llc_table, tbl_file)
+    assert cat_utils.vet_main_table(modis_tbl)
+    ulmo_io.write_main_table(modis_tbl, tbl_file)
 
 
 def main(flg):
@@ -173,6 +163,11 @@ def main(flg):
     # MODIS pre-proc
     if flg & (2**1):
         modis_day_preproc()
+
+    # MODIS pre-proc
+    if flg & (2**2):
+        modis_day_evaluate()
+
 
 # Command line execution
 if __name__ == '__main__':
