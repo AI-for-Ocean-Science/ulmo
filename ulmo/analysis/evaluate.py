@@ -26,6 +26,9 @@ def eval_from_main(main_table: pandas.DataFrame,
 
     Raises:
         IOError: [description]
+    
+    Returns:
+        pandas.DataFrame: Updated main_table
     """
 
     # PP files
@@ -87,3 +90,6 @@ def eval_from_main(main_table: pandas.DataFrame,
         # Remove
         os.remove(local_file)
         print("Removed: {}".format(local_file))
+
+    # Return
+    return main_table

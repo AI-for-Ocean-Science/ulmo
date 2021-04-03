@@ -23,7 +23,14 @@ s3 = boto3.resource('s3', endpoint_url=endpoint_url)
 open = functools.partial(smart_open.open, 
                          transport_params={'resource_kwargs': 
                              {'endpoint_url': endpoint_url}})
-                                
+
+import boto3
+
+
+def list_of_bucket_files(bucket_name, prefix='/', delimiter='/'):
+    prefix = prefix[1:] if prefix.startswith(delimiter) else prefix
+    bucket = s3.Bucket(bucket_name)
+    return list(_.key for _ in bucket.objects.filter(Prefix=prefix))                                
 
 def load_nc(filename, verbose=True):
     """
@@ -86,16 +93,25 @@ def load_main_table(tbl_file:str, verbose=True):
         pandas.DataFrame: table of cutouts
     """
     _, file_extension = os.path.splitext(tbl_file)
+
+    # s3?
+    if tbl_file[0:5] == 's3://':
+        inp = load_to_bytes(tbl_file)
+    else:
+        inp = tbl_file
+        
     # Allow for various formats
     if file_extension == '.csv':
-        main_table = pandas.read_csv(tbl_file, index_col=0)
+        main_table = pandas.read_csv(inp, index_col=0)
         # Set time
         if 'datetime' in main_table.keys():
             main_table.datetime = pandas.to_datetime(main_table.datetime)
     elif file_extension == '.feather':
         # Allow for s3
-        with open(tbl_file, 'rb') as f:
-            main_table = pandas.read_feather(f)
+        main_table = pandas.read_feather(inp)
+    elif file_extension == '.parquet':
+        # Allow for s3
+        main_table = pandas.read_parquet(inp)
     else:
         raise IOError("Bad table extension: ")
     # Report
@@ -103,6 +119,21 @@ def load_main_table(tbl_file:str, verbose=True):
         print("Read main table: {}".format(tbl_file))
     return main_table
 
+def load_to_bytes(s3_uri:str):
+    """Load s3 file into memory as a Bytes object
+
+    Args:
+        s3_uri (str): Full s3 path
+
+    Returns:
+        BytesIO: object in memory
+    """
+    parsed_s3 = urlparse(s3_uri)
+    f = BytesIO()
+    s3.meta.client.download_fileobj(parsed_s3.netloc, 
+                                    parsed_s3.path[1:], f)
+    f.seek(0)
+    return f
 
 def write_main_table(main_table:pandas.DataFrame, outfile:str, to_s3=True):
     """Write Main table for ULMO analysis
@@ -112,6 +143,7 @@ def write_main_table(main_table:pandas.DataFrame, outfile:str, to_s3=True):
     Args:
         main_table (pandas.DataFrame): Main table for ULMO analysis
         outfile (str): Output filename.  Its extension sets the format
+        to_s3 (bool, optional): If True, write to s3
 
     Raises:
         IOError: [description]
