@@ -9,7 +9,6 @@ import pandas
 import xarray as xr
 import h5py
 
-from sklearn.utils import shuffle
 
 from functools import partial
 from concurrent.futures import ProcessPoolExecutor
@@ -22,8 +21,6 @@ from ulmo import io as ulmo_io
 from ulmo.preproc import io as pp_io
 from ulmo.llc import io as llc_io
 from ulmo import io as ulmo_io
-from ulmo import defs as ulmo_defs
-
 
 
 from IPython import embed
@@ -105,36 +102,6 @@ def build_CC_mask(filename=None, temp_bounds=(-3, 34),
     return CC_mask
 
 
-def preproc_image(item:tuple, pdict:dict):
-    """
-    Simple wrapper for preproc_field()
-
-    Parameters
-    ----------
-    item : tuple
-        field, idx
-    pdict : dict
-        Preprocessing dict
-
-    Returns
-    -------
-    pp_field, idx, meta : np.ndarray, int, dict
-
-    """
-    # Unpack
-    field, idx = item
-
-    # Run
-    pp_field, meta = pp_utils.preproc_field(field, None, **pdict)
-
-    # Failed?
-    if pp_field is None:
-        return None
-
-    # Return
-    return pp_field.astype(np.float32), idx, meta
-
-
 def preproc_for_analysis(llc_table:pandas.DataFrame, 
                          local_file:str,
                          preproc_root='llc_std', 
@@ -165,7 +132,7 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
     pdict = pp_io.load_options(preproc_root)
 
     # Setup for parallel
-    map_fn = partial(preproc_image, pdict=pdict)
+    map_fn = partial(pp_utils.preproc_image, pdict=pdict)
 
     # Setup for dates
     uni_date = np.unique(llc_table.datetime)
@@ -176,14 +143,9 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
     pp_fields, meta, img_idx = [], [], []
 
     # Prep LLC Table
-    for key in ['filename', 'pp_file']:
-        if key not in llc_table.keys():
-            llc_table[key] = ''
-    llc_table['pp_root'] = preproc_root
-    llc_table['field_size'] = field_size[0]
-    llc_table['pp_idx'] = -1
-    llc_table['pp_type'] = ulmo_defs.mtbl_dmodel['pp_type']['init']
-
+    llc_table = pp_utils.prep_table_for_preproc(llc_table, 
+                                                preproc_root,
+                                                field_size=field_size[0])
     # Loop
     if debug:
         uni_date = uni_date[0:5]
@@ -234,54 +196,15 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         del answers, fields, items, sst
         ds.close()
 
-    # Recast
-    pp_fields = np.stack(pp_fields)
-    pp_fields = pp_fields[:, None, :, :]  # Shaped for training
-
-    print("After pre-processing, there are {} images ready for analysis".format(pp_fields.shape[0]))
-    
     # Reorder llc_table (probably no change)
-    llc_table = llc_table.iloc[img_idx].copy()
-    llc_table.reset_index(drop=True, inplace=True)
+    #llc_table = llc_table.iloc[img_idx].copy()
+    #llc_table.reset_index(drop=True, inplace=True)
 
-    # Fill up
-    llc_table['pp_file'] = os.path.basename(local_file) if s3_file is None else s3_file
-    # Mu
-    llc_table['mean_temperature'] = [imeta['mu'] for imeta in meta]
-    clms = list(llc_table.keys())
-    # Others
-    for key in ['Tmin', 'Tmax', 'T90', 'T10']:
-        if key in meta[0].keys():
-            llc_table[key] = [imeta[key] for imeta in meta]
-            # Add to clms
-            if key not in clms:
-                clms += [key]
-
-    # Train/validation
-    n = int(valid_fraction * pp_fields.shape[0])
-    idx = shuffle(np.arange(pp_fields.shape[0]))
-    valid_idx, train_idx = idx[:n], idx[n:]
-
-    # Update table
-    llc_table.loc[valid_idx, 'pp_idx'] = np.arange(valid_idx.size)
-    llc_table.loc[train_idx, 'pp_idx'] = np.arange(train_idx.size)
-    llc_table.loc[valid_idx, 'pp_type'] = ulmo_defs.mtbl_dmodel['pp_type']['valid']
-    llc_table.loc[train_idx, 'pp_type'] = ulmo_defs.mtbl_dmodel['pp_type']['train']
-
-    # ###################
-    # Write to disk (avoids holding another 20Gb in memory)
-    with h5py.File(local_file, 'w') as f:
-        # Validation
-        f.create_dataset('valid', data=pp_fields[valid_idx].astype(np.float32))
-        # Metadata
-        dset = f.create_dataset('valid_metadata', data=llc_table.iloc[valid_idx].to_numpy(dtype=str).astype('S'))
-        dset.attrs['columns'] = clms
-        # Train
-        if valid_fraction < 1:
-            f.create_dataset('train', data=pp_fields[train_idx].astype(np.float32))
-            dset = f.create_dataset('train_metadata', data=llc_table.iloc[train_idx].to_numpy(dtype=str).astype('S'))
-            dset.attrs['columns'] = clms
-    print("Wrote: {}".format(local_file))
+    # Warning -- This is not tested for LLC!
+    pp_utils.write_pp_fields(pp_fields, meta, llc_table, 
+                            sub_idx, img_idx,
+                             valid_fraction,
+                             s3_file, local_file)
 
     # Clean up
     del pp_fields

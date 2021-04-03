@@ -10,6 +10,7 @@ from ulmo import io as ulmo_io
 from ulmo.preproc import io as pp_io 
 from ulmo.modis import extract as modis_extract
 from ulmo.modis import utils as modis_utils
+from ulmo.modis import preproc as modis_pp
 from ulmo.analysis import evaluate as ulmo_evaluate 
 from ulmo.utils import catalog as cat_utils
 
@@ -40,6 +41,8 @@ def modis_day_extract_2011(debug=False):
                  '_{}clear_{}x{}_inpaint.h5'.format(pdict['clear_threshold'],
                                                     pdict['field_size'],
                                                     pdict['field_size']))
+    s3_filename = 's3://modis-l2/Extractions/{}'.format(save_path)
+
     if debug:
         files = files[:100]
 
@@ -98,9 +101,10 @@ def modis_day_extract_2011(debug=False):
     modis_table['col'] = [int(item[2]) for item in metadata]
     modis_table['lat'] = [float(item[3]) for item in metadata]
     modis_table['lon'] = [float(item[4]) for item in metadata]
+    modis_table['clear_fraction'] = [float(item[5]) for item in metadata]
     modis_table['field_size'] = pdict['field_size']
     modis_table['datetime'] = modis_utils.times_from_filenames(modis_table.filename.values)
-    modis_table['clear_fraction'] = 1 - pdict['clear_threshold']/100.
+    modis_table['ex_filename'] = s3_filename
 
     # Vet
     assert cat_utils.vet_main_table(modis_table)
@@ -110,14 +114,30 @@ def modis_day_extract_2011(debug=False):
     
     # Push to s3
     print("Pushing to s3")
-    print("Run this:  s3 put {} s3://modis-l2/Extractions/{}".format(
-        save_path, save_path))
+    #print("Run this:  s3 put {} s3://modis-l2/Extractions/{}".format(
+    #    save_path, save_path))
     process = subprocess.run(['s4cmd', '--force', '--endpoint-url',
         'https://s3.nautilus.optiputer.net', 'put', save_path, 
-           's3://modis-l2/Extractions/{}'.format(save_path)])
+        s3_filename])
 
 
-def modis_evaluate(test=True, noise=False):
+def modis_day_preproc(test=False):
+    """Pre-process the files
+
+    Args:
+        test (bool, optional): [description]. Defaults to False.
+    """
+    modis_tbl = ulmo_io.load_main_table(tbl_file)
+    modis_tbl = modis_pp.preproc_tbl(modis_tbl, 1., 
+                                     's3://modis-l2',
+                                     preproc_root='standard')
+    # Vet
+    assert cat_utils.vet_main_table(modis_tbl)
+
+    # Final write
+    ulmo_io.write_main_table(modis_tbl, tbl_file)
+
+def modis_day_evaluate(test=True, noise=False):
 
     if test:
         tbl_file = tbl_test_noise_file if noise else tbl_test_file
@@ -139,15 +159,6 @@ def modis_evaluate(test=True, noise=False):
     assert cat_utils.vet_main_table(llc_table, cut_prefix='modis_')
     ulmo_io.write_main_table(llc_table, tbl_file)
 
-def u_add_velocities():
-    # Load
-    llc_table = ulmo_io.load_main_table(tbl_file)
-    
-    # Velocities
-    extract.velocity_stats(llc_table)
-
-    # Write 
-    ulmo_io.write_main_table(llc_table, tbl_file)
 
 def main(flg):
     if flg== 'all':
@@ -155,9 +166,13 @@ def main(flg):
     else:
         flg= int(flg)
 
-        # MMT/MMIRS
+    # MODIS extract
     if flg & (2**0):
         modis_day_extract_2011(debug=False)
+
+    # MODIS pre-proc
+    if flg & (2**1):
+        modis_day_preproc()
 
 # Command line execution
 if __name__ == '__main__':
@@ -165,12 +180,9 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg = 0
-        #flg += 2 ** 0  # 1 -- Setup coords
-        #flg += 2 ** 1  # 2 -- Extract
+        #flg += 2 ** 0  # 1 -- Extract
+        #flg += 2 ** 1  # 2 -- Preproc
         #flg += 2 ** 2  # 4 -- Evaluate
-        #flg += 2 ** 3  # 8 -- Init test + noise
-        #flg += 2 ** 4  # 16 -- Extract + noise
-        #flg += 2 ** 5  # 32 -- Evaluate + noise
     else:
         flg = sys.argv[1]
 
