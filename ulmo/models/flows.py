@@ -1,3 +1,5 @@
+""" Classes and methods related to the normalized flow """ 
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

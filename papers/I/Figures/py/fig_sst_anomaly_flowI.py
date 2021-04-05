@@ -1421,8 +1421,8 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 8  # LL_SST vs. LL_grad
         #flg_fig += 2 ** 9  # year, month
         #flg_fig += 2 ** 11  # LL vs DT
-        #flg_fig += 2 ** 12  # inlier vs outlier for DT = 2
-        flg_fig += 2 ** 13  # Brazil
+        flg_fig += 2 ** 12  # inlier vs outlier for DT = 2
+        #flg_fig += 2 ** 13  # Brazil
         #flg_fig += 2 ** 20  # tst
     else:
         flg_fig = sys.argv[1]

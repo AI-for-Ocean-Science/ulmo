@@ -27,7 +27,8 @@ def parser(options=None):
     # Parse
     parser = argparse.ArgumentParser(description='Preproc images in an H5 file.')
     parser.add_argument("infile", type=str, help="H5 file for pre-processing")
-    parser.add_argument("valid_fraction", type=float, help="Validation fraction.  Can be 1")
+    parser.add_argument("valid_fraction", type=float, 
+                        help="Validation fraction.  Can be 1")
     parser.add_argument("preproc_root", type=str,
                         help="Root name of JSON file containing the steps to be applied (standard, gradient)")
     parser.add_argument("outfile", type=str, help="H5 outfile name")
@@ -96,6 +97,8 @@ def main(pargs):
     metadata = pandas.DataFrame(meta[:].astype(np.unicode_),
                                 columns=clms)
 
+    # Define train/validation here using MODIS
+
     # Pre-processing dict
     pdict = pp_io.load_options(pargs.preproc_root)
 
@@ -120,10 +123,12 @@ def main(pargs):
     print("There are {} images to process in the input file".format(nimages))
     f.close()
 
+
     # Process them all, then deal with train/validation
     pp_fields, meta, img_idx = [], [], []
     for kk in range(nloop):
         f = h5py.File(pargs.infile, mode='r')
+
         # Load the images into memory
         i0 = kk*pargs.nsub_fields
         i1 = min((kk+1)*pargs.nsub_fields, nimages)

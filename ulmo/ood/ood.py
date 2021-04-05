@@ -1,10 +1,9 @@
+""" OOD Class """
 import os
-import time
 import io, json
 import h5py
 import pickle
 import sklearn
-import multiprocessing
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -15,13 +14,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 from tqdm.auto import tqdm
 from skimage import filters
-from matplotlib.gridspec import GridSpec
 from sklearn.preprocessing import StandardScaler
 
 from ulmo.plotting import load_palette, grid_plot
 from ulmo.utils import HDF5Dataset, id_collate, get_quantiles
 from ulmo.models import DCAE, ConditionalFlow
+from ulmo import io as ulmo_io
 
+from IPython import embed
 
 try:
     import cartopy.crs as ccrs
@@ -30,10 +30,15 @@ except:
 
 class ProbabilisticAutoencoder:
     @classmethod
-    def from_json(cls, json_file, **kwargs):
-        # Load JSON
-        with open(json_file, 'rt') as fh:
-            model_dict = json.load(fh)
+    def from_dict(cls, model_dict, **kwargs):
+        """Instantiate the class from a dict
+
+        Args:
+            model_dict (dict): Describes the model, in full
+
+        Returns:
+            ood.ProbabilisticAutoencoder: PAE object
+        """
         # Tuples
         tuples = ['image_shape']
         for key in model_dict.keys():
@@ -44,8 +49,24 @@ class ProbabilisticAutoencoder:
         autoencoder = DCAE(**model_dict['AE'])
         flow = ConditionalFlow(**model_dict['flow'])
         # Do it!
-        pae = cls(autoencoder=autoencoder, flow=flow, write_model=False, **kwargs)
+        pae = cls(autoencoder=autoencoder, flow=flow, write_model=False, 
+                  skip_mkdir=True, **kwargs)
         return pae
+
+    @classmethod
+    def from_json(cls, json_file, **kwargs):
+        """Instantiate the class from a dict
+
+        Args:
+            json_file (str): JSON file containing the model
+
+        Returns:
+            ood.ProbabilisticAutoencoder: PAE object
+        """
+        # Load JSON
+        with open(json_file, 'rt') as fh:
+            model_dict = json.load(fh)
+        return cls.from_dict(model_dict, **kwargs)
 
     """A probabilistic autoencoder (see arxiv.org/abs/2006.05479)."""
     def __init__(self, autoencoder, flow, filepath, datadir=None, 
@@ -86,6 +107,7 @@ class ProbabilisticAutoencoder:
                 os.makedirs(datadir)
         
         self.device = device
+        print("Using device={}".format(device))
         self.scaler = None
         self.autoencoder = autoencoder.to(device)
         self.flow = flow.to(device)
@@ -120,16 +142,20 @@ class ProbabilisticAutoencoder:
     def load_autoencoder(self):
         """
         Load autoencoder from pytorch file
+
+        Held in self.savepath['autoencoder']
         """
         print(f"Loading autoencoder model from: {self.savepath['autoencoder']}")
-        self.autoencoder.load_state_dict(torch.load(self.savepath['autoencoder'], map_location=self.device))
+        with ulmo_io.open(self.savepath['autoencoder'], 'rb') as f:
+            self.autoencoder.load_state_dict(torch.load(f, map_location=self.device))
         
     def save_flow(self):
         torch.save(self.flow.state_dict(), self.savepath['flow'])
     
     def load_flow(self):
         print(f"Loading flow model from: {self.savepath['flow']}")
-        self.flow.load_state_dict(torch.load(self.savepath['flow'], map_location=self.device))
+        with ulmo_io.open(self.savepath['flow'], 'rb') as f:
+            self.flow.load_state_dict(torch.load(f, map_location=self.device))
 
     def write_model(self):
         # Generate the dict
@@ -371,13 +397,14 @@ class ProbabilisticAutoencoder:
 
     def load_meta(self, key, filename=None):
         """
+        Load meta data from the input file
 
         Parameters
         ----------
         key : str
             Group name for metadata, e.g. "valid_metadata"
         filename : str, optional
-            File for meta data
+            File for meta data.  If not provided, use self.filepath['data']
 
         Returns
         -------
@@ -387,7 +414,8 @@ class ProbabilisticAutoencoder:
         if filename is None:
             filename = self.filepath['data']
         # Proceed
-        with h5py.File(filename, 'r') as f:
+        f1 = ulmo_io.open(filename, 'rb')
+        with h5py.File(f1, 'r') as f:
             if key in f.keys():
                 meta = f[key]
                 df = pd.DataFrame(meta[:].astype(np.unicode_), columns=meta.attrs['columns'])
@@ -472,87 +500,138 @@ class ProbabilisticAutoencoder:
         log_prob = self.to_type(log_prob, t)
         return log_prob
     
-    def compute_log_probs(self, input_file, dataset, output_file,
-                          scaler=None, csv=False, query=False):
+
+    def eval_numpy_img(self, img:np.ndarray, **kwargs):
+        """Run ulmo on an input numpy image
+
+        Args:
+            img (np.ndarray): Image to analyze.  Must be the
+            shape that Ulmo expects
+
+        Returns:
+            np.ndarray, float: latent vector, LL
         """
-        Computer log probs on an input HDF file of images
+        # Resize
+        fsize = max(img.shape)
+        rimg = np.resize(img, (1, 1, fsize, fsize))
+        # Setup
+        dset = torch.utils.data.TensorDataset(torch.from_numpy(rimg).float())
 
-        Parameters
-        ----------
-        input_file
-        dataset
-        output_file
-        scaler
-        query : bool, optional
-            If True, query the user
+        latents, LL = self.compute_log_probs(dset, batch_size=1, 
+                                             collate_fn=None, **kwargs)
 
-        Returns
-        -------
+        # Return
+        return latents, float(LL[0])
 
-        """
-        if scaler is None:
-            scaler = self.scaler
-            scaler_path = os.path.join(self.logdir, self.stem + '_scaler.pkl')
-            if self.scaler is None:
-                if os.path.exists(scaler_path):
-                    if query:
-                        load = input("Scaler file found in logdir. Use this (y/n)?") == 'y'
-                    else:
-                        load = True
-                    if load:
-                        with open(scaler_path, 'rb') as f:
-                            scaler = pickle.load(f)
-                    else:
-                        raise RuntimeError("No scaler provided. Saved scaler found but not loaded.")
-                else:
-                    raise RuntimeError("No scaler found or provided.")
 
+    def eval_data_file(self, data_file, dataset, output_file,
+                       csv=False, **kwargs):
         # Make PyTorch dataset from HDF5 file
-        assert input_file.endswith('.h5'), "Input file must be in .h5 format."
+        assert data_file.endswith('.h5'), "Input file must be in .h5 format."
         assert output_file.endswith('.h5'), "Output file must be in .h5 format."
         
-        dset = HDF5Dataset(input_file, partition=dataset)
-        loader = torch.utils.data.DataLoader(
-            dset, batch_size=1024, shuffle=False, 
-            drop_last=False, collate_fn=id_collate,
-            num_workers=16)
-        
-        self.autoencoder.eval()
-        self.flow.eval()
-        
-        with torch.no_grad():
-            latents = [self.autoencoder.encode(data[0].to(self.device)).detach().cpu().numpy()
-                     for data in loader]
+        # Generate dataset
+        dset = HDF5Dataset(data_file, partition=dataset)
 
-        latents = scaler.transform(np.concatenate(latents))
-
-        dset = torch.utils.data.TensorDataset(torch.from_numpy(latents).float())
-        loader = torch.utils.data.DataLoader(
-            dset, batch_size=1024, shuffle=False, 
-            drop_last=False, num_workers=16)
+        # Run
+        latents, LL = self.compute_log_probs(dset, **kwargs)
         
+        # Write latents (into Evaluations/ most likely)
+        latent_file = output_file.replace('log_prob', 'latents')
+        with h5py.File(latent_file, 'w') as f:
+            f.create_dataset('latents', data=latents)
+        print("Wrote latents to {}".format(latent_file))
+
+        # Write LL
         with h5py.File(output_file, 'w') as f:
-            with torch.no_grad():
-                log_prob = [self.flow.log_prob(data[0].to(self.device)).detach().cpu().numpy()
-                     for data in tqdm(loader, total=len(loader), unit='batch', desc='Computing log probs')]
-                f.create_dataset(dataset, data=np.concatenate(log_prob))
+            f.create_dataset(dataset, data=LL)
         print(f"Log probabilities saved to {output_file}.")
 
         # CSV?
         if csv:
             csv_name = output_file.replace('h5', 'csv')
-            df = self.load_meta(dataset+'_metadata', filename=input_file)
+            df = self.load_meta(dataset+'_metadata', filename=data_file)
             self._log_probs_to_csv(df, output_file, csv_name,
                                    dataset=dataset)
+        return LL
+
+    def compute_log_probs(self, dset, num_workers=16, batch_size=1024,
+                          collate_fn=id_collate):
+        """
+        Computer log probs on an input HDF file of images
+
+        Parameters
+        ----------
+        dset : DataSet
+        num_workers: int, optional
+            Was set to 16.  Having memory issues..
+        batch_size : int, optional
+
+        Returns
+        -------
+        latents, LL : np.ndarray, np.ndarray
+            Scaled latent vectors,  LL probabilities
+
+        """
+        #if self.scaler is None:
+        #    scaler_path = os.path.join(self.logdir, self.stem + '_scaler.pkl')
+        #    if os.path.exists(scaler_path):
+        #        if query:
+        #            load = input("Scaler file found in logdir. Use this (y/n)?") == 'y'
+        #        else:
+        #            load = True
+        #        if load:
+        #            with ulmo_io.open(scaler_path, 'rb') as f:
+        #                self.scaler = pickle.load(f)
+        #        else:
+        #            raise RuntimeError("No scaler provided. Saved scaler found but not loaded.")
+        #    else:
+        #        raise RuntimeError("No scaler found or provided.")
+
+        # Generate DataLoader
+        loader = torch.utils.data.DataLoader(
+            dset, batch_size=batch_size, shuffle=False, 
+            drop_last=False, collate_fn=collate_fn,
+            num_workers=num_workers)
+        
+        self.autoencoder.eval()
+        self.flow.eval()
+        
+        # Latents
+        print("Calculating latents..")
+        with torch.no_grad():
+            pre_latents = [self.autoencoder.encode(data[0].to(self.device)).detach().cpu().numpy()
+                     for data in loader]
+
+        # Sscaling
+        print("Scaling..")
+        latents = self.scaler.transform(np.concatenate(pre_latents))
+
+        # Load for LL
+        dset_l = torch.utils.data.TensorDataset(torch.from_numpy(latents).float())
+        loader = torch.utils.data.DataLoader(
+            dset_l, batch_size=batch_size, shuffle=False, 
+            drop_last=False, num_workers=num_workers)
+        
+        print("Probabilities now")
+        #with h5py.File(output_file, 'w') as f:
+        with torch.no_grad():
+            log_prob = [self.flow.log_prob(data[0].to(self.device)).detach().cpu().numpy()
+                    for data in tqdm(loader, total=len(loader), unit='batch', desc='Computing log probs')]
+        #f.create_dataset(dataset, data=np.concatenate(log_prob))
+
+        # Return
+        return latents, np.concatenate(log_prob)
 
     def _log_probs_to_csv(self, df, log_file, outfile, dataset='valid'):
         """
 
         Parameters
         ----------
-        df : pnadas.DataFrame
+        df : pandas.DataFrame
         log_file : str
         outfile : str
+            Output file
         dataset : str, optional
 
         """

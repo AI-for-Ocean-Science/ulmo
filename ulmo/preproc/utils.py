@@ -38,9 +38,15 @@ def build_mask(dfield, qual, qual_thresh=2, temp_bounds=(-2,33),
     """
     dfield[np.isnan(dfield)] = np.nan
     if field == 'SST':
+        if qual is None:
+            qual = np.zeros_like(dfield).astype(int)
         qual[np.isnan(qual)] = np.nan
-    # Deal with NaN
+    else:
+        if qual is None:
+            raise IOError("Need to deal with qual for color.  Just a reminder")
+        # Deal with NaN
     masks = np.logical_or(np.isnan(dfield), np.isnan(qual))
+
     # Quality
     # TODO -- Do this right for color
     qual_masks = np.zeros_like(masks)
@@ -52,6 +58,7 @@ def build_mask(dfield, qual, qual_thresh=2, temp_bounds=(-2,33),
         value_masks = (dfield[~masks] <= temp_bounds[0]) | (dfield[~masks] > temp_bounds[1])
     # Union
     masks = np.logical_or(masks, qual_masks, value_masks)
+
     # Return
     return masks
 
@@ -60,23 +67,26 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
                   downscale=True, dscale_size=(2,2), sigmoid=False, scale=None,
                   expon=None, only_inpaint=False, gradient=False,
                   min_mean=None, de_mean=True,
+                  noise=None,
                   log_scale=False, **kwargs):
     """
     Preprocess an input field image with a series of steps:
         1. Inpainting
-        2. Median
-        3. Downscale
-        4. Sigmoid
-        5. Scale
-        6. Remove mean
-        7. Sobel
-        8. Log
+        2. Add noise
+        3. Median
+        4. Downscale
+        5. Sigmoid
+        6. Scale
+        7. Remove mean
+        8. Sobel
+        9. Log
 
     Parameters
     ----------
     field : np.ndarray
-    mask : np.ndarray
+    mask : np.ndarray or None
         Data mask.  True = masked
+        Required for inpainting
     inpaint : bool, optional
         if True, inpaint masked values
     median : bool, optional
@@ -87,7 +97,9 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
         If True downscale the image
     dscale_size : tuple, optional
         Size to rescale by
-    scale : float
+    noise : float, optional
+        If provided, add white noise with this value
+    scale : float, optional
         Scale the SSTa values by this multiplicative factor
     expon : float
         Exponate the SSTa values by this exponent
@@ -127,6 +139,11 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
     meta_dict['T10'] = field.flatten()[srt[i10]]
     meta_dict['T90'] = field.flatten()[srt[i90]]
 
+    # Add noise?
+    if noise is not None:
+        field += np.random.normal(loc=0., 
+                                  scale=noise, 
+                                  size=field.shape)
     # Median
     if median:
         field = median_filter(field, size=med_size)

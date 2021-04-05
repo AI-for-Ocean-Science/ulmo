@@ -1,0 +1,18 @@
+{
+    "field_size": 64,
+    "quality_thresh": 2,
+    "nrepeat": 1,
+    "temp_bounds": [
+        -2,
+        33
+    ],
+    "noise": 0.09,
+    "downscale": false,
+    "inpaint": false,
+    "med_size": [
+        3,
+        1
+    ],
+    "median": false,
+    "only_inpaint": false
+}

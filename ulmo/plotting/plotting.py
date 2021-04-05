@@ -10,6 +10,15 @@ from matplotlib.gridspec import GridSpec
 
 
 def load_palette(pfile=None):
+    """ Load the color pallette
+
+    Args:
+        pfile (str, optional): Filename of the pallette. Defaults to None.
+
+    Returns:
+        color pallette, LinearSegmentedColormap: pallette for sns, colormap
+    """
+    
     if pfile is None:
         pfile = os.path.join(resource_filename('ulmo', 'plotting'), 'color_palette.txt')
     # Load me up
@@ -23,6 +32,15 @@ def load_palette(pfile=None):
 
 
 def grid_plot(nrows, ncols):
+    """ Grid plot
+
+    Args:
+        nrows (int): Number of rows in the grid
+        ncols (int): Number of cols in the grid
+
+    Returns:
+        plt.Figure, plt.axis: Plot and axes
+    """
     
     # Make plot grid
     n, m = nrows, ncols # rows, columns
@@ -42,3 +60,27 @@ def grid_plot(nrows, ncols):
         axes.append((fig.add_subplot(gso[i]), fig.add_subplot(gse[i])))
     
     return fig, axes
+
+def show_image(img:np.ndarray, cm=None, cbar=True, flipud=True,
+               vmnx=(None,None)):
+    """Dispay the cutout image
+
+    Args:
+        img (np.ndarray): cutout image
+        cm ([type], optional): Color map to use. Defaults to None.
+            If None, load the heatmap above
+        cbar (bool, optional): If True, show a color bar. Defaults to True.
+        flipud (bool, optional): If True, flip the image up/down. Defaults to True.
+        vmnx (tuple, optional): Set vmin, vmax. Defaults to None
+
+    Returns:
+        matplotlib.Axis: axis containing the plot
+    """
+    if cm is None:
+        _, cm = load_palette()
+    #
+    ax = sns.heatmap(np.flipud(img), xticklabels=[], 
+                     vmin=vmnx[0], vmax=vmnx[1],
+                     yticklabels=[], cmap=cm, cbar=cbar)
+    #
+    return ax

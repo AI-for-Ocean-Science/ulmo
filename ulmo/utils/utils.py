@@ -19,6 +19,7 @@ class HDF5Dataset(data.Dataset):
         self.file_path = file_path
         self.partition = partition
         self.meta_dset = partition + '_metadata'
+        # s3 is too risky and slow here
         self.h5f = h5py.File(file_path, 'r')
 
     def __len__(self):
