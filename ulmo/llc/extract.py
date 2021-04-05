@@ -142,7 +142,7 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
                          n_cores=10,
                          valid_fraction=1., 
                          dlocal=False,
-                         s3_file=None):
+                         s3_file=None, debug=False):
     """Main routine to extract and pre-process LLC data for later SST analysis
     The llc_table is modified in place.
 
@@ -185,6 +185,8 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
     llc_table['pp_type'] = ulmo_defs.mtbl_dmodel['pp_type']['init']
 
     # Loop
+    if debug:
+        uni_date = uni_date[0:5]
     for udate in uni_date:
         # Parse filename
         filename = llc_io.grab_llc_datafile(udate, local=dlocal)

@@ -11,20 +11,24 @@ from skimage import filters
 from IPython import embed
 
 
-def build_mask(sst, qual, qual_thresh=2, temp_bounds=(-2,33)):
+def build_mask(dfield, qual, qual_thresh=2, temp_bounds=(-2,33),
+               field='SST'):
     """
-    Generate a mask based on NaN, qual, and temperature bounds
+    Generate a mask based on NaN, qual, and other bounds
 
     Parameters
     ----------
-    sst : np.ndarray
-        Full SST image
+    dfield : np.ndarray
+        Full data image
     qual : np.ndarray
         Quality image
     qual_thresh : int
         Quality threshold value;  qual must exceed this
-    temp_bounds : tuple
+    temp_bounds : tuple, optional
         Temperature interval considered valid
+        Used for SST
+    field : str, optional
+        Options: SST, aph_443
 
     Returns
     -------
@@ -32,23 +36,28 @@ def build_mask(sst, qual, qual_thresh=2, temp_bounds=(-2,33)):
         mask;  True = bad
 
     """
-    # Deal with NANs
-    sst[np.isnan(sst)] = np.nan
-    if qual is not None:
+    dfield[np.isnan(dfield)] = np.nan
+    if field == 'SST':
+        if qual is None:
+            qual = np.zeros_like(dfield).astype(int)
         qual[np.isnan(qual)] = np.nan
-        masks = np.logical_or(np.isnan(sst), np.isnan(qual))
     else:
-        masks = np.isnan(sst)
+        if qual is None:
+            raise IOError("Need to deal with qual for color.  Just a reminder")
+        # Deal with NaN
+    masks = np.logical_or(np.isnan(dfield), np.isnan(qual))
 
-    # Temperature bounds and quality
+    # Quality
+    # TODO -- Do this right for color
     qual_masks = np.zeros_like(masks)
-    if qual is not None:
-        qual_masks[~masks] = (qual[~masks] > qual_thresh) | (sst[~masks] <= temp_bounds[0]) | (sst[~masks] > temp_bounds[1])
-    else:
-        qual_masks[~masks] = (sst[~masks] <= temp_bounds[0]) | (sst[~masks] > temp_bounds[1])
-
-    # Finish
-    masks = np.logical_or(masks, qual_masks)
+    qual_masks[~masks] = (qual[~masks] > qual_thresh)
+    # Temperature bounds
+    #
+    value_masks = np.zeros_like(masks)
+    if field == 'SST':
+        value_masks = (dfield[~masks] <= temp_bounds[0]) | (dfield[~masks] > temp_bounds[1])
+    # Union
+    masks = np.logical_or(masks, qual_masks, value_masks)
 
     # Return
     return masks
@@ -57,6 +66,7 @@ def build_mask(sst, qual, qual_thresh=2, temp_bounds=(-2,33)):
 def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
                   downscale=True, dscale_size=(2,2), sigmoid=False, scale=None,
                   expon=None, only_inpaint=False, gradient=False,
+                  min_mean=None, de_mean=True,
                   noise=None,
                   log_scale=False, **kwargs):
     """
@@ -95,6 +105,10 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
         Exponate the SSTa values by this exponent
     gradient : bool, optional
         If True, apply a Sobel gradient enhancing filter
+    de_mean : bool, optional
+        If True, subtract the mean
+    min_mean : float, optional
+        If provided, require the image has a mean exceeding this value
     **kwargs : catches extraction keywords
 
     Returns
@@ -142,10 +156,17 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
     if np.any(np.isnan(field)):
         return None, None
 
-    # De-mean the field
+    # Check mean
     mu = np.mean(field)
-    pp_field = field - mu
     meta_dict['mu'] = mu
+    if min_mean is not None and mu < min_mean:
+        return None, None
+
+    # De-mean the field
+    if de_mean:
+        pp_field = field - mu
+    else:
+        pp_field = field
 
     # Sigmoid?
     if sigmoid:
