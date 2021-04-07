@@ -2,7 +2,7 @@
 #################### Modules used in the latents exploration ###########################
 
 ########################################################################################
-### Here we write a funtion 'threshold_get()' to get the left and right threshold
+################ 'threshold_get()' to get the left and right threshold #################
 def threshold_get(data_pd, alpha):
     """
     Args:
@@ -14,14 +14,14 @@ def threshold_get(data_pd, alpha):
     """
     p_left = (1 - alpha) / 2
     p_right = 1 - (1 - alpha) / 2
-    q_left = LL_pd.quantile(p_left)
-    q_right = LL_pd.quantile(p_right)
+    q_left = data_pd.quantile(p_left)
+    q_right = data_pd.quantile(p_right)
     
     return (q_left, q_right)
 ########################################################################################
 
 ########################################################################################
-######## Here we write a function 'hist_tail_create()' to plot the histogram ###########
+############ 'hist_tail_create()' is used to plot the histogram #############
 def hist_tail_create(data_pd, alpha):
     """
     Args:
@@ -38,7 +38,7 @@ def hist_tail_create(data_pd, alpha):
 ########################################################################################
 
 ########################################################################################
-### Here we write a function 'outliers_preparing()' 
+######### 'outliers_preparing() is used to  get the index of outliers ##################
 def outliers_preparing(data_pd, alpha):
     """
     Args:
@@ -63,7 +63,7 @@ def outliers_preparing(data_pd, alpha):
 ########################################################################################
 
 ########################################################################################
-### scatter plot create
+#############################scatter plot #######################################
 def scatter_create(latents_embedding, left_outliers_indices, right_outliers_indices, normal_indices):
     """
     Args:
@@ -85,7 +85,7 @@ def scatter_create(latents_embedding, left_outliers_indices, right_outliers_indi
 #######################################################################################
 
 #######################################################################################
-### Crerate the function 'hist_and_scatter_create()'
+########### Crerate the function 'hist_and_scatter_create()' ##########################
 def hist_and_scatter_create(latents_embedding, data_pd, alpha):
     """
     Args:
@@ -100,3 +100,39 @@ def hist_and_scatter_create(latents_embedding, data_pd, alpha):
     left_outliers_indices, right_outliers_indices, normal_indices = outliers_preparing(data_pd, alpha)
     scatter_create(latents_embedding, left_outliers_indices, right_outliers_indices, normal_indices)
 #######################################################################################
+
+####################################################################################################
+#################### 'draw_umap' is used to plot the reduced manifold ##############################
+def draw_umap(hyper_dict, latents, ll):
+    """
+    Args:
+        hyper_dict: (dict) dictionary used to store the hyper-parameters
+        latents: (np.array) latent vectors
+        ll: (pd.dataframe) likelihood of the latents
+        
+    """
+    n_neighbors = hyper_dict['n_neighbors']
+    min_dist = hyper_dict['min_dist']
+    n_components = hyper_dict['n_components']
+    metric = hyper_dict['metric']
+    title = hyper_dict['title']
+    
+    reducer = umap.UMAP(
+        n_neighbors=n_neighbors,
+        min_dist=min_dist,
+        n_components=n_components,
+        metric=metric
+    )
+    reduced_latents = reducer.fit_transform(latents);
+    fig = plt.figure(figsize=(11, 8))
+    if n_components == 1:
+        plt.scatter(reduced_latents[:,0], range(len(reduced_latents)), c=ll, cmap='Spectral')
+        plt.colorbar()
+    if n_components == 2:
+        plt.scatter(reduced_latents[:,0], reduced_latents[:,1], c=ll, cmap='Spectral')
+        plt.colorbar()
+    #if n_components == 3:
+    #    plt.subplot(projection='3d')
+    #    plt.scatter(reduced_latents[:,0], reduced_latents[:,1], reduced_latents[:,2], c=data, s=100)
+    plt.title(title, fontsize=18)
+#####################################################################################################
