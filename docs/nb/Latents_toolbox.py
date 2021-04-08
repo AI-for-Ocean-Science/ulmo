@@ -1,5 +1,8 @@
 ########################################################################################
 #################### Modules used in the latents exploration ###########################
+import numpy as np
+import umap
+import matplotlib.pyplot as plt
 
 ########################################################################################
 ################ 'threshold_get()' to get the left and right threshold #################
