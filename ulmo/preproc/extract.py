@@ -88,8 +88,8 @@ def clear_grid(mask, field_size, method, CC_max=0.05,
             # Min and keep
             imin = np.argmin(dist2)
             keep[mt[imin]] = True
-            if (ss % 100) == 0:
-                print('ss=', ss, counts.size, datetime.datetime.now())
+            #if (ss % 100) == 0:
+            #    print('ss=', ss, counts.size, datetime.datetime.now())
         else:
             raise IOError("Bad method option")
         #if ss > 1000:

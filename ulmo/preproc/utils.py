@@ -1,12 +1,19 @@
 """ Utilities for pre-processing steps"""
 
 import numpy as np
+import os
+
+import pandas
+import h5py
 
 from skimage.restoration import inpaint as sk_inpaint
 from scipy.ndimage import median_filter
 from scipy import special
 from skimage.transform import downscale_local_mean
 from skimage import filters
+from sklearn.utils import shuffle
+
+from ulmo import defs as ulmo_defs
 
 from IPython import embed
 
@@ -61,6 +68,55 @@ def build_mask(dfield, qual, qual_thresh=2, temp_bounds=(-2,33),
 
     # Return
     return masks
+
+def prep_table_for_preproc(tbl, preproc_root, field_size=None):
+    # Prep Table
+    for key in ['filename', 'pp_file']:
+        if key not in tbl.keys():
+            tbl[key] = ''
+    tbl['pp_root'] = preproc_root
+    if field_size is not None:
+        tbl['field_size'] = field_size[0]
+    tbl['pp_idx'] = -1
+    tbl['pp_type'] = ulmo_defs.mtbl_dmodel['pp_type']['init']
+    # 
+    return tbl
+
+def preproc_image(item:tuple, pdict:dict, use_mask=False):
+    """
+    Simple wrapper for preproc_field()
+    Mainly for multi-processing
+
+    Parameters
+    ----------
+    item : tuple
+        field, idx or field,mask,idx (use_mask=True)
+    pdict : dict
+        Preprocessing dict
+    use_mask : bool, optional
+        If True, allow for an input mask
+
+    Returns
+    -------
+    pp_field, idx, meta : np.ndarray, int, dict
+
+    """
+    # Unpack
+    if use_mask:
+        field, mask, idx = item
+    else:
+        field, idx = item
+        mask = None
+
+    # Run
+    pp_field, meta = preproc_field(field, mask, **pdict)
+
+    # Failed?
+    if pp_field is None:
+        return None
+
+    # Return
+    return pp_field.astype(np.float32), idx, meta
 
 
 def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
@@ -210,3 +266,62 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
     # Return
     return pp_field, meta_dict
 
+
+def write_pp_fields(pp_fields:list, meta:list, 
+                    main_tbl:pandas.DataFrame, 
+                    ex_idx:np.ndarray,
+                    ppf_idx:np.ndarray,
+                    valid_fraction:float,
+                    s3_file:str, local_file:str):
+    
+    # Recast
+    pp_fields = np.stack(pp_fields)
+    pp_fields = pp_fields[:, None, :, :]  # Shaped for training
+
+    print("After pre-processing, there are {} images ready for analysis".format(pp_fields.shape[0]))
+    
+    # Fill up
+    main_tbl.loc[ex_idx, 'pp_file'] = s3_file
+
+    # Ordered index by current order of pp_fields
+    idx_idx = ex_idx[ppf_idx]
+
+    # Mu
+    main_tbl['mean_temperature'] = [imeta['mu'] for imeta in meta]
+    clms = list(main_tbl.keys())
+    # Others
+    for key in ['Tmin', 'Tmax', 'T90', 'T10']:
+        if key in meta[0].keys():
+            main_tbl.loc[idx_idx, key] = [imeta[key] for imeta in meta]
+            # Add to clms
+            if key not in clms:
+                clms += [key]
+
+    # Train/validation
+    n = int(valid_fraction * pp_fields.shape[0])
+    idx = shuffle(np.arange(pp_fields.shape[0]))
+    valid_idx, train_idx = idx[:n], idx[n:]
+
+    # Update table
+    main_tbl.loc[idx_idx[valid_idx], 'pp_idx'] = np.arange(valid_idx.size)
+    main_tbl.loc[idx_idx[train_idx], 'pp_idx'] = np.arange(train_idx.size)
+    main_tbl.loc[idx_idx[valid_idx], 'pp_type'] = ulmo_defs.mtbl_dmodel['pp_type']['valid']
+    main_tbl.loc[idx_idx[train_idx], 'pp_type'] = ulmo_defs.mtbl_dmodel['pp_type']['train']
+
+    # ###################
+    # Write to disk (avoids holding another 20Gb in memory)
+    with h5py.File(local_file, 'w') as f:
+        # Validation
+        f.create_dataset('valid', data=pp_fields[valid_idx].astype(np.float32))
+        # Metadata
+        dset = f.create_dataset('valid_metadata', data=main_tbl.iloc[valid_idx].to_numpy(dtype=str).astype('S'))
+        dset.attrs['columns'] = clms
+        # Train
+        if valid_fraction < 1:
+            f.create_dataset('train', data=pp_fields[train_idx].astype(np.float32))
+            dset = f.create_dataset('train_metadata', data=main_tbl.iloc[train_idx].to_numpy(dtype=str).astype('S'))
+            dset.attrs['columns'] = clms
+    print("Wrote: {}".format(local_file))
+
+    # Return
+    return main_tbl
