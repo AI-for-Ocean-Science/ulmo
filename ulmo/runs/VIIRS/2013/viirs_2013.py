@@ -43,7 +43,7 @@ def viirs_get_data_into_s3(debug=False, year=2013):
             os.remove(nc_file)
     
     #for ss in range(365):
-    ndays = 3
+    ndays = 366
     for ss in range(ndays):
         iday = ss + 1
         print("Working on day: {}".format(iday))
@@ -53,22 +53,25 @@ def viirs_get_data_into_s3(debug=False, year=2013):
             'wget', '--no-check-certificate', '--user=profx', 
             '--password={}'.format(os.getenv('PO_DAAC')), 
             '-r', '-nc', '-np',  '-nH', '-nd', '-A', 
-            '*.nc', 
+            '201301{}00*.nc'.format(str(iday).zfill(2)), 
+            #'*.nc', 
             'https://podaac-tools.jpl.nasa.gov/drive/files/allData/ghrsst/data/GDS2/L2P/VIIRS_NPP/OSPO/v2.61/{}/{}/'.format(
                 year,sday)])
         if ss == 0:
-            pw.wait()
-            nc_files = glob.glob('{}*.nc'.format(year))
-        elif ss < (ndays-1):
+            pass
+        else:
             if len(nc_files) > 0:
-                push_to_s3(nc_files, pvday)
-            # Push
-            pw.wait()
-            nc_files = glob.glob('{}*.nc'.format(year))
+                push_to_s3(nc_files, pvday, year)
+        # Wait now
+        pw.wait()
+        # Files
+        nc_files = glob.glob('{}*.nc'.format(year))
+        nc_files.sort()
         pvday = sday
     # Last batch
+    print("Pushing last batch")
     if len(nc_files) > 0:
-        push_to_s3(nc_files, pvday)
+        push_to_s3(nc_files, pvday, year)
 
 
 def modis_day_extract_2011(debug=False):
