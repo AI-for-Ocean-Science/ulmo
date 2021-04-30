@@ -1,5 +1,6 @@
 """ Module for Ulmo analysis on VIIRS 2013"""
 import os
+import glob
 import numpy as np
 import subprocess 
 
@@ -16,7 +17,7 @@ from ulmo.utils import catalog as cat_utils
 
 from functools import partial
 from concurrent.futures import ProcessPoolExecutor
-import multiprocessing
+import subprocess
 from tqdm import tqdm
 
 from IPython import embed
@@ -24,8 +25,51 @@ from IPython import embed
 tbl_file = 's3://modis-l2/Tables/MODIS_L2_day_2011_std.parquet'
 s3_bucket = 's3://viirs'
 
-def viirs_get_data_in_s3(debug=False):
-    pass
+def viirs_get_data_into_s3(debug=False, year=2013):
+    # Check
+    assert os.getenv('PO_DAAC') is not None
+    # Loop on days
+
+    pushed_files = []
+    nc_files = None
+
+    # push to s3
+    def push_to_s3(nc_files, sday, year):
+        for nc_file in nc_files:
+            s3_file = os.path.join(s3_bucket, 'data', str(year),
+                                   sday, nc_file)
+            ulmo_io.upload_file_to_s3(nc_file, s3_file)
+            # Remove
+            os.remove(nc_file)
+    
+    #for ss in range(365):
+    ndays = 3
+    for ss in range(ndays):
+        iday = ss + 1
+        print("Working on day: {}".format(iday))
+        sday = str(iday).zfill(3)
+        # Popen
+        pw = subprocess.Popen([
+            'wget', '--no-check-certificate', '--user=profx', 
+            '--password={}'.format(os.getenv('PO_DAAC')), 
+            '-r', '-nc', '-np',  '-nH', '-nd', '-A', 
+            '*.nc', 
+            'https://podaac-tools.jpl.nasa.gov/drive/files/allData/ghrsst/data/GDS2/L2P/VIIRS_NPP/OSPO/v2.61/{}/{}/'.format(
+                year,sday)])
+        if ss == 0:
+            pw.wait()
+            nc_files = glob.glob('{}*.nc'.format(year))
+        elif ss < (ndays-1):
+            if len(nc_files) > 0:
+                push_to_s3(nc_files, pvday)
+            # Push
+            pw.wait()
+            nc_files = glob.glob('{}*.nc'.format(year))
+        pvday = sday
+    # Last batch
+    if len(nc_files) > 0:
+        push_to_s3(nc_files, pvday)
+
 
 def modis_day_extract_2011(debug=False):
 
@@ -161,7 +205,7 @@ def main(flg):
 
     # MODIS extract
     if flg & (2**0):
-        viirs_get_data_in_s3(debug=False)
+        viirs_get_data_into_s3(debug=False)
 
     # MODIS pre-proc
     if flg & (2**1):
@@ -178,7 +222,7 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg = 0
-        #flg += 2 ** 0  # 1 -- VIIRS 2013 download
+        flg += 2 ** 0  # 1 -- VIIRS 2013 download
     else:
         flg = sys.argv[1]
 
