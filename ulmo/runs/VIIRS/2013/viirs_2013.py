@@ -25,7 +25,7 @@ from IPython import embed
 tbl_file = 's3://modis-l2/Tables/MODIS_L2_day_2011_std.parquet'
 s3_bucket = 's3://viirs'
 
-def viirs_get_data_into_s3(debug=False, year=2013):
+def viirs_get_data_into_s3(debug=False, year=2013, day1=1):
     # Check
     assert os.getenv('PO_DAAC') is not None
     # Loop on days
@@ -44,7 +44,7 @@ def viirs_get_data_into_s3(debug=False, year=2013):
     
     #for ss in range(365):
     ndays = 366
-    for ss in range(ndays):
+    for ss in range(day1-1, ndays):
         iday = ss + 1
         print("Working on day: {}".format(iday))
         sday = str(iday).zfill(3)
@@ -53,7 +53,7 @@ def viirs_get_data_into_s3(debug=False, year=2013):
             'wget', '--no-check-certificate', '--user=profx', 
             '--password={}'.format(os.getenv('PO_DAAC')), 
             '-r', '-nc', '-np',  '-nH', '-nd', '-A', 
-            '201301{}00*.nc'.format(str(iday).zfill(2)), 
+            '{}*.nc'.format(str(year)),
             #'*.nc', 
             'https://podaac-tools.jpl.nasa.gov/drive/files/allData/ghrsst/data/GDS2/L2P/VIIRS_NPP/OSPO/v2.61/{}/{}/'.format(
                 year,sday)])
