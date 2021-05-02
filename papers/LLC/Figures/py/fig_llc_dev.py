@@ -236,21 +236,45 @@ def fig_outlier_distribution(outfile='fig_outlier_distribution.png'):
     plt.savefig(outfile, dpi=300)
     plt.close()
 
-def fig_LL_distribution(outfile, LL_source='LLC', nside=64, func='mean',
-                        min_sample=5, LLmin=-2000.): 
+def fig_LL_distribution(outfile, LL_source='LLC', nside=64, 
+                        func='mean', vmnx=None,
+                        min_sample=5, normalize=False):
     """Spatial maps of LL metrics
 
-    Args:
-        table_file ([type]): [description]
         outfile ([type]): [description]
         nside (int, optional): [description]. Defaults to 64.
         func (str, optional): [description]. Defaults to 'mean'.
+            diff_mean -- Subtract <MODIS> - <LLC>
     """
+    # Inputs
+    if vmnx is None:
+        vmnx = (-2000., None)
     # Load Table
     table_file = 's3://llc/Tables/test_noise_modis2012.parquet'
     ulmo_table = ulmo_io.load_main_table(table_file)
 
     # Do the analysis
+
+    if normalize:
+        mean_LL_MODIS = np.mean(ulmo_table.modis_LL.values)
+        std_LL_MODIS = np.std(ulmo_table.modis_LL.values)
+        mean_LL_LLC = np.mean(ulmo_table.LL.values)
+        std_LL_LLC = np.std(ulmo_table.LL.values)
+        # Scale the LLC
+        Nstd = (ulmo_table.LL.values-mean_LL_LLC)/std_LL_LLC
+        ulmo_table['new_LL_LLC'] = mean_LL_MODIS + Nstd*std_LL_MODIS
+        # Check
+        if False:
+            df = pandas.concat(axis=0, ignore_index=True,
+                        objs=[
+                            pandas.DataFrame.from_dict(dict(LL=ulmo_table.new_LL_LLC,
+                                                            Data='New LLC')),
+                            pandas.DataFrame.from_dict(dict(LL=ulmo_table.modis_LL,
+                                                            Data='MODIS (2012)')),
+                        ]
+                        )
+            ax = sns.histplot(data=df, x='LL', hue='Data')
+            embed(header='276 of figs')
 
     # Grab lats, lons
     lats = ulmo_table.lat.values
@@ -268,19 +292,30 @@ def fig_LL_distribution(outfile, LL_source='LLC', nside=64, func='mean',
     LL_rms = np.zeros(npix_hp)
 
     uni_idx = np.unique(hp_idx)
+    # Looping
+    print("Looping...")
     for idx in uni_idx:
         in_hp = idx == hp_idx
         if np.sum(in_hp) < min_sample:
             continue
-        # 
+        # Grab data 
+        if normalize:
+            LL_LLC = ulmo_table[in_hp].new_LL_LLC.values
+        else:
+            LL_LLC = ulmo_table[in_hp].LL.values
+        LL_MODIS = ulmo_table[in_hp].modis_LL.values
+        # Proceed
         if LL_source == 'LLC':
-            LL = ulmo_table[in_hp].LL.values
+            LL = LL_LLC
         elif LL_source == 'MODIS':
-            LL = ulmo_table[in_hp].modis_LL.values
+            LL = LL_MODIS
+        # Stats
         if func == 'mean':
             LL_stat[idx] = np.mean(LL)
         elif func == 'median':
             LL_stat[idx] = np.median(LL)
+        elif func == 'diff_mean':
+            LL_stat[idx] = np.mean(LL_MODIS) - np.mean(LL_LLC) 
         else:
             raise IOError("Bad function")
         LL_rms[idx] = np.std(LL)
@@ -300,7 +335,7 @@ def fig_LL_distribution(outfile, LL_source='LLC', nside=64, func='mean',
 
     ax = plt.axes(projection=tformP)
 
-    cm = plt.get_cmap('jet')
+    cm = plt.get_cmap('seismic')
     #img = ax.tricontourf(hp_lons, hp_lats, LL_stat, 
     #                     transform=tformM,
     #                     levels=20, cmap=cm)#, zorder=10)
@@ -309,7 +344,8 @@ def fig_LL_distribution(outfile, LL_source='LLC', nside=64, func='mean',
             c=LL_stat[good],
             cmap=cm,
             s=1,
-            vmin=LLmin,
+            vmin=vmnx[0],
+            vmax=vmnx[1],
             transform=tformP)
 
     # Colorbar
@@ -406,8 +442,13 @@ def main(flg_fig):
 
     # LL spatial metrics
     if flg_fig & (2 ** 3):
-        fig_LL_distribution('fig_LL_spatial_LLC.png', LL_source='LLC')
-        fig_LL_distribution('fig_LL_spatial_MODIS.png', LL_source='MODIS')
+        #fig_LL_distribution('fig_LL_spatial_LLC.png', LL_source='LLC')
+        #fig_LL_distribution('fig_LL_spatial_MODIS.png', LL_source='MODIS')
+        #fig_LL_distribution('fig_LL_spatial_diff.png', 
+        #                    func='diff_mean', vmnx=(-1000., 1000))
+        fig_LL_distribution('fig_LL_spatial_diff_norm.png', 
+                            func='diff_mean', vmnx=(-500., 500),
+                            normalize=True)
 
 
 # Command line execution
