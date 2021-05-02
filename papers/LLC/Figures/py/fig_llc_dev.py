@@ -143,16 +143,6 @@ def fig_brazil(outfile='fig_brazil.png'):
     # ######################################################################33
     # ######################################################################33
     # Histograms
-    in_R1, in_R2 = [((np.abs(evals_bz.lon.values - R['lon']) < R['dlon'])  &
-                     (np.abs(evals_bz.lat.values - R['lat']) < R['dlat'])) for R in [R1,R2]]
-    evals_bz['Subsample'] = 'null'
-    evals_bz['Subsample'][in_R1] = 'R1'
-    evals_bz['Subsample'][in_R2] = 'R2'
-
-    legend = plt.legend(loc='upper left', scatterpoints=3, borderpad=0.3,
-                        handletextpad=0.3, fontsize=11, numpoints=1)
-
-    # Histograms
     in_R1, in_R2 = [((np.abs(evals_bz.lon.values - R['lon']) < R['dlon'])  & 
         (np.abs(evals_bz.lat.values - R['lat']) < R['dlat'])) for R in [R1,R2]]
     evals_bz['Subsample'] = 'null'
@@ -218,6 +208,110 @@ def fig_brazil(outfile='fig_brazil.png'):
 
     # Layout and save
     #plt.tight_layout(pad=0.0, h_pad=0.0, w_pad=0.0)
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
+
+def fig_brazil_velocity(outfile='fig_brazil_velocity.png'):
+    """
+    Brazil
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
+    """
+    # Load LLC
+    tbl_test_noise_file = 's3://llc/Tables/test_noise_modis2012.parquet'
+    llc_table = ulmo_io.load_main_table(tbl_test_noise_file)
+
+    # Add in DT
+    if 'DT' not in llc_table.keys():
+        llc_table['DT'] = llc_table.T90 - llc_table.T10
+
+    # Brazil
+    in_brazil = ((np.abs(llc_table.lon.values + 57.5) < 10.)  & 
+        (np.abs(llc_table.lat.values + 43.0) < 10))
+    in_DT = np.abs(llc_table.DT - 2.05) < 0.05
+    evals_bz = llc_table[in_brazil & in_DT].copy()
+    
+    # Rectangles
+    #R2 = dict(lon=-60., dlon=1.,
+    #    lat=-41.5, dlat=1.5)
+    R2 = dict(lon=-61.0, dlon=1.,
+        lat=-45., dlat=2.2)
+    R1 = dict(lon=-56.5, dlon=1.5,
+        lat=-45, dlat=2.2)
+
+    logL = evals_bz.LL.values
+
+    lowLL_val = np.percentile(logL, 10.)
+    hiLL_val = np.percentile(logL, 90.)
+
+    in_R1, in_R2 = [((np.abs(evals_bz.lon.values - R['lon']) < R['dlon'])  & 
+        (np.abs(evals_bz.lat.values - R['lat']) < R['dlat'])) for R in [R1,R2]]
+    evals_bz['Subsample'] = 'null'
+    evals_bz['Subsample'][in_R1] = 'R1'
+    evals_bz['Subsample'][in_R2] = 'R2'
+
+    # Plot
+    fig = plt.figure(figsize=(12, 6))
+    plt.clf()
+    gs = gridspec.GridSpec(3,6)
+
+    # Gallery
+    #nGal = 25
+    nGal = 2
+    vmin, vmax = None, None
+    vmin, vmax = -1, 1
+    pal, cm = plotting.load_palette()
+    grid_size = 3
+    row_off = 0
+
+    # R1
+    print("We have {} in R1".format(np.sum(in_R1)))
+    idx_R1 = np.where(in_R1)[0]
+    rand_R1 = np.random.choice(idx_R1, nGal, replace=False)
+
+    pp_hf = None
+    for ss in range(nGal):
+        example = evals_bz.iloc[rand_R1[ss]]
+        print("Loading R1: {}".format(ss))
+        U, V = llc_io.grab_velocity(example)
+        # Axis
+        row = ss//grid_size + row_off
+        col = grid_size + ss % grid_size
+        #
+        ax_0 = plt.subplot(gs[row, col])
+        ax_0.quiver(U, V, color='b')
+        ax_0.get_xaxis().set_ticks([])
+        ax_0.get_yaxis().set_ticks([])
+        #sns.heatmap(field, ax=ax_0, xticklabels=[], yticklabels=[], cmap=cm,
+        #            vmin=vmin, vmax=vmax, cbar=False)
+    # R2
+    print("We have {} in R2".format(np.sum(in_R2)))
+    idx_R2 = np.where(in_R2)[0]
+    rand_R2 = np.random.choice(idx_R2, nGal, replace=False)
+
+    for ss in range(nGal):
+        print("Loading R2: {}".format(ss))
+        example = evals_bz.iloc[rand_R2[ss]]
+        U, V = llc_io.grab_velocity(example)
+
+        # Axis
+        row = ss//grid_size + row_off
+        col = ss % grid_size
+        #
+        ax_0 = plt.subplot(gs[row, col])
+        ax_0.quiver(U, V, color='b')
+        ax_0.get_xaxis().set_ticks([])
+        ax_0.get_yaxis().set_ticks([])
+
+    # Layout and save
+    plt.tight_layout(pad=0.0, h_pad=0.0, w_pad=0.0)
     plt.savefig(outfile, dpi=300)
     plt.close()
     print('Wrote {:s}'.format(outfile))
@@ -409,6 +503,10 @@ def main(flg_fig):
         fig_LL_distribution('fig_LL_spatial_LLC.png', LL_source='LLC')
         fig_LL_distribution('fig_LL_spatial_MODIS.png', LL_source='MODIS')
 
+    # Brazil velocity
+    if flg_fig & (2 ** 4):
+        fig_brazil_velocity()
+
 
 # Command line execution
 if __name__ == '__main__':
@@ -418,7 +516,8 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 0  # LL for LLC vs. MODIS (matched on 2012)
         #flg_fig += 2 ** 1  # Outlier distribution (2012 matched)
         #flg_fig += 2 ** 2  # Brazil
-        flg_fig += 2 ** 3  # Spatial LL metrics
+        #flg_fig += 2 ** 3  # Spatial LL metrics
+        flg_fig += 2 ** 4  # Brazil velocity
     else:
         flg_fig = sys.argv[1]
 

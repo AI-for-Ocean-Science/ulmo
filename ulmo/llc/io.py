@@ -92,7 +92,7 @@ def grab_image(cutout:pandas.core.series.Series,
     Args:
         cutout (pandas.core.series.Series): [description]
         close (bool, optional): [description]. Defaults to True.
-        pp_hf ([type], optional): [description]. Defaults to None.
+        pp_hf ([type], optional): Pointer to the HDF5 file. Defaults to None.
 
     Returns:
         [type]: [description]
@@ -109,3 +109,15 @@ def grab_image(cutout:pandas.core.series.Series,
         return img
     else:
         return img, pp_hf
+
+def grab_velocity(cutout:pandas.core.series.Series, ds=None):                
+    with ulmo_io.open(cutout.filename, 'rb') as f:
+        ds = xr.open_dataset(f)
+    # U field
+    U_cutout = ds.U[cutout.row:cutout.row+cutout.field_size, 
+                cutout.col:cutout.col+cutout.field_size]
+    # Vfield
+    V_cutout = ds.V[cutout.row:cutout.row+cutout.field_size, 
+                cutout.col:cutout.col+cutout.field_size]
+    # Return
+    return U_cutout, V_cutout
