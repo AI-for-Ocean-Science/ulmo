@@ -110,7 +110,8 @@ def grab_image(cutout:pandas.core.series.Series,
     else:
         return img, pp_hf
 
-def grab_velocity(cutout:pandas.core.series.Series, ds=None):                
+def grab_velocity(cutout:pandas.core.series.Series, ds=None,
+                  add_SST=False):                
     with ulmo_io.open(cutout.filename, 'rb') as f:
         ds = xr.open_dataset(f)
     # U field
@@ -119,5 +120,10 @@ def grab_velocity(cutout:pandas.core.series.Series, ds=None):
     # Vfield
     V_cutout = ds.V[cutout.row:cutout.row+cutout.field_size, 
                 cutout.col:cutout.col+cutout.field_size]
+    output = [U_cutout, V_cutout]
+    # Add SST?
+    if add_SST:
+        output.append(ds.Theta[cutout.row:cutout.row+cutout.field_size, 
+                cutout.col:cutout.col+cutout.field_size])
     # Return
-    return U_cutout, V_cutout
+    return output

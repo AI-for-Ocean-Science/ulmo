@@ -13,6 +13,8 @@ import matplotlib.ticker as mticker
 
 import cartopy.crs as ccrs
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
+from pandas.core.frame import DataFrame
+import xarray
 
 mpl.rcParams['font.family'] = 'stixgeneral'
 
@@ -212,8 +214,77 @@ def fig_brazil(outfile='fig_brazil.png'):
     plt.close()
     print('Wrote {:s}'.format(outfile))
 
+def fig_brazil_save(nGal=9, outdir='Brazil', seed=1234):
+    """
+    Save Brazil files locally for convenience
 
-def fig_brazil_velocity(outfile='fig_brazil_velocity.png'):
+    Parameters
+    ----------
+
+    Returns
+    -------
+
+    """
+    rstate = np.random.RandomState(seed=seed)
+    # Load LLC
+    tbl_test_noise_file = 's3://llc/Tables/test_noise_modis2012.parquet'
+    llc_table = ulmo_io.load_main_table(tbl_test_noise_file)
+
+    # Add in DT
+    if 'DT' not in llc_table.keys():
+        llc_table['DT'] = llc_table.T90 - llc_table.T10
+
+    # Brazil
+    in_brazil = ((np.abs(llc_table.lon.values + 57.5) < 10.)  & 
+        (np.abs(llc_table.lat.values + 43.0) < 10))
+    in_DT = np.abs(llc_table.DT - 2.05) < 0.05
+    evals_bz = llc_table[in_brazil & in_DT].copy()
+    
+    # Rectangles
+    R2 = dict(lon=-61.0, dlon=1., lat=-45., dlat=2.2)
+    R1 = dict(lon=-56.5, dlon=1.5, lat=-45, dlat=2.2)
+
+    logL = evals_bz.LL.values
+
+    in_R1, in_R2 = [((np.abs(evals_bz.lon.values - R['lon']) < R['dlon'])  & 
+        (np.abs(evals_bz.lat.values - R['lat']) < R['dlat'])) for R in [R1,R2]]
+    evals_bz['Subsample'] = 'null'
+    evals_bz['Subsample'][in_R1] = 'R1'
+    evals_bz['Subsample'][in_R2] = 'R2'
+
+    # R1
+    idx_R1 = np.where(in_R1)[0]
+    idx_R2 = np.where(in_R2)[0]
+
+    pp_hf = None
+    sv_lbls = []
+    sv_idx = []
+    for smpl, idx in zip(['R1', 'R2'],
+                          [idx_R1, idx_R2]):
+        rand = rstate.choice(idx, nGal, replace=False)
+        for ss in range(nGal):
+            example = evals_bz.iloc[rand[ss]]
+            # Save
+            sv_idx.append(rand[ss])
+            sv_lbls.append(smpl+'_{}'.format(str(ss).zfill(3)))
+            # Load velocity
+            U, V, SST = llc_io.grab_velocity(example, add_SST=True)
+            # Generate ds
+            ds = xarray.Dataset({'U': U, 'V': V, 'Theta': SST})
+            # Outfile
+            outfile = os.path.join(outdir, '{}.nc'.format(sv_lbls[-1]))
+            ds.to_netcdf(outfile)
+            print("Wrote: {}".format(outfile))
+    
+    # Write a table too
+    df = pandas.DataFrame(dict(file=sv_lbls, idx=sv_idx))
+    df.to_csv(os.path.join(outdir, 'images.csv'))
+    evals_bz.to_csv(os.path.join(outdir, 'brazil.csv'))
+
+
+def fig_brazil_velocity(outroot='fig_brazil_',
+                        nGal=9,
+                        indir='Brazil', use_files=True):
     """
     Brazil
 
@@ -257,65 +328,103 @@ def fig_brazil_velocity(outfile='fig_brazil_velocity.png'):
     evals_bz['Subsample'][in_R1] = 'R1'
     evals_bz['Subsample'][in_R2] = 'R2'
 
-    # Plot
-    fig = plt.figure(figsize=(12, 6))
-    plt.clf()
-    gs = gridspec.GridSpec(3,6)
+    # Load up input files?
+    if use_files:
+        keys = ['U', 'V', 'Theta']
+        R1_dict, R2_dict = {}, {}
+        for smpl, R_dict in zip(['R1', 'R2'],
+                                [R1_dict, R2_dict]):
+            # Init
+            for key in keys:
+                R_dict[key] = []
+            for ss in range(nGal):
+                root = smpl+'_{}.nc'.format(str(ss).zfill(3))
+                infile = os.path.join(indir, root)
+                ds = xarray.open_dataset(infile)
+                for key in keys:
+                    R_dict[key].append(ds[key])
+        show_R1 = np.arange(nGal)
+        show_R2 = np.arange(nGal)
+    else:                
+        # R1
+        print("We have {} in R1".format(np.sum(in_R1)))
+        idx_R1 = np.where(in_R1)[0]
+        show_R1 = np.random.choice(idx_R1, nGal, replace=False)
+        # R2
+        print("We have {} in R2".format(np.sum(in_R2)))
+        idx_R2 = np.where(in_R2)[0]
+        show_R2 = np.random.choice(idx_R2, nGal, replace=False)
 
     # Gallery
-    #nGal = 25
-    nGal = 2
-    vmin, vmax = None, None
-    vmin, vmax = -1, 1
-    pal, cm = plotting.load_palette()
     grid_size = 3
     row_off = 0
+    pal, cm = plotting.load_palette()
 
-    # R1
-    print("We have {} in R1".format(np.sum(in_R1)))
-    idx_R1 = np.where(in_R1)[0]
-    rand_R1 = np.random.choice(idx_R1, nGal, replace=False)
 
-    pp_hf = None
-    for ss in range(nGal):
-        example = evals_bz.iloc[rand_R1[ss]]
-        print("Loading R1: {}".format(ss))
-        U, V = llc_io.grab_velocity(example)
-        # Axis
-        row = ss//grid_size + row_off
-        col = grid_size + ss % grid_size
-        #
-        ax_0 = plt.subplot(gs[row, col])
-        ax_0.quiver(U, V, color='b')
-        ax_0.get_xaxis().set_ticks([])
-        ax_0.get_yaxis().set_ticks([])
-        #sns.heatmap(field, ax=ax_0, xticklabels=[], yticklabels=[], cmap=cm,
-        #            vmin=vmin, vmax=vmax, cbar=False)
-    # R2
-    print("We have {} in R2".format(np.sum(in_R2)))
-    idx_R2 = np.where(in_R2)[0]
-    rand_R2 = np.random.choice(idx_R2, nGal, replace=False)
+    def mk_figure(metric):
+        outfile = outroot+'{}.png'.format(metric)
+        fig = plt.figure(figsize=(12, 6))
+        plt.clf()
+        gs = gridspec.GridSpec(3,6)
 
-    for ss in range(nGal):
-        print("Loading R2: {}".format(ss))
-        example = evals_bz.iloc[rand_R2[ss]]
-        U, V = llc_io.grab_velocity(example)
+        pp_hf = None
 
-        # Axis
-        row = ss//grid_size + row_off
-        col = ss % grid_size
-        #
-        ax_0 = plt.subplot(gs[row, col])
-        ax_0.quiver(U, V, color='b')
-        ax_0.get_xaxis().set_ticks([])
-        ax_0.get_yaxis().set_ticks([])
+        for coff, smpl, idx, R_dict in zip(
+            [grid_size,0],
+            ['R1', 'R2'],
+            [show_R1, show_R2],
+            [R1_dict, R2_dict]):
+            for ss in range(nGal):
+                if use_files:
+                    U = R_dict['U'][idx[ss]]
+                    V = R_dict['V'][idx[ss]]
+                    SST = R_dict['Theta'][idx[ss]]
+                else:
+                    example = evals_bz.iloc[idx[ss]]
+                    print("Loading: {}".format(ss))
+                    U, V = llc_io.grab_velocity(example)
+                    embed(header='Need to add SST;  384 of figs')
+                # Axis
+                row = ss//grid_size + row_off
+                col = coff + ss % grid_size
+                #
+                ax = plt.subplot(gs[row, col])
+                # 
+                if metric == 'vel':
+                    ax.quiver(U, V, color='b')
+                elif metric == 'SST':
+                    sns.heatmap(np.flipud(SST.data - np.mean(SST.data)), 
+                                ax=ax, cmap=cm,
+                                vmin=-1, vmax=1, cbar=False)
+                elif metric == 'div':
+                    dUdx = np.gradient(U.data, axis=1)
+                    dVdy = np.gradient(V.data, axis=0)
+                    div = dUdx + dVdy
+                    sns.heatmap(np.flipud(div), ax=ax, cmap='seismic',
+                                vmin=-0.2, vmax=0.2, cbar=False)
+                elif metric == 'curl':
+                    dUdy = np.gradient(U.data, axis=0)
+                    dVdx = np.gradient(V.data, axis=1)
+                    curl = dVdx - dUdy
+                    sns.heatmap(np.flipud(curl), ax=ax, cmap='seismic',
+                                vmin=-0.2, vmax=0.2, cbar=False)
+                ax.get_xaxis().set_ticks([])
+                ax.get_yaxis().set_ticks([])
 
-    # Layout and save
-    plt.tight_layout(pad=0.0, h_pad=0.0, w_pad=0.0)
-    plt.savefig(outfile, dpi=300)
-    plt.close()
-    print('Wrote {:s}'.format(outfile))
+        # Layout and save
+        plt.tight_layout(pad=0.0, h_pad=0.0, w_pad=0.0)
+        plt.savefig(outfile, dpi=400)
+        plt.close()
+        print('Wrote {:s}'.format(outfile))
 
+    # SST
+    mk_figure('SST')
+    # Velocity
+    mk_figure('vel')
+    # Divergence
+    mk_figure('div')
+    # Curl
+    mk_figure('curl')
 
 def fig_outlier_distribution(outfile='fig_outlier_distribution.png'): 
     # Load LLC
@@ -546,7 +655,8 @@ def main(flg_fig):
 
     # Brazil velocity
     if flg_fig & (2 ** 4):
-        fig_brazil_velocity()
+        #fig_brazil_save()
+        fig_brazil_velocity(use_files=True)
 
 
 # Command line execution
