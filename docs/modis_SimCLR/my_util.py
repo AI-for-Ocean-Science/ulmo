@@ -180,7 +180,7 @@ def modis_loader(opt):
     
     return train_loader
     
-def set_model(opt, cuda_use=False):
+def set_model(opt, cuda_use=True):
     model = SupConResNet(name=opt.model)
     criterion = SupConLoss(temperature=opt.temp)
 
@@ -197,7 +197,7 @@ def set_model(opt, cuda_use=False):
 
     return model, criterion
 
-def train_modis(train_loader, model, criterion, optimizer, epoch, opt, cuda_use=False):
+def train_modis(train_loader, model, criterion, optimizer, epoch, opt, cuda_use=True):
     """one epoch training"""
     model.train()
 
@@ -212,7 +212,7 @@ def train_modis(train_loader, model, criterion, optimizer, epoch, opt, cuda_use=
         images = torch.cat([images[0], images[1]], dim=0)
         if torch.cuda.is_available() and cuda_use:
             images = images.cuda(non_blocking=True)
-            labels = labels.cuda(non_blocking=True)
+            #labels = labels.cuda(non_blocking=True)
         bsz = images.shape[0] // 2
 
         # warm-up learning rate
