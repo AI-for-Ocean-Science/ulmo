@@ -7,6 +7,8 @@ import subprocess
 import pandas
 import h5py 
 
+from sklearn.utils import shuffle
+
 from ulmo import io as ulmo_io
 from ulmo.preproc import io as pp_io 
 from ulmo.viirs import extract as viirs_extract
@@ -98,11 +100,13 @@ def viirs_extract_2013(debug=False):
     s3_filename = 's3://viirs/Extractions/{}'.format(save_path)
 
     if debug:
-        files = files[:100]
+        # Grab 100 random
+        files = shuffle(files, random_state=1234)
+        files = files[:5]
+        #files = files[:100]
 
     # Setup for preproc
     map_fn = partial(viirs_extract.extract_file,
-                     load_path=load_path,
                      field_size=(pdict['field_size'], pdict['field_size']),
                      CC_max=1.-pdict['clear_threshold'] / 100.,
                      qual_thresh=pdict['quality_thresh'],
@@ -149,22 +153,22 @@ def viirs_extract_2013(debug=False):
         dset.attrs['columns'] = columns
 
     # Table time
-    modis_table = pandas.DataFrame()
-    modis_table['filename'] = [item[0] for item in metadata]
-    modis_table['row'] = [int(item[1]) for item in metadata]
-    modis_table['col'] = [int(item[2]) for item in metadata]
-    modis_table['lat'] = [float(item[3]) for item in metadata]
-    modis_table['lon'] = [float(item[4]) for item in metadata]
-    modis_table['clear_fraction'] = [float(item[5]) for item in metadata]
-    modis_table['field_size'] = pdict['field_size']
-    modis_table['datetime'] = modis_utils.times_from_filenames(modis_table.filename.values)
-    modis_table['ex_filename'] = s3_filename
+    viirs_table = pandas.DataFrame()
+    viirs_table['filename'] = [item[0] for item in metadata]
+    viirs_table['row'] = [int(item[1]) for item in metadata]
+    viirs_table['col'] = [int(item[2]) for item in metadata]
+    viirs_table['lat'] = [float(item[3]) for item in metadata]
+    viirs_table['lon'] = [float(item[4]) for item in metadata]
+    viirs_table['clear_fraction'] = [float(item[5]) for item in metadata]
+    viirs_table['field_size'] = pdict['field_size']
+    viirs_table['datetime'] = modis_utils.times_from_filenames(viirs_table.filename.values, ioff=-1)
+    viirs_table['ex_filename'] = s3_filename
 
     # Vet
-    assert cat_utils.vet_main_table(modis_table)
+    assert cat_utils.vet_main_table(viirs_table)
 
     # Final write
-    ulmo_io.write_main_table(modis_table, tbl_file)
+    ulmo_io.write_main_table(viirs_table, tbl_file)
     
     # Push to s3
     print("Pushing to s3")
@@ -210,13 +214,13 @@ def main(flg):
     else:
         flg= int(flg)
 
-    # MODIS extract
+    # VIIRS download
     if flg & (2**0):
         viirs_get_data_into_s3(debug=False)
 
-    # MODIS pre-proc
+    # VIIRS extract
     if flg & (2**1):
-        modis_day_preproc()
+        viirs_extract_2013(debug=True)
 
     # MODIS pre-proc
     if flg & (2**2):
@@ -229,7 +233,8 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg = 0
-        flg += 2 ** 0  # 1 -- VIIRS 2013 download
+        #flg += 2 ** 0  # 1 -- VIIRS 2013 download
+        flg += 2 ** 1  # Extract
     else:
         flg = sys.argv[1]
 

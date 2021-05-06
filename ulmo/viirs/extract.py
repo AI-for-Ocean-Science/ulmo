@@ -7,7 +7,7 @@ from ulmo.viirs import io as viirs_io
 from ulmo.preproc import utils as pp_utils
 from ulmo.preproc import extract
 
-def extract_file(ifile:str, load_path:str, 
+def extract_file(filename:str, 
                  field_size=(128,128),
                  nadir_offset=480,
                  CC_max=0.05, 
@@ -21,8 +21,7 @@ def extract_file(ifile:str, load_path:str,
     This is very similar to the MODIS routine
 
     Args:
-        ifile (str): VIIRS datafile
-        load_path (str): [description]
+        filename (str): VIIRS datafile with path
         field_size (tuple, optional): [description]. Defaults to (128,128).
         nadir_offset (int, optional): [description]. Defaults to 480.
         CC_max (float, optional): [description]. Defaults to 0.05.
@@ -36,7 +35,6 @@ def extract_file(ifile:str, load_path:str,
         tuple: fields, field_masks, metadata
     """
 
-    filename = os.path.join(load_path, ifile)
 
     # Load the image
     try:
@@ -82,7 +80,7 @@ def extract_file(ifile:str, load_path:str,
         row, col = r, c + lb
         lat = latitude[row + field_size[0] // 2, col + field_size[1] // 2]
         lon = longitude[row + field_size[0] // 2, col + field_size[1] // 2]
-        metadata.append([ifile, str(row), str(col), str(lat), str(lon), str(clear_frac)])
+        metadata.append([filename, str(row), str(col), str(lat), str(lon), str(clear_frac)])
 
     del sst, masks
 
