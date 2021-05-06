@@ -46,6 +46,7 @@ def load_nc(filename, verbose=True):
     """
     Load a MODIS or equivalent .nc file
     Does not work for VIIRS
+    Does not work for s3
 
     Parameters
     ----------

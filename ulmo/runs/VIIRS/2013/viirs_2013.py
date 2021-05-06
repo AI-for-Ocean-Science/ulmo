@@ -84,6 +84,7 @@ def viirs_extract_2013(debug=False):
     pdict = pp_io.load_options('standard')
     
     # 2013 
+    print("Grabbing the file list")
     all_viirs_files = ulmo_io.list_of_bucket_files('viirs')
     files = []
     bucket = 's3://viirs/'

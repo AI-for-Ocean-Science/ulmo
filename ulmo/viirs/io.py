@@ -1,7 +1,8 @@
 """ I/O routines for VIIRS data """
 
 import xarray
-import numpy as np
+
+from ulmo import io as ulmo_io
 
 def load_nc(filename, verbose=True):
     """
@@ -22,8 +23,12 @@ def load_nc(filename, verbose=True):
         or None's if the data is corrupt!
 
     """
-    ds = xarray.open_dataset(
-        filename_or_obj=filename,
+    if filename[0:5] == 's3://':
+        inp = ulmo_io.load_to_bytes(filename)
+    else:
+        inp = filename
+
+    ds = xarray.open_dataset(filename_or_obj=inp,
         engine='h5netcdf',
         mask_and_scale=True)
 
