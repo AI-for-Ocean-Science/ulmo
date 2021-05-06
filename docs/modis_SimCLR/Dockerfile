@@ -15,7 +15,7 @@ RUN set -x; buildDeps='wget' \
     && apt-get install -y awscli \
     && apt-get purge -y --auto-remove $buildDeps
 
-Run pip install --upgrade pip \
+RUN pip install --upgrade pip \
     && pip install torch \
     && pip install torchvision \
     && pip install scikit-image \
