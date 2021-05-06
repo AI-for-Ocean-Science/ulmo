@@ -37,11 +37,14 @@ def extract_file(filename:str,
 
 
     # Load the image
+    sst, qual, latitude, longitude = viirs_io.load_nc(filename, verbose=True)
+    '''
     try:
-        sst, qual, latitude, longitude = viirs_io.load_nc(filename, verbose=False)
+        sst, qual, latitude, longitude = viirs_io.load_nc(filename, verbose=True)
     except:
         print("File {} is junk".format(filename))
         return
+    '''
     if sst is None:
         return
 
