@@ -650,7 +650,7 @@ def main(flg_fig):
         #fig_LL_distribution('fig_LL_spatial_diff.png', 
         #                    func='diff_mean', vmnx=(-1000., 1000))
         fig_LL_distribution('fig_LL_spatial_diff_norm.png', 
-                            func='diff_mean', vmnx=(-500., 500),
+                            func='diff_mean', vmnx=(-1000., 1000),
                             normalize=True)
 
     # Brazil velocity
@@ -667,8 +667,8 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 0  # LL for LLC vs. MODIS (matched on 2012)
         #flg_fig += 2 ** 1  # Outlier distribution (2012 matched)
         #flg_fig += 2 ** 2  # Brazil
-        #flg_fig += 2 ** 3  # Spatial LL metrics
-        flg_fig += 2 ** 4  # Brazil velocity
+        flg_fig += 2 ** 3  # Spatial LL metrics
+        #flg_fig += 2 ** 4  # Brazil velocity
     else:
         flg_fig = sys.argv[1]
 
