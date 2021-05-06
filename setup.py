@@ -24,7 +24,8 @@ setup_keywords['provides'] = [setup_keywords['name']]
 setup_keywords['requires'] = ['Python (>3.7.0)']
 setup_keywords['install_requires'] = [
     'xarray', 'h5netcdf', 'torch', 'seaborn', 'smart-open[s3]', 'pyarrow',
-    'scikit-learn', 'scikit-image', 'tqdm', 'astropy', 'astropy-healpix']#, 'cartopy']  
+    'scikit-learn', 'scikit-image', 'tqdm', 'astropy', 'astropy-healpix',
+    'cftime']
 setup_keywords['zip_safe'] = False
 setup_keywords['use_2to3'] = False
 setup_keywords['packages'] = find_packages()

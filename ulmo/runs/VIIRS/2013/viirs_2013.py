@@ -76,9 +76,10 @@ def viirs_get_data_into_s3(debug=False, year=2013, day1=1):
         push_to_s3(nc_files, pvday, year)
 
 
-def viirs_extract_2013(debug=False):
+def viirs_extract_2013(debug=False, n_cores=10):
 
-    n_cores = 10
+    if debug:
+        n_cores = 5
     nsub_files = 20000
     # Pre-processing (and extraction) settings
     pdict = pp_io.load_options('standard')
