@@ -132,7 +132,6 @@ def viirs_extract_2013(debug=False, n_cores=10):
 
         # Trim None's
         answers = [f for f in answers if f is not None]
-        embed(header='135 of viirs')
         if fields is None:
             fields = np.concatenate([item[0] for item in answers])
             masks = np.concatenate([item[1] for item in answers])

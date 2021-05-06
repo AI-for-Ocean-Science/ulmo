@@ -24,17 +24,20 @@ def load_nc(filename, verbose=True):
 
     """
     if filename[0:5] == 's3://':
-        inp = ulmo_io.load_to_bytes(filename)
+        #inp = ulmo_io.load_to_bytes(filename)
+        with ulmo_io.open(filename, 'rb') as f:
+            ds = xarray.open_dataset(filename_or_obj=f,
+                engine='h5netcdf',
+                mask_and_scale=True)
     else:
         inp = filename
-
-    ds = xarray.open_dataset(filename_or_obj=inp,
-        engine='h5netcdf',
-        mask_and_scale=True)
+        ds = xarray.open_dataset(filename_or_obj=inp,
+            engine='h5netcdf',
+            mask_and_scale=True)
 
     try:
         # Fails if data is corrupt
-        sst = ds.sea_surface_temperature.data[0,...]
+        sst = ds.sea_surface_temperature.data[0,...] - 273.15 # Celsius!
         qual = ds.l2p_flags.data[0,...]
         latitude = ds.lat.data[:]
         longitude = ds.lon.data[:]

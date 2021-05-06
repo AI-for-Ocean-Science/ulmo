@@ -2,10 +2,13 @@
 
 import os
 import numpy as np
+from numpy.lib.histograms import _histogram_bin_edges_dispatcher
 
 from ulmo.viirs import io as viirs_io 
 from ulmo.preproc import utils as pp_utils
 from ulmo.preproc import extract
+
+from IPython import embed
 
 def extract_file(filename:str, 
                  field_size=(128,128),
@@ -60,8 +63,9 @@ def extract_file(filename:str,
     masks = masks[:, lb:ub].astype(np.uint8)
 
     # Random clear rows, cols
-    rows, cols, clear_fracs = extract.clear_grid(masks, field_size[0], 'center',
-                                                 CC_max=CC_max, nsgrid_draw=nrepeat)
+    rows, cols, clear_fracs = extract.clear_grid(
+        masks, field_size[0], 'center', 
+        CC_max=CC_max, nsgrid_draw=nrepeat)
     if rows is None:
         return None
 
