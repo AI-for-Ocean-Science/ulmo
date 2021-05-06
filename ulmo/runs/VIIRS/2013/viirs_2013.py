@@ -9,7 +9,7 @@ import h5py
 
 from ulmo import io as ulmo_io
 from ulmo.preproc import io as pp_io 
-from ulmo.modis import extract as modis_extract
+from ulmo.viirs import extract as viirs_extract
 from ulmo.modis import utils as modis_utils
 from ulmo.modis import preproc as modis_pp
 from ulmo.analysis import evaluate as ulmo_evaluate 
@@ -74,30 +74,34 @@ def viirs_get_data_into_s3(debug=False, year=2013, day1=1):
         push_to_s3(nc_files, pvday, year)
 
 
-def modis_day_extract_2011(debug=False):
+def viirs_extract_2013(debug=False):
 
     n_cores = 10
     nsub_files = 20000
     # Pre-processing (and extraction) settings
     pdict = pp_io.load_options('standard')
     
-    # 2011 
-    load_path = '/data/Projects/Oceanography/data/MODIS/SST/day/2011/'
-    files = [f for f in os.listdir(load_path) if f.endswith('.nc')]
+    # 2013 
+    all_viirs_files = ulmo_io.list_of_bucket_files('viirs')
+    files = []
+    bucket = 's3://viirs/'
+    for ifile in all_viirs_files:
+        if 'data/2013' in ifile:
+            files.append(bucket+ifile)
     nloop = len(files) // nsub_files + ((len(files) % nsub_files) > 0)
 
     # Output
-    save_path = ('MODIS_R2019_2011_day'
+    save_path = ('VIIRS_2013'
                  '_{}clear_{}x{}_inpaint.h5'.format(pdict['clear_threshold'],
                                                     pdict['field_size'],
                                                     pdict['field_size']))
-    s3_filename = 's3://modis-l2/Extractions/{}'.format(save_path)
+    s3_filename = 's3://viirs/Extractions/{}'.format(save_path)
 
     if debug:
         files = files[:100]
 
     # Setup for preproc
-    map_fn = partial(modis_extract.extract_file,
+    map_fn = partial(viirs_extract.extract_file,
                      load_path=load_path,
                      field_size=(pdict['field_size'], pdict['field_size']),
                      CC_max=1.-pdict['clear_threshold'] / 100.,

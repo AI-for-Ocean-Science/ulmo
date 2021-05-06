@@ -28,7 +28,7 @@ def build_mask(sst, qual, qual_thresh=2, temp_bounds=(-2,33)):
         Full SST image
     qual : np.ndarray
         Quality image
-    qual_thresh : int
+    qual_thresh : int, optional
         Quality threshold value;  qual must exceed this
     temp_bounds : tuple
         Temperature interval considered valid
@@ -42,14 +42,14 @@ def build_mask(sst, qual, qual_thresh=2, temp_bounds=(-2,33)):
     # Deal with NANs
     sst[np.isnan(sst)] = np.nan
     if qual is not None:
-        qual[np.isnan(qual)] = np.nan
+        #qual[np.isnan(qual)] = np.nan
         masks = np.logical_or(np.isnan(sst), np.isnan(qual))
     else:
         masks = np.isnan(sst)
 
     # Temperature bounds and quality
     qual_masks = np.zeros_like(masks)
-    if qual is not None:
+    if qual is not None and qual_thresh is not None:
         qual_masks[~masks] = (qual[~masks] > qual_thresh) | (sst[~masks] <= temp_bounds[0]) | (sst[~masks] > temp_bounds[1])
     else:
         qual_masks[~masks] = (sst[~masks] <= temp_bounds[0]) | (sst[~masks] > temp_bounds[1])
