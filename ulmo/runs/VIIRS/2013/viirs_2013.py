@@ -163,7 +163,8 @@ def viirs_extract_2013(debug=False, n_cores=10):
     viirs_table['lon'] = [float(item[4]) for item in metadata]
     viirs_table['clear_fraction'] = [float(item[5]) for item in metadata]
     viirs_table['field_size'] = pdict['field_size']
-    viirs_table['datetime'] = modis_utils.times_from_filenames(viirs_table.filename.values, ioff=-1)
+    basefiles = [os.path.basename(ifile) for ifile in viirs_table.filename.values]
+    viirs_table['datetime'] = modis_utils.times_from_filenames(basefiles, ioff=-1)
     viirs_table['ex_filename'] = s3_filename
 
     # Vet
