@@ -24,7 +24,7 @@ from tqdm import tqdm
 
 from IPython import embed
 
-tbl_file = 's3://modis-l2/Tables/MODIS_L2_day_2011_std.parquet'
+tbl_file_2013 = 's3://viirs/Tables/VIIRS_2013_std.parquet'
 s3_bucket = 's3://viirs'
 
 def viirs_get_data_into_s3(debug=False, year=2013, day1=1):
@@ -80,6 +80,9 @@ def viirs_extract_2013(debug=False, n_cores=10):
 
     if debug:
         n_cores = 5
+        tbl_file = 's3://viirs/Tables/VIIRS_2013_tst.parquet'
+    else:
+        tbl_file = tbl_file_2013
     nsub_files = 20000
     # Pre-processing (and extraction) settings
     pdict = pp_io.load_options('standard')
