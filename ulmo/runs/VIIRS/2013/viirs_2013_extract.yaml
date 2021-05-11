@@ -1,8 +1,8 @@
-# Script to perform LLC extractions + noise
+# Script to perform VIIRS 2013 extractions 
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-modis-2011-day-preproc
+  name: xavier-viirs-2013-extract
 spec:
   backoffLimit: 0
   template:
@@ -25,14 +25,14 @@ spec:
         args:
           - cd ulmo; 
             git fetch;
-            git checkout modis_day; 
+            git checkout viirs; 
             git pull; 
             python setup.py develop;
             cd ../tmp; 
             mkdir foo; 
             cd foo; 
             mkdir PreProc;   
-            python -u /ulmo/ulmo/runs/MODIS_L2/Day/modis_day.py 2;
+            python -u /ulmo/ulmo/runs/VIIRS/2013/viirs_2013.py 2;
             #cd ..;
             #aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp foo s3://llc --recursive --force;
         env:

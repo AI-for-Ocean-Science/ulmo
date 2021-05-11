@@ -178,11 +178,12 @@ def viirs_extract_2013(debug=False, n_cores=10):
     
     # Push to s3
     print("Pushing to s3")
+    ulmo_io.upload_file_to_s3(save_path, s3_filename)
     #print("Run this:  s3 put {} s3://modis-l2/Extractions/{}".format(
     #    save_path, save_path))
-    process = subprocess.run(['s4cmd', '--force', '--endpoint-url',
-        'https://s3.nautilus.optiputer.net', 'put', save_path, 
-        s3_filename])
+    #process = subprocess.run(['s4cmd', '--force', '--endpoint-url',
+    #    'https://s3.nautilus.optiputer.net', 'put', save_path, 
+    #    s3_filename])
 
 
 def modis_day_preproc(test=False):
