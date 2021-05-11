@@ -114,7 +114,6 @@ def viirs_extract_2013(debug=False, n_cores=10):
     map_fn = partial(viirs_extract.extract_file,
                      field_size=(pdict['field_size'], pdict['field_size']),
                      CC_max=1.-pdict['clear_threshold'] / 100.,
-                     qual_thresh=pdict['quality_thresh'],
                      nadir_offset=pdict['nadir_offset'],
                      temp_bounds=tuple(pdict['temp_bounds']),
                      nrepeat=pdict['nrepeat'],
