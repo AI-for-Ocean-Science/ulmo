@@ -79,7 +79,7 @@ def viirs_get_data_into_s3(debug=False, year=2013, day1=1):
 def viirs_extract_2013(debug=False, n_cores=10):
 
     if debug:
-        n_cores = 5
+        n_cores = 10
         tbl_file = 's3://viirs/Tables/VIIRS_2013_tst.parquet'
     else:
         tbl_file = tbl_file_2013
@@ -107,7 +107,7 @@ def viirs_extract_2013(debug=False, n_cores=10):
     if debug:
         # Grab 100 random
         files = shuffle(files, random_state=1234)
-        files = files[:5]
+        files = files[:50]
         #files = files[:100]
 
     # Setup for preproc
