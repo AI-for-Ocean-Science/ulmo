@@ -1,0 +1,19 @@
+{
+    "field_size": 192,
+    "quality_thresh": 5,
+    "nadir_offset": 0,
+    "nrepeat": 1,
+    "temp_bounds": [
+        -2,
+        33
+    ],
+    "clear_threshold": 95,
+    "downscale": true,
+    "dscale_size": [
+        3,
+        3
+    ],
+    "inpaint": false,
+    "median": false,
+    "only_inpaint": false
+}

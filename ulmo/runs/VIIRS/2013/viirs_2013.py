@@ -85,7 +85,7 @@ def viirs_extract_2013(debug=False, n_cores=10):
         tbl_file = tbl_file_2013
     nsub_files = 20000
     # Pre-processing (and extraction) settings
-    pdict = pp_io.load_options('standard')
+    pdict = pp_io.load_options('viirs_std')
     
     # 2013 
     print("Grabbing the file list")

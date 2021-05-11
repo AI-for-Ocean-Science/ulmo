@@ -12,7 +12,7 @@ from IPython import embed
 
 def extract_file(filename:str, 
                  field_size=(128,128),
-                 nadir_offset=480,
+                 nadir_offset=0,
                  CC_max=0.05, 
                  qual_thresh=None,
                  temp_bounds = (-2, 33),
@@ -27,6 +27,7 @@ def extract_file(filename:str,
         filename (str): VIIRS datafile with path
         field_size (tuple, optional): [description]. Defaults to (128,128).
         nadir_offset (int, optional): [description]. Defaults to 480.
+            Zero means none.
         CC_max (float, optional): [description]. Defaults to 0.05.
         qual_thresh (int, optional): [description]. Defaults to 2.
         temp_bounds (tuple, optional): [description]. Defaults to (-2, 33).
