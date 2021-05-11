@@ -18,7 +18,8 @@ from ulmo import defs as ulmo_defs
 from IPython import embed
 
 
-def build_mask(sst, qual, qual_thresh=2, temp_bounds=(-2,33)):
+def build_mask(sst, qual, qual_thresh=2, lower_qual=True,
+               temp_bounds=(-2,33)):
     """
     Generate a mask based on NaN, qual, and temperature bounds
 
@@ -29,9 +30,10 @@ def build_mask(sst, qual, qual_thresh=2, temp_bounds=(-2,33)):
     qual : np.ndarray
         Quality image
     qual_thresh : int, optional
-        Quality threshold value;  
-        If positive, qual must exceed this to be masked
-        If negative, qual must be below this to be masked
+        Quality threshold value  
+    lower_qual : bool, optional
+        If True, the qual_thresh is a lower bound, i.e. mask values above this  
+        Otherwise, mask those below!
     temp_bounds : tuple
         Temperature interval considered valid
 
@@ -52,7 +54,7 @@ def build_mask(sst, qual, qual_thresh=2, temp_bounds=(-2,33)):
     # Temperature bounds and quality
     qual_masks = np.zeros_like(masks)
     if qual is not None and qual_thresh is not None:
-        if qual_thresh > 0:
+        if lower_qual:
             qual_masks[~masks] = (qual[~masks] > qual_thresh) | (sst[~masks] <= temp_bounds[0]) | (sst[~masks] > temp_bounds[1])
         else:
             qual_masks[~masks] = (qual[~masks] < qual_thresh) | (sst[~masks] <= temp_bounds[0]) | (sst[~masks] > temp_bounds[1])

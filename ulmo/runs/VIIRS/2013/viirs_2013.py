@@ -118,6 +118,7 @@ def viirs_extract_2013(debug=False, n_cores=10):
                      nadir_offset=pdict['nadir_offset'],
                      temp_bounds=tuple(pdict['temp_bounds']),
                      nrepeat=pdict['nrepeat'],
+                     sub_grid_step=pdict['sub_grid_step'],
                      inpaint=True)
 
     

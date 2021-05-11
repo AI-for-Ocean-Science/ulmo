@@ -38,7 +38,8 @@ def load_nc(filename, verbose=True):
     try:
         # Fails if data is corrupt
         sst = ds.sea_surface_temperature.data[0,...] - 273.15 # Celsius!
-        qual = ds.l2p_flags.data[0,...]
+        qual = ds.quality_level.data[0,...].astype(int)
+        #qual = ds.l2p_flags.data[0,...]
         latitude = ds.lat.data[:]
         longitude = ds.lon.data[:]
     except:

@@ -11,12 +11,14 @@ from ulmo.preproc import extract
 from IPython import embed
 
 def extract_file(filename:str, 
-                 field_size=(128,128),
+                 field_size=(192,192),
                  nadir_offset=0,
                  CC_max=0.05, 
-                 qual_thresh=None,
-                 temp_bounds = (-2, 33),
+                 qual_thresh=5,
+                 temp_bounds = (-3, 34),
                  nrepeat=1,
+                 sub_grid_step=2,
+                 lower_qual=False,
                  inpaint=True, debug=False):
     """Method to extract a single file.
     Usually used in parallel
@@ -30,8 +32,12 @@ def extract_file(filename:str,
             Zero means none.
         CC_max (float, optional): [description]. Defaults to 0.05.
         qual_thresh (int, optional): [description]. Defaults to 2.
+        lower_qual (bool, optional): 
+            If False, threshold is an upper bound for masking
         temp_bounds (tuple, optional): [description]. Defaults to (-2, 33).
         nrepeat (int, optional): [description]. Defaults to 1.
+        sub_grid_step (int, optional):  Sets how finely to sample the image.
+            Larger means more finely
         inpaint (bool, optional): [description]. Defaults to True.
         debug (bool, optional): [description]. Defaults to False.
 
@@ -42,31 +48,30 @@ def extract_file(filename:str,
 
     # Load the image
     sst, qual, latitude, longitude = viirs_io.load_nc(filename, verbose=True)
-    '''
-    try:
-        sst, qual, latitude, longitude = viirs_io.load_nc(filename, verbose=True)
-    except:
-        print("File {} is junk".format(filename))
-        return
-    '''
     if sst is None:
         return
 
     # Generate the masks
-    masks = pp_utils.build_mask(sst, qual, qual_thresh=qual_thresh,
-                                temp_bounds=temp_bounds)
+    masks = pp_utils.build_mask(sst, qual, 
+                                qual_thresh=qual_thresh,
+                                temp_bounds=temp_bounds, 
+                                lower_qual=lower_qual)
 
     # Restrict to near nadir
     nadir_pix = sst.shape[1] // 2
-    lb = nadir_pix - nadir_offset
-    ub = nadir_pix + nadir_offset
-    sst = sst[:, lb:ub]
-    masks = masks[:, lb:ub].astype(np.uint8)
+    if nadir_offset > 0:
+        lb = nadir_pix - nadir_offset
+        ub = nadir_pix + nadir_offset
+        sst = sst[:, lb:ub]
+        masks = masks[:, lb:ub].astype(np.uint8)
+    else:
+        lb = 0
 
     # Random clear rows, cols
     rows, cols, clear_fracs = extract.clear_grid(
         masks, field_size[0], 'center', 
-        CC_max=CC_max, nsgrid_draw=nrepeat)
+        CC_max=CC_max, nsgrid_draw=nrepeat,
+        sub_grid_step=sub_grid_step)
     if rows is None:
         return None
 
