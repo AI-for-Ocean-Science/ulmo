@@ -29,7 +29,9 @@ def build_mask(sst, qual, qual_thresh=2, temp_bounds=(-2,33)):
     qual : np.ndarray
         Quality image
     qual_thresh : int, optional
-        Quality threshold value;  qual must exceed this
+        Quality threshold value;  
+        If positive, qual must exceed this to be masked
+        If negative, qual must be below this to be masked
     temp_bounds : tuple
         Temperature interval considered valid
 
@@ -50,7 +52,10 @@ def build_mask(sst, qual, qual_thresh=2, temp_bounds=(-2,33)):
     # Temperature bounds and quality
     qual_masks = np.zeros_like(masks)
     if qual is not None and qual_thresh is not None:
-        qual_masks[~masks] = (qual[~masks] > qual_thresh) | (sst[~masks] <= temp_bounds[0]) | (sst[~masks] > temp_bounds[1])
+        if qual_thresh > 0:
+            qual_masks[~masks] = (qual[~masks] > qual_thresh) | (sst[~masks] <= temp_bounds[0]) | (sst[~masks] > temp_bounds[1])
+        else:
+            qual_masks[~masks] = (qual[~masks] < qual_thresh) | (sst[~masks] <= temp_bounds[0]) | (sst[~masks] > temp_bounds[1])
     else:
         qual_masks[~masks] = (sst[~masks] <= temp_bounds[0]) | (sst[~masks] > temp_bounds[1])
 
