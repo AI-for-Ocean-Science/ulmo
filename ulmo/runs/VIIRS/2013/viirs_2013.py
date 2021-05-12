@@ -11,9 +11,9 @@ from sklearn.utils import shuffle
 
 from ulmo import io as ulmo_io
 from ulmo.preproc import io as pp_io 
+from ulmo.preproc import utils as pp_utils
 from ulmo.viirs import extract as viirs_extract
 from ulmo.modis import utils as modis_utils
-from ulmo.modis import preproc as modis_pp
 from ulmo.analysis import evaluate as ulmo_evaluate 
 from ulmo.utils import catalog as cat_utils
 
@@ -186,21 +186,25 @@ def viirs_extract_2013(debug=False, n_cores=10):
     #    s3_filename])
 
 
-def modis_day_preproc(test=False):
+def viirs_2013_preproc(test=False, debug=False):
     """Pre-process the files
 
     Args:
         test (bool, optional): [description]. Defaults to False.
     """
-    modis_tbl = ulmo_io.load_main_table(tbl_file)
-    modis_tbl = modis_pp.preproc_tbl(modis_tbl, 1., 
-                                     's3://modis-l2',
-                                     preproc_root='standard')
+    if debug:
+        tbl_file = 's3://viirs/Tables/VIIRS_2013_tst.parquet'
+    else:
+        tbl_file = tbl_file_2013
+    viirs_tbl = ulmo_io.load_main_table(tbl_file)
+    viirs_tbl = pp_utils.preproc_tbl(viirs_tbl, 1., 
+                                     's3://viirs',
+                                     preproc_root='viirs_std')
     # Vet
-    assert cat_utils.vet_main_table(modis_tbl)
+    assert cat_utils.vet_main_table(viirs_tbl)
 
     # Final write
-    ulmo_io.write_main_table(modis_tbl, tbl_file)
+    ulmo_io.write_main_table(viirs_tbl, tbl_file)
 
 def modis_day_evaluate(test=False):
 
@@ -229,9 +233,13 @@ def main(flg):
     if flg & (2**1):
         viirs_extract_2013(debug=True)
 
-    # MODIS pre-proc
+    # VIIRS preproc
     if flg & (2**2):
-        modis_day_evaluate()
+        viirs_2013_preproc(debug=True)
+
+    # MODIS pre-proc
+    #if flg & (2**2):
+    #    modis_day_evaluate()
 
 
 # Command line execution
@@ -241,7 +249,8 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         flg = 0
         #flg += 2 ** 0  # 1 -- VIIRS 2013 download
-        flg += 2 ** 1  # Extract
+        #flg += 2 ** 1  # Extract
+        flg += 2 ** 2  # Pre-proc
     else:
         flg = sys.argv[1]
 

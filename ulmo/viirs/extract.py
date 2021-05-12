@@ -2,7 +2,6 @@
 
 import os
 import numpy as np
-from numpy.lib.histograms import _histogram_bin_edges_dispatcher
 
 from ulmo.viirs import io as viirs_io 
 from ulmo.preproc import utils as pp_utils
