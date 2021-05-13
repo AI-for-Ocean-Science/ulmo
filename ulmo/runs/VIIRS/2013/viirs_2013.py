@@ -95,7 +95,6 @@ def viirs_extract_2013(debug=False, n_cores=10):
     for ifile in all_viirs_files:
         if 'data/2013' in ifile:
             files.append(bucket+ifile)
-    nloop = len(files) // nsub_files + ((len(files) % nsub_files) > 0)
 
     # Output
     save_path = ('VIIRS_2013'
@@ -107,7 +106,7 @@ def viirs_extract_2013(debug=False, n_cores=10):
     if debug:
         # Grab 100 random
         files = shuffle(files, random_state=1234)
-        files = files[:5]
+        files = files[:5000]  # 10%
         #files = files[:100]
 
     # Setup for preproc
@@ -121,6 +120,7 @@ def viirs_extract_2013(debug=False, n_cores=10):
                      inpaint=True)
 
     
+    nloop = len(files) // nsub_files + ((len(files) % nsub_files) > 0)
     fields, inpainted_masks, metadata = None, None, None
     for kk in range(nloop):
         i0 = kk*nsub_files
@@ -251,8 +251,8 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         flg = 0
         #flg += 2 ** 0  # 1 -- VIIRS 2013 download
-        #flg += 2 ** 1  # Extract
-        flg += 2 ** 2  # Pre-proc
+        flg += 2 ** 1  # Extract
+        #flg += 2 ** 2  # Pre-proc
     else:
         flg = sys.argv[1]
 
