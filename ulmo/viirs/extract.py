@@ -41,7 +41,7 @@ def extract_file(filename:str,
         debug (bool, optional): [description]. Defaults to False.
 
     Returns:
-        tuple: fields, field_masks, metadata
+        tuple: raw_SST, inpainted_mask, metadata
     """
 
 
@@ -75,19 +75,21 @@ def extract_file(filename:str,
         return None
 
     # Extract
-    fields, field_masks = [], []
+    fields, inpainted_masks = [], []
     metadata = []
     for r, c, clear_frac in zip(rows, cols, clear_fracs):
         # Inpaint?
         field = sst[r:r+field_size[0], c:c+field_size[1]]
         mask = masks[r:r+field_size[0], c:c+field_size[1]]
         if inpaint:
-            field, _ = pp_utils.preproc_field(field, mask, only_inpaint=True)
-        if field is None:
+            inpainted, _ = pp_utils.preproc_field(field, mask, only_inpaint=True)
+        if inpainted is None:
             continue
-        # Append SST and mask
+        # Null out the non inpainted (to preseve memory when compressed)
+        inpainted[~mask] = np.nan
+        # Append SST raw + inpainted
         fields.append(field.astype(np.float32))
-        field_masks.append(mask)
+        inpainted_masks.append(inpainted)
         # meta
         row, col = r, c + lb
         lat = latitude[row + field_size[0] // 2, col + field_size[1] // 2]
@@ -96,4 +98,4 @@ def extract_file(filename:str,
 
     del sst, masks
 
-    return np.stack(fields), np.stack(field_masks), np.stack(metadata)
+    return np.stack(fields), np.stack(inpainted_masks), np.stack(metadata)

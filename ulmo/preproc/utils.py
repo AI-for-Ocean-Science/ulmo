@@ -86,7 +86,8 @@ def prep_table_for_preproc(tbl, preproc_root, field_size=None):
     # 
     return tbl
 
-def preproc_image(item:tuple, pdict:dict, use_mask=False):
+def preproc_image(item:tuple, pdict:dict, use_mask=False,
+                  inpainted_mask=False):
     """
     Simple wrapper for preproc_field()
     Mainly for multi-processing
@@ -99,6 +100,9 @@ def preproc_image(item:tuple, pdict:dict, use_mask=False):
         Preprocessing dict
     use_mask : bool, optional
         If True, allow for an input mask
+    inpainted_mask : bool, optional
+        If True, the tuple includes an inpainted_mask
+        instead of a simple mask.
 
     Returns
     -------
@@ -108,6 +112,12 @@ def preproc_image(item:tuple, pdict:dict, use_mask=False):
     # Unpack
     if use_mask:
         field, mask, idx = item
+        if inpainted_mask:
+            true_mask = np.isfinite(mask)
+            # Fill-in inpainted values
+            field[true_mask] = mask[true_mask]
+            # Overwrite
+            mask = true_mask
     else:
         field, idx = item
         mask = None
@@ -267,6 +277,8 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
                 preproc_folder='PreProc',
                 clobber_local=True, 
                 nsub_fields=10000, 
+                use_mask=True,
+                inpainted_mask=False,
                 n_cores=10):
 
     # Preprocess options
@@ -274,7 +286,8 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
 
     # Setup for parallel
     map_fn = partial(preproc_image, pdict=pdict,
-                     use_mask=True)
+                     use_mask=use_mask,
+                     inpainted_mask=inpainted_mask)
 
     # Prep table
     data_tbl = prep_table_for_preproc(data_tbl, preproc_root)
@@ -322,7 +335,10 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
             print('Fields: {}:{} of {}'.format(i0, i1, nimages))
             fields = f['fields'][i0:i1]
             shape =fields.shape
-            masks = f['masks'][i0:i1].astype(np.uint8)
+            if inpainted_mask:
+                masks = f['inpainted_masks'][i0:i1]
+            else:
+                masks = f['masks'][i0:i1].astype(np.uint8)
             sub_idx = np.arange(i0, i1).tolist()
 
             # Convert to lists
@@ -330,6 +346,7 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
             fields = np.vsplit(fields, shape[0])
             fields = [field.reshape(shape[1:]) for field in fields]
 
+            # These may be inpainted_masks
             masks = np.vsplit(masks, shape[0])
             masks = [mask.reshape(shape[1:]) for mask in masks]
 

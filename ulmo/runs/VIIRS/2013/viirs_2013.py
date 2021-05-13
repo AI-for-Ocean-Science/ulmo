@@ -107,7 +107,7 @@ def viirs_extract_2013(debug=False, n_cores=10):
     if debug:
         # Grab 100 random
         files = shuffle(files, random_state=1234)
-        files = files[:50]
+        files = files[:5]
         #files = files[:100]
 
     # Setup for preproc
@@ -121,7 +121,7 @@ def viirs_extract_2013(debug=False, n_cores=10):
                      inpaint=True)
 
     
-    fields, masks, metadata = None, None, None
+    fields, inpainted_masks, metadata = None, None, None
     for kk in range(nloop):
         i0 = kk*nsub_files
         i1 = min((kk+1)*nsub_files, len(files))
@@ -137,11 +137,11 @@ def viirs_extract_2013(debug=False, n_cores=10):
         answers = [f for f in answers if f is not None]
         if fields is None:
             fields = np.concatenate([item[0] for item in answers])
-            masks = np.concatenate([item[1] for item in answers])
+            inpainted_masks = np.concatenate([item[1] for item in answers])
             metadata = np.concatenate([item[2] for item in answers])
         else:
             fields = np.concatenate([fields]+[item[0] for item in answers], axis=0)
-            masks = np.concatenate([masks]+[item[1] for item in answers], axis=0)
+            inpainted_masks = np.concatenate([inpainted_masks]+[item[1] for item in answers], axis=0)
             metadata = np.concatenate([metadata]+[item[2] for item in answers], axis=0)
         del answers
 
@@ -153,7 +153,7 @@ def viirs_extract_2013(debug=False, n_cores=10):
     with h5py.File(save_path, 'w') as f:
         #f.create_dataset('fields', data=fields.astype(np.float32))
         f.create_dataset('fields', data=fields)
-        f.create_dataset('masks', data=masks.astype(np.uint8))
+        f.create_dataset('inpainted_masks', data=inpainted_masks)#.astype(np.uint8))
         dset = f.create_dataset('metadata', data=metadata.astype('S'))
         dset.attrs['columns'] = columns
 
@@ -199,7 +199,9 @@ def viirs_2013_preproc(test=False, debug=False):
     viirs_tbl = ulmo_io.load_main_table(tbl_file)
     viirs_tbl = pp_utils.preproc_tbl(viirs_tbl, 1., 
                                      's3://viirs',
-                                     preproc_root='viirs_std')
+                                     preproc_root='viirs_std',
+                                     inpainted_mask=True,
+                                     use_mask=True)
     # Vet
     assert cat_utils.vet_main_table(viirs_tbl)
 
