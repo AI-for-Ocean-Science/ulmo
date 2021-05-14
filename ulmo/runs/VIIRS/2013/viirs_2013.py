@@ -76,10 +76,11 @@ def viirs_get_data_into_s3(debug=False, year=2013, day1=1):
         push_to_s3(nc_files, pvday, year)
 
 
-def viirs_extract_2013(debug=False, n_cores=10):
+def viirs_extract_2013(debug=False, n_cores=20):
+    # 10 cores took 6hrs
 
     if debug:
-        n_cores = 10
+        n_cores = 20
         tbl_file = 's3://viirs/Tables/VIIRS_2013_tst.parquet'
     else:
         tbl_file = tbl_file_2013

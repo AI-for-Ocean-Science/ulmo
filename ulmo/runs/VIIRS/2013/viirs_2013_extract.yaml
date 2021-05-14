@@ -13,11 +13,11 @@ spec:
         imagePullPolicy: Always
         resources:
           requests:
-            cpu: "10"
+            cpu: "20"
             memory: "64Gi"
             ephemeral-storage: 200Gi
           limits:
-            cpu: "16"
+            cpu: "20"
             memory: "128Gi"
             ephemeral-storage: 200Gi
             #nvidia.com/gpu:  "1"  # See docs to exlude certain types
