@@ -78,6 +78,7 @@ def viirs_get_data_into_s3(debug=False, year=2013, day1=1):
 
 def viirs_extract_2013(debug=False, n_cores=20):
     # 10 cores took 6hrs
+    # 20 cores took 3hrs
 
     if debug:
         n_cores = 20
@@ -234,7 +235,7 @@ def main(flg):
 
     # VIIRS extract
     if flg & (2**1):
-        viirs_extract_2013(debug=True)
+        viirs_extract_2013(debug=False, n_cores=20)
 
     # VIIRS preproc
     if flg & (2**2):
