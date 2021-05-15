@@ -15,11 +15,11 @@ spec:
           requests:
             cpu: "20"
             memory: "64Gi"
-            ephemeral-storage: 200Gi
+            ephemeral-storage: 400Gi
           limits:
             cpu: "20"
             memory: "128Gi"
-            ephemeral-storage: 200Gi
+            ephemeral-storage: 400Gi
             #nvidia.com/gpu:  "1"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]
         args:

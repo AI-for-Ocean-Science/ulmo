@@ -5,7 +5,8 @@ import numpy as np
 import subprocess 
 
 import pandas
-import h5py 
+import h5py
+from skimage.restoration import inpaint 
 
 from sklearn.utils import shuffle
 
@@ -76,16 +77,14 @@ def viirs_get_data_into_s3(debug=False, year=2013, day1=1):
         push_to_s3(nc_files, pvday, year)
 
 
-def viirs_extract_2013(debug=False, n_cores=20):
+def viirs_extract_2013(debug=False, n_cores=20, nsub_files=10000):
     # 10 cores took 6hrs
     # 20 cores took 3hrs
 
     if debug:
-        n_cores = 20
         tbl_file = 's3://viirs/Tables/VIIRS_2013_tst.parquet'
     else:
         tbl_file = tbl_file_2013
-    nsub_files = 10000
     # Pre-processing (and extraction) settings
     pdict = pp_io.load_options('viirs_std')
     
@@ -108,7 +107,7 @@ def viirs_extract_2013(debug=False, n_cores=20):
     if debug:
         # Grab 100 random
         files = shuffle(files, random_state=1234)
-        files = files[:5000]  # 10%
+        files = files[:10]  # 10%
         #files = files[:100]
 
     # Setup for preproc
@@ -121,10 +120,16 @@ def viirs_extract_2013(debug=False, n_cores=20):
                      sub_grid_step=pdict['sub_grid_step'],
                      inpaint=True)
 
+    # Local file for writing
+    f_h5 = h5py.File(save_path, 'w')
+    print("Opened local file: {}".format(save_path))
     
     nloop = len(files) // nsub_files + ((len(files) % nsub_files) > 0)
-    fields, inpainted_masks, metadata = None, None, None
+    metadata = None
     for kk in range(nloop):
+        # Zero out
+        fields, inpainted_masks = None, None
+        #
         i0 = kk*nsub_files
         i1 = min((kk+1)*nsub_files, len(files))
         print('Files: {}:{} of {}'.format(i0, i1, len(files)))
@@ -137,27 +142,38 @@ def viirs_extract_2013(debug=False, n_cores=20):
 
         # Trim None's
         answers = [f for f in answers if f is not None]
-        if fields is None:
-            fields = np.concatenate([item[0] for item in answers])
-            inpainted_masks = np.concatenate([item[1] for item in answers])
+        fields = np.concatenate([item[0] for item in answers])
+        inpainted_masks = np.concatenate([item[1] for item in answers])
+        if metadata is None:
             metadata = np.concatenate([item[2] for item in answers])
         else:
-            fields = np.concatenate([fields]+[item[0] for item in answers], axis=0)
-            inpainted_masks = np.concatenate([inpainted_masks]+[item[1] for item in answers], axis=0)
             metadata = np.concatenate([metadata]+[item[2] for item in answers], axis=0)
         del answers
 
-    # Write
+        # Write
+        if kk == 0:
+            f_h5.create_dataset('fields', data=fields, 
+                                compression="gzip", chunks=True,
+                                maxshape=(None, fields.shape[1], fields.shape[2]))
+            f_h5.create_dataset('inpainted_masks', data=inpainted_masks,
+                                compression="gzip", chunks=True,
+                                maxshape=(None, inpainted_masks.shape[1], inpainted_masks.shape[2]))
+        else:
+            # Resize
+            for key in ['fields', 'inpainted_masks']:
+                f_h5[key].resize((f_h5[key].shape[0] + fields.shape[0]), axis=0)
+            # Fill
+            f_h5['fields'][-fields.shape[0]:] = fields
+            f_h5['inpainted_masks'][-fields.shape[0]:] = inpainted_masks
+    
+
+    # Metadata
     columns = ['filename', 'row', 'column', 'latitude', 'longitude', 
                'clear_fraction']
-
-    # Local
-    with h5py.File(save_path, 'w') as f:
-        #f.create_dataset('fields', data=fields.astype(np.float32))
-        f.create_dataset('fields', data=fields)
-        f.create_dataset('inpainted_masks', data=inpainted_masks)#.astype(np.uint8))
-        dset = f.create_dataset('metadata', data=metadata.astype('S'))
-        dset.attrs['columns'] = columns
+    dset = f_h5.create_dataset('metadata', data=metadata.astype('S'))
+    dset.attrs['columns'] = columns
+    # Close
+    f_h5.close() 
 
     # Table time
     viirs_table = pandas.DataFrame()
@@ -235,7 +251,8 @@ def main(flg):
 
     # VIIRS extract
     if flg & (2**1):
-        viirs_extract_2013(debug=False, n_cores=20)
+        viirs_extract_2013(debug=True, n_cores=10, nsub_files=5)
+        #viirs_extract_2013(debug=False, n_cores=20)
 
     # VIIRS preproc
     if flg & (2**2):
