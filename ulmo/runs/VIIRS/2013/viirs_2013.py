@@ -77,7 +77,8 @@ def viirs_get_data_into_s3(debug=False, year=2013, day1=1):
         push_to_s3(nc_files, pvday, year)
 
 
-def viirs_extract_2013(debug=False, n_cores=20, nsub_files=10000):
+def viirs_extract_2013(debug=False, n_cores=20, nsub_files=5000,
+                       ndebug_files=0):
     # 10 cores took 6hrs
     # 20 cores took 3hrs
 
@@ -107,7 +108,7 @@ def viirs_extract_2013(debug=False, n_cores=20, nsub_files=10000):
     if debug:
         # Grab 100 random
         files = shuffle(files, random_state=1234)
-        files = files[:10]  # 10%
+        files = files[:ndebug_files]  # 10%
         #files = files[:100]
 
     # Setup for preproc
@@ -251,7 +252,7 @@ def main(flg):
 
     # VIIRS extract
     if flg & (2**1):
-        viirs_extract_2013(debug=True, n_cores=10, nsub_files=5)
+        viirs_extract_2013(debug=True, n_cores=10, nsub_files=2000, ndebug_files=5000)
         #viirs_extract_2013(debug=False, n_cores=20)
 
     # VIIRS preproc
