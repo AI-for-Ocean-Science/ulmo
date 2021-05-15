@@ -85,7 +85,7 @@ def viirs_extract_2013(debug=False, n_cores=20):
         tbl_file = 's3://viirs/Tables/VIIRS_2013_tst.parquet'
     else:
         tbl_file = tbl_file_2013
-    nsub_files = 20000
+    nsub_files = 10000
     # Pre-processing (and extraction) settings
     pdict = pp_io.load_options('viirs_std')
     
