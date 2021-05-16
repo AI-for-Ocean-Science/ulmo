@@ -250,13 +250,16 @@ def main(flg):
     if flg & (2**0):
         viirs_get_data_into_s3(debug=False)
 
-    # VIIRS extract
+    # VIIRS extract test
     if flg & (2**1):
         viirs_extract_2013(debug=True, n_cores=10, nsub_files=2000, ndebug_files=5000)
-        #viirs_extract_2013(debug=False, n_cores=20)
+
+    # VIIRS extract
+    if flg & (2**2):
+        viirs_extract_2013(n_cores=20, nsub_files=5000)
 
     # VIIRS preproc
-    if flg & (2**2):
+    if flg & (2**3):
         viirs_2013_preproc(debug=True)
 
     # MODIS pre-proc

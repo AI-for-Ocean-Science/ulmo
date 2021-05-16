@@ -32,7 +32,7 @@ spec:
             mkdir foo; 
             cd foo; 
             mkdir PreProc;   
-            python -u /ulmo/ulmo/runs/VIIRS/2013/viirs_2013.py 2;
+            python -u /ulmo/ulmo/runs/VIIRS/2013/viirs_2013.py 4;
             #cd ..;
             #aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp foo s3://llc --recursive --force;
         env:
