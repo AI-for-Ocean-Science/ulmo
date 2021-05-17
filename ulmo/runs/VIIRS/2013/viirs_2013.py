@@ -205,7 +205,7 @@ def viirs_extract_2013(debug=False, n_cores=20, nsub_files=5000,
     #    s3_filename])
 
 
-def viirs_2013_preproc(test=False, debug=False):
+def viirs_2013_preproc(debug=False, n_cores=20):
     """Pre-process the files
 
     Args:
@@ -220,7 +220,8 @@ def viirs_2013_preproc(test=False, debug=False):
                                      's3://viirs',
                                      preproc_root='viirs_std',
                                      inpainted_mask=True,
-                                     use_mask=True)
+                                     use_mask=True,
+                                     n_cores=n_cores)
     # Vet
     assert cat_utils.vet_main_table(viirs_tbl)
 
@@ -258,9 +259,9 @@ def main(flg):
     if flg & (2**2):
         viirs_extract_2013(n_cores=20, nsub_files=5000)
 
-    # VIIRS preproc
+    # VIIRS preproc test
     if flg & (2**3):
-        viirs_2013_preproc(debug=True)
+        viirs_2013_preproc(debug=True, n_cores=10)
 
     # MODIS pre-proc
     #if flg & (2**2):
@@ -274,8 +275,9 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         flg = 0
         #flg += 2 ** 0  # 1 -- VIIRS 2013 download
-        flg += 2 ** 1  # Extract
-        #flg += 2 ** 2  # Pre-proc
+        #flg += 2 ** 1  # Extract test
+        #flg += 2 ** 2  # Extract for reals
+        flg += 2 ** 3  # Pre-proc test
     else:
         flg = sys.argv[1]
 
