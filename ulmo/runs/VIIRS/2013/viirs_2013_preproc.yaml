@@ -2,7 +2,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-viirs-2013-preproc-test
+  name: xavier-viirs-2013-preproc
 spec:
   backoffLimit: 0
   template:
@@ -13,13 +13,13 @@ spec:
         imagePullPolicy: Always
         resources:
           requests:
-            cpu: "10"
-            memory: "32Gi"
-            ephemeral-storage: 100Gi
+            cpu: "20"
+            memory: "48Gi"
+            ephemeral-storage: 400Gi
           limits:
-            cpu: "10"
-            memory: "32Gi"
-            ephemeral-storage: 100Gi
+            cpu: "20"
+            memory: "64Gi"
+            ephemeral-storage: 400Gi
             #nvidia.com/gpu:  "1"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]
         args:

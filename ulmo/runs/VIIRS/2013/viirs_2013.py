@@ -221,6 +221,7 @@ def viirs_2013_preproc(debug=False, n_cores=20):
                                      preproc_root='viirs_std',
                                      inpainted_mask=True,
                                      use_mask=True,
+                                     nsub_fields=5000,
                                      n_cores=n_cores)
     # Vet
     assert cat_utils.vet_main_table(viirs_tbl)
@@ -263,6 +264,10 @@ def main(flg):
     if flg & (2**3):
         viirs_2013_preproc(debug=True, n_cores=10)
 
+    # VIIRS preproc test
+    if flg & (2**4):
+        viirs_2013_preproc(debug=True, n_cores=20)
+
     # MODIS pre-proc
     #if flg & (2**2):
     #    modis_day_evaluate()
@@ -278,6 +283,7 @@ if __name__ == '__main__':
         #flg += 2 ** 1  # Extract test
         #flg += 2 ** 2  # Extract for reals
         flg += 2 ** 3  # Pre-proc test
+        flg += 2 ** 3  # Pre-proc for reals
     else:
         flg = sys.argv[1]
 
