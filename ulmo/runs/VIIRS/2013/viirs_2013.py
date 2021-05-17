@@ -279,6 +279,10 @@ def main(flg):
     if flg & (2**5): # 32
         viirs_2013_evaluate(debug=True)
 
+    # VIIRS eval 
+    if flg & (2**6): # 64
+        viirs_2013_evaluate()
+
 
     # MODIS pre-proc
     #if flg & (2**2):
