@@ -229,17 +229,22 @@ def viirs_2013_preproc(debug=False, n_cores=20):
     # Final write
     ulmo_io.write_main_table(viirs_tbl, tbl_file)
 
-def modis_day_evaluate(test=False):
+def viirs_2013_evaluate(debug=False, model='modis-l2-std'):
+
+    if debug:
+        tbl_file = 's3://viirs/Tables/VIIRS_2013_tst.parquet'
+    else:
+        tbl_file = tbl_file_2013
 
     # Load
-    modis_tbl = ulmo_io.load_main_table(tbl_file)
+    viirs_tbl = ulmo_io.load_main_table(tbl_file)
 
     # Evaluate
-    modis_tbl = ulmo_evaluate.eval_from_main(modis_tbl)
+    viirs_tbl = ulmo_evaluate.eval_from_main(viirs_tbl, model=model)
 
     # Write 
-    assert cat_utils.vet_main_table(modis_tbl)
-    ulmo_io.write_main_table(modis_tbl, tbl_file)
+    assert cat_utils.vet_main_table(viirs_tbl)
+    ulmo_io.write_main_table(viirs_tbl, tbl_file)
 
 
 def main(flg):
@@ -264,9 +269,14 @@ def main(flg):
     if flg & (2**3):
         viirs_2013_preproc(debug=True, n_cores=10)
 
-    # VIIRS preproc test
+    # VIIRS preproc for reals
     if flg & (2**4):
-        viirs_2013_preproc(debug=True, n_cores=20)
+        viirs_2013_preproc(n_cores=20)
+
+    # VIIRS eval test
+    if flg & (2**5): # 32
+        viirs_2013_evaluate(debug=True)
+
 
     # MODIS pre-proc
     #if flg & (2**2):
@@ -283,7 +293,8 @@ if __name__ == '__main__':
         #flg += 2 ** 1  # Extract test
         #flg += 2 ** 2  # Extract for reals
         flg += 2 ** 3  # Pre-proc test
-        flg += 2 ** 3  # Pre-proc for reals
+        flg += 2 ** 4  # Pre-proc for reals
+        flg += 2 ** 5  # Eval
     else:
         flg = sys.argv[1]
 
