@@ -33,7 +33,6 @@ spec:
             cd foo; 
             mkdir PreProc;   
             python -u /ulmo/ulmo/runs/VIIRS/2013/viirs_2013.py 32;
-            rm PreProc/*;
             cd ..;
             aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp foo s3://viirs --recursive --force;
         env:

@@ -240,11 +240,13 @@ def viirs_2013_evaluate(debug=False, model='modis-l2-std'):
     viirs_tbl = ulmo_io.load_main_table(tbl_file)
 
     # Evaluate
+    print("Starting evaluating..")
     viirs_tbl = ulmo_evaluate.eval_from_main(viirs_tbl, model=model)
 
     # Write 
     assert cat_utils.vet_main_table(viirs_tbl)
     ulmo_io.write_main_table(viirs_tbl, tbl_file)
+    print("Done evaluating..")
 
 
 def main(flg):
@@ -294,7 +296,7 @@ if __name__ == '__main__':
         #flg += 2 ** 2  # Extract for reals
         flg += 2 ** 3  # Pre-proc test
         flg += 2 ** 4  # Pre-proc for reals
-        flg += 2 ** 5  # Eval
+        flg += 2 ** 5  # Eval test
     else:
         flg = sys.argv[1]
 
