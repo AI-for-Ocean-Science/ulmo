@@ -15,7 +15,7 @@ spec:
           requests:
             cpu: "20"
             memory: "64Gi"
-            ephemeral-storage: 400Gi
+            ephemeral-storage: 400Gi  # Could use 100Gi if gzip compression is on
           limits:
             cpu: "20"
             memory: "128Gi"
