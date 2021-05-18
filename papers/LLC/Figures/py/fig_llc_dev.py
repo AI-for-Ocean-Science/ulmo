@@ -282,20 +282,7 @@ def fig_brazil_save(nGal=9, outdir='Brazil', seed=1234):
     df.to_csv(os.path.join(outdir, 'images.csv'))
     evals_bz.to_csv(os.path.join(outdir, 'brazil.csv'))
 
-
-def fig_brazil_velocity(outroot='fig_brazil_',
-                        nGal=9,
-                        indir='Brazil', use_files=True):
-    """
-    Brazil
-
-    Parameters
-    ----------
-
-    Returns
-    -------
-
-    """
+def load_brazil(nGal=9, indir='Brazil', use_files=True):
     # Load LLC
     tbl_test_noise_file = 's3://llc/Tables/test_noise_modis2012.parquet'
     llc_table = ulmo_io.load_main_table(tbl_test_noise_file)
@@ -315,7 +302,7 @@ def fig_brazil_velocity(outroot='fig_brazil_',
     #    lat=-41.5, dlat=1.5)
     R2 = dict(lon=-61.0, dlon=1.,
         lat=-45., dlat=2.2)
-    R1 = dict(lon=-56.5, dlon=1.5,
+    R1 = dict(lon=-56.5, dlon=1.5,  # Dynamic region
         lat=-45, dlat=2.2)
 
     logL = evals_bz.LL.values
@@ -355,12 +342,103 @@ def fig_brazil_velocity(outroot='fig_brazil_',
         print("We have {} in R2".format(np.sum(in_R2)))
         idx_R2 = np.where(in_R2)[0]
         show_R2 = np.random.choice(idx_R2, nGal, replace=False)
+    # Return
+    return show_R1, show_R2, R1_dict, R2_dict
+
+
+def fig_brazil_kin_distrib(mode, nGal=9, indir='Brazil', use_files=True):
+    # Load up
+    show_R1, show_R2, R1_dict, R2_dict = load_brazil(
+        nGal=nGal, indir=indir, use_files=use_files)
+    if mode == 'full':
+        outfile='fig_brazil_kin_distrib_full.png'
+    elif mode in ['mean', 'median', 'std']:
+        outfile='fig_brazil_kin_distrib_{}.png'.format(mode)
+    else:
+        raise IOError("Bad mode!")
+
+    # Calc it all
+    kin_dict = {}
+    kin_dict['R1'] = dict(rel_vort=[], okubo=[], strain=[], div=[])
+    kin_dict['R2'] = dict(rel_vort=[], okubo=[], strain=[], div=[])
+
+    for smpl, idx, R_dict in zip(
+            ['R1', 'R2'], [show_R1, show_R2], [R1_dict, R2_dict]):
+        # Loop on images
+        for ss in range(nGal):
+            U = R_dict['U'][idx[ss]]
+            V = R_dict['V'][idx[ss]]
+            for kin in kin_dict[smpl].keys():
+                if kin == 'rel_vort':
+                    stat = kinematics.calc_curl(U.data, V.data)
+                elif kin == 'okubo':
+                    stat = kinematics.calc_okubo_weiss(U.data, V.data)
+                elif kin == 'strain':
+                    stat = kinematics.calc_lateral_strain_rate(U.data, V.data)
+                elif kin == 'div':
+                    stat = kinematics.calc_div(U.data, V.data)
+                else:
+                    raise ValueError("Bad kin!!")
+                # Save it
+                if mode == 'full':
+                    kin_dict[smpl][kin] += stat.flatten().tolist()
+                elif mode == 'mean':
+                    kin_dict[smpl][kin] += [np.mean(stat)]
+                elif mode == 'median':
+                    kin_dict[smpl][kin] += [np.median(stat)]
+                elif mode == 'std':
+                    kin_dict[smpl][kin] += [np.std(stat)]
+
+    # Build the Table
+    R1_tbl = pandas.DataFrame(kin_dict['R1'])
+    R1_tbl['Sample'] = 'R1'
+    R2_tbl = pandas.DataFrame(kin_dict['R2'])
+    R2_tbl['Sample'] = 'R2'
+    stat_tbl = pandas.concat([R1_tbl, R2_tbl])
+
+    # Figure time 
+    fig = plt.figure(figsize=(12, 6))
+    plt.clf()
+    gs = gridspec.GridSpec(2,2)
+
+    for ss, kin in enumerate(kin_dict['R1'].keys()):
+        ax = plt.subplot(gs[ss])
+        sns.histplot(data=stat_tbl, x=kin, hue='Sample', ax=ax)
+        # Limits
+        if kin != 'strain' and mode == 'full':
+            std = np.std(stat_tbl[stat_tbl.Sample == 'R1'][kin])
+            ax.set_xlim(-2.5*std, 2.5*std)
+        # Label
+        if ss == 0 and not (mode == 'full'):
+            ax.text(0.05, 1.03, mode, transform=ax.transAxes,
+              fontsize=15, ha='left', color='k')
+
+    # Layout and save
+    plt.tight_layout(pad=0.0, h_pad=0.0, w_pad=0.0)
+    plt.savefig(outfile, dpi=400)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
+def fig_brazil_kin_imgs(outroot='fig_brazil_',
+                        nGal=9, indir='Brazil', use_files=True):
+    """
+    Brazil
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
+    """
+    # Load up
+    show_R1, show_R2, R1_dict, R2_dict = load_brazil(
+        nGal=nGal, indir=indir, use_files=use_files)
 
     # Gallery
     grid_size = 3
     row_off = 0
     pal, cm = plotting.load_palette()
-
 
     def mk_figure(metric):
         outfile = outroot+'{}.png'.format(metric)
@@ -368,23 +446,15 @@ def fig_brazil_velocity(outroot='fig_brazil_',
         plt.clf()
         gs = gridspec.GridSpec(3,6)
 
-        pp_hf = None
-
         for coff, smpl, idx, R_dict in zip(
             [grid_size,0],
             ['R1', 'R2'],
             [show_R1, show_R2],
             [R1_dict, R2_dict]):
             for ss in range(nGal):
-                if use_files:
-                    U = R_dict['U'][idx[ss]]
-                    V = R_dict['V'][idx[ss]]
-                    SST = R_dict['Theta'][idx[ss]]
-                else:
-                    example = evals_bz.iloc[idx[ss]]
-                    print("Loading: {}".format(ss))
-                    U, V = llc_io.grab_velocity(example)
-                    embed(header='Need to add SST;  384 of figs')
+                U = R_dict['U'][idx[ss]]
+                V = R_dict['V'][idx[ss]]
+                SST = R_dict['Theta'][idx[ss]]
                 # Axis
                 row = ss//grid_size + row_off
                 col = coff + ss % grid_size
@@ -401,10 +471,18 @@ def fig_brazil_velocity(outroot='fig_brazil_',
                     div = kinematics.calc_div(U.data, V.data)
                     sns.heatmap(np.flipud(div), ax=ax, cmap='seismic',
                                 vmin=-0.2, vmax=0.2, cbar=False)
-                elif metric == 'curl':
+                elif metric == 'curl':  # aka relative vorticity
                     curl = kinematics.calc_curl(U.data, V.data)
                     sns.heatmap(np.flipud(curl), ax=ax, cmap='seismic',
                                 vmin=-0.2, vmax=0.2, cbar=False)
+                elif metric == 'okubo':  # aka relative vorticity
+                    okubo = kinematics.calc_okubo_weiss(U.data, V.data)
+                    sns.heatmap(np.flipud(okubo), ax=ax, cmap='seismic',
+                        cbar=False, vmin=-0.02, vmax=0.02)
+                elif metric == 'strain_rate':  
+                    strain = kinematics.calc_lateral_strain_rate(U.data, V.data)
+                    sns.heatmap(np.flipud(strain), ax=ax, cmap='Blues',
+                        cbar=False, vmin=0., vmax=0.1)
                 else: 
                     raise IOError("Bad choice")
                 ax.get_xaxis().set_ticks([])
@@ -416,6 +494,10 @@ def fig_brazil_velocity(outroot='fig_brazil_',
         plt.close()
         print('Wrote {:s}'.format(outfile))
 
+    # Starin rate
+    mk_figure('strain_rate')
+    # Okubo
+    mk_figure('okubo')
     # SST
     mk_figure('SST')
     # Velocity
@@ -655,8 +737,14 @@ def main(flg_fig):
     # Brazil velocity
     if flg_fig & (2 ** 4):
         #fig_brazil_save()
-        fig_brazil_velocity(use_files=True)
+        fig_brazil_kin_imgs(use_files=True)
 
+    # Brazil kinematic distributions
+    if flg_fig & (2 ** 5):
+        #fig_brazil_kin_distrib('full', use_files=True)
+        fig_brazil_kin_distrib('mean', use_files=True)
+        fig_brazil_kin_distrib('median', use_files=True)
+        fig_brazil_kin_distrib('std', use_files=True)
 
 # Command line execution
 if __name__ == '__main__':
@@ -666,8 +754,9 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 0  # LL for LLC vs. MODIS (matched on 2012)
         #flg_fig += 2 ** 1  # Outlier distribution (2012 matched)
         #flg_fig += 2 ** 2  # Brazil
-        flg_fig += 2 ** 3  # Spatial LL metrics
-        #flg_fig += 2 ** 4  # Brazil velocity
+        #flg_fig += 2 ** 3  # Spatial LL metrics
+        #flg_fig += 2 ** 4  # Brazil kinematic images
+        flg_fig += 2 ** 5  # Brazil kinematic distributions
     else:
         flg_fig = sys.argv[1]
 
