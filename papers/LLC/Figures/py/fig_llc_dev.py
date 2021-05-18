@@ -28,6 +28,7 @@ from ulmo.utils import image_utils
 from ulmo.utils import utils as utils
 from ulmo.analysis import figures as ulmo_figs
 from ulmo.llc import io as llc_io
+from ulmo.llc import kinematics
 
 from ulmo import io as ulmo_io
 
@@ -397,17 +398,15 @@ def fig_brazil_velocity(outroot='fig_brazil_',
                                 ax=ax, cmap=cm,
                                 vmin=-1, vmax=1, cbar=False)
                 elif metric == 'div':
-                    dUdx = np.gradient(U.data, axis=1)
-                    dVdy = np.gradient(V.data, axis=0)
-                    div = dUdx + dVdy
+                    div = kinematics.calc_div(U.data, V.data)
                     sns.heatmap(np.flipud(div), ax=ax, cmap='seismic',
                                 vmin=-0.2, vmax=0.2, cbar=False)
                 elif metric == 'curl':
-                    dUdy = np.gradient(U.data, axis=0)
-                    dVdx = np.gradient(V.data, axis=1)
-                    curl = dVdx - dUdy
+                    curl = kinematics.calc_curl(U.data, V.data)
                     sns.heatmap(np.flipud(curl), ax=ax, cmap='seismic',
                                 vmin=-0.2, vmax=0.2, cbar=False)
+                else: 
+                    raise IOError("Bad choice")
                 ax.get_xaxis().set_ticks([])
                 ax.get_yaxis().set_ticks([])
 
