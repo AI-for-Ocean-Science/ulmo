@@ -300,7 +300,8 @@ if __name__ == '__main__':
         #flg += 2 ** 2  # Extract for reals
         flg += 2 ** 3  # Pre-proc test
         flg += 2 ** 4  # Pre-proc for reals [16]
-        flg += 2 ** 5  # Eval test
+        flg += 2 ** 5  # Eval test [32]
+        flg += 2 ** 6  # Eval for reals [64]
     else:
         flg = sys.argv[1]
 

@@ -400,6 +400,7 @@ def write_pp_fields(pp_fields:list, meta:list,
     # Recast
     pp_fields = np.stack(pp_fields)
     pp_fields = pp_fields[:, None, :, :]  # Shaped for training
+    pp_fields = pp_fields.astype(np.float32) # Recast
 
     print("After pre-processing, there are {} images ready for analysis".format(pp_fields.shape[0]))
     
@@ -433,6 +434,7 @@ def write_pp_fields(pp_fields:list, meta:list,
 
     # ###################
     # Write to disk (avoids holding another 20Gb in memory)
+    print("Writing: {}".format(local_file))
     with h5py.File(local_file, 'w') as f:
         # Validation
         f.create_dataset('valid', data=pp_fields[valid_idx].astype(np.float32))
