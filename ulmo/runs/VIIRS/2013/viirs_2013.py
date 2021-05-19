@@ -227,7 +227,7 @@ def viirs_2013_preproc(debug=False, n_cores=20):
                                      preproc_root='viirs_std',
                                      inpainted_mask=True,
                                      use_mask=True,
-                                     nsub_fields=5000,
+                                     nsub_fields=10000,
                                      n_cores=n_cores)
     # Vet
     assert cat_utils.vet_main_table(viirs_tbl)

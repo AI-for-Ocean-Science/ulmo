@@ -14,11 +14,11 @@ spec:
         resources:
           requests:
             cpu: "20"
-            memory: "48Gi"
+            memory: "72Gi"  # Took 60Gi+ on my machine
             ephemeral-storage: 150Gi  # Fine if compressed
           limits:
             cpu: "20"
-            memory: "64Gi"
+            memory: "84Gi"
             ephemeral-storage: 200Gi
             #nvidia.com/gpu:  "1"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]
