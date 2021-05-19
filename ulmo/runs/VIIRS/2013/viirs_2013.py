@@ -99,7 +99,13 @@ def viirs_extract_2013(debug=False, n_cores=20, nsub_files=5000,
             files.append(bucket+ifile)
 
     # Output
-    save_path = ('VIIRS_2013'
+    if debug:
+        save_path = ('VIIRS_2013'
+                 '_{}clear_{}x{}_tst_inpaint.h5'.format(pdict['clear_threshold'],
+                                                    pdict['field_size'],
+                                                    pdict['field_size']))
+    else:                                                
+        save_path = ('VIIRS_2013'
                  '_{}clear_{}x{}_inpaint.h5'.format(pdict['clear_threshold'],
                                                     pdict['field_size'],
                                                     pdict['field_size']))
