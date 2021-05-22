@@ -63,8 +63,8 @@ def build_loader(data_file, dataset, batch_size=1, num_workers=1):
     return dset, loader
 
 def calc_latent(model, image_tensor, using_gpu):
-    latents_tensor = model(image_tensor)
     if using_gpu:
+        latents_tensor = model(image_tensor.cuda())
         latents_numpy = latents_tensor.cpu().numpy()
     else:
         latents_tensor = model(image_tensor)
