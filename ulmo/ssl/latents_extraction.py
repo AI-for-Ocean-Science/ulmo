@@ -36,8 +36,7 @@ class HDF5RGBDataset(torch.utils.data.Dataset):
         self.h5f = h5py.File(file_path, 'r')
 
     def __len__(self):
-        return 1000  # DEBUGGIN
-        #return self.h5f[self.partition].shape[0]
+        return self.h5f[self.partition].shape[0]
     
     def __getitem__(self, index):
         data = self.h5f[self.partition][index]
