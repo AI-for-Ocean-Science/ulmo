@@ -24,8 +24,6 @@ from tqdm import tqdm
 from IPython import embed
 
 def ssl_eval_2010(dataset, debug=False):
-    #model_path = "./experiments/base_modis_model/SimCLR_modis_resnet50_lr_0.05_decay_0.0001_bsz_64_temp_0.07_trial_1_cosine_warm/" \
-    #         "SimCLR_modis_resnet50_lr_0.05_decay_0.0001_bsz_64_temp_0.07_trial_0_cosine_warm"
     s3_model_path = 's3://modis-l2/modis_simclr_base_model/SimCLR_modis_resnet50_lr_0.05_decay_0.0001_bsz_64_temp_0.07_trial_0_cosine_warm/last.pth'
     ulmo_io.download_file_from_s3(os.path.basename(s3_model_path), s3_model_path)
     model_path = './'
