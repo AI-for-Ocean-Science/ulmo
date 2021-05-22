@@ -2,7 +2,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-ssl-first-eval-train
+  name: xavier-ssl-first-eval-valid
 spec:
   backoffLimit: 0
   template:
@@ -29,7 +29,7 @@ spec:
             git pull; 
             python setup.py develop;
             cd ulmo/runs/SSL/First;
-            python -u ssl_first.py 1;
+            python -u ssl_first.py 2;
             #cd ..;
             #aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp foo s3://viirs --recursive --force;
         env:
