@@ -57,9 +57,10 @@ def model_latents_extract(opt, modis_data, model_path, save_path, save_key,
             image_tensor = torch.tensor(image_batch)
             if using_gpu:
                 latents_tensor = model(image_tensor.cuda())
+                latents_numpy = latents_tensor.to_cpu().numpy()
             else:
                 latents_tensor = model(image_tensor)
-            latents_numpy = latents_tensor.numpy()
+                latents_numpy = latents_tensor.numpy()
             latents_df = pd.concat([latents_df, pd.DataFrame(latents_numpy)], ignore_index=True)
         if remainder:
             image_remainder = torch.tensor(modis_data[-remainder:])
