@@ -23,6 +23,8 @@ def clear_grid(mask, field_size, method, CC_max=0.05,
     CC_max : float
         Maximum cloudy fraction allowed
     ndraw_mnx
+    nsub : int, optional
+        Fraction of field-size to use for sub-gridding
     nsgrid_draw : int, optional
         Number of fields to draw per sub-grid
     return_fracCC : bool, optional
@@ -30,6 +32,7 @@ def clear_grid(mask, field_size, method, CC_max=0.05,
 
     Returns
     -------
+    picked_row, picked_col, CC_mask[idx_clear][keep] : rows, columns, CC_fraction
 
     """
     # Some checks
@@ -99,6 +102,5 @@ def clear_grid(mask, field_size, method, CC_max=0.05,
 
     # Return
     return picked_row, picked_col, CC_mask[idx_clear][keep]
-
 
 
