@@ -23,7 +23,7 @@ if os.path.exists('README.md'):
 setup_keywords['provides'] = [setup_keywords['name']]
 setup_keywords['requires'] = ['Python (>3.7.0)']
 setup_keywords['install_requires'] = [
-    'xarray', 'h5netcdf', 'torch', 'seaborn', 'smart-open[s3]==4.2.0', 'pyarrow',
+    'xarray', 'h5netcdf', 'torch', 'torchvision', 'seaborn', 'smart-open[s3]==4.2.0', 'pyarrow',
     'scikit-learn', 'scikit-image', 'tqdm', 'astropy', 'astropy-healpix',
     'cftime']
 setup_keywords['zip_safe'] = False
