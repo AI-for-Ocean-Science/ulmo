@@ -13,11 +13,11 @@ import torch.backends.cudnn as cudnn
 from torchvision import transforms, datasets
 from torch.utils.data import DataLoader, Dataset
 
-from resnet_big import SupConResNet
-from losses import SupConLoss
+from ulmo.ssl.resnet_big import SupConResNet
+from ulmo.ssl.losses import SupConLoss
 
-from util import TwoCropTransform, AverageMeter
-from util import warmup_learning_rate
+from ulmo.ssl.util import TwoCropTransform, AverageMeter
+from ulmo.ssl.util import warmup_learning_rate
 
 class Params():
     """Class that loads hyperparameters from a json file.

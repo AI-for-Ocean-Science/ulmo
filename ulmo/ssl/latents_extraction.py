@@ -9,14 +9,14 @@ from tqdm.auto import trange
 
 import torch
 
-from util import adjust_learning_rate
-from util import set_optimizer, save_model
+from ulmo.ssl.my_util import Params, option_preprocess
+from ulmo.ssl.my_util import modis_loader, set_model
+from ulmo.ssl.my_util import train_modis
 
-from my_util import Params, option_preprocess
-from my_util import modis_loader, set_model
-from my_util import train_modis
+from IPython import embed
 
-def model_latents_extract(opt, modis_data, model_path, save_path, save_key):
+def model_latents_extract(opt, modis_data, model_path, save_path, save_key,
+                          remove_module=True):
     """
     This function is used to obtain the latents of the training data.
     Args:
@@ -26,15 +26,26 @@ def model_latents_extract(opt, modis_data, model_path, save_path, save_key):
         save_path: (string)
         save_key: (string)
     """
-    model, _ = set_model(opt, cuda_use=True)
-    #model_dict = torch.load(model_path)
-    #model.load_state_dict(model_dict['model'])
+    using_gpu = torch.cuda.is_available()
+    model, _ = set_model(opt, cuda_use=using_gpu)
+    if not using_gpu:
+        model_dict = torch.load(model_path, map_location=torch.device('cpu'))
+    else:
+        model_dict = torch.load(model_path)
+
+    if remove_module:
+        new_dict = {}
+        for key in model_dict['model'].keys():
+            new_dict[key.replace('module.','')] = model_dict['model'][key]
+        model.load_state_dict(new_dict)
+    else:
+        model.load_state_dict(model_dict['model'])
     modis_data = np.repeat(modis_data, 3, axis=1)
     num_samples = modis_data.shape[0]
     #batch_size = opt.batch_size
     batch_size = 1
-    #num_steps = num_samples // batch_size
-    num_steps = 1
+    num_steps = num_samples // batch_size
+    #num_steps = 1
     remainder = num_samples % batch_size
     latents_df = pd.DataFrame()
     with torch.no_grad():
@@ -42,17 +53,24 @@ def model_latents_extract(opt, modis_data, model_path, save_path, save_key):
             image_batch = modis_data[i*batch_size: (i+1)*batch_size]
             image_tensor = torch.tensor(image_batch)
             latents_tensor = model(image_tensor)
-            latents_numpy = latents_tensor.to_cpu().numpy()
+            if using_gpu:
+                latents_numpy = latents_tensor.to_cpu().numpy()
+            else:
+                latents_numpy = latents_tensor.numpy()
             latents_df = pd.concat([latents_df, pd.DataFrame(latents_numpy)], ignore_index=True)
         if remainder:
             image_remainder = torch.tensor(modis_data[-remainder:])
             image_tensor = torch.tensor(image_remainder)
             latents_tensor = model(image_tensor)
-            latents_numpy = latents_tensor.to_cpu().numpy()
+            if using_gpu:
+                latents_numpy = latents_tensor.to_cpu().numpy()
+            else:
+                latents_numpy = latents_tensor.numpy()
             latents_df = pd.concat([latents_df, pd.DataFrame(latents_numpy)], ignore_index=True)
             latents_numpy = latents_df.values
     with h5py.File(save_path, 'w') as file:
         file.create_dataset(save_key, data=latents_numpy)
+    print("Wrote: {}".format(save_path))
         
 if __name__ == "__main__":
     
