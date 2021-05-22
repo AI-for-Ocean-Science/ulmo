@@ -8,9 +8,9 @@ import h5py
 
 from ulmo import io as ulmo_io
 from ulmo.preproc import io as pp_io 
+from ulmo.preproc import utils as pp_utils
 from ulmo.modis import extract as modis_extract
 from ulmo.modis import utils as modis_utils
-from ulmo.modis import preproc as modis_pp
 from ulmo.analysis import evaluate as ulmo_evaluate 
 from ulmo.utils import catalog as cat_utils
 
@@ -128,7 +128,7 @@ def modis_day_preproc(test=False):
         test (bool, optional): [description]. Defaults to False.
     """
     modis_tbl = ulmo_io.load_main_table(tbl_file)
-    modis_tbl = modis_pp.preproc_tbl(modis_tbl, 1., 
+    modis_tbl = pp_utils.preproc_tbl(modis_tbl, 1., 
                                      's3://modis-l2',
                                      preproc_root='standard')
     # Vet
