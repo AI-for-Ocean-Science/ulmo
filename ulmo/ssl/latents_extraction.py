@@ -40,6 +40,8 @@ def model_latents_extract(opt, modis_data, model_path, save_path, save_key,
         model.load_state_dict(new_dict)
     else:
         model.load_state_dict(model_dict['model'])
+    print("Model loaded")
+    
     modis_data = np.repeat(modis_data, 3, axis=1)
     num_samples = modis_data.shape[0]
     #batch_size = opt.batch_size
@@ -48,6 +50,7 @@ def model_latents_extract(opt, modis_data, model_path, save_path, save_key,
     #num_steps = 1
     remainder = num_samples % batch_size
     latents_df = pd.DataFrame()
+    print("Beginning to evaluate")
     with torch.no_grad():
         for i in trange(num_steps):
             image_batch = modis_data[i*batch_size: (i+1)*batch_size]
