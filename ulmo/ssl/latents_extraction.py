@@ -8,6 +8,9 @@ import pandas as pd
 from tqdm.auto import trange
 
 import torch
+import tqdm
+
+from ulmo.utils import HDF5Dataset, id_collate
 
 from ulmo.ssl.my_util import Params, option_preprocess
 from ulmo.ssl.my_util import modis_loader, set_model
@@ -15,13 +18,70 @@ from ulmo.ssl.my_util import train_modis
 
 from IPython import embed
 
-def model_latents_extract(opt, modis_data, model_path, save_path, save_key,
+
+class HDF5RGBDataset(torch.utils.data.Dataset):
+    """Represents an abstract HDF5 dataset.
+    
+    Parameters:
+        file_path: Path to the HDF5 file.
+        dataset_names: List of dataset names to gather. 
+            Objects will be returned in this order.
+    """
+    def __init__(self, file_path, partition):
+        super().__init__()
+        self.file_path = file_path
+        self.partition = partition
+        self.meta_dset = partition + '_metadata'
+        # s3 is too risky and slow here
+        self.h5f = h5py.File(file_path, 'r')
+
+    def __len__(self):
+        return self.h5f[self.partition].shape[0]
+    
+    def __getitem__(self, index):
+        data = self.h5f[self.partition][index]
+        data = np.resize(data, (1, data.shape[-1], data.shape[-1]))
+        data = np.repeat(data, 3, axis=0)
+        #if self.meta_dset in self.h5f.keys():
+        #    metadata = self.h5f[self.meta_dset][index]
+        #else:
+        metadata = None
+        return data, metadata
+    
+
+
+def build_loader(data_file, dataset, batch_size=1, num_workers=1):
+    # Generate dataset
+    dset = HDF5RGBDataset(data_file, partition=dataset)
+
+    # Generate DataLoader
+    loader = torch.utils.data.DataLoader(
+        dset, batch_size=batch_size, shuffle=False, 
+        collate_fn=id_collate,
+        drop_last=False, num_workers=num_workers)
+    
+    return dset, loader
+
+def calc_latent(model, image_tensor, using_gpu):
+    latents_tensor = model(image_tensor)
+    if using_gpu:
+        latents_numpy = latents_tensor.cpu().numpy()
+    else:
+        latents_tensor = model(image_tensor)
+        latents_numpy = latents_tensor.numpy()
+    return latents_numpy
+
+
+def model_latents_extract(opt, modis_data_file, modis_partition, 
+                          model_path, save_path, 
+                          save_key,
                           remove_module=True):
     """
     This function is used to obtain the latents of the training data.
     Args:
         opt: (Parameters) parameters used to create the model
-        modis_data: (numpy.array) 
+        modis_data_file: (str)
+        modis_partition: (str)
         model_path: (string) 
         save_path: (string)
         save_key: (string)
@@ -41,7 +101,15 @@ def model_latents_extract(opt, modis_data, model_path, save_path, save_key,
     else:
         model.load_state_dict(model_dict['model'])
     print("Model loaded")
+
+    # Data
+    _, loader = build_loader(modis_data_file, modis_partition)
+
+    print("Beginning to evaluate")
+    with torch.no_grad():
+        latents_numpy = [calc_latent(model, data[0], using_gpu) for data in tqdm.tqdm(loader, total=len(loader), unit='batch', desc='Computing log probs')]
     
+    '''
     modis_data = np.repeat(modis_data, 3, axis=1)
     num_samples = modis_data.shape[0]
     #batch_size = opt.batch_size
@@ -57,7 +125,7 @@ def model_latents_extract(opt, modis_data, model_path, save_path, save_key,
             image_tensor = torch.tensor(image_batch)
             if using_gpu:
                 latents_tensor = model(image_tensor.cuda())
-                latents_numpy = latents_tensor.to_cpu().numpy()
+                latents_numpy = latents_tensor.cpu().numpy()
             else:
                 latents_tensor = model(image_tensor)
                 latents_numpy = latents_tensor.numpy()
@@ -65,15 +133,17 @@ def model_latents_extract(opt, modis_data, model_path, save_path, save_key,
         if remainder:
             image_remainder = torch.tensor(modis_data[-remainder:])
             image_tensor = torch.tensor(image_remainder)
-            latents_tensor = model(image_tensor)
             if using_gpu:
-                latents_numpy = latents_tensor.to_cpu().numpy()
+                latents_tensor = model(image_tensor.cuda())
+                latents_numpy = latents_tensor.cpu().numpy()
             else:
+                latents_tensor = model(image_tensor)
                 latents_numpy = latents_tensor.numpy()
             latents_df = pd.concat([latents_df, pd.DataFrame(latents_numpy)], ignore_index=True)
             latents_numpy = latents_df.values
+    '''
     with h5py.File(save_path, 'w') as file:
-        file.create_dataset(save_key, data=latents_numpy)
+        file.create_dataset(save_key, data=np.concatenate(latents_numpy))
     print("Wrote: {}".format(save_path))
         
 if __name__ == "__main__":

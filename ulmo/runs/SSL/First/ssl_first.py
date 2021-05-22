@@ -42,11 +42,15 @@ def ssl_eval_train_2010(debug=False):
     # Load the data
     print("Loading MODIS")
     #modis_dataset_path = "s3://modis-l2/PreProc/MODIS_R2019_2010_95clear_128x128_preproc_std.h5"
-    modis_dataset_path = "/data/Projects/Oceanography/AI/OOD/SST/MODIS_L2/PreProc/MODIS_R2019_2010_95clear_128x128_preproc_std.h5"
-    with ulmo_io.open(modis_dataset_path, 'rb') as f:
-        hf = h5py.File(f, 'r')
-        dataset_train = hf['train'][:]
-    print("Loaded MODIS")
+    print("Grabbing MODIS")
+    modis_dataset_path = "s3://modis-l2/PreProc/MODIS_R2019_2010_95clear_128x128_preproc_std.h5"
+    base_file = os.path.basename(modis_dataset_path)
+    if not os.path.isfile(base_file):
+        ulmo_io.download_file_from_s3(base_file, modis_dataset_path)
+    #with ulmo_io.open(modis_dataset_path, 'rb') as f:
+    #    hf = h5py.File(f, 'r')
+    #    dataset_train = hf['train'][:]
+    #print("Loaded MODIS")
 
     save_path = './experiments/modis_latents/'
     if not os.path.isdir(save_path):
@@ -57,7 +61,7 @@ def ssl_eval_train_2010(debug=False):
     latents_path = os.path.join(save_path, f'MODIS_2010_train_{model_name}.h5')
     save_key = 'modis_latents'
     
-    latents_extraction.model_latents_extract(opt, dataset_train, 
+    latents_extraction.model_latents_extract(opt, base_file, 'train', 
                                              model_path_title, latents_path, 
                                              save_key)
 
@@ -108,8 +112,8 @@ def main(flg):
         flg= int(flg)
 
     # Evaluate the MODIS training data from 2010
-    #if flg & (2**0):
-    #    ssl_eval_train_2010(debug=False)
+    if flg & (2**0):
+        ssl_eval_train_2010(debug=False)
 
     # Evaluate the MODIS valid data from 2010
     if flg & (2**1):
@@ -123,7 +127,7 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         flg = 0
         flg += 2 ** 0  # 1 -- MODIS 2010 training
-        flg += 2 ** 1  # 1 -- MODIS 2010 valid
+        #flg += 2 ** 1  # 1 -- MODIS 2010 valid
     else:
         flg = sys.argv[1]
 
