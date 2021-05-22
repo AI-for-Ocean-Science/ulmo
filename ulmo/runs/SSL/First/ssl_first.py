@@ -78,11 +78,14 @@ def ssl_eval_valid_2010(debug=False):
     opt = option_preprocess(opt)
 
     # Load the data
-    print("Loading MODIS")
+    print("Grabbing MODIS")
     modis_dataset_path = "s3://modis-l2/PreProc/MODIS_R2019_2010_95clear_128x128_preproc_std.h5"
-    with ulmo_io.open(modis_dataset_path, 'rb') as f:
-        hf = h5py.File(f, 'r')
-        dataset_train = hf['valid'][:]
+    base_file = os.path.basename(modis_dataset_path)
+    if not os.path.isfile(base_file):
+        ulmo_io.download_file_from_s3(base_file, modis_dataset_path)
+    hf = h5py.File(base_file, 'r')
+    dataset_train = hf['valid'][:]
+    hf.close()
     print("Loaded MODIS")
 
     save_path = './experiments/modis_latents/'
