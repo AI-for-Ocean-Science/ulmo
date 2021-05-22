@@ -67,12 +67,11 @@ def build_mask(dfield, qual, qual_thresh=2, lower_qual=True,
     # TODO -- Do this right for color
     qual_masks = np.zeros_like(masks)
 
-    # Warning:  I may have broken this..
     if qual is not None and qual_thresh is not None:
         if lower_qual:
-            qual_masks[~masks] = (qual[~masks] > qual_thresh) | (dfield[~masks] <= temp_bounds[0]) | (dfield[~masks] > temp_bounds[1])
+            qual_masks[~masks] = (qual[~masks] > qual_thresh) 
         else:
-            qual_masks[~masks] = (qual[~masks] < qual_thresh) | (dfield[~masks] <= temp_bounds[0]) | (dfield[~masks] > temp_bounds[1])
+            qual_masks[~masks] = (qual[~masks] < qual_thresh) 
 
     # Temperature bounds
     #
@@ -81,7 +80,6 @@ def build_mask(dfield, qual, qual_thresh=2, lower_qual=True,
         value_masks = (dfield[~masks] <= temp_bounds[0]) | (dfield[~masks] > temp_bounds[1])
     # Union
     masks = np.logical_or(masks, qual_masks, value_masks)
-
 
     # Return
     return masks
