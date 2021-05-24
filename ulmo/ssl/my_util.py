@@ -110,7 +110,10 @@ def option_preprocess(opt: Params):
 class RandomRotate:
     def __call__(self, image):
     # print("RR", image.shape, image.dtype)
-        return (skimage.transform.rotate(image, np.float32(360*np.random.rand(1)))).astype(np.float32)
+        rang = np.float32(360*np.random.rand(1))
+        print('random angle = {}'.format(rang))
+        return (skimage.transform.rotate(image, rang)).astype(np.float32)
+        #return (skimage.transform.rotate(image, np.float32(360*np.random.rand(1)))).astype(np.float32)
     
 class JitterCrop:
     def __init__(self, crop_dim=32, rescale=2, jitter_lim=0):
