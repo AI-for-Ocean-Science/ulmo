@@ -13,11 +13,11 @@ import torch.backends.cudnn as cudnn
 from torchvision import transforms, datasets
 from torch.utils.data import DataLoader, Dataset
 
-from resnet_big import SupConResNet
-from losses import SupConLoss
+from ulmo.ssl.resnet_big import SupConResNet
+from ulmo.ssl.losses import SupConLoss
 
-from util import TwoCropTransform, AverageMeter
-from util import warmup_learning_rate
+from ulmo.ssl.util import TwoCropTransform, AverageMeter
+from ulmo.ssl.util import warmup_learning_rate
 
 class Params():
     """Class that loads hyperparameters from a json file.
@@ -110,7 +110,10 @@ def option_preprocess(opt: Params):
 class RandomRotate:
     def __call__(self, image):
     # print("RR", image.shape, image.dtype)
-        return (skimage.transform.rotate(image, np.float32(360*np.random.rand(1)))).astype(np.float32)
+        rang = np.float32(360*np.random.rand(1))
+        print('random angle = {}'.format(rang))
+        return (skimage.transform.rotate(image, rang)).astype(np.float32)
+        #return (skimage.transform.rotate(image, np.float32(360*np.random.rand(1)))).astype(np.float32)
     
 class JitterCrop:
     def __init__(self, crop_dim=32, rescale=2, jitter_lim=0):
