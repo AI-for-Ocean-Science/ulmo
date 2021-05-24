@@ -107,7 +107,10 @@ def model_latents_extract(opt, modis_data_file, modis_partition,
 
     print("Beginning to evaluate")
     with torch.no_grad():
-        latents_numpy = [calc_latent(model, data[0], using_gpu) for data in tqdm.tqdm(loader, total=len(loader), unit='batch', desc='Computing log probs')]
+        latents_numpy = [calc_latent(
+            model, data[0], using_gpu) for data in tqdm.tqdm(
+                loader, total=len(loader), unit='batch', 
+                desc='Computing log probs')]
     
     '''
     modis_data = np.repeat(modis_data, 3, axis=1)
