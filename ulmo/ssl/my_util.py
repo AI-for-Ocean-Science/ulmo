@@ -183,8 +183,8 @@ def modis_loader(opt):
     
     return train_loader
     
-def set_model(opt, cuda_use=True):
-    model = SupConResNet(name=opt.model)
+def set_model(opt, cuda_use=True): 
+    model = SupConResNet(name=opt.model, feat_dim=opt.feat_dim)
     criterion = SupConLoss(temperature=opt.temp)
 
     # enable synchronized Batch Normalization
