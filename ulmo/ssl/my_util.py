@@ -134,6 +134,32 @@ class JitterCrop:
         image = np.repeat(image, 3, axis=-1)
         
         return image
+class RandomJitterCrop:
+    def __init__(self, crop_lim=5, jitter_lim=5):
+        self.crop_lim = crop_lim
+        self.offset = 0
+        self.jitter_lim = jitter_lim
+        
+    def __call__(self, image):
+        center_x = image.shape[0]//2
+        center_y = image.shape[0]//2
+        # Get a random crop
+        rand_crop = int(np.random.randint(0, self.crop_lim, 1))
+        self.offset = image.shape[0]//2 - rand_crop  # Assumes image is square
+
+        # Now jitter
+        if self.jitter_lim > 0:
+            rand_x = int(np.random.randint(-rand_crop, rand_crop, 1))
+            rand_y = int(np.random.randint(-rand_crop, rand_crop, 1))
+            center_y += rand_x
+            center_x += rand_y
+
+        image_cropped = image[(center_x-self.offset):(center_x+self.offset), (center_y-self.offset):(center_y+self.offset), 0]
+        #image = np.expand_dims(skimage.transform.rescale(image_cropped, self.rescale), axis=-1)
+        image = skimage.transform.resize(image_cropped, image.shape)
+        image = np.repeat(image, 3, axis=-1)
+        
+        return image
     
 class GaussianNoise:
     def __init__(self, instrument_noise=(0, 0.1)):
