@@ -134,28 +134,73 @@ class JitterCrop:
         image = np.repeat(image, 3, axis=-1)
         
         return image
+    
+#class RandomJitterCrop:
+#    def __init__(self, crop_lim=5, jitter_lim=5):
+#        self.crop_lim = crop_lim
+#        self.offset = 0
+#        self.jitter_lim = jitter_lim
+#        
+#    def __call__(self, image):
+#        center_x = image.shape[0]//2
+#        center_y = image.shape[0]//2
+#        # Get a random crop
+#        rand_crop = int(np.random.randint(0, self.crop_lim, 1))
+#        self.offset = image.shape[0]//2 - rand_crop  # Assumes image is square#
+#
+#        # Now jitter
+#        if self.jitter_lim > 0:
+#            rand_x = int(np.random.randint(-rand_crop, rand_crop, 1))
+#            rand_y = int(np.random.randint(-rand_crop, rand_crop, 1))
+#            center_y += rand_x
+#            center_x += rand_y
+#
+#        image_cropped = image[(center_x-self.offset):(center_x+self.offset), (center_y-self.offset):(center_y+self.offset), 0]
+#        #image = np.expand_dims(skimage.transform.rescale(image_cropped, self.rescale), axis=-1)
+#        image = skimage.transform.resize(image_cropped, image.shape)
+#        image = np.repeat(image, 3, axis=-1)
+#        
+#        return image
+    
 class RandomJitterCrop:
     def __init__(self, crop_lim=5, jitter_lim=5):
         self.crop_lim = crop_lim
-        self.offset = 0
         self.jitter_lim = jitter_lim
         
     def __call__(self, image):
-        center_x = image.shape[0]//2
-        center_y = image.shape[0]//2
-        # Get a random crop
-        rand_crop = int(np.random.randint(0, self.crop_lim, 1))
-        self.offset = image.shape[0]//2 - rand_crop  # Assumes image is square
+        offset_left, offset_right = 0, 0
+        offset_low, offset_high = 0, 0
+        
+        rand_crop_x = int(np.random.randint(0, self.crop_lim+1, 1))
+        rand_crop_y = int(np.random.randint(0, self.crop_lim+1, 1))
+        jitter_lim_x = min(rand_crop_x//2, self.jitter_lim)
+        jitter_lim_y = min(rand_crop_y//2, self.jitter_lim)
+        rand_jitter_x = int(np.random.randint(-jitter_lim_x, jitter_lim_x+1))
+        rand_jitter_y = int(np.random.randint(-jitter_lim_y, jitter_lim_y+1))
+        
+        if rand_crop_x > 0:
+            offset_left = rand_crop_x // 2
+            offset_right = rand_crop_x - offset_left
+            if rand_jitter_x != 0:
+                offset_left -= rand_jitter_x
+                offset_right += rand_jitter_x
+                
+        if rand_crop_y > 0:
+            offset_low = rand_crop_y // 2
+            offset_high = rand_crop_y - offset_low
+            if rand_jitter_y != 0:
+                offset_low -= rand_jitter_y
+                offset_high += rand_jitter_y
+        
+        image_width, image_height = image.shape[0], image.shape[1]
+        
+        ### comment this command after test
+        #assert (offset_left + offset_right) == rand_crop_x, "Crop is Wrong!"
+        #assert (offset_low + offset_high) == rand_crop_y, "Crop is Wrong!"
+        #assert (offset_low >= 0) and (offset_left >= 0), "Crop is Wrong!"
+        #assert (offset_high >= 0) and (offset_right >= 0), "Crop is Wrong!"
 
-        # Now jitter
-        if self.jitter_lim > 0:
-            rand_x = int(np.random.randint(-rand_crop, rand_crop, 1))
-            rand_y = int(np.random.randint(-rand_crop, rand_crop, 1))
-            center_y += rand_x
-            center_x += rand_y
-
-        image_cropped = image[(center_x-self.offset):(center_x+self.offset), (center_y-self.offset):(center_y+self.offset), 0]
-        #image = np.expand_dims(skimage.transform.rescale(image_cropped, self.rescale), axis=-1)
+        image_cropped = image[offset_left: image_width-offset_right, offset_low: image_height-offset_high]
         image = skimage.transform.resize(image_cropped, image.shape)
         image = np.repeat(image, 3, axis=-1)
         
@@ -201,6 +246,22 @@ def modis_loader(opt):
                                              transforms.ToTensor()])
     
     modis_path = opt.data_folder
+    modis_dataset = ModisDataset(modis_path, transform=TwoCropTransform(transforms_compose))
+    train_sampler = None
+    train_loader = torch.utils.data.DataLoader(
+                    modis_dataset, batch_size=opt.batch_size, shuffle=(train_sampler is None),
+                    num_workers=opt.num_workers, pin_memory=False, sampler=train_sampler)
+    
+    return train_loader
+
+def modis_loader_v2(opt):
+    transforms_compose = transforms.Compose([RandomRotate(),
+                                             RandomJitterCrop(),
+                                             GaussianNoise(instrument_noise=(0, 0.05)),
+                                             transforms.ToTensor()])
+    modis_path = opt.data_folder
+    #from_s3 = (modis_path.split(':')[0] == 's3')
+    #modis_dataset = ModisDataset(modis_path, transform=TwoCropTransform(transforms_compose), from_s3=from_s3)
     modis_dataset = ModisDataset(modis_path, transform=TwoCropTransform(transforms_compose))
     train_sampler = None
     train_loader = torch.utils.data.DataLoader(
