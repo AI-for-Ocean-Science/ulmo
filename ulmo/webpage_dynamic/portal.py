@@ -56,7 +56,7 @@ def sdss_link(SpecObjID):
     return 'http://skyserver.sdss.org/dr14/en/tools/explore/summary.aspx?sid={}&apid='.format(int(SpecObjID))
 
 
-def get_umaps(self, path, embedding=None):
+def get_umaps(path, embedding=None):
     #print(f"Loading embeddings {os.listdir(path)}")
     # Embeddings as made by make_umap_rgb.py
     umap_dict = {}
@@ -64,16 +64,15 @@ def get_umaps(self, path, embedding=None):
         # Load all embeddings with the overall tag
         if tag in p:
             fn = os.path.join(path, p)
-            e1, e2, colorby, idxs = np.load(fn, allow_pickle=True)
+            f = np.loadz(fn, allow_pickle=False)
+            e1, e2 = f['e1'], f['e2']
             # Should check that the idxs are the same; for now, assume they are (I checked on these!)
-            emb_name = get_embedding_name(p)
+            emb_name = tag.parse('.')[0]
             umap_dict[emb_name] = np.array([e1, e2]).T 
     return umap_dict  
 
-
 def filename_params(filename, params='', extension='.npy'):
     return '{}{}{}'.format(filename, params, extension)
-
 
 
 @lrudecorator(5)
@@ -177,28 +176,6 @@ def get_anomalies_dict(idxs_data):
 
 def get_numbers(u):
     return [int(n) for n in np.concatenate([s.split('-') for s in u.split('_')]) if n.isdigit()]
-
-
-def get_embedding_name(u):
-
-    if 'umap' in u:
-        if 'auto' in u:
-            if 'real' in u:
-                name = 'UMAP on Autoencoded Real Images'
-            else:
-                name = 'UMAP on Autoencoded Residuals'
-        elif 'reals' in u:
-            name = 'UMAP on Real Image Pixels'
-        elif 'residuals' in u:
-            name = 'UMAP on Residual Image Pixels'
-        #name = 'UMAP {}-{} A'.format(get_numbers(u)[-2], get_numbers(u)[-1])
-        #name = u[:-4]#.replace('_', ' ', 1)
-        #name = '_'.join((u.split('_')[:2]))
-    elif 'blendextend' in u:
-        name = 'Blendedness vs. log(Extendedness)'
-    else:
-        name = u
-    return name
 
 
 def get_rank(X_values):
