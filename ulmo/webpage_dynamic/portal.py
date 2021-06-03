@@ -54,10 +54,6 @@ umaps_path = os.path.join(results_path, 'embeddings')
 UPDATE_CIRCLE_SIZE = False
 
 
-def sdss_link(SpecObjID):
-    return 'http://skyserver.sdss.org/dr14/en/tools/explore/summary.aspx?sid={}&apid='.format(int(SpecObjID))
-
-
 def get_umaps(path, embedding=None):
     #print(f"Loading embeddings {os.listdir(path)}")
     # Embeddings as made by make_umap_rgb.py
@@ -120,29 +116,15 @@ def reverse_obj_links(obj_links):
     gl = obj_links
     return {str(int(gl[v])): str(v) for v in range(len(gl))}
 
-def load_LL_data():
+def load_metric_data():
     #print("Score data")
     results_file = os.path.join(results_path, f'ulmo_{tag}.parquet')
     res = pandas.read_parquet(results_file)
 
-    LL_dict = {'LL': res.LL.values}
+    metric_dict = {'LL': res.LL.values}
 
     #print("Done with score data")
-    return LL_dict
-
-
-def load_score_data(idxs_data):
-    #print("Score data")
-    results_dir = os.path.join(results_path, f'results_{tag}.h5')
-    res = h5py.File(results_dir, 'r')
-
-    score_dict = {'Anomaly Score': res['anomaly_scores_norm'][:],
-                  'Generator Score': res['gen_scores_norm'][:],
-                  'Discriminator Score': res['disc_scores_norm'][:]}
-    recon = res['reconstructed'][:]
-
-    #print("Done with score data")
-    return score_dict, recon
+    return metric_dict
 
 
 @lrudecorator(100)
@@ -282,13 +264,13 @@ class astro_web(object):
         """
         # Load image data
         self.ims_gal, self.obj_links, self.object_ids = load_data(data_path)
-        # Load LL data
-        self.sd_dict = load_LL_data()#self.obj_links)
+        # Load metrics
+        self.metric_dict = load_metric_data()#self.obj_links)
         # 
         self.N = len(self.ims_gal)
         self.imsize = [self.ims_gal[0].shape[0], self.ims_gal[0].shape[1]]
         #
-        self.reverse_galaxy_links = reverse_obj_links(self.obj_links)
+        self.reverse_obj_links = reverse_obj_links(self.obj_links)
         # Load UMAP
         self.umap_data = get_umaps(umaps_path, embedding='umap_auto')
 
@@ -309,6 +291,7 @@ class astro_web(object):
 
         self.selected_objects = ColumnDataSource(data=dict(index=[], score=[], order=[], info_id=[], object_id=[]))
 
+        self.dropdown_dict = {}
         self.generate_buttons()
         self.generate_sources()
         self.generate_figures()
@@ -338,7 +321,7 @@ class astro_web(object):
         return self.select_spectrum_plot_type.value == 'log'
 
     #def galaxy_link(self, idx):
-    #    return sdss_link(self.galaxy_links[idx])
+    #    return sdss_link(self.obj_links[idx])
 
     def generate_buttons(self):
 
@@ -347,6 +330,7 @@ class astro_web(object):
 
         self.select_score = Dropdown(label="Color by:", button_type="danger", 
                                      menu=select_score_menu)#, value='Anomaly Score')
+        self.dropdown_dict['metric'] = 'LL'
 
         self.select_score_table = Select(title="Inactive", value="",
                                          options=[])
@@ -368,14 +352,16 @@ class astro_web(object):
         #[('Viridis','Viridis256'),('Plasma','Plasma256'),('Inferno','Inferno256'), ('Magma','Magma256')]
         self.select_colormap =  Dropdown(label='Colormap', button_type="default",
                                                    menu = self.cmap_menu)# , value='plasma_r')
+        self.dropdown_dict['colormap'] = 'plasma_r'
 
         maps = list(self.umap_data.keys())
         menu_all = [(u,u) for u in maps]
 
         self.select_umap = Dropdown(label='Embedding:', button_type='primary',menu=menu_all)#, value=maps[self.umap_on_load])
+        self.dropdown_dict['embedding'] = list(self.umap_data.keys())[0]
 
 
-        #self.anomaly_detection_algorithms = get_anomalies_dict(self.galaxy_links)
+        #self.anomaly_detection_algorithms = get_anomalies_dict(self.obj_links)
         #self.select_anomalies_from = RadioButtonGroup(labels=list(self.anomaly_detection_algorithms.keys()), active=0 )
         self.show_anomalies = Button(label="Show anomalies (detected by ... )", button_type="warning")
         self.first_im_index = 8175
@@ -420,14 +406,17 @@ class astro_web(object):
 
     def umap_figure_axes(self):
 
-        embedding_name = self.select_umap.value
-        if self.select_score.value == 'No color':
+        #embedding_name = self.select_umap.value
+        embedding_name = self.dropdown_dict['embedding']
+        metric_name = self.dropdown_dict['metric']
+        if metric_name == 'No color':
             self.umap_figure.title.text  = '{}'.format(embedding_name)
         else:
-            self.umap_figure.title.text  = '{} - Colored by {}'.format(embedding_name , self.select_score.value)
+            self.umap_figure.title.text  = '{} - Colored by {}'.format(embedding_name , metric_name)
         self.umap_figure.title.text_font_size = '17pt'
 
-        if 'UMAP' in embedding_name:
+        # TODO -- Fix this
+        if 'ulmo' in embedding_name:
             self.umap_figure.xaxis.major_tick_line_color = None  # turn off x-axis major ticks
             self.umap_figure.xaxis.minor_tick_line_color = None  # turn off x-axis minor ticks
 
@@ -500,10 +489,13 @@ class astro_web(object):
 
         # TODO: make this the index
         t = Title()
+        '''
         #info_id = self.select_galaxy.value
         ind = self.select_galaxy.value
-        info_id = int(self.galaxy_links[int(ind)])
+        info_id = int(self.obj_links[int(ind)])
         t.text = '{}'.format(info_id)
+        '''
+        t.text = 'TMP'
         self.data_figure.title = t
 
         self.remove_ticks_and_labels(self.data_figure)
@@ -535,16 +527,20 @@ class astro_web(object):
 
     def generate_sources(self):
 
-        embed(header='538 of portal')
-        sd = self.sd_dict[self.select_score.value]
-        self.set_colormap(sd)
+        # Unpack for convenience
+        metric = self.metric_dict[self.dropdown_dict['metric']]
+        embedding = self.dropdown_dict['embedding']
+
+        self.set_colormap(metric)
         print('generate sources')
         self.umap_source = ColumnDataSource(
-            data=dict(xs=self.umap_data[self.select_umap.value][:, 0],
-                      ys=self.umap_data[self.select_umap.value][:, 1],
-                      color_data=sd[:],
-                      names=list(np.arange(len(sd))),
-                      radius=[self.R_DOT] * len(sd)),
+            #data=dict(xs=self.umap_data[self.select_umap.value][:, 0],
+            #          ys=self.umap_data[self.select_umap.value][:, 1],
+            data=dict(xs=self.umap_data[embedding][:, 0],
+                      ys=self.umap_data[embedding][:, 1],
+                      color_data=metric[:],
+                      names=list(np.arange(len(metric))),
+                      radius=[self.R_DOT] * len(metric)),
                       )
 
         self.xlim = (np.min(self.umap_source.data['xs']) - self.UMAP_XYLIM_DELTA, np.max(self.umap_source.data['xs']) + self.UMAP_XYLIM_DELTA)
@@ -557,9 +553,9 @@ class astro_web(object):
             temp_umap_source = ColumnDataSource(
                 data=dict(xs=self.umap_data[umap][:, 0],
                           ys=self.umap_data[umap][:, 1],
-                          color_data=sd[:],
-                          names=list(np.arange(len(sd))),
-                          radius=[self.R_DOT] * len(sd)),
+                          color_data=metric[:],
+                          names=list(np.arange(len(metric))),
+                          radius=[self.R_DOT] * len(metric)),
                           )
             rxs, rys, _ = get_relevant_objects_coords(temp_umap_source.data)
             temp_xlim = (np.min(rxs) - self.UMAP_XYLIM_DELTA, np.max(rxs) + self.UMAP_XYLIM_DELTA)
@@ -571,9 +567,9 @@ class astro_web(object):
                                              self.umap_source.data, self.DECIMATE_NUMBER)
 
         self.umap_source_view = ColumnDataSource(
-            data=dict(xs=self.umap_data[self.select_umap.value][points, 0],
-                      ys=self.umap_data[self.select_umap.value][points, 1],
-                      color_data=sd[points],
+            data=dict(xs=self.umap_data[embedding][points, 0],
+                      ys=self.umap_data[embedding][points, 1],
+                      color_data=metric[points],
                       names=list(points),
                       radius=[self.R_DOT] * len(points)),
                     )
@@ -611,8 +607,8 @@ class astro_web(object):
         ))
 
         self.search_galaxy_source = ColumnDataSource(dict(
-            xs=[self.umap_data[self.select_umap.value][0, 0]],
-            ys=[self.umap_data[self.select_umap.value][0, 1]],
+            xs=[self.umap_data[embedding][0, 0]],
+            ys=[self.umap_data[embedding][0, 1]],
         ))
 
 
@@ -651,15 +647,16 @@ class astro_web(object):
         print("update umap figure")
         def callback(attrname, old, new):
 
-            sd = self.sd_dict[self.select_score.value]
-            self.set_colormap(sd)
+            metric = self.metric_dict[self.dropdown_dict['metric']]
+            #sd = self.sd_dict[self.select_score.value]
+            self.set_colormap(metric)
 
             self.umap_source = ColumnDataSource(
                 data=dict(xs=self.umap_data[self.select_umap.value][:, 0],
                           ys=self.umap_data[self.select_umap.value][:, 1],
-                          color_data=sd,
-                          radius=[self.R_DOT] * len(sd),
-                          names=list(np.arange(len(sd))),
+                          color_data=metric,
+                          radius=[self.R_DOT] * len(metric),
+                          names=list(np.arange(len(metric))),
                           ))
 
             self.umap_figure_axes()
@@ -682,9 +679,9 @@ class astro_web(object):
 
         return callback
 
-    def set_colormap(self, sd):
-        mx = np.nanmax(sd)
-        mn = np.nanmin(sd)
+    def set_colormap(self, metric):
+        mx = np.nanmax(metric)
+        mn = np.nanmin(metric)
         if mn == mx:
             high = mx + 1
             low = mn - 1
@@ -693,8 +690,8 @@ class astro_web(object):
             low = mn
             # set max of colormap to Nth largets val, to deal with outliers
             nth = 100
-            if len(sd)>nth:
-                nmx = np.sort(sd)[-nth]
+            if len(metric)>nth:
+                nmx = np.sort(metric)[-nth]
                 if nmx*1.2 < mx:
                     high = nmx
 
@@ -720,17 +717,18 @@ class astro_web(object):
         def callback(attrname, old, new):
 
             self.umap_figure_axes()
-            #sd = get_score_data(self.select_score.value, self.galaxy_links)
-            sd = self.sd_dict[self.select_score.value]
+            #sd = get_score_data(self.select_score.value, self.obj_links)
+            #sd = self.sd_dict[self.select_score.value]
+            metric = self.metric_dict[self.dropdown_dict['metric']]
 
-            self.set_colormap(sd)
+            self.set_colormap(metric)
 
             self.umap_source = ColumnDataSource(
                 data=dict(xs=self.umap_data[self.select_umap.value][:, 0],
                           ys=self.umap_data[self.select_umap.value][:, 1],
-                          color_data=sd,
-                          radius=[self.R_DOT] * len(sd),
-                          names=list(np.arange(len(sd))),
+                          color_data=metric,
+                          radius=[self.R_DOT] * len(metric),
+                          names=list(np.arange(len(metric))),
                         ))
 
             selected_objects = self.selected_objects.data['index']
@@ -738,7 +736,7 @@ class astro_web(object):
 
             if (self.select_score.value == 'Order') and len(selected_objects) > 0:
                 #custom_sd = sd.copy()
-                custom_sd = np.ones(sd.shape)*np.nan
+                custom_sd = np.ones(metric.shape)*np.nan
                 selected_inds = np.array([int(s) for s in selected_objects])
                 order = np.array([float(o) for o in self.selected_objects.data['order']])
                 custom_sd[selected_inds] = order
@@ -756,7 +754,7 @@ class astro_web(object):
         print("update spectrum")
         #TODO: BE CAREFUL W INDEX VS ID
         index = self.select_galaxy.value
-        specobjid = int(self.galaxy_links[int(index)])
+        specobjid = int(self.obj_links[int(index)])
 
         im = process_image(self.ims_gal[int(index)])
         xsize, ysize = self.imsize
@@ -822,7 +820,7 @@ class astro_web(object):
             if count < len(inds_visible):
                 ind = inds_visible[count]
                 im = process_image(self.ims_gal[ind])
-                info_id = self.galaxy_links[ind]
+                info_id = self.obj_links[ind]
                 new_title = '{}'.format(int(info_id))
                 #im = self.ims_gal[ind]
             else:
@@ -906,7 +904,7 @@ class astro_web(object):
                 return
             print('galaxy callback')
             specobjid = str(self.search_galaxy.value)
-            new_specobjid = str(int(self.galaxy_links[int(index)]))
+            new_specobjid = str(int(self.obj_links[int(index)]))
             #new_specobjid = str(
             #logger.debug(type(specobjid), specobjid, type(new_specobjid), new_specobjid)
             #print(specobjid, new_specobjid)
@@ -928,16 +926,16 @@ class astro_web(object):
             if ',' in specobjid_str:
                 print('list input')
                 selected_objects_ids = specobjid_str.replace(' ','').split(',')
-                index_str = str(self.reverse_galaxy_links[selected_objects_ids[0]])
+                index_str = str(self.reverse_obj_links[selected_objects_ids[0]])
                 for idx, specobjid in enumerate(selected_objects_ids[1:]):
-                    index_str = '{}, {}'.format(index_str, str(self.reverse_galaxy_links[specobjid]))
+                    index_str = '{}, {}'.format(index_str, str(self.reverse_obj_links[specobjid]))
                 self.select_galaxy.value = index_str
                 return
 
-            if specobjid_str in self.reverse_galaxy_links:
+            if specobjid_str in self.reverse_obj_links:
                 print('search galaxy')
                 index = str(self.select_galaxy.value)
-                new_index = str(self.reverse_galaxy_links[specobjid_str])
+                new_index = str(self.reverse_obj_links[specobjid_str])
                 self.update_search_circle(new_index)
                 print('search galaxy - updated circle')
                 #logger.debug(type(index), index, type(new_index), new_index)
@@ -959,7 +957,8 @@ class astro_web(object):
         return
 
 
-    def get_new_view_keep_selected(self, background_objects, selected_objects_, custom_sd = None):
+    def get_new_view_keep_selected(self, background_objects, 
+                                   selected_objects_, custom_sd = None):
 
         print('get_new_view_keep_selected')
         _, _, is_relevant = get_relevant_objects_coords(self.umap_source.data)
@@ -981,14 +980,14 @@ class astro_web(object):
 
         new_objects = new_objects.astype(int)
         if custom_sd is None:
-            sd = self.sd_dict[self.select_score.value]
+            metric = self.metric_dict[self.dropdown_dict['metric']]
         else:
-            sd = custom_sd
+            metric = custom_sd
 
         self.umap_source_view = ColumnDataSource(
                 data=dict(xs=self.umap_data[self.select_umap.value][new_objects, 0],
                           ys=self.umap_data[self.select_umap.value][new_objects, 1],
-                          color_data=sd[new_objects],
+                          color_data=metric[new_objects],
                           names=list(new_objects),
                           radius=[self.R_DOT] * len(new_objects),
                         ))
@@ -999,9 +998,9 @@ class astro_web(object):
             order = np.array([float(o) for o in self.selected_objects.data['order']])
             self.selected_objects.data = dict(
                 index=list(selected_objects), 
-                score=[-999999 if np.isnan(sd[s]) else sd[s] for s in selected_objects],
+                score=[-999999 if np.isnan(metric[s]) else metric[s] for s in selected_objects],
                 order=list(order), 
-                info_id=[self.galaxy_links[s] for s in selected_objects],
+                info_id=[self.obj_links[s] for s in selected_objects],
                 object_id=[self.object_ids[s] for s in selected_objects]
             )
             self.update_table.value = str(np.random.rand())
@@ -1109,27 +1108,28 @@ class astro_web(object):
         return callback
 
 
-    def select_colormap_callback(self):
+    def select_colormap_callback(self, event):
+        value = event.item
         def callback(attr, old, new):
             print("colormap callback")
-            if 'Plasma' in self.select_colormap.value:
+            if 'Plasma' in value:
                 self.color_mapper.palette = Plasma256
                 self.umap_scatter.nonselection_glyph.fill_color = 'lightgray'
                 #self.umap_scatter.nonselection_glyph.fill_alpha = 0.2
-            elif 'Inferno' in self.select_colormap.value:
+            elif 'Inferno' in value:
                 self.color_mapper.palette = Inferno256
                 self.umap_scatter.nonselection_glyph.fill_color = 'lightgray'
                 #self.umap_scatter.nonselection_glyph.fill_alpha = 0.2
-            elif 'Viridis' in self.select_colormap.value:
+            elif 'Viridis' in value:
                 self.color_mapper.palette = Viridis256
                 self.umap_scatter.nonselection_glyph.fill_color = 'moccasin'
                 #self.umap_scatter.nonselection_glyph.fill_alpha = 0.2
-            elif 'Magma' in self.select_colormap.value:
+            elif 'Magma' in value:
                 self.color_mapper.palette = Magma256
                 self.umap_scatter.nonselection_glyph.fill_color = 'lightgray'
                 #self.umap_scatter.nonselection_glyph.fill_alpha = 0.2
             else:
-                p_dict = all_palettes[self.select_colormap.value]
+                p_dict = all_palettes[value]
                 numbers = list(p_dict.keys())
                 n = np.max(numbers)
                 p = p_dict[n]
@@ -1151,7 +1151,8 @@ class astro_web(object):
         self.prev_button.on_click(self.prev_stack_index)        
 
         # Dropdown's
-        self.select_score.on_change('value', self.update_color())
+        #self.select_score.on_change('value', self.update_color())
+        '''
         self.select_umap.on_change('value', self.update_umap_figure())
 
         self.search_galaxy.on_change('value', self.search_galaxy_callback())
@@ -1159,8 +1160,10 @@ class astro_web(object):
         self.select_spectrum_plot_type.on_change('value', self.select_galaxy_callback())
         self.select_nof_stacks.on_change('value', self.select_nof_stacks_callback())
         self.select_stack_by.on_change('value', self.select_stack_by_callback())
+        '''
 
-        self.select_colormap.on_change('value', self.select_colormap_callback())
+        #self.select_colormap.on_change('value', self.select_colormap_callback())
+        self.select_colormap.on_click(self.select_colormap_callback)
 
         self.umap_figure.on_event(PanEnd, self.reset_stack_index)
         self.umap_figure.on_event(PanEnd, self.select_stacks_callback())
@@ -1178,8 +1181,10 @@ class astro_web(object):
                                                                     console.log('selected_galaxies_source_js')
                                                                     """))
 
+        # TODO -- Need to put this back!!
         self.umap_source_view.selected.js_on_change('indices', CustomJS(
-            args=dict(s1=self.umap_source_view, s2=self.selected_galaxies_source, s3=self.selected_objects, s4=self.galaxy_links, s5=self.object_ids), code="""
+            args=dict(s1=self.umap_source_view, s2=self.selected_galaxies_source, 
+                      s3=self.selected_objects, s4=self.obj_links, s5=self.object_ids), code="""
                 var inds = s1.attributes.selected['1d'].indices
                 var d1 = s1.data;
                 var d2 = s2.data;
@@ -1210,9 +1215,10 @@ class astro_web(object):
                 s2.change.emit();
                 s3.data = d3;
                 s3.change.emit();
-            """))
+                """))
         self.select_score_table.js_on_change('value', CustomJS(
-            args=dict(s1=self.umap_source_view, s2=self.selected_galaxies_source, s4=self.galaxy_links, s5=self.object_ids), code="""
+            args=dict(s1=self.umap_source_view, s2=self.selected_galaxies_source, 
+                      s4=self.obj_links, s5=self.object_ids), code="""
                     var inds = s1.attributes.selected['1d'].indices
                     var d1 = s1.data;
                     var d2 = s2.data;
@@ -1289,6 +1295,8 @@ def process_image(im):
 
 # a = astro_web(data_type, data_path)
 if __name__ == '__main__':
+    # Bokeh Server: https://docs.bokeh.org/en/latest/docs/user_guide/server.html#embedding-bokeh-server-as-a-library
+    # Reset socket: https://stackoverflow.com/questions/47215672/errno-98-address-already-in-use-bokeh-server-and-udp-protocol
     lh = 5006
     #websockets = ['104.248.124.15','104.248.124.15:{}'.format(lh), f'localhost:{lh}', 'weirdgalaxi.es'] #my digitalocean server
     #print('Opening Bokeh application on {}'.format(websockets))
@@ -1296,16 +1304,16 @@ if __name__ == '__main__':
     #                allow_websocket_origin=websockets, show=False,
     #                port=lh, prefix='/')
 
-    if False:
-        print('Opening Bokeh application on http://localhost:{}/'.format(lh))
-        websockets = ['localhost:{}'.format(lh)]
-        server = Server({'/galaxies': get_astro_session}, num_procs=0,
-                        allow_websocket_origin=websockets, show=False)
-    if False:
-        server.start() # this line doesn't seem to do anything, but also doesn't hurt...
-        # KSF: found this code here, but not sure what it's doing https://riptutorial.com/bokeh/example/29716/local-bokeh-server-with-console-entry-point
-        # server.io_loop.add_callback(server.show, "/") # this was commented out
-        server.io_loop.start()
 
-    sess = astro_web(data_type, data_path)
-    embed(header='1305 of portal')
+    print('Opening Bokeh application on http://localhost:{}/'.format(lh))
+    websockets = ['localhost:{}'.format(lh)]
+    server = Server({'/': get_astro_session}, num_procs=1,
+                        allow_websocket_origin=websockets, show=False)
+    server.start() # this line doesn't seem to do anything, but also doesn't hurt...
+    # KSF: found this code here, but not sure what it's doing https://riptutorial.com/bokeh/example/29716/local-bokeh-server-with-console-entry-point
+    server.io_loop.add_callback(server.show, "/") # this was commented out
+    server.io_loop.start()
+
+
+    #sess = astro_web(data_type, data_path)
+    #embed(header='1305 of portal')
