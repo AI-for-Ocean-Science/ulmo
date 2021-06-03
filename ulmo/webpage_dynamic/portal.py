@@ -298,6 +298,7 @@ class astro_web(object):
         self.generate_plots()
 
         self.register_callbacks()
+        print("Done with init")
 
     def __call__(self, doc):
         doc.add_root(
@@ -1308,7 +1309,8 @@ if __name__ == '__main__':
     print('Opening Bokeh application on http://localhost:{}/'.format(lh))
     websockets = ['localhost:{}'.format(lh)]
     server = Server({'/': get_astro_session}, num_procs=1,
-                        allow_websocket_origin=websockets, show=False)
+                        allow_websocket_origin=websockets, show=False,
+                    port=lh, prefix='/')
     server.start() # this line doesn't seem to do anything, but also doesn't hurt...
     # KSF: found this code here, but not sure what it's doing https://riptutorial.com/bokeh/example/29716/local-bokeh-server-with-console-entry-point
     server.io_loop.add_callback(server.show, "/") # this was commented out
