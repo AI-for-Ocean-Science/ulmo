@@ -1,13 +1,17 @@
 """ Bokeh portal for Ocean Sciences.  Based on Itamar Reiss' code 
 and further modified by Kate Storrey-Fisher"""
 import numpy as np
+import os
+
+import h5py
+import pandas
 
 from bokeh.layouts import column, gridplot, row
 from bokeh.models import ColumnDataSource, Slider
 from bokeh.sampledata.sea_surface_temperature import sea_surface_temperature
 from bokeh.palettes import Viridis256, Plasma256, Inferno256, Magma256, all_palettes
 from bokeh.models import LinearColorMapper, ColorBar, ColumnDataSource, Range1d, CustomJS, Div, \
-    CDSView, \
+    CDSView, BasicTicker, \
     IndexFilter, BooleanFilter, Span, Label, BoxZoomTool, TapTool
 from bokeh.models.widgets import TextInput, RadioButtonGroup, DataTable, TableColumn, AutocompleteInput, NumberFormatter
 from bokeh.models.widgets import Select, Button, Dropdown
@@ -38,7 +42,7 @@ class os_web(object):
         #
         self.N = len(self.images)
         self.imsize = [self.images[0].shape[0], self.images[0].shape[1]]
-        #self.reverse_obj_links = self.gen_reverse_obj_links()
+        self.reverse_obj_links = self.gen_reverse_obj_links()
 
         rev_Plasma256 = Plasma256[::-1]
         self.color_mapper = LinearColorMapper(palette=rev_Plasma256, low=0, high=1, 
@@ -74,9 +78,10 @@ class os_web(object):
     def __call__(self, doc):
         doc.add_root(column(row(self.main_title_div ), 
                             row(column(self.info_div), 
-                                column(self.umap_figure, self.stacks_figure), 
-                                column(self.data_figure,
-                                self.selected_galaxies_table), #, self.title_div  
+                                column(self.umap_figure, self.gallery_figure), 
+                                column(self.search_object, 
+                                       self.data_figure, 
+                                       self.selected_galaxies_table), #, self.title_div  
                             )
                                    #row(self.prev_button, self.next_button)),
                             )
@@ -110,10 +115,11 @@ class os_web(object):
             TableColumn(field="object_id", title="Object ID"),
             TableColumn(field="score", title="Score", formatter=NumberFormatter(format = '0.0000')),
         ]
-        self.select_galaxy = TextInput(title='Select Object Index:', value=str(self.first_im_index))
+        self.select_object = TextInput(title='Select Object Index:', value=str(self.first_im_index))
 
         self.update_table = Select(title="Inactive", value="",
                                          options=[])
+        self.search_object = TextInput(title='Select Object Info ID:')
 
     def gen_reverse_obj_links(self):
         """ makes a dictionary of info_ids to indices
@@ -149,18 +155,23 @@ class os_web(object):
                                   plot_height=column_width,
                                   toolbar_location="above", 
                                   output_backend='webgl',
-                                  x_range=(0,96), y_range=(0,96))
+                                  x_range=(0,self.imsize[0]), 
+                                  y_range=(0,self.imsize[1]))
+                                  #x_range=(0,96), y_range=(0,96))
 
+        # Gallery figure 
         title_height = 20
         buffer = 10*self.ncol
         collage_im_width = int((umap_plot_width-buffer)/self.ncol)
-        self.stacks_figures = []
+        self.gallery_figures = []
         for _ in range(self.nrow*self.ncol):
             sfig = figure(tools="box_zoom,save,reset", plot_width=collage_im_width, plot_height=collage_im_width+title_height, 
-            toolbar_location="above", output_backend='webgl', x_range=(0,96), y_range=(0,96))
-            self.stacks_figures.append(sfig)
+            toolbar_location="above", output_backend='webgl', 
+            x_range=(0,self.imsize[0]), 
+            y_range=(0,self.imsize[1]))
+            self.gallery_figures.append(sfig)
 
-        self.stacks_figure = gridplot(self.stacks_figures, ncols=self.ncol)
+        self.gallery_figure = gridplot(self.gallery_figures, ncols=self.ncol)
 
 
         self.umap_colorbar = ColorBar(color_mapper=self.color_mapper, location=(0, 0), major_label_text_font_size='15pt', label_standoff=13)
@@ -175,12 +186,13 @@ class os_web(object):
 
         self.remove_ticks_and_labels(self.data_figure)
 
-        for i in range(len(self.stacks_figures)):
-            self.remove_ticks_and_labels(self.stacks_figures[i])
+        for i in range(len(self.gallery_figures)):
+            self.remove_ticks_and_labels(self.gallery_figures[i])
             t = Title()
             t.text = ' '
-            self.stacks_figures[i].title = t
+            self.gallery_figures[i].title = t
 
+        # Galaxy Table
         self.selected_galaxies_table = DataTable(
             source=self.selected_galaxies_source,
             columns=self.selected_galaxies_columns,
@@ -201,18 +213,27 @@ class os_web(object):
             line_color=None,
             size='radius',
             view=self.umap_view)
-        #self.data_image = self.data_figure.image_rgba(
+
+        color_mapper = LinearColorMapper(palette="Turbo256", 
+                                         low=self.data_source.data['min'][0],
+                                         high=self.data_source.data['max'][0])
         self.data_image = self.data_figure.image(
-            'image', 'x', 'y', 'dw', 'dh', source=self.data_source)
+            'image', 'x', 'y', 'dw', 'dh', source=self.data_source,
+            color_mapper=color_mapper)
+        
+        color_bar = ColorBar(color_mapper=color_mapper, ticker= BasicTicker(),
+                     location=(0,0))
+        #self.data_image.add_layout(color_bar, 'right')
 
         self.spectrum_stacks = []
         for i in range(self.nrow*self.ncol):
-            #spec_stack = self.stacks_figures[i].image_rgba(
-            spec_stack = self.stacks_figures[i].image(
-                'image', 'x', 'y', 'dw', 'dh', source=self.stacks_sources[i])
+            #spec_stack = self.gallery_figures[i].image_rgba(
+            spec_stack = self.gallery_figures[i].image(
+                'image', 'x', 'y', 'dw', 'dh', source=self.stacks_sources[i],
+                color_mapper=color_mapper)
             self.spectrum_stacks.append(spec_stack)
 
-        self.stacks_figure = gridplot(self.stacks_figures, ncols=self.ncol)
+        self.gallery_figure = gridplot(self.gallery_figures, ncols=self.ncol)
 
         self.umap_search_galaxy = self.umap_figure.circle(
             'xs', 'ys', source=self.search_galaxy_source, alpha=0.5,
@@ -278,7 +299,9 @@ class os_web(object):
             self.images[self.first_im_index])
         xsize, ysize = self.imsize
         self.data_source = ColumnDataSource(
-            data = {'image':[im], 'x':[0], 'y':[0], 'dw':[xsize], 'dh':[ysize]}
+            data = {'image':[im], 'x':[0], 'y':[0], 
+                    'dw':[xsize], 'dh':[ysize],
+                    'min': [np.min(im)], 'max': [np.max(im)]}
         )
 
         # Collage of empty images
@@ -335,8 +358,8 @@ class os_web(object):
         
         self.register_reset_on_double_tap_event(self.umap_figure)
         self.register_reset_on_double_tap_event(self.data_figure)
-        for i in range(len(self.stacks_figures)):
-            self.register_reset_on_double_tap_event(self.stacks_figures[i])
+        for i in range(len(self.gallery_figures)):
+            self.register_reset_on_double_tap_event(self.gallery_figures[i])
 
         '''
         # Buttons
@@ -345,13 +368,15 @@ class os_web(object):
         self.prev_button.on_click(self.prev_stack_index)        
         '''
 
+        # Non-dropdowns
+        self.select_object.on_change('value', self.select_object_callback())
+        self.search_object.on_change('value', self.search_object_callback())
+
         # Dropdown's
         #self.select_score.on_change('value', self.update_color())
         '''
         self.select_umap.on_change('value', self.update_umap_figure())
 
-        self.search_galaxy.on_change('value', self.search_galaxy_callback())
-        self.select_galaxy.on_change('value', self.select_galaxy_callback())
         self.select_spectrum_plot_type.on_change('value', self.select_galaxy_callback())
         self.select_nof_stacks.on_change('value', self.select_nof_stacks_callback())
         self.select_stack_by.on_change('value', self.select_stack_by_callback())
@@ -364,11 +389,14 @@ class os_web(object):
 
         #self.umap_figure.on_event(PanEnd, self.debug())
 
+        self.selected_galaxies_source.selected.on_change(
+            'indices', self.selected_objects_callback)
+        '''
         self.selected_galaxies_source.selected.js_on_change(
             'indices', 
             CustomJS(
                 args=dict(s1=self.selected_galaxies_source, 
-                          sg=self.select_galaxy), 
+                          sg=self.select_object), 
                 code="""
                     var inds = s1.attributes.selected['1d'].indices
                     if (inds.length > 0) {
@@ -377,51 +405,11 @@ class os_web(object):
                     console.log(s1);
                     console.log('selected_galaxies_source_js')
                     """))
+        '''
 
         # TODO -- Need to put this back!!
         self.umap_source_view.selected.on_change('indices', 
                                                  self.umap_source_callback)     
-
-        '''
-        self.umap_source_view.selected.js_on_change('indices', CustomJS(
-            args=dict(s1=self.umap_source_view, 
-                      s2=self.selected_galaxies_source, 
-                      s3=self.selected_objects, 
-                      s4=self.obj_links, 
-                      s5=self.obj_ids), 
-            code="""
-                var inds = s1.attributes.selected['1d'].indices
-                var d1 = s1.data;
-                var d2 = s2.data;
-                var d3 = s3.data;
-                d2.index = []
-                d2.score = []
-                d2.order = []
-                d2.info_id = []
-                d2.object_id = []
-                d3.index = []
-                d3.score = []
-                d3.order = []
-                d3.info_id = []
-                d3.object_id = []
-                for (var i = 0; i < inds.length; i++) {
-                    d2.index.push(d1['names'][inds[i]])
-                    d2.score.push(d1['color_data'][inds[i]])
-                    d2.order.push(0.0)
-                    d2.info_id.push(s4[d1['names'][inds[i]]])
-                    d2.object_id.push(s5[d1['names'][inds[i]]])
-                    d3.index.push(d1['names'][inds[i]])
-                    d3.score.push(d1['color_data'][inds[i]])
-                    d3.order.push(0.0)
-                    d3.info_id.push(s4[d1['names'][inds[i]]])
-                    d3.object_id.push(s5[d1['names'][inds[i]]])
-                }
-                console.log('umap_source_view_js')
-                s2.change.emit();
-                s3.data = d3;
-                s3.change.emit();
-                """))
-        '''
 
         self.select_score_table.js_on_change('value', CustomJS(
             args=dict(s1=self.umap_source_view, s2=self.selected_galaxies_source, 
@@ -534,11 +522,77 @@ class os_web(object):
 
         return
 
+    def select_object_callback(self):
+        print('select object')
+        def callback(attr, old, new):
+            index = self.select_object.value
+            index_str = str(index)
+            if ',' in index_str:
+                print('list input')
+                selected_objects = index_str.replace(' ','').split(',')
+                selected_objects = [int(s) for s in selected_objects]
+
+                backgroud_objects = self.umap_source_view.data['names']
+                self.get_new_view_keep_selected(backgroud_objects, selected_objects)
+
+                return
+            print('galaxy callback')
+            specobjid = str(self.search_object.value)
+            new_specobjid = str(int(self.obj_links[int(index)]))
+            #new_specobjid = str(
+            #logger.debug(type(specobjid), specobjid, type(new_specobjid), new_specobjid)
+            #print(specobjid, new_specobjid)
+            if specobjid != new_specobjid:
+                print('not equal')
+                self.search_object.value = new_specobjid
+            else:
+                print('Update snapshot from select')
+                self.update_snapshot()
+
+        return callback
+
+
+
+    def search_object_callback(self):
+        print('search obj')
+        def callback(attr, old, new):
+            #logger.debug(self.search_object.value)
+            objid_str = str(self.search_object.value)
+            if ',' in objid_str:
+                print('list input')
+                selected_objects_ids = objid_str.replace(' ','').split(',')
+                index_str = str(self.reverse_galaxy_links[selected_objects_ids[0]])
+                for idx, specobjid in enumerate(selected_objects_ids[1:]):
+                    index_str = '{}, {}'.format(index_str, str(self.reverse_galaxy_links[specobjid]))
+                self.select_galaxy.value = index_str
+                return
+
+            if objid_str in self.reverse_obj_links:
+                print('search galaxy')
+                index = str(self.select_object.value)
+                new_index = str(self.reverse_obj_links[objid_str])
+                self.update_search_circle(new_index)
+                print('search galaxy - updated circle')
+                #logger.debug(type(index), index, type(new_index), new_index)
+                if index != new_index:
+                    self.select_object.value = new_index
+                else:
+                    print('Update obj from search')
+                    self.update_snapshot()
+
+        return callback
+
+
+
     # TODO: can this be simplified?
     def select_stacks_callback(self):
         def callback(event):
             self.stacks_callback()
         return callback
+
+    def selected_objects_callback(self, attr, old, new):
+        """ Callback for indices changing """
+        self.select_object.value = str(self.selected_objects.data['index'][new[0]])
     
     def umap_source_callback(self, attr, old, new):
         # Init
@@ -571,7 +625,8 @@ class os_web(object):
                 self.umap_source_view.data['color_data'][ii])
             tdict['order'].append(0.0)
         # Update
-        self.selected_galaxies_table.source.data = tdict.copy()
+        self.selected_galaxies_source.data = tdict.copy()
+        #self.selected_galaxies_table.source.data = tdict.copy()
         self.selected_objects.data = tdict.copy()
 
     def stacks_callback(self):
@@ -600,10 +655,34 @@ class os_web(object):
                 data = {'image':[im], 'x':[0], 'y':[0], 'dw':[xsize], 'dh':[ysize]}
             )
             self.stacks_sources.append(source)
-            self.stacks_figures[count].title.text = new_title
+            self.gallery_figures[count].title.text = new_title
             self.spectrum_stacks[count].data_source.data = dict(self.stacks_sources[count].data)
 
             count += 1
+
+
+
+    def update_snapshot(self):
+        print("update snapshot")
+        #TODO: BE CAREFUL W INDEX VS ID
+        index = self.select_object.value
+        specobjid = int(self.obj_links[int(index)])
+
+        im = self.process_image(self.images[int(index)])
+        xsize, ysize = self.imsize
+        self.data_source = ColumnDataSource(
+            data = {'image':[im], 'x':[0], 'y':[0], 
+                    'dw':[xsize], 'dh':[ysize],  
+                    'min': [np.min(im)], 'max': [np.max(im)]}
+        )
+        
+        self.data_image.data_source.data = dict(self.data_source.data)
+
+        self.data_figure.title.text = '{}'.format(int(specobjid))
+        #self.link_div.text='<center>View galaxy in <a href="{}" target="_blank">{}</a></center>'.format(
+        #    self.obj_link(int(self.select_galaxy.value)), 'SDSS object explorer')
+
+        return
 
 
 
@@ -687,7 +766,7 @@ class os_web(object):
                 score=[-999999 if np.isnan(metric[s]) else metric[s] for s in selected_objects],
                 order=list(order), 
                 info_id=[self.obj_links[s] for s in selected_objects],
-                object_id=[self.object_ids[s] for s in selected_objects]
+                object_id=[self.obj_ids[s] for s in selected_objects]
             )
             self.update_table.value = str(np.random.rand())
         elif len(selected_objects_) > 0:
@@ -698,7 +777,7 @@ class os_web(object):
             self.update_table.value = str(np.random.rand())
 
         # Update circle
-        index = self.select_galaxy.value
+        index = self.select_object.value
 
         if (index in set(background_objects)) :
             pass
@@ -708,10 +787,10 @@ class os_web(object):
                     pass
                 else:
                     index = str(selected_objects[0])
-                    self.select_galaxy.value = index
+                    self.select_object.value = index
             else:
                 index = str(background_objects[0])
-                self.select_galaxy.value = index
+                self.select_object.value = index
 
         self.update_search_circle(index)
 
@@ -758,7 +837,7 @@ class os_web(object):
                     data = {'image':[im_empty], 'x':[0], 'y':[0], 'dw':[xsize], 'dh':[ysize]}
                 )
                 self.stacks_sources.append(source)
-                self.stacks_figures[count].title.text = ' '
+                self.gallery_figures[count].title.text = ' '
                 self.spectrum_stacks[count].data_source.data = dict(self.stacks_sources[count].data)
 
                 count += 1
@@ -874,9 +953,16 @@ def get_test_session(doc):
     sess = test_portal()
     return sess(doc)
 
-def get_os_session(doc):
-    dum_images, dum_objids, dum_metric, dum_umapd = grab_dum_data()
-    sess = os_web(dum_images, dum_objids, dum_metric, dum_umapd)
+def get_test_os_session(doc):
+    images, objids, metric, umapd = grab_dum_data()
+    # Instantiate
+    sess = os_web(images, objids, metric, umapd)
+    return sess(doc)
+
+def get_modis_subset_os_session(doc):
+    images, objids, metric, umapd = grab_modis_subset()
+    # Instantiate
+    sess = os_web(images, objids, metric, umapd)
     return sess(doc)
 
 def grab_dum_data():
@@ -889,6 +975,36 @@ def grab_dum_data():
     dum_umapd = dict(UMAP=dum_umap)
     #
     return dum_images, dum_objids, dum_metric, dum_umapd
+
+def grab_modis_subset():
+    # Load up 
+    sst_dir='/data/Projects/Oceanography/AI/OOD/SST/MODIS_L2/PreProc/'
+    data_file = os.path.join(sst_dir, 
+                             'MODIS_R2019_2010_95clear_128x128_preproc_std.h5')
+    results_path = '/data/Projects/Oceanography/AI/SSL/portal/'
+    umaps_path = os.path.join(results_path, 'embeddings')
+
+    # Images
+    nimgs = 10000
+    sub_idx = np.arange(nimgs)
+    f = h5py.File(data_file, 'r') 
+    images = f["valid"][sub_idx,0,:,:]
+    f.close()
+
+    # UMAP
+    umap_file = os.path.join(umaps_path, 'UMAP_2010_valid_v1.npz')
+    f = np.load(umap_file, allow_pickle=False)
+    e1, e2 = f['e1'], f['e2']
+    umap_dict = {}
+    umap_dict['UMAP'] = (np.array([e1, e2]).T)[sub_idx]
+
+    # Metrics
+    results_file = os.path.join(results_path, 'ulmo_2010_valid_v1.parquet')
+    res = pandas.read_parquet(results_file)
+    metric_dict = {'LL': res.LL.values[sub_idx]}
+
+    return images, sub_idx, metric_dict, umap_dict
+
 
 def main(flg):
     flg = int(flg)
@@ -908,12 +1024,26 @@ def main(flg):
 
     # Real deal
     if flg & (2 ** 2):
-        server = Server({'/': get_os_session}, num_procs=1)
+        server = Server({'/': get_test_os_session}, num_procs=1)
         server.start()
-        print('Opening Bokeh application on http://localhost:5006/')
+        print('Opening Bokeh application for test data on http://localhost:5006/')
 
         server.io_loop.add_callback(server.show, "/")
         server.io_loop.start()
+
+    # Test modis subset
+    if flg & (2 ** 3):
+        dum_images, dum_objids, dum_metric, dum_umapd = grab_modis_subset()
+        sess = os_web(dum_images, dum_objids, dum_metric, dum_umapd)
+
+    if flg & (2 ** 4):
+        server = Server({'/': get_modis_subset_os_session}, num_procs=1)
+        server.start()
+        print('Opening Bokeh application for MODIS subset on http://localhost:5006/')
+
+        server.io_loop.add_callback(server.show, "/")
+        server.io_loop.start()
+
 
 if __name__ == '__main__':
     import sys
@@ -921,7 +1051,9 @@ if __name__ == '__main__':
         flg = 0
         #flg += 2 ** 0  # Test bokeh
         #flg += 2 ** 1  # Test object
-        flg += 2 ** 2  # Full Test 
+        #flg += 2 ** 2  # Full Test 
+        #flg += 2 ** 3  # Test load MODIS subset
+        flg += 2 ** 4  # Full MODIS subset
     else:
         flg = sys.argv[1]
 
