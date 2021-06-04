@@ -6,6 +6,7 @@ import time
 
 import json
 import skimage.transform
+import skimage.filters
 import h5py
 
 import torch
@@ -194,7 +195,7 @@ class RandomJitterCrop:
         
         image_width, image_height = image.shape[0], image.shape[1]
         
-        ### comment this command after test
+        ### comment these commands after test
         #assert (offset_left + offset_right) == rand_crop_x, "Crop is Wrong!"
         #assert (offset_low + offset_high) == rand_crop_y, "Crop is Wrong!"
         #assert (offset_low >= 0) and (offset_left >= 0), "Crop is Wrong!"
@@ -218,6 +219,15 @@ class GaussianNoise:
 
         return image
     
+class GaussianBlurring:
+    def __init__(self, sigma=1):
+        self.sigma = sigma
+        
+    def __call__(self, image):
+        image_blurred = skimage.filters.gaussian(image, sigma=self.sigma)
+    
+        return image_blurred
+        
 class ModisDataset(Dataset):
     def __init__(self, data_path, transform):
         self.data_path = data_path
@@ -257,6 +267,23 @@ def modis_loader(opt):
 def modis_loader_v2(opt):
     transforms_compose = transforms.Compose([RandomRotate(),
                                              RandomJitterCrop(),
+                                             GaussianNoise(instrument_noise=(0, 0.05)),
+                                             transforms.ToTensor()])
+    modis_path = opt.data_folder
+    #from_s3 = (modis_path.split(':')[0] == 's3')
+    #modis_dataset = ModisDataset(modis_path, transform=TwoCropTransform(transforms_compose), from_s3=from_s3)
+    modis_dataset = ModisDataset(modis_path, transform=TwoCropTransform(transforms_compose))
+    train_sampler = None
+    train_loader = torch.utils.data.DataLoader(
+                    modis_dataset, batch_size=opt.batch_size, shuffle=(train_sampler is None),
+                    num_workers=opt.num_workers, pin_memory=False, sampler=train_sampler)
+    
+    return train_loader
+
+def modis_loader_v2_with_blurring(opt):
+    transforms_compose = transforms.Compose([RandomRotate(),
+                                             RandomJitterCrop(),
+                                             GaussianBlurring(),
                                              GaussianNoise(instrument_noise=(0, 0.05)),
                                              transforms.ToTensor()])
     modis_path = opt.data_folder
