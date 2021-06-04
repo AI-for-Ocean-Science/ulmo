@@ -214,26 +214,30 @@ class os_web(object):
             size='radius',
             view=self.umap_view)
 
+        self.plot_snapshot()
+        #color_mapper = LinearColorMapper(palette="Turbo256", 
+        #                                 low=self.data_source.data['min'][0],
+        #                                 high=self.data_source.data['max'][0])
+        #self.data_image = self.data_figure.image(
+        #    'image', 'x', 'y', 'dw', 'dh', source=self.data_source,
+        #    color_mapper=color_mapper)
+        
+        #self.data_image.add_layout(color_bar, 'right')
+
         color_mapper = LinearColorMapper(palette="Turbo256", 
                                          low=self.data_source.data['min'][0],
                                          high=self.data_source.data['max'][0])
-        self.data_image = self.data_figure.image(
-            'image', 'x', 'y', 'dw', 'dh', source=self.data_source,
-            color_mapper=color_mapper)
-        
-        color_bar = ColorBar(color_mapper=color_mapper, ticker= BasicTicker(),
-                     location=(0,0))
-        #self.data_image.add_layout(color_bar, 'right')
-
         self.spectrum_stacks = []
         for i in range(self.nrow*self.ncol):
             #spec_stack = self.gallery_figures[i].image_rgba(
             spec_stack = self.gallery_figures[i].image(
-                'image', 'x', 'y', 'dw', 'dh', source=self.stacks_sources[i],
+                'image', 'x', 'y', 'dw', 'dh', 
+                source=self.stacks_sources[i],
                 color_mapper=color_mapper)
             self.spectrum_stacks.append(spec_stack)
 
-        self.gallery_figure = gridplot(self.gallery_figures, ncols=self.ncol)
+        self.gallery_figure = gridplot(self.gallery_figures, 
+                                       ncols=self.ncol)
 
         self.umap_search_galaxy = self.umap_figure.circle(
             'xs', 'ys', source=self.search_galaxy_source, alpha=0.5,
@@ -436,7 +440,9 @@ class os_web(object):
 
         ### !!!NOTE!!! careful with semicolons here, all vars except last need one!
         self.update_table.js_on_change('value', CustomJS(
-            args=dict(s1=self.umap_source_view, s2=self.selected_galaxies_source, s3=self.selected_objects), code="""
+            args=dict(s1=self.umap_source_view, 
+                      s2=self.selected_galaxies_source, 
+                      s3=self.selected_objects), code="""
                     var d2 = s2.data;
                     console.log(s3.attributes.data.index);
                     var selected_objects = s3.attributes.data.index;
@@ -552,7 +558,6 @@ class os_web(object):
         return callback
 
 
-
     def search_object_callback(self):
         print('search obj')
         def callback(attr, old, new):
@@ -661,6 +666,15 @@ class os_web(object):
             count += 1
 
 
+    def plot_snapshot(self):
+        color_mapper = LinearColorMapper(palette="Turbo256", 
+                                         low=self.data_source.data['min'][0],
+                                         high=self.data_source.data['max'][0])
+        self.data_image = self.data_figure.image(
+            'image', 'x', 'y', 'dw', 'dh', source=self.data_source,
+            color_mapper=color_mapper)
+        #color_bar = ColorBar(color_mapper=color_mapper, ticker= BasicTicker(),
+        #             location=(0,0))
 
     def update_snapshot(self):
         print("update snapshot")
@@ -676,8 +690,8 @@ class os_web(object):
                     'min': [np.min(im)], 'max': [np.max(im)]}
         )
         
-        self.data_image.data_source.data = dict(self.data_source.data)
-
+        # More expensive
+        self.plot_snapshot()
         self.data_figure.title.text = '{}'.format(int(specobjid))
         #self.link_div.text='<center>View galaxy in <a href="{}" target="_blank">{}</a></center>'.format(
         #    self.obj_link(int(self.select_galaxy.value)), 'SDSS object explorer')
