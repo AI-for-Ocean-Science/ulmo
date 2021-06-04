@@ -417,7 +417,7 @@ class astro_web(object):
         self.umap_figure.title.text_font_size = '17pt'
 
         # TODO -- Fix this
-        if 'ulmo' in embedding_name:
+        if 'UMAP' in embedding_name:
             self.umap_figure.xaxis.major_tick_line_color = None  # turn off x-axis major ticks
             self.umap_figure.xaxis.minor_tick_line_color = None  # turn off x-axis minor ticks
 
@@ -440,14 +440,6 @@ class astro_web(object):
             self.umap_figure.yaxis.major_label_text_font_size = "15pt"
             self.umap_figure.xaxis.axis_label_text_font_size = "15pt"
             self.umap_figure.yaxis.axis_label_text_font_size = "15pt"
-
-            # self.umap_figure.yaxis.axis_label = 'Log(OIII / Hb)'
-            # if 'NII' in embedding_name:
-            #     self.umap_figure.xaxis.axis_label = 'Log(NII / Ha)'
-            # elif 'OI' in embedding_name:
-            #     self.umap_figure.xaxis.axis_label = 'Log(OI / Ha)'
-            # elif 'SII' in embedding_name:
-            #     self.umap_figure.xaxis.axis_label = 'Log(SII / Ha)'
 
         return
 
