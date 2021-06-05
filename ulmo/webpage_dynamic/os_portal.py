@@ -83,7 +83,7 @@ class os_web(object):
                                     self.select_metric,
                                     self.search_object, 
                                     self.data_figure, 
-                                    self.selected_galaxies_table), #, self.title_div  
+                                    self.selected_objects_table), #, self.title_div  
                             )
                                    #row(self.prev_button, self.next_button)),
                             )
@@ -111,12 +111,14 @@ class os_web(object):
         """
         self.info_div = Div(text=info_text, style={'font-size': '119%', 'color': 'black'})#, sizing_mode="stretch_width")
 
-        self.selected_galaxies_columns = [
-            TableColumn(field="index", title="Index"),
-            TableColumn(field="info_id", title="Info ID"),
-            TableColumn(field="object_id", title="Object ID"),
-            TableColumn(field="score", title="Score", formatter=NumberFormatter(format = '0.0000')),
-        ]
+        self.selected_objects_columns = []
+            #TableColumn(field="index", title="Index"),
+        for key in self.metric_dict.keys():
+            self.selected_objects_columns.append(
+                TableColumn(field=key, title=key, 
+                            formatter=NumberFormatter(format='0.00')),
+            )
+
         self.select_object = TextInput(title='Select Object Index:', value=str(self.first_im_index))
 
         self.update_table = Select(title="Inactive", value="",
@@ -204,9 +206,9 @@ class os_web(object):
             self.gallery_figures[i].title = t
 
         # Galaxy Table
-        self.selected_galaxies_table = DataTable(
-            source=self.selected_galaxies_source,
-            columns=self.selected_galaxies_columns,
+        self.selected_objects_table = DataTable(
+            source=self.selected_objects_source,
+            columns=self.selected_objects_columns,
             width=column_width,
             height=200,
             scroll_to_selection=False)
@@ -301,25 +303,34 @@ class os_web(object):
             )
             self.stacks_sources.append(source)
             count += 1
-
         self.stacks_source = ColumnDataSource(
             data = {'image':[im], 'x':[0], 'y':[0], 'dw':[xsize], 'dh':[ysize]}
         )
 
-        self.selected_galaxies_source = ColumnDataSource(dict(
-            index=[],
-            score=[],
-            order=[],
-            info_id=[],
-            object_id=[]
-        ))
+        # Generate the data table for the sources
+        cdata = dict(index=[])
+        for key in self.metric_dict.keys():
+            cdata[key] = []
+        self.selected_objects_source = ColumnDataSource(cdata)
 
+        # Locations
         self.search_galaxy_source = ColumnDataSource(dict(
             xs=[self.umap_data[embedding][0, 0]],
             ys=[self.umap_data[embedding][0, 1]],
         ))
 
-    def process_image(self, im):
+    def process_image(self, im:np.ndarray):
+        """Prep the image for plotting
+        Allows for RGB
+
+        No change for a 'grey-scale' image
+
+        Args:
+            im (np.ndarray): Input image
+
+        Returns:
+            np.ndarray: prepped image
+        """
         if self.nchannel > 1:
             # This is necessary for displaying image properly
             alpha = np.full((im.shape[0], im.shape[1], 1), 255)
@@ -372,31 +383,14 @@ class os_web(object):
         self.umap_figure.on_event(PanEnd, self.reset_stack_index)
         self.umap_figure.on_event(PanEnd, self.select_stacks_callback())
 
-        #self.umap_figure.on_event(PanEnd, self.debug())
-
-        self.selected_galaxies_source.selected.on_change(
+        self.selected_objects_source.selected.on_change(
             'indices', self.selected_objects_callback)
-        '''
-        self.selected_galaxies_source.selected.js_on_change(
-            'indices', 
-            CustomJS(
-                args=dict(s1=self.selected_galaxies_source, 
-                          sg=self.select_object), 
-                code="""
-                    var inds = s1.attributes.selected['1d'].indices
-                    if (inds.length > 0) {
-                    sg.value = String(s1.data.index[inds[0]]);
-                    }
-                    console.log(s1);
-                    console.log('selected_galaxies_source_js')
-                    """))
-        '''
 
         self.umap_source_view.selected.on_change('indices', 
                                                  self.umap_source_callback)     
 
         self.select_score_table.js_on_change('value', CustomJS(
-            args=dict(s1=self.umap_source_view, s2=self.selected_galaxies_source, 
+            args=dict(s1=self.umap_source_view, s2=self.selected_objects_source, 
                       s4=self.obj_links, s5=self.obj_ids), code="""
                     var inds = s1.attributes.selected['1d'].indices
                     var d1 = s1.data;
@@ -421,7 +415,7 @@ class os_web(object):
         ### !!!NOTE!!! careful with semicolons here, all vars except last need one!
         self.update_table.js_on_change('value', CustomJS(
             args=dict(s1=self.umap_source_view, 
-                      s2=self.selected_galaxies_source, 
+                      s2=self.selected_objects_source, 
                       s3=self.selected_objects), code="""
                     var d2 = s2.data;
                     console.log(s3.attributes.data.index);
@@ -583,36 +577,19 @@ class os_web(object):
     def umap_source_callback(self, attr, old, new):
         # Init
         tdict = {}
-        for key in ['index', 'score', 'order', 'info_id', 'object_id']:
+        for key in ['index']+list(self.metric_dict.keys()):
             tdict[key] = []
         # Fill
         for ii in new:
             idx = self.umap_source_view.data['names'][ii]
             # Loop on selected objects and galaxy table data
-            '''
-            for obj in [self.selected_objects, 
-                        self.selected_galaxies_source]:
-                obj.data['index'].append(idx)
-                obj.data['info_id'].append(
-                    self.obj_links[idx])
-                obj.data['object_id'].append(
-                    self.obj_ids[idx])
-                obj.data['score'].append(
-                    self.umap_source_view.data['color_data'][ii])
-                obj.data['order'].append(0.0)
-            '''
             # Selected objects
             tdict['index'].append(idx)
-            tdict['info_id'].append(
-                self.obj_links[idx])
-            tdict['object_id'].append(
-                self.obj_ids[idx])
-            tdict['score'].append(
-                self.umap_source_view.data['color_data'][ii])
-            tdict['order'].append(0.0)
+            # Metrics
+            for key in self.metric_dict.keys():
+                tdict[key].append(self.metric_dict[key][idx])
         # Update
-        self.selected_galaxies_source.data = tdict.copy()
-        #self.selected_galaxies_table.source.data = tdict.copy()
+        self.selected_objects_source.data = tdict.copy()
         self.selected_objects.data = tdict.copy()
 
     def stacks_callback(self):
