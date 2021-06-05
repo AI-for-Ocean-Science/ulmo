@@ -215,28 +215,9 @@ class os_web(object):
             size='radius',
             view=self.umap_view)
 
-        self.plot_snapshot()
-        #color_mapper = LinearColorMapper(palette="Turbo256", 
-        #                                 low=self.data_source.data['min'][0],
-        #                                 high=self.data_source.data['max'][0])
-        #self.data_image = self.data_figure.image(
-        #    'image', 'x', 'y', 'dw', 'dh', source=self.data_source,
-        #    color_mapper=color_mapper)
-        
-        #self.data_image.add_layout(color_bar, 'right')
+        self.plot_snapshot(init=True)
 
-        color_mapper = LinearColorMapper(palette="Turbo256", 
-                                         low=self.data_source.data['min'][0],
-                                         high=self.data_source.data['max'][0])
-        self.spectrum_stacks = []
-        for i in range(self.nrow*self.ncol):
-            #spec_stack = self.gallery_figures[i].image_rgba(
-            spec_stack = self.gallery_figures[i].image(
-                'image', 'x', 'y', 'dw', 'dh', 
-                source=self.stacks_sources[i],
-                color_mapper=color_mapper)
-            self.spectrum_stacks.append(spec_stack)
-
+        self.plot_gallery()
         self.gallery_figure = gridplot(self.gallery_figures, 
                                        ncols=self.ncol)
 
@@ -585,6 +566,7 @@ class os_web(object):
                 else:
                     print('Update obj from search')
                     self.update_snapshot()
+                    self.plot_gallery()  # Resets color map
 
         return callback
 
@@ -662,21 +644,38 @@ class os_web(object):
             )
             self.stacks_sources.append(source)
             self.gallery_figures[count].title.text = new_title
-            self.spectrum_stacks[count].data_source.data = dict(self.stacks_sources[count].data)
+            #self.spectrum_stacks[count].data_source.data = dict(self.stacks_sources[count].data)
 
             count += 1
+        self.plot_gallery()
 
 
-    def plot_snapshot(self):
-        color_mapper = LinearColorMapper(palette="Turbo256", 
+    def plot_snapshot(self, init=False):
+        """ Plot the current image with color mapper and bar
+        """
+        self.snap_color_mapper = LinearColorMapper(palette="Turbo256", 
                                          low=self.data_source.data['min'][0],
                                          high=self.data_source.data['max'][0])
         self.data_image = self.data_figure.image(
             'image', 'x', 'y', 'dw', 'dh', source=self.data_source,
-            color_mapper=color_mapper)
-        color_bar = ColorBar(color_mapper=color_mapper, ticker= BasicTicker(),
-                     location=(0,0))
-        self.data_image = self.data_figure.add_layout(color_bar, 'right')
+            color_mapper=self.snap_color_mapper)
+        # Add color bar
+        self.color_bar = ColorBar(color_mapper=self.snap_color_mapper, 
+                             ticker= BasicTicker(), location=(0,0))
+        if init:
+            self.data_figure.add_layout(self.color_bar, 'right')
+        else:
+            self.data_figure.right[0].color_mapper.low = self.snap_color_mapper.low
+            self.data_figure.right[0].color_mapper.high = self.snap_color_mapper.high
+
+    def plot_gallery(self):
+        self.spectrum_stacks = []
+        for i in range(self.nrow*self.ncol):
+            spec_stack = self.gallery_figures[i].image(
+                'image', 'x', 'y', 'dw', 'dh', 
+                source=self.stacks_sources[i],
+                color_mapper=self.snap_color_mapper)
+            self.spectrum_stacks.append(spec_stack)
 
     def update_snapshot(self):
         print("update snapshot")
@@ -1017,7 +1016,12 @@ def grab_modis_subset():
     # Metrics
     results_file = os.path.join(results_path, 'ulmo_2010_valid_v1.parquet')
     res = pandas.read_parquet(results_file)
-    metric_dict = {'LL': res.LL.values[sub_idx]}
+    metric_dict = {'LL': res.LL.values[sub_idx], 
+                   'lat': res.lat.values[sub_idx],
+                   'lon': res.lat.values[sub_idx],
+                   'avgT': res.mean_temperature.values[sub_idx],
+                   'DT': (res.T90-res.T10).values[sub_idx],
+    }
 
     return images, sub_idx, metric_dict, umap_dict
 
