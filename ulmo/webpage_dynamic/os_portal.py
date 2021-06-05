@@ -112,7 +112,6 @@ class os_web(object):
         self.info_div = Div(text=info_text, style={'font-size': '119%', 'color': 'black'})#, sizing_mode="stretch_width")
 
         self.selected_objects_columns = []
-            #TableColumn(field="index", title="Index"),
         for key in self.metric_dict.keys():
             self.selected_objects_columns.append(
                 TableColumn(field=key, title=key, 
@@ -188,7 +187,6 @@ class os_web(object):
 
         self.umap_colorbar = ColorBar(color_mapper=self.color_mapper, location=(0, 0), 
                                       major_label_text_font_size='15pt', 
-                                      title=self.dropdown_dict['metric'],
                                       label_standoff=13)
         self.umap_figure.add_layout(self.umap_colorbar, 'right')
 
@@ -478,11 +476,12 @@ class os_web(object):
         figure.yaxis.major_tick_line_color = None  # turn off y-axis major ticks
         figure.yaxis.minor_tick_line_color = None  # turn off y-axis minor tick
 
-    def set_colormap(self, metric:np.ndarray):
+    def set_colormap(self, metric:np.ndarray, metric_key:str):
         """Set the color map for the given metric
 
         Args:
-            metric (np.ndarray): Metric of interest, e.g. LL
+            metric (np.ndarray): Metric values of interest
+            metric_key (str): Metric of interest, e.g. LL
         """
         mx = np.nanmax(metric)
         mn = np.nanmin(metric)
@@ -498,14 +497,13 @@ class os_web(object):
                 nmx = np.sort(metric)[-nth]
                 if nmx*1.2 < mx:
                     high = nmx
+        
+        # THIS ISN'T THE BEST IDEA
+        if metric_key == 'LL':
+            low = max(low, -1000.)
 
         self.color_mapper.high = high
         self.color_mapper.low = low
-        # Update label
-        if hasattr(self,'umap_figure'):
-            # A Bokeh bug is likely keeping this from doing what we want
-            self.umap_colorbar.title = self.dropdown_dict['metric']
-            self.umap_figure.right[0].title = self.dropdown_dict['metric']
 
         return
 
@@ -691,7 +689,7 @@ class os_web(object):
         metric = self.metric_dict[metric_key]
         embedding = self.dropdown_dict['embedding']
 
-        self.set_colormap(metric)
+        self.set_colormap(metric, metric_key)
 
         self.umap_source = ColumnDataSource(
             data=dict(xs=self.umap_data[embedding][:, 0],
