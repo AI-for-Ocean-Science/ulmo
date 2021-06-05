@@ -95,19 +95,19 @@ class os_web(object):
         self.main_title_div = Div(text='<center>OS Image Visualization Tool</center>', style={'font-size': '299%', 'color': 'black'}, sizing_mode="stretch_width")
         info_text = """
         <p><b>What is this?</b></p>
-        <p>This is an interactive tool for visualizing the results of an anomaly detection approach on a set of galaxies. Each dot is a galaxy image from the Hyper Suprime-Cam survey. The distribution is a UMAP, a 1D representation of the images. The colors show how anomalous our generative adversarial network (GAN) found each galaxy. Choose the UMAP embedding and the colormapping on the right; the default is UMAP on autencoded residuals, colored by total anomaly score.</p>
+        <p>This is an interactive tool for visualizing the results of pattern analysis of Ocean Science imagery</p>
         
         <p><b>Cool! How do I use it?</b></p>
         <ul>
-            <li>Use the lasso to select a region of galaxies; these will appear in the bottom squares. Scroll through them with the 'Previous' and 'Next' buttons.
-            <li>The selected galaxies will also appear in the table on the right; sort them by clicking the column names. Click a row to see the image in the large viewbox.
-            <li>Use the zoom tool to see more galaxies in an area; only a subset are shown (and will be selected) on the main plot.
-            <li>Type a galaxy ID in the text box and hit enter to jump to that image on the plot and in the viewbox.
+            <li>Use the lasso to select a region of sources; these will appear in the bottom squares. 
+            <li>The selected objects will also appear in the table on the right; sort them by clicking the column names. Click a row to see the image in the large viewbox.
+            <li>Use the zoom tool to see more objects in an area; only a subset are shown (and will be selected) on the main plot.
+            <li>Type a object ID in the text box and hit enter to jump to that image on the plot and in the viewbox.
             <li>Double click anywhere on the plot to reset it.
         </ul>
-        <p>Find the code for this project on <a href="https://github.com/kstoreyf/anomalies-GAN-HSC">github</a>. Happy weird-galaxy-finding!</p>
-        <p><b>Author:</b> Kate Storey-Fisher</p>
-        <p><i>Adapted from the <a href="https://toast-docs.readthedocs.io/en/latest/">SDSS galaxy portal</a> by Itamar Reis</i></p>
+        <p>Find the code for this project on <a href="https://github.com/kstoreyf/anomalies-GAN-HSC">github</a>. Happy object-finding!</p>
+        <p><b>Author:</b> X</p>
+        <p><i>Adapted from the <a href="https://toast-docs.readthedocs.io/en/latest/">SDSS galaxy portal</a> by Itamar Reis and Kate Storrey-Fisher</i></p>
         """
         self.info_div = Div(text=info_text, style={'font-size': '119%', 'color': 'black'})#, sizing_mode="stretch_width")
 
@@ -187,7 +187,9 @@ class os_web(object):
 
 
         self.umap_colorbar = ColorBar(color_mapper=self.color_mapper, location=(0, 0), 
-                                      major_label_text_font_size='15pt', label_standoff=13)
+                                      major_label_text_font_size='15pt', 
+                                      title=self.dropdown_dict['metric'],
+                                      label_standoff=13)
         self.umap_figure.add_layout(self.umap_colorbar, 'right')
 
         self.umap_figure_axes()
@@ -499,6 +501,11 @@ class os_web(object):
 
         self.color_mapper.high = high
         self.color_mapper.low = low
+        # Update label
+        if hasattr(self,'umap_figure'):
+            # A Bokeh bug is likely keeping this from doing what we want
+            self.umap_colorbar.title = self.dropdown_dict['metric']
+            self.umap_figure.right[0].title = self.dropdown_dict['metric']
 
         return
 
