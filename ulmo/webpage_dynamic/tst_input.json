@@ -1,0 +1,13 @@
+{
+    "image_file": "/data/Projects/Oceanography/AI/OOD/SST/MODIS_L2/PreProc/MODIS_R2019_2010_95clear_128x128_preproc_std.h5",
+    "image_key": "valid",
+    "Nimages": 100000,
+    "xy_values": "UMAP",
+    "UMAP_file": "/data/Projects/Oceanography/AI/SSL/portal/embeddings/UMAP_2010_valid_v1.npz",
+    "metric_file": "/data/Projects/Oceanography/AI/SSL/portal/ulmo_2010_valid_v1.parquet",
+    "metrics": [
+        ["LL", "LL"],
+        ["DT", "DT"],
+        ["avgT", "mean_temperature"]
+    ]
+}

@@ -27,13 +27,16 @@ from IPython import embed
 
 class os_web(object):
     """ Primary class for the web site """
-    def __init__(self, images, obj_ids, metric_dict, umap_data):
+    def __init__(self, data_dict, config=None): #images, obj_ids, metric_dict, umap_data):
+
         # Slurp
-        self.images = images
-        self.obj_ids = obj_ids
-        self.obj_links = obj_ids
-        self.metric_dict = metric_dict
-        self.umap_data = umap_data
+        self.images = data_dict['images']
+        self.obj_links = np.arange(self.images.shape[0])
+        self.obj_ids = np.arange(self.images.shape[0])
+
+        self.metric_dict = data_dict['metrics']
+
+        self.umap_data = data_dict['xy_scatter']
         #
         if self.images.ndim == 3:
             self.nchannel = 1
@@ -784,6 +787,8 @@ class os_web(object):
 
         if nof_selected_objects > 0:
             order = np.array([float(o) for o in self.selected_objects.data['order']])
+            # NEED TO REFACTOR FOR METICS
+            import pdb; pdb.set_trace()
             self.selected_objects.data = dict(
                 index=list(selected_objects), 
                 score=[-999999 if np.isnan(metric[s]) else metric[s] for s in selected_objects],
@@ -983,9 +988,9 @@ def get_test_os_session(doc):
     return sess(doc)
 
 def get_modis_subset_os_session(doc):
-    images, objids, metric, umapd = grab_modis_subset()
+    data_dict = grab_modis_subset()
     # Instantiate
-    sess = os_web(images, objids, metric, umapd)
+    sess = os_web(data_dict)
     return sess(doc)
 
 def grab_dum_data():
@@ -996,6 +1001,7 @@ def grab_dum_data():
     dum_LL = np.random.uniform(low=0., high=100., size=nobj)
     dum_metric = dict(LL=dum_LL)
     dum_umapd = dict(UMAP=dum_umap)
+    embed(header='NEED TO REFACTOR')
     #
     return dum_images, dum_objids, dum_metric, dum_umapd
 
@@ -1018,8 +1024,6 @@ def grab_modis_subset():
     umap_file = os.path.join(umaps_path, 'UMAP_2010_valid_v1.npz')
     f = np.load(umap_file, allow_pickle=False)
     e1, e2 = f['e1'], f['e2']
-    umap_dict = {}
-    umap_dict['UMAP'] = (np.array([e1, e2]).T)[sub_idx]
 
     # Metrics
     results_file = os.path.join(results_path, 'ulmo_2010_valid_v1.parquet')
@@ -1031,7 +1035,14 @@ def grab_modis_subset():
                    'DT': (res.T90-res.T10).values[sub_idx],
     }
 
-    return images, sub_idx, metric_dict, umap_dict
+    # Repack
+    data_dict = {
+        'images': images,
+        'xy_scatter': dict(UMAP=(np.array([e1, e2]).T)[sub_idx]),
+        'metrics': metric_dict,
+    }
+
+    return data_dict
 
 
 def main(flg):
@@ -1061,8 +1072,8 @@ def main(flg):
 
     # Test modis subset
     if flg & (2 ** 3):
-        dum_images, dum_objids, dum_metric, dum_umapd = grab_modis_subset()
-        sess = os_web(dum_images, dum_objids, dum_metric, dum_umapd)
+        data_dict = grab_modis_subset()
+        sess = os_web(data_dict)
 
     if flg & (2 ** 4):
         server = Server({'/': get_modis_subset_os_session}, num_procs=1)
