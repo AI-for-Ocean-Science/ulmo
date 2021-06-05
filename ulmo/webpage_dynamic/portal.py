@@ -1174,7 +1174,6 @@ class astro_web(object):
                                                                     console.log('selected_galaxies_source_js')
                                                                     """))
 
-        # TODO -- Need to put this back!!
         self.umap_source_view.selected.js_on_change('indices', CustomJS(
             args=dict(s1=self.umap_source_view, s2=self.selected_galaxies_source, 
                       s3=self.selected_objects, s4=self.obj_links, s5=self.object_ids), code="""

@@ -79,9 +79,11 @@ class os_web(object):
         doc.add_root(column(row(self.main_title_div ), 
                             row(column(self.info_div), 
                                 column(self.umap_figure, self.gallery_figure), 
-                                column(self.search_object, 
-                                       self.data_figure, 
-                                       self.selected_galaxies_table), #, self.title_div  
+                                column(
+                                    self.select_metric,
+                                    self.search_object, 
+                                    self.data_figure, 
+                                    self.selected_galaxies_table), #, self.title_div  
                             )
                                    #row(self.prev_button, self.next_button)),
                             )
@@ -135,6 +137,14 @@ class os_web(object):
                                          options=[])
         self.internal_reset = Select(title="Inactive", value="",
                                          options=[])
+        # 
+        select_metric_menu = []
+        for key in self.metric_dict.keys():
+            select_metric_menu.append((key,key))
+        self.select_metric = Dropdown(label="Color by:", 
+                                      button_type="danger", 
+                                      menu=select_metric_menu)#, value='Anomaly Score')
+        self.dropdown_dict['metric'] = 'LL'
 
     def generate_figures(self):
 
@@ -232,21 +242,10 @@ class os_web(object):
         """Load up the various data sources into Bokeh objects
         """
 
+        self.update_color(None)
         # Unpack for convenience
         metric = self.metric_dict[self.dropdown_dict['metric']]
         embedding = self.dropdown_dict['embedding']
-
-        self.set_colormap(metric)
-        print('generate sources')
-        self.umap_source = ColumnDataSource(
-            #data=dict(xs=self.umap_data[self.select_umap.value][:, 0],
-            #          ys=self.umap_data[self.select_umap.value][:, 1],
-            data=dict(xs=self.umap_data[embedding][:, 0],
-                      ys=self.umap_data[embedding][:, 1],
-                      color_data=metric[:],
-                      names=list(np.arange(len(metric))),
-                      radius=[self.R_DOT] * len(metric)),
-                      )
 
         self.xlim = (np.min(self.umap_source.data['xs']) - self.UMAP_XYLIM_DELTA, np.max(self.umap_source.data['xs']) + self.UMAP_XYLIM_DELTA)
         self.ylim = (np.min(self.umap_source.data['ys']) - self.UMAP_XYLIM_DELTA, np.max(self.umap_source.data['ys']) + self.UMAP_XYLIM_DELTA)
@@ -359,7 +358,7 @@ class os_web(object):
         self.search_object.on_change('value', self.search_object_callback())
 
         # Dropdown's
-        #self.select_score.on_change('value', self.update_color())
+        self.select_metric.on_click(self.update_color)
         '''
         self.select_umap.on_change('value', self.update_umap_figure())
 
@@ -393,7 +392,6 @@ class os_web(object):
                     """))
         '''
 
-        # TODO -- Need to put this back!!
         self.umap_source_view.selected.on_change('indices', 
                                                  self.umap_source_callback)     
 
@@ -699,6 +697,34 @@ class os_web(object):
 
         return
 
+    def update_color(self, event):
+        # Update?
+        if event is not None:
+            self.dropdown_dict['metric'] = event.item
+            self.umap_figure_axes()
+
+        metric_key = self.dropdown_dict['metric']
+        metric = self.metric_dict[metric_key]
+        embedding = self.dropdown_dict['embedding']
+
+        self.set_colormap(metric)
+
+        self.umap_source = ColumnDataSource(
+            data=dict(xs=self.umap_data[embedding][:, 0],
+                        ys=self.umap_data[embedding][:, 1],
+                        color_data=metric,
+                        radius=[self.R_DOT] * len(metric),
+                        names=list(np.arange(len(metric))),
+                    ))
+        # Init?
+        if event is None:
+            return
+
+        selected_objects = self.selected_objects.data['index']
+        background_objects = self.umap_source_view.data['names']
+
+        self.get_new_view_keep_selected(background_objects, selected_objects)
+        #self.select_score_table.value = self.select_score.value
 
 
     def update_umap_filter_event(self):
@@ -1018,7 +1044,7 @@ def grab_modis_subset():
     res = pandas.read_parquet(results_file)
     metric_dict = {'LL': res.LL.values[sub_idx], 
                    'lat': res.lat.values[sub_idx],
-                   'lon': res.lat.values[sub_idx],
+                   'lon': res.lon.values[sub_idx],
                    'avgT': res.mean_temperature.values[sub_idx],
                    'DT': (res.T90-res.T10).values[sub_idx],
     }
