@@ -174,7 +174,8 @@ class os_web(object):
         self.gallery_figure = gridplot(self.gallery_figures, ncols=self.ncol)
 
 
-        self.umap_colorbar = ColorBar(color_mapper=self.color_mapper, location=(0, 0), major_label_text_font_size='15pt', label_standoff=13)
+        self.umap_colorbar = ColorBar(color_mapper=self.color_mapper, location=(0, 0), 
+                                      major_label_text_font_size='15pt', label_standoff=13)
         self.umap_figure.add_layout(self.umap_colorbar, 'right')
 
         self.umap_figure_axes()
@@ -673,8 +674,9 @@ class os_web(object):
         self.data_image = self.data_figure.image(
             'image', 'x', 'y', 'dw', 'dh', source=self.data_source,
             color_mapper=color_mapper)
-        #color_bar = ColorBar(color_mapper=color_mapper, ticker= BasicTicker(),
-        #             location=(0,0))
+        color_bar = ColorBar(color_mapper=color_mapper, ticker= BasicTicker(),
+                     location=(0,0))
+        self.data_image = self.data_figure.add_layout(color_bar, 'right')
 
     def update_snapshot(self):
         print("update snapshot")
@@ -999,7 +1001,7 @@ def grab_modis_subset():
     umaps_path = os.path.join(results_path, 'embeddings')
 
     # Images
-    nimgs = 10000
+    nimgs = 100000
     sub_idx = np.arange(nimgs)
     f = h5py.File(data_file, 'r') 
     images = f["valid"][sub_idx,0,:,:]
