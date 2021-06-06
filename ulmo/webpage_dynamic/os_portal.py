@@ -24,7 +24,29 @@ from bokeh.colors import RGB
 from bokeh.transform import transform
 from bokeh.events import DoubleTap, PinchEnd, PanEnd, Reset
 
+# For the geography figure
+from bokeh.tile_providers import get_provider, Vendors
+from bokeh.transform import linear_cmap
+
+
 from IPython import embed
+
+def mercator_coord(lat, lon):
+    """Function to switch from lat/long to mercator coordinates
+
+    Args:
+        lat (float or np.ndarray): [description]
+        lon (float or np.ndarray): [description]
+
+    Returns:
+        tuple: x, y values in mercator
+    """
+    r_major = 6378137.000
+    x = r_major * np.radians(lon)
+    scale = x/lon
+    y = 180.0/np.pi * np.log(np.tan(np.pi/4.0 + 
+        lat * (np.pi/180.0)/2.0)) * scale
+    return x, y
 
 class os_web(object):
     """ Primary class for the web site """
@@ -38,7 +60,16 @@ class os_web(object):
         self.metric_dict = data_dict['metrics']
         self.obj_ids = data_dict['metrics']['obj_ID']
 
+        # Check for geo
+        if 'lat' in self.metric_dict.keys() and 'lon' in self.metric_dict.keys():
+            self.geo = True
+        else:
+            print("Geography plotting disabled.  Add lon,lat to your metrics")
+            self.geo = False
+
+        # Main data
         self.umap_data = data_dict['xy_scatter']
+
         #
         if self.images.ndim == 3:
             self.nchannel = 1
@@ -84,7 +115,8 @@ class os_web(object):
     def __call__(self, doc):
         doc.add_root(column(row(self.main_title_div ), 
                             row(column(self.info_div), 
-                                column(self.umap_figure, self.gallery_figure), 
+                                column(self.umap_figure, self.gallery_figure,
+                                       self.geo_figure), 
                                 column(
                                     self.select_metric,
                                     row(self.main_low, self.main_high),
@@ -169,15 +201,18 @@ class os_web(object):
 
         umap_plot_width = 800
         column_width = 350
-        self.umap_figure = figure(tools='lasso_select,tap,box_zoom,save,reset',
+        self.umap_figure = figure(tools='lasso_select,tap,box_zoom,pan,save,reset',
                                   plot_width=umap_plot_width,
                                   plot_height=600,
-                                  #title='UMAP',
                                   toolbar_location="above", output_backend='webgl', )  # x_range=(-10, 10),
-        #self.umap_figure.add_tools(taptool)
+        self.umap_colorbar = ColorBar(color_mapper=self.color_mapper, location=(0, 0), 
+                                      major_label_text_font_size='15pt', 
+                                      label_standoff=13)
+        self.umap_figure.add_layout(self.umap_colorbar, 'right')
+        self.umap_figure_axes()
 
-        # y_range=(-10, 10))
-        #self.umap_figure.toolbar.active_scroll = 'auto'
+
+        # Snapshot figure
         self.data_figure = figure(tools="box_zoom,save,reset", 
                                   plot_width=column_width,
                                   plot_height=column_width,
@@ -201,14 +236,6 @@ class os_web(object):
 
         self.gallery_figure = gridplot(self.gallery_figures, ncols=self.ncol)
 
-
-        self.umap_colorbar = ColorBar(color_mapper=self.color_mapper, location=(0, 0), 
-                                      major_label_text_font_size='15pt', 
-                                      label_standoff=13)
-        self.umap_figure.add_layout(self.umap_colorbar, 'right')
-
-        self.umap_figure_axes()
-
         # TODO: make this the index
         t = Title()
         t.text = 'TMP'
@@ -222,7 +249,7 @@ class os_web(object):
             t.text = ' '
             self.gallery_figures[i].title = t
 
-        # Galaxy Table
+        # Table
         self.selected_objects_table = DataTable(
             source=self.selected_objects_source,
             columns=self.selected_objects_columns,
@@ -230,8 +257,25 @@ class os_web(object):
             height=200,
             scroll_to_selection=False)
 
+        # Geography figure
+        tooltips = [("ID", "@obj_ID"), ("Lat","@lat"), ("Lon", "@lon")]
+        self.geo_figure = figure(tools='box_zoom,pan,save,reset',
+                                  plot_width=umap_plot_width,
+                                  plot_height=600,
+                                  toolbar_location="above", 
+                                  x_axis_type="mercator", 
+                                  y_axis_type="mercator", 
+                                  x_axis_label = 'Longitude', 
+                                  y_axis_label = 'Latitude', 
+                                  tooltips=tooltips,
+                                  output_backend='webgl', )  # x_range=(-10, 10),
+
     def generate_plots(self):
+        """Generate/init plots
+        """
+
         print("gen plots")
+        # Main scatter plot
         self.umap_scatter = self.umap_figure.scatter(
             'xs', 'ys', source=self.umap_source_view,
             color=transform('color_data', self.color_mapper),
@@ -244,17 +288,36 @@ class os_web(object):
             size='radius',
             view=self.umap_view)
 
+        # Snapshot
         self.plot_snapshot(init=True)
 
+        # Gallery
         self.plot_gallery()
         self.gallery_figure = gridplot(self.gallery_figures, 
                                        ncols=self.ncol)
 
+        # Search circle
         self.umap_search_galaxy = self.umap_figure.circle(
             'xs', 'ys', source=self.search_galaxy_source, alpha=0.5,
             color='tomato', size=self.R_DOT*4, line_color="black", line_width=2)
 
         LINE_ARGS = dict(color="#3A5785", line_color=None)
+
+        # Geography plot
+        # Add map tile
+        chosentile = get_provider(Vendors.STAMEN_TONER)
+        self.geo_figure.add_tile(chosentile)
+        self.geo_color_mapper = linear_cmap(
+            field_name = self.dropdown_dict['metric'],
+            palette = Plasma256, 
+            low = self.color_mapper.low,
+            high = self.color_mapper.high)
+        self.geo_figure.circle(
+            x = 'mercator_x', 
+            y = 'mercator_y', 
+            color = self.geo_color_mapper, 
+            source=self.geo_source, 
+            size=5, fill_alpha = 0.7)
 
 
     def generate_sources(self):
@@ -335,6 +398,13 @@ class os_web(object):
             xs=[self.umap_data[embedding][0, 0]],
             ys=[self.umap_data[embedding][0, 1]],
         ))
+
+        # Geography coords
+        #  The items need to include what is in the tooltips above
+        geo_dict = dict(mercator_x=[], mercator_y=[])
+        for key in self.metric_dict.keys():
+            geo_dict[key] = []
+        self.geo_source = ColumnDataSource(geo_dict)
 
     def process_image(self, im:np.ndarray):
         """Prep the image for plotting
@@ -658,6 +728,18 @@ class os_web(object):
         # Update
         self.selected_objects_source.data = tdict.copy()
         self.selected_objects.data = tdict.copy()
+
+        # Geo map
+        if self.geo:
+            mercator_x, mercator_y =  mercator_coord(
+                np.array(tdict['lat']), np.array(tdict['lon']))
+            #print(mercator_y)
+            geo_dict = dict(mercator_x=mercator_x.tolist(), 
+                            mercator_y=mercator_y.tolist())
+            # Metrics
+            for key in tdict.keys():
+                geo_dict[key] = tdict[key]
+            self.geo_source.data = geo_dict.copy()
 
     def stacks_callback(self):
         

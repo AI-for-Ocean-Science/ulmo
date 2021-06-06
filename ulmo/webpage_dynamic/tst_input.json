@@ -9,6 +9,7 @@
         ["LL", "LL"],
         ["DT", "DT"],
         ["lon", "lon"],
+        ["lat", "lat"],
         ["avgT", "mean_temperature"]
     ]
 }
