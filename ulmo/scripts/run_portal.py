@@ -48,7 +48,7 @@ def main(pargs):
 
     # Metrics
     res = pandas.read_parquet(idict['metric_file'])
-    metric_dict = {}
+    metric_dict = dict(obj_ID=sub_idx)
     for metric in idict['metrics']:
         if metric[0] == 'DT':
             metric_dict[metric[0]] = (res.T90-res.T10).values[sub_idx]

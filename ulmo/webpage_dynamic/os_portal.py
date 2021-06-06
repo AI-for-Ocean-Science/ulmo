@@ -1,5 +1,6 @@
 """ Bokeh portal for Ocean Sciences.  Based on Itamar Reiss' code 
 and further modified by Kate Storrey-Fisher"""
+from bokeh.models.widgets.tables import StringFormatter
 import numpy as np
 import os
 
@@ -32,9 +33,9 @@ class os_web(object):
         # Slurp
         self.images = data_dict['images']
         self.obj_links = np.arange(self.images.shape[0])
-        self.obj_ids = np.arange(self.images.shape[0])
 
         self.metric_dict = data_dict['metrics']
+        self.obj_ids = data_dict['metrics']['obj_ID']
 
         self.umap_data = data_dict['xy_scatter']
         #
@@ -62,6 +63,7 @@ class os_web(object):
         self.nrow, self.ncol = 2, 5
         self.first_im_index = 0
 
+        # TODO -- ELIMINATE THIS
         self.selected_objects = ColumnDataSource(
             data=dict(index=[], score=[], order=[], info_id=[], object_id=[]))
 
@@ -110,16 +112,20 @@ class os_web(object):
         </ul>
         <p>Find the code for this project on <a href="https://github.com/kstoreyf/anomalies-GAN-HSC">github</a>. Happy object-finding!</p>
         <p><b>Author:</b> X</p>
-        <p><i>Adapted from the <a href="https://toast-docs.readthedocs.io/en/latest/">SDSS galaxy portal</a> by Itamar Reis and Kate Storrey-Fisher</i></p>
+        <p><i>Adapted from the <a href="https://toast-docs.readthedocs.io/en/latest/">SDSS galaxy portal</a> by Itamar Reis and Kate Storey-Fisher</i></p>
         """
         self.info_div = Div(text=info_text, style={'font-size': '119%', 'color': 'black'})#, sizing_mode="stretch_width")
 
         self.selected_objects_columns = []
         for key in self.metric_dict.keys():
+            # Format
+            if key == 'obj_ID':
+                formatter=StringFormatter()
+            else:
+                formatter=NumberFormatter(format='0.00')
             self.selected_objects_columns.append(
                 TableColumn(field=key, title=key, 
-                            formatter=NumberFormatter(format='0.00')),
-            )
+                            formatter=formatter))
 
         self.select_object = TextInput(title='Select Object Index:', value=str(self.first_im_index))
 
@@ -1033,6 +1039,7 @@ def grab_modis_subset():
                    'lon': res.lon.values[sub_idx],
                    'avgT': res.mean_temperature.values[sub_idx],
                    'DT': (res.T90-res.T10).values[sub_idx],
+                   'obj_ID': sub_idx,
     }
 
     # Repack
