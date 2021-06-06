@@ -28,9 +28,10 @@ from IPython import embed
 
 class os_web(object):
     """ Primary class for the web site """
-    def __init__(self, data_dict, config=None): #images, obj_ids, metric_dict, umap_data):
+    def __init__(self, data_dict, config=None, verbose=False): #images, obj_ids, metric_dict, umap_data):
 
         # Slurp
+        self.verbose = verbose
         self.images = data_dict['images']
         self.obj_links = np.arange(self.images.shape[0])
 
@@ -86,9 +87,11 @@ class os_web(object):
                                 column(self.umap_figure, self.gallery_figure), 
                                 column(
                                     self.select_metric,
+                                    row(self.main_low, self.main_high),
                                     self.search_object, 
                                     self.data_figure, 
-                                    self.selected_objects_table), #, self.title_div  
+                                    self.selected_objects_table,
+                                    self.print_table), #, self.title_div  
                             )
                                    #row(self.prev_button, self.next_button)),
                             )
@@ -127,11 +130,14 @@ class os_web(object):
                 TableColumn(field=key, title=key, 
                             formatter=formatter))
 
-        self.select_object = TextInput(title='Select Object Index:', value=str(self.first_im_index))
+        self.select_object = TextInput(title='Select Object Index:', 
+                                       value=str(self.first_im_index))
 
         self.update_table = Select(title="Inactive", value="",
                                          options=[])
-        self.search_object = TextInput(title='Select Object Info ID:')
+        self.search_object = TextInput(title='Select Object ID:')
+        self.main_low = TextInput(title='Main CB Low:', max_width=100)
+        self.main_high = TextInput(title='Main CB High:', max_width=100)
 
     def gen_reverse_obj_links(self):
         """ makes a dictionary of info_ids to indices
@@ -143,10 +149,13 @@ class os_web(object):
         return {str(int(gl[v])): str(v) for v in range(len(gl))}
 
     def generate_buttons(self):
+        """Setup buttons and Dropdown objects
+        """
         self.select_score_table = Select(title="Inactive", value="",
                                          options=[])
         self.internal_reset = Select(title="Inactive", value="",
                                          options=[])
+        self.print_table = Button(label="Print Table", button_type="default")
         # 
         select_metric_menu = []
         for key in self.metric_dict.keys():
@@ -160,7 +169,6 @@ class os_web(object):
 
         umap_plot_width = 800
         column_width = 350
-        #taptool = TapTool(callback=self.select_galaxy_callback)
         self.umap_figure = figure(tools='lasso_select,tap,box_zoom,save,reset',
                                   plot_width=umap_plot_width,
                                   plot_height=600,
@@ -366,9 +374,9 @@ class os_web(object):
         for i in range(len(self.gallery_figures)):
             self.register_reset_on_double_tap_event(self.gallery_figures[i])
 
-        '''
         # Buttons
-        self.show_anomalies.on_click(self.show_anomalies_callback)
+        self.print_table.on_click(self.print_table_callback)
+        '''
         self.next_button.on_click(self.next_stack_index)
         self.prev_button.on_click(self.prev_stack_index)        
         '''
@@ -376,6 +384,7 @@ class os_web(object):
         # Non-dropdowns
         self.select_object.on_change('value', self.select_object_callback())
         self.search_object.on_change('value', self.search_object_callback())
+        self.main_low.on_change('value', self.main_low_callback)
 
         # Dropdown's
         self.select_metric.on_click(self.update_color)
@@ -516,13 +525,50 @@ class os_web(object):
 
         return
 
+    def main_low_callback(self, attr, old, new):
+        """Fuss with the low value of the main color bar
+
+        Args:
+            attr ([type]): [description]
+            old ([type]): [description]
+            new (str): New value
+        """
+        self.color_mapper.low = float(new)
+
+    def main_high_callback(self, attr, old, new):
+        """Fuss with the high value of the main color bar
+
+        Args:
+            attr ([type]): [description]
+            old ([type]): [description]
+            new (str): New value
+        """
+        self.color_mapper.high = float(new)
+
+    def print_table_callback(self, event):
+        """Callback to print the table
+
+        Args:
+            event ([type]): [description]
+        """
+        if len(self.selected_objects_source.data['index']) == 0:
+            print("Need to generate a Table first (with the lasso)!")
+            return
+        # Generate a pandas table
+        df = pandas.DataFrame(dict(self.selected_objects_source.data))
+        # Write
+        df.to_csv('OS_viz.csv')
+        print("Table written to: OS_viz.csv")
+
     def select_object_callback(self):
-        print('select object')
+        if self.verbose:
+            print('select object')
         def callback(attr, old, new):
             index = self.select_object.value
             index_str = str(index)
             if ',' in index_str:
-                print('list input')
+                if self.verbose:
+                    print('list input')
                 selected_objects = index_str.replace(' ','').split(',')
                 selected_objects = [int(s) for s in selected_objects]
 
@@ -530,29 +576,34 @@ class os_web(object):
                 self.get_new_view_keep_selected(backgroud_objects, selected_objects)
 
                 return
-            print('galaxy callback')
+            if self.verbose:
+                print('galaxy callback')
             specobjid = str(self.search_object.value)
             new_specobjid = str(int(self.obj_links[int(index)]))
             #new_specobjid = str(
             #logger.debug(type(specobjid), specobjid, type(new_specobjid), new_specobjid)
             #print(specobjid, new_specobjid)
             if specobjid != new_specobjid:
-                print('not equal')
+                if self.verbose:
+                    print('not equal')
                 self.search_object.value = new_specobjid
             else:
-                print('Update snapshot from select')
+                if self.verbose:
+                    print('Update snapshot from select')
                 self.update_snapshot()
 
         return callback
 
 
     def search_object_callback(self):
-        print('search obj')
+        if self.verbose:
+            print('search obj')
         def callback(attr, old, new):
             #logger.debug(self.search_object.value)
             objid_str = str(self.search_object.value)
             if ',' in objid_str:
-                print('list input')
+                if self.verbose:
+                    print('list input')
                 selected_objects_ids = objid_str.replace(' ','').split(',')
                 index_str = str(self.reverse_galaxy_links[selected_objects_ids[0]])
                 for idx, specobjid in enumerate(selected_objects_ids[1:]):
@@ -561,11 +612,13 @@ class os_web(object):
                 return
 
             if objid_str in self.reverse_obj_links:
-                print('search galaxy')
+                if self.verbose:
+                    print('search galaxy')
                 index = str(self.select_object.value)
                 new_index = str(self.reverse_obj_links[objid_str])
                 self.update_search_circle(new_index)
-                print('search galaxy - updated circle')
+                if self.verbose:
+                    print('search galaxy - updated circle')
                 #logger.debug(type(index), index, type(new_index), new_index)
                 if index != new_index:
                     self.select_object.value = new_index
@@ -699,6 +752,9 @@ class os_web(object):
         embedding = self.dropdown_dict['embedding']
 
         self.set_colormap(metric, metric_key)
+        # Set limits
+        self.main_low.value = str(self.color_mapper.low)
+        self.main_high.value = str(self.color_mapper.high)
 
         self.umap_source = ColumnDataSource(
             data=dict(xs=self.umap_data[embedding][:, 0],
@@ -792,16 +848,18 @@ class os_web(object):
         self.umap_scatter.data_source.data = dict(self.umap_source_view.data)
 
         if nof_selected_objects > 0:
-            order = np.array([float(o) for o in self.selected_objects.data['order']])
-            # NEED TO REFACTOR FOR METICS
-            import pdb; pdb.set_trace()
-            self.selected_objects.data = dict(
-                index=list(selected_objects), 
-                score=[-999999 if np.isnan(metric[s]) else metric[s] for s in selected_objects],
-                order=list(order), 
-                info_id=[self.obj_links[s] for s in selected_objects],
-                object_id=[self.obj_ids[s] for s in selected_objects]
-            )
+            new_dict = dict(index=list(selected_objects))
+            for key in self.metric_dict.keys():
+                new_dict[key] = [self.metric_dict[key][s] for s in selected_objects]
+            self.selected_objects.data = new_dict
+            #order = np.array([float(o) for o in self.selected_objects.data['order']])
+            #self.selected_objects.data = dict(
+            #    index=list(selected_objects), 
+            #    score=[-999999 if np.isnan(metric[s]) else metric[s] for s in selected_objects],
+            #    order=list(order), 
+            #    info_id=[self.obj_links[s] for s in selected_objects],
+            #    object_id=[self.obj_ids[s] for s in selected_objects]
+            #)
             self.update_table.value = str(np.random.rand())
         elif len(selected_objects_) > 0:
             self.selected_objects = ColumnDataSource(data=dict(index=[], score=[], order=[], info_id=[], object_id=[]))
@@ -831,7 +889,8 @@ class os_web(object):
         return
 
     def update_search_circle(self, index):
-        print("update search circle")
+        if self.verbose:
+            print("update search circle")
         self.search_galaxy_source.data = dict(
             xs=[self.umap_source.data['xs'][int(index)]],
             ys=[self.umap_source.data['ys'][int(index)]],
@@ -840,7 +899,8 @@ class os_web(object):
 
     def update_umap_filter_reset(self):
         def callback(event):
-            print('reset double tap')
+            if self.verbose:
+                print('reset double tap')
 
             background_objects = get_decimated_region_points(
                 self.xlim[0],
