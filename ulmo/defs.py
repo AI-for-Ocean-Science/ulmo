@@ -52,6 +52,10 @@ mtbl_dmodel = {
     'pp_type': dict(dtype=(int, np.integer), allowed=(-1, 0,1), 
                     valid=0, train=1, init=-1,
                     help='-1: illdefined, 0: valid, 1: test'),
+    'U0': dict(dtype=(float,np.floating),
+                help='UMAP 0th coefficient'),
+    'U1': dict(dtype=(float,np.floating),
+                help='UMAP 1st coefficient'),
     'UID': dict(dtype=(int, np.integer),
                 help='Unique identifier generated for each cutout'),
     'required': ('lat', 'lon', 'row', 'col', 'datetime')

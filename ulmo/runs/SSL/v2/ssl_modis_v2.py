@@ -15,6 +15,8 @@ from skimage.restoration import inpaint
 from sklearn.utils import shuffle
 
 from ulmo import io as ulmo_io
+from ulmo.plotting import plotting
+from ulmo.utils import catalog as cat_utils
 
 import umap
 
@@ -27,13 +29,15 @@ def ssl_v2_umap(debug=False, orig=False):
     latents_file = 's3://modis-l2/SSL_MODIS_R2019_2010_latents_v2/modis_R2019_2010_latents_last_v2.h5'
 
     # Load em in
-    print("Downloading latents (this is *much* faster than s3 access)...")
     basefile = os.path.basename(latents_file)
     if not os.path.isfile(basefile):
+        print("Downloading latents (this is *much* faster than s3 access)...")
         ulmo_io.download_file_from_s3(basefile, latents_file)
+        print("Done")
     hf = h5py.File(basefile, 'r')
     latents_train = hf['modis_latents_v2_train'][:]
-    print("Done")
+    latents_valid = hf['modis_latents_v2_valid'][:]
+    print("Latents loaded")
     
     # Table (useful for valid only)
     modis_tbl = ulmo_io.load_main_table('s3://modis-l2/Tables/MODIS_L2_std.parquet')
@@ -41,10 +45,10 @@ def ssl_v2_umap(debug=False, orig=False):
     # Valid
     valid = modis_tbl.pp_type == 0
     y2010 = modis_tbl.pp_file == 's3://modis-l2/PreProc/MODIS_R2019_2010_95clear_128x128_preproc_std.h5'
-    valid_tbl = modis_tbl[valid & y2010]
+    valid_tbl = modis_tbl[valid & y2010].copy()
     
     # Check
-    #assert latents_valid.shape[0] == len(valid_tbl)
+    assert latents_valid.shape[0] == len(valid_tbl)
 
     # UMAP me
     print("Running UMAP..")
@@ -63,8 +67,37 @@ def ssl_v2_umap(debug=False, orig=False):
             latents_mapping.embedding_[:, 1], s=point_size)
     plt.savefig('MODIS_2010_v2_train_UMAP.png')
 
-    # Save
-    embed(header='65 of ssl')
+    # Apply to embedding
+    valid_embedding = latents_mapping.transform(latents_valid)
+
+    # New plot
+    num_samplesv = latents_valid.shape[0]
+    point_sizev = 1.0 / np.sqrt(num_samplesv)
+    plt.figure(figsize=(width//dpi, height//dpi))
+    ax = plt.gca()
+    img = ax.scatter(valid_embedding[:, 0], 
+                valid_embedding[:, 1], s=point_sizev,
+            c=valid_tbl.LL, cmap='jet', vmin=-1000)
+    cb = plt.colorbar(img, pad=0.)
+    cb.set_label('LL', fontsize=20.)
+    #
+    ax.set_xlabel(r'$U_0$')
+    ax.set_ylabel(r'$U_1$')
+    plotting.set_fontsize(ax, 15.)
+    #
+    plt.savefig('MODIS_2010_v2_train_UMAP.png', dpi=300)
+
+    # Save to Table
+    valid_tbl['U0'] = valid_embedding[:, 0]
+    valid_tbl['U1'] = valid_embedding[:, 1]
+
+    # Vet
+    assert cat_utils.vet_main_table(valid_tbl, cut_prefix='modis_')
+
+    # Final write
+    if not debug:
+        ulmo_io.write_main_table(valid_tbl, 's3://modis-l2/Tables/MODIS_2010_valid_SSLv2.parquet')
+    
 
 def main(flg):
     if flg== 'all':
@@ -74,7 +107,7 @@ def main(flg):
 
     # Run UMAP on the v2 latents for MODIS 2010 (train + valid)
     if flg & (2**0):
-        ssl_v2_umap('train')
+        ssl_v2_umap()
         #ssl_v2_umap('valid')
 
 
