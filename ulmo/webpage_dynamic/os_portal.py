@@ -200,7 +200,7 @@ class os_web(object):
     def generate_figures(self):
 
         umap_plot_width = 800
-        column_width = 350
+        column_width = 500
         self.umap_figure = figure(tools='lasso_select,tap,box_zoom,pan,save,reset',
                                   plot_width=umap_plot_width,
                                   plot_height=600,

@@ -26,6 +26,7 @@ def main(pargs):
     import pandas
 
     from ulmo.webpage_dynamic import os_portal
+    from ulmo import io as ulmo_io
 
     from IPython import embed
 
@@ -34,26 +35,30 @@ def main(pargs):
         idict = json.load(fh)
     
     # Load images 
+    print("Loading images..")
     sub_idx = np.arange(idict['Nimages'])
     f = h5py.File(idict['image_file'], 'r') 
     images = f[idict['image_key']][sub_idx,0,:,:]
     f.close()
+    print("Done")
 
-    # xy
-    if idict['xy_values'] == 'UMAP':
-        f = np.load(idict['UMAP_file'], allow_pickle=False)
-        e1, e2 = f['e1'], f['e2']
-    else:
-        raise IOError("Not ready for multiple x,y")
+    # Table
+    main_tbl = ulmo_io.load_main_table(idict['table_file'])
 
     # Metrics
-    res = pandas.read_parquet(idict['metric_file'])
     metric_dict = dict(obj_ID=sub_idx)
     for metric in idict['metrics']:
         if metric[0] == 'DT':
-            metric_dict[metric[0]] = (res.T90-res.T10).values[sub_idx]
+            metric_dict[metric[0]] = (main_tbl.T90-main_tbl.T10).values[sub_idx]
         else:
-            metric_dict[metric[0]] = res[metric[1]].values[sub_idx]
+            metric_dict[metric[0]] = main_tbl[metric[1]].values[sub_idx]
+
+    # xy
+    if idict['xy_values'] == 'UMAP':
+        e1, e2 = main_tbl.U0.values, main_tbl.U1.values
+    else:
+        raise IOError("Not ready for multiple x,y")
+
 
     # Repack
     data_dict = {
