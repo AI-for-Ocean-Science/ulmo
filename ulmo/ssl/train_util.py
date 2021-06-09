@@ -345,19 +345,8 @@ def modis_loader_v2_with_blurring(opt):
     
     return train_loader
     
-def set_model(opt, cuda_use=True):
-    """
-    This is a function to set up the model.
-    
-    Args:
-        opt: (Params) options for the training process.
-        cude_use: (boolean) flag for the cude usage.
-        
-    Returns:
-        model: (torch.nn.Module) model class set up by opt.
-        criterion: (scalar) training loss.
-    """
-    model = SupConResNet(name=opt.model)
+def set_model(opt, cuda_use=True): 
+    model = SupConResNet(name=opt.model, feat_dim=opt.feat_dim)
     criterion = SupConLoss(temperature=opt.temp)
 
     # enable synchronized Batch Normalization
