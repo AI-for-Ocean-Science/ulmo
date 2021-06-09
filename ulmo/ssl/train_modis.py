@@ -10,9 +10,9 @@ import tensorboard_logger as tb_logger
 from util import adjust_learning_rate
 from util import set_optimizer, save_model
 
-from my_util import Params, option_preprocess
-from my_util import modis_loader, set_model
-from my_util import train_modis
+from train_util import Params, option_preprocess
+from train_util import modis_loader, set_model
+from train_util import train_model
 
 def main_train(opt_path: str):
     # loading parameters json file
@@ -38,7 +38,7 @@ def main_train(opt_path: str):
 
         # train for one epoch
         time1 = time.time()
-        loss = train_modis(train_loader, model, criterion, optimizer, epoch, opt)
+        loss = train_model(train_loader, model, criterion, optimizer, epoch, opt)
         time2 = time.time()
         print('epoch {}, total time {:.2f}'.format(epoch, time2 - time1))
 
