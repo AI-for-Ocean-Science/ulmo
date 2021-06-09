@@ -14,7 +14,7 @@ import torch.backends.cudnn as cudnn
 from torchvision import transforms, datasets
 from torch.utils.data import DataLoader, Dataset
 
-from ulmo.ssl.resnet_big import SupConResNet
+from ulmo.ssl.models.resnet_big import SupConResNet
 from ulmo.ssl.losses import SupConLoss
 
 from ulmo.ssl.util import TwoCropTransform, AverageMeter
@@ -109,6 +109,9 @@ def option_preprocess(opt: Params):
     return opt
     
 class RandomRotate:
+    """
+    Random Rotation Augmentation of the training samples.
+    """
     def __call__(self, image):
     # print("RR", image.shape, image.dtype)
         rang = np.float32(360*np.random.rand(1))
@@ -117,6 +120,9 @@ class RandomRotate:
         #return (skimage.transform.rotate(image, np.float32(360*np.random.rand(1)))).astype(np.float32)
     
 class JitterCrop:
+    """
+    Random Jitter and Crop augmentaion of the training samples.
+    """
     def __init__(self, crop_dim=32, rescale=2, jitter_lim=0):
         self.crop_dim = crop_dim
         self.offset = self.crop_dim//2
@@ -164,6 +170,9 @@ class JitterCrop:
 #        return image
     
 class RandomJitterCrop:
+    """
+    Random Jitter and Crop Augmentation used in SSL_v2. 
+    """
     def __init__(self, crop_lim=5, jitter_lim=5):
         self.crop_lim = crop_lim
         self.jitter_lim = jitter_lim
@@ -208,6 +217,9 @@ class RandomJitterCrop:
         return image
     
 class GaussianNoise:
+    """
+    Gaussian Noise augmentation used for training samples.
+    """
     def __init__(self, instrument_noise=(0, 0.1)):
         self.noise_mean = instrument_noise[0]
         self.noise_std = instrument_noise[1]
@@ -220,6 +232,9 @@ class GaussianNoise:
         return image
     
 class GaussianBlurring:
+    """
+    Gaussian Blurring augmentation used for training samples.
+    """
     def __init__(self, sigma=1):
         self.sigma = sigma
         
@@ -229,6 +244,9 @@ class GaussianBlurring:
         return image_blurred
         
 class ModisDataset(Dataset):
+    """
+    Modis Dataset used for the training of the model.
+    """
     def __init__(self, data_path, transform):
         self.data_path = data_path
         self.transform = transform
@@ -250,6 +268,15 @@ class ModisDataset(Dataset):
         return image_transformed
     
 def modis_loader(opt):
+    """
+    This is a function used to create the modis data loader.
+    
+    Args:
+        opt: (Params) options for the training process.
+        
+    Returns:
+        train_loader: (Dataloader) Modis Dataloader.
+    """
     transforms_compose = transforms.Compose([RandomRotate(),
                                              JitterCrop(),
                                              GaussianNoise(),
@@ -265,6 +292,17 @@ def modis_loader(opt):
     return train_loader
 
 def modis_loader_v2(opt):
+    """
+    This is a function used to create the modis data loader using the 
+    RandomJitterCrop augmentation.
+    
+    Args:
+        opt: (Params) options for the training process.
+        
+    Returns:
+        train_loader: (Dataloader) Modis Dataloader.
+    """
+    
     transforms_compose = transforms.Compose([RandomRotate(),
                                              RandomJitterCrop(),
                                              GaussianNoise(instrument_noise=(0, 0.05)),
@@ -281,6 +319,16 @@ def modis_loader_v2(opt):
     return train_loader
 
 def modis_loader_v2_with_blurring(opt):
+    """
+    This is a function used to create the modis data loader v2 with gaussian
+    blurring.
+    
+    Args:
+        opt: (Params) options for the training process.
+        
+    Returns:
+        train_loader: (Dataloader) Modis Dataloader.
+    """
     transforms_compose = transforms.Compose([RandomRotate(),
                                              RandomJitterCrop(),
                                              GaussianBlurring(),
@@ -298,6 +346,17 @@ def modis_loader_v2_with_blurring(opt):
     return train_loader
     
 def set_model(opt, cuda_use=True):
+    """
+    This is a function to set up the model.
+    
+    Args:
+        opt: (Params) options for the training process.
+        cude_use: (boolean) flag for the cude usage.
+        
+    Returns:
+        model: (torch.nn.Module) model class set up by opt.
+        criterion: (scalar) training loss.
+    """
     model = SupConResNet(name=opt.model)
     criterion = SupConLoss(temperature=opt.temp)
 
@@ -314,8 +373,17 @@ def set_model(opt, cuda_use=True):
 
     return model, criterion
 
-def train_modis(train_loader, model, criterion, optimizer, epoch, opt, cuda_use=True):
-    """one epoch training"""
+def train_model(train_loader, model, criterion, optimizer, epoch, opt, cuda_use=True):
+    """
+    one epoch training.
+    
+    Args:
+        train_loader: (Dataloader) data loader for the training 
+        process.
+        model: (torch.nn.Module)
+        criterion: (torch.nn.Module) loss of the training model.
+    """
+    
     model.train()
 
     batch_time = AverageMeter()
