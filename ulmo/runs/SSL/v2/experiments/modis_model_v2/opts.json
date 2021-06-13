@@ -1,10 +1,9 @@
 {
-	"print_freq": 10,
-	"save_freq": 50,
+	"print_freq": 2,
+	"save_freq": 5,
 	"batch_size": 64,
 	"num_workers": 16,
-    "feat_dim": 256,
-	"epochs": 100,
+	"epochs": 20,
 	"learning_rate": 0.05,
 	"lr_decay_epochs": "700, 800, 900",
 	"lr_decay_rate": 0.1,
@@ -12,15 +11,16 @@
 	"momentum": 0.9,
 	"model": "resnet50",
 	"dataset": "MODIS_R2019_2010",
-	"data_folder": "./experiments/datasets/modis_dataset/",
-    "latents_folder": "./experiments/MODIS_R2019_2021_latents/"
+	"data_folder": "./experiments/datasets/modis_dataset/", 
+    "latents_folder": "./experiments/MODIS_R2019_2010_latents/",
 	"method": "SimCLR",
 	"temp": 0.07,
 	"cosine": true,
 	"syncBN": false,
 	"warm": true,
-	"trial": 0,
-	"modis_data": true 
+	"trial": 4,
+	"modis_data": true,
+    "cuda_use": false 
 }
 
 
