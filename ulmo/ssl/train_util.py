@@ -62,15 +62,12 @@ def option_preprocess(opt: Params):
 
     # check if dataset is path that passed required arguments
     if opt.modis_data == True:
-        assert opt.data_folder is not None \
-            and opt.mean is not None \
-            and opt.std is not None
+        assert opt.data_folder is not None, "Please prove data_folder in opt.json file." 
 
     # set the path according to the environment
     if opt.data_folder is None:
         opt.data_folder = './experimens/datasets/'
     opt.model_path = f'./experiments/{opt.method}/{opt.dataset}_models'
-    opt.tb_path = f'./experiments/{opt.method}/{opt.dataset}_tensorboard'
 
     iterations = opt.lr_decay_epochs.split(',')
     opt.lr_decay_epochs = list([])
@@ -98,10 +95,6 @@ def option_preprocess(opt: Params):
         else:
             opt.warmup_to = opt.learning_rate
 
-    opt.tb_folder = os.path.join(opt.tb_path, opt.model_name)
-    if not os.path.isdir(opt.tb_folder):
-        os.makedirs(opt.tb_folder)
-
     opt.save_folder = os.path.join(opt.model_path, opt.model_name)
     if not os.path.isdir(opt.save_folder):
         os.makedirs(opt.save_folder)
@@ -115,7 +108,7 @@ class RandomRotate:
     def __call__(self, image):
     # print("RR", image.shape, image.dtype)
         rang = np.float32(360*np.random.rand(1))
-        print('random angle = {}'.format(rang))
+        #print('random angle = {}'.format(rang))
         return (skimage.transform.rotate(image, rang)).astype(np.float32)
         #return (skimage.transform.rotate(image, np.float32(360*np.random.rand(1)))).astype(np.float32)
     
@@ -283,7 +276,8 @@ def modis_loader(opt):
                                              transforms.ToTensor()])
     
     modis_path = opt.data_folder
-    modis_dataset = ModisDataset(modis_path, transform=TwoCropTransform(transforms_compose))
+    modis_file = os.path.join(modis_path, os.listdir(modis_path)[0])
+    modis_dataset = ModisDataset(modis_file, transform=TwoCropTransform(transforms_compose))
     train_sampler = None
     train_loader = torch.utils.data.DataLoader(
                     modis_dataset, batch_size=opt.batch_size, shuffle=(train_sampler is None),
@@ -392,6 +386,8 @@ def train_model(train_loader, model, criterion, optimizer, epoch, opt, cuda_use=
 
     end = time.time()
     for idx, images in enumerate(train_loader):
+        if idx > 10:
+            break
         data_time.update(time.time() - end)
 
         images = torch.cat([images[0], images[1]], dim=0)
