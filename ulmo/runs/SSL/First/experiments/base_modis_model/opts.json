@@ -10,10 +10,9 @@
 	"weight_decay": 1e-4,
 	"momentum": 0.9,
 	"model": "resnet50",
-	"dataset": "modis",
-	"mean": 0,
-	"std": 0,
-	"data_folder": "/home/jovyan/ulmo/docs/modis_SimCLR/experiments/datasets/modis_dataset/MODIS_R2019_2010_95clear_128x128_preproc_std.h5",
+	"dataset": "MODIS_R2019_2010",
+	"data_folder": "./experiments/datasets/modis_dataset/",
+    "latents_folder": "./experiments/MODIS_R2019_2021_latents/"
 	"method": "SimCLR",
 	"temp": 0.07,
 	"cosine": true,
