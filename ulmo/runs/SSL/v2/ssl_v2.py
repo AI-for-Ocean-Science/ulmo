@@ -1,8 +1,8 @@
 from __future__ import print_function
 
-#import sys
-#target_path = '/home/jovyan/ulmo/'
-#sys.path.append(target_path)
+import sys
+target_path = '/ulmo/'
+sys.path.append(target_path)
 
 import time
 import os
@@ -86,8 +86,7 @@ def model_latents_extract(opt, modis_data, model_path, save_path, save_key):
     model_dict = torch.load(model_path)
     model.load_state_dict(model_dict['model'])
     modis_data = np.repeat(modis_data, 3, axis=1)
-    #num_samples = modis_data.shape[0]
-    num_samples = 50
+    num_samples = modis_data.shape[0]
     batch_size = opt.batch_size
     num_steps = num_samples // batch_size
     remainder = num_samples % batch_size
@@ -96,12 +95,16 @@ def model_latents_extract(opt, modis_data, model_path, save_path, save_key):
         for i in trange(num_steps):
             image_batch = modis_data[i*batch_size: (i+1)*batch_size]
             image_tensor = torch.tensor(image_batch)
+            if opt.cuda_use:
+                image_tensor = image_tensor.cuda()
             latents_tensor = model(image_tensor)
             latents_numpy = latents_tensor.cpu().numpy()
             latents_df = pd.concat([latents_df, pd.DataFrame(latents_numpy)], ignore_index=True)
         if remainder:
             image_remainder = modis_data[-remainder:]
             image_tensor = torch.tensor(image_remainder)
+            if opt.cuda_use:
+                image_tensor = image_tensor.cuda()
             latents_tensor = model(image_tensor)
             latents_numpy = latents_tensor.cpu().numpy()
             latents_df = pd.concat([latents_df, pd.DataFrame(latents_numpy)], ignore_index=True)
@@ -143,8 +146,8 @@ def main_evaluate(opt_path):
         latents_path = os.path.join(opt.latents_folder, file_name) 
         model_latents_extract(opt, dataset_train, model_path, latents_path, key_train)
         print("Extraction of Latents of train set is done.")
-        #model_latents_extract(opt, dataset_valid, model_path, latents_path, key_valid)
-        #print("Extraction of Latents of valid set is done.")
+        model_latents_extract(opt, dataset_valid, model_path, latents_path, key_valid)
+        print("Extraction of Latents of valid set is done.")
         
 if __name__ == "__main__":
     # get the argument of training.
@@ -152,7 +155,7 @@ if __name__ == "__main__":
     
     # run the 'main_train()' function.
     if args.func_flag == 0:
-        print("Trining Starts.")
+        print("Training Starts.")
         main_train(args.opt_path)
         print("Training Ends.")
     
@@ -161,30 +164,3 @@ if __name__ == "__main__":
         print("Evaluation Starts.")
         main_evaluate(args.opt_path)
         print("Evaluation Ends.")
-    
-#    model_path = "./experiments/SimCLR/modis_models_v2/SimCLR_modis_resnet50_lr_0.05_decay_0.0001_bsz_64_temp_0.07_trial_3_R2019_2010_cosine_warm/"
-#    model_name_list = ["ckpt_epoch_5.pth", "ckpt_epoch_10.pth", "ckpt_epoch_15.pth", "last.pth"]
-    
-#    opt_path = './experiments/modis_model_v2/opts.json'
-#    opt = Params(opt_path)
-#    opt = option_preprocess(opt)
-#    
-#    modis_dataset_path = "./experiments/datasets/modis_dataset/MODIS_R2019_2010_95clear_128x128_preproc_std.h5"
-#    
-#    with h5py.File(modis_dataset_path, 'r') as file:
-#        dataset_train = file['train'][:]
-#        dataset_valid = file['valid'][:]
-#        
-#    save_path = './experiments/modis_latents_v2/'
-#    if not os.path.isdir(save_path):
-#        os.makedirs(save_path)
-#        
-#    save_key_train = 'modis_latents_v2_train'
-#    save_key_valid = 'modis_latents_v2_valid'
-#    
-#    for model_name in model_name_list:
-#        model_path_title = os.path.join(model_path, model_name)
-#        model_title = model_name.split('.')[0]
-#        latents_path = os.path.join(save_path, )  
-#        model_latents_extract(opt, dataset_train, model_path_title, latents_path, save_key_train)
-#        model_latents_extract(opt, dataset_valid, model_path_title, latents_path, save_key_valid)
