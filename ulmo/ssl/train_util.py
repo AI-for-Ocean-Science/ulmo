@@ -344,6 +344,17 @@ def modis_loader_v2_with_blurring(opt):
     return train_loader
     
 def set_model(opt, cuda_use=True): 
+    """
+    This is a function to set up the model.
+    
+    Args:
+        opt: (Params) options for the training process.
+        cude_use: (boolean) flag for the cude usage.
+        
+    Returns:
+        model: (torch.nn.Module) model class set up by opt.
+        criterion: (scalar) training loss.
+    """
     model = SupConResNet(name=opt.model, feat_dim=opt.feat_dim)
     criterion = SupConLoss(temperature=opt.temp)
 
@@ -379,8 +390,6 @@ def train_model(train_loader, model, criterion, optimizer, epoch, opt, cuda_use=
 
     end = time.time()
     for idx, images in enumerate(train_loader):
-        if idx > 5:
-            break
         data_time.update(time.time() - end)
 
         images = torch.cat([images[0], images[1]], dim=0)
