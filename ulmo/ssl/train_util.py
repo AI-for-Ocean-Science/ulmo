@@ -67,7 +67,9 @@ def option_preprocess(opt: Params):
     # set the path according to the environment
     if opt.data_folder is None:
         opt.data_folder = './experimens/datasets/'
-    opt.model_path = f'./experiments/{opt.method}/{opt.dataset}_models'
+    
+    if opt.model_folder is None: 
+        opt.model_folder = f'./experiments/{opt.method}/{opt.dataset}_models'
 
     iterations = opt.lr_decay_epochs.split(',')
     opt.lr_decay_epochs = list([])
@@ -95,7 +97,7 @@ def option_preprocess(opt: Params):
         else:
             opt.warmup_to = opt.learning_rate
 
-    opt.save_folder = os.path.join(opt.model_path, opt.model_name)
+    opt.save_folder = os.path.join(opt.model_folder, opt.model_name)
     if not os.path.isdir(opt.save_folder):
         os.makedirs(opt.save_folder)
 
@@ -232,7 +234,7 @@ class GaussianBlurring:
         self.sigma = sigma
         
     def __call__(self, image):
-        image_blurred = skimage.filters.gaussian(image, sigma=self.sigma)
+        image_blurred = skimage.filters.gaussian(image, sigma=self.sigma, multichannel=False)
     
         return image_blurred
         
@@ -302,9 +304,10 @@ def modis_loader_v2(opt):
                                              GaussianNoise(instrument_noise=(0, 0.05)),
                                              transforms.ToTensor()])
     modis_path = opt.data_folder
+    modis_file = os.path.join(modis_path, os.listdir(modis_path)[0])
     #from_s3 = (modis_path.split(':')[0] == 's3')
     #modis_dataset = ModisDataset(modis_path, transform=TwoCropTransform(transforms_compose), from_s3=from_s3)
-    modis_dataset = ModisDataset(modis_path, transform=TwoCropTransform(transforms_compose))
+    modis_dataset = ModisDataset(modis_file, transform=TwoCropTransform(transforms_compose))
     train_sampler = None
     train_loader = torch.utils.data.DataLoader(
                     modis_dataset, batch_size=opt.batch_size, shuffle=(train_sampler is None),
@@ -329,9 +332,10 @@ def modis_loader_v2_with_blurring(opt):
                                              GaussianNoise(instrument_noise=(0, 0.05)),
                                              transforms.ToTensor()])
     modis_path = opt.data_folder
+    modis_file = os.path.join(modis_path, os.listdir(modis_path)[0])
     #from_s3 = (modis_path.split(':')[0] == 's3')
     #modis_dataset = ModisDataset(modis_path, transform=TwoCropTransform(transforms_compose), from_s3=from_s3)
-    modis_dataset = ModisDataset(modis_path, transform=TwoCropTransform(transforms_compose))
+    modis_dataset = ModisDataset(modis_file, transform=TwoCropTransform(transforms_compose))
     train_sampler = None
     train_loader = torch.utils.data.DataLoader(
                     modis_dataset, batch_size=opt.batch_size, shuffle=(train_sampler is None),
@@ -375,7 +379,7 @@ def train_model(train_loader, model, criterion, optimizer, epoch, opt, cuda_use=
 
     end = time.time()
     for idx, images in enumerate(train_loader):
-        if idx > 10:
+        if idx > 5:
             break
         data_time.update(time.time() - end)
 
