@@ -14,7 +14,7 @@
 	"dataset": "MODIS_R2019_2010",
 	"data_folder": "../experiments/datasets/modis_dataset/",
 	"model_folder": "./experiments/MODIS_R2019_2010_with_blurring_model_v2/",
-        "latents_folder": "./experiments/MODIS_R2019_2010_with_blurring_latents_v2/",
+	"latents_folder": "./experiments/MODIS_R2019_2010_with_blurring_latents_v2/",
 	"method": "SimCLR",
 	"temp": 0.07,
 	"cosine": true,
@@ -22,7 +22,7 @@
 	"warm": true,
 	"trial": 4,
 	"modis_data": true,
-        "cuda_use": true 
+	"cuda_use": true 
 }
 
 
