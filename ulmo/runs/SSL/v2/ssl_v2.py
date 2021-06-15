@@ -31,7 +31,7 @@ def parse_option():
     """
     parser = argparse.ArgumentParser("argument for training.")
     parser.add_argument("--opt_path", type=str, help="path of 'opt.json' file.")
-    parser.add_argument("--func_flag", type=int, help="id of the function to be execute.")
+    parser.add_argument("--func_flag", type=str, help="flag of the function to be execute: 'train' or 'evaluate'.")
     args = parser.parse_args()
     
     return args
@@ -95,7 +95,7 @@ def model_latents_extract(opt, modis_data, model_path, save_path, save_key):
         for i in trange(num_steps):
             image_batch = modis_data[i*batch_size: (i+1)*batch_size]
             image_tensor = torch.tensor(image_batch)
-            if opt.cuda_use:
+            if opt.cuda_use and torch.cuda.is_available():
                 image_tensor = image_tensor.cuda()
             latents_tensor = model(image_tensor)
             latents_numpy = latents_tensor.cpu().numpy()
@@ -103,7 +103,7 @@ def model_latents_extract(opt, modis_data, model_path, save_path, save_key):
         if remainder:
             image_remainder = modis_data[-remainder:]
             image_tensor = torch.tensor(image_remainder)
-            if opt.cuda_use:
+            if opt.cuda_use and torch.cuda.is_available():
                 image_tensor = image_tensor.cuda()
             latents_tensor = model(image_tensor)
             latents_numpy = latents_tensor.cpu().numpy()
@@ -154,13 +154,13 @@ if __name__ == "__main__":
     args = parse_option()
     
     # run the 'main_train()' function.
-    if args.func_flag == 0:
+    if args.func_flag == 'train':
         print("Training Starts.")
         main_train(args.opt_path)
         print("Training Ends.")
     
     # run the "main_evaluate()" function.
-    if args.func_flag == 1:
+    if args.func_flag == 'evaluate':
         print("Evaluation Starts.")
         main_evaluate(args.opt_path)
         print("Evaluation Ends.")
