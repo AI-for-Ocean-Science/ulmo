@@ -62,15 +62,14 @@ def option_preprocess(opt: Params):
 
     # check if dataset is path that passed required arguments
     if opt.modis_data == True:
-        assert opt.data_folder is not None \
-            and opt.mean is not None \
-            and opt.std is not None
+        assert opt.data_folder is not None, "Please prove data_folder in opt.json file." 
 
     # set the path according to the environment
     if opt.data_folder is None:
         opt.data_folder = './experimens/datasets/'
-    opt.model_path = f'./experiments/{opt.method}/{opt.dataset}_models'
-    opt.tb_path = f'./experiments/{opt.method}/{opt.dataset}_tensorboard'
+    
+    if opt.model_folder is None: 
+        opt.model_folder = f'./experiments/{opt.method}/{opt.dataset}_models'
 
     iterations = opt.lr_decay_epochs.split(',')
     opt.lr_decay_epochs = list([])
@@ -98,11 +97,7 @@ def option_preprocess(opt: Params):
         else:
             opt.warmup_to = opt.learning_rate
 
-    opt.tb_folder = os.path.join(opt.tb_path, opt.model_name)
-    if not os.path.isdir(opt.tb_folder):
-        os.makedirs(opt.tb_folder)
-
-    opt.save_folder = os.path.join(opt.model_path, opt.model_name)
+    opt.save_folder = os.path.join(opt.model_folder, opt.model_name)
     if not os.path.isdir(opt.save_folder):
         os.makedirs(opt.save_folder)
 
@@ -115,7 +110,7 @@ class RandomRotate:
     def __call__(self, image):
     # print("RR", image.shape, image.dtype)
         rang = np.float32(360*np.random.rand(1))
-        print('random angle = {}'.format(rang))
+        #print('random angle = {}'.format(rang))
         return (skimage.transform.rotate(image, rang)).astype(np.float32)
         #return (skimage.transform.rotate(image, np.float32(360*np.random.rand(1)))).astype(np.float32)
     
@@ -239,7 +234,7 @@ class GaussianBlurring:
         self.sigma = sigma
         
     def __call__(self, image):
-        image_blurred = skimage.filters.gaussian(image, sigma=self.sigma)
+        image_blurred = skimage.filters.gaussian(image, sigma=self.sigma, multichannel=False)
     
         return image_blurred
         
@@ -283,7 +278,8 @@ def modis_loader(opt):
                                              transforms.ToTensor()])
     
     modis_path = opt.data_folder
-    modis_dataset = ModisDataset(modis_path, transform=TwoCropTransform(transforms_compose))
+    modis_file = os.path.join(modis_path, os.listdir(modis_path)[0])
+    modis_dataset = ModisDataset(modis_file, transform=TwoCropTransform(transforms_compose))
     train_sampler = None
     train_loader = torch.utils.data.DataLoader(
                     modis_dataset, batch_size=opt.batch_size, shuffle=(train_sampler is None),
@@ -308,9 +304,10 @@ def modis_loader_v2(opt):
                                              GaussianNoise(instrument_noise=(0, 0.05)),
                                              transforms.ToTensor()])
     modis_path = opt.data_folder
+    modis_file = os.path.join(modis_path, os.listdir(modis_path)[0])
     #from_s3 = (modis_path.split(':')[0] == 's3')
     #modis_dataset = ModisDataset(modis_path, transform=TwoCropTransform(transforms_compose), from_s3=from_s3)
-    modis_dataset = ModisDataset(modis_path, transform=TwoCropTransform(transforms_compose))
+    modis_dataset = ModisDataset(modis_file, transform=TwoCropTransform(transforms_compose))
     train_sampler = None
     train_loader = torch.utils.data.DataLoader(
                     modis_dataset, batch_size=opt.batch_size, shuffle=(train_sampler is None),
@@ -335,9 +332,10 @@ def modis_loader_v2_with_blurring(opt):
                                              GaussianNoise(instrument_noise=(0, 0.05)),
                                              transforms.ToTensor()])
     modis_path = opt.data_folder
+    modis_file = os.path.join(modis_path, os.listdir(modis_path)[0])
     #from_s3 = (modis_path.split(':')[0] == 's3')
     #modis_dataset = ModisDataset(modis_path, transform=TwoCropTransform(transforms_compose), from_s3=from_s3)
-    modis_dataset = ModisDataset(modis_path, transform=TwoCropTransform(transforms_compose))
+    modis_dataset = ModisDataset(modis_file, transform=TwoCropTransform(transforms_compose))
     train_sampler = None
     train_loader = torch.utils.data.DataLoader(
                     modis_dataset, batch_size=opt.batch_size, shuffle=(train_sampler is None),
@@ -345,7 +343,7 @@ def modis_loader_v2_with_blurring(opt):
     
     return train_loader
     
-def set_model(opt, cuda_use=True):
+def set_model(opt, cuda_use=True): 
     """
     This is a function to set up the model.
     
@@ -357,7 +355,7 @@ def set_model(opt, cuda_use=True):
         model: (torch.nn.Module) model class set up by opt.
         criterion: (scalar) training loss.
     """
-    model = SupConResNet(name=opt.model)
+    model = SupConResNet(name=opt.model, feat_dim=opt.feat_dim)
     criterion = SupConLoss(temperature=opt.temp)
 
     # enable synchronized Batch Normalization
