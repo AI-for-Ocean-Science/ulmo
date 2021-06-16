@@ -391,8 +391,6 @@ def train_model(train_loader, model, criterion, optimizer, epoch, opt, cuda_use=
 
     end = time.time()
     for idx, images in enumerate(train_loader):
-        if idx > 10:
-            break
         data_time.update(time.time() - end)
 
         images = torch.cat([images[0], images[1]], dim=0)

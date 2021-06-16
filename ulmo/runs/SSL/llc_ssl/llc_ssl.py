@@ -82,8 +82,8 @@ def model_latents_extract(opt, modis_data, model_path, save_path, save_key):
     model_dict = torch.load(model_path)
     model.load_state_dict(model_dict['model'])
     modis_data = np.repeat(modis_data, 3, axis=1)
-    #num_samples = modis_data.shape[0]
-    num_samples = 50 
+    num_samples = modis_data.shape[0]
+    #num_samples = 50 
     batch_size = opt.batch_size
     num_steps = num_samples // batch_size
     remainder = num_samples % batch_size
