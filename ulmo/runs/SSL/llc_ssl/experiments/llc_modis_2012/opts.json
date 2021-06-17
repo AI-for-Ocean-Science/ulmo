@@ -3,7 +3,7 @@
 	"save_freq": 5,
 	"batch_size": 64,
 	"num_workers": 16,
-	"epochs": 20,
+	"epochs": 5,
 	"learning_rate": 0.05,
 	"lr_decay_epochs": "700, 800, 900",
 	"lr_decay_rate": 0.1,
