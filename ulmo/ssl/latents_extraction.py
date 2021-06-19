@@ -12,9 +12,9 @@ import tqdm
 
 from ulmo.utils import HDF5Dataset, id_collate
 
-from ulmo.ssl.my_util import Params, option_preprocess
-from ulmo.ssl.my_util import modis_loader, set_model
-from ulmo.ssl.my_util import train_modis
+from ulmo.ssl.train_util import Params, option_preprocess
+from ulmo.ssl.train_util import modis_loader, set_model
+from ulmo.ssl.train_util import train_model
 
 from IPython import embed
 
@@ -25,7 +25,8 @@ class HDF5RGBDataset(torch.utils.data.Dataset):
     Parameters:
         file_path: Path to the HDF5 file.
         dataset_names: List of dataset names to gather. 
-            Objects will be returned in this order.
+        
+    Objects will be returned in this order.
     """
     def __init__(self, file_path, partition):
         super().__init__()
@@ -52,6 +53,21 @@ class HDF5RGBDataset(torch.utils.data.Dataset):
 
 def build_loader(data_file, dataset, batch_size=1, num_workers=1):
     # Generate dataset
+    """
+    This function is used to create the data loader for the latents
+    creating (evaluation) process.
+    Args: 
+        data_file: (str) path of data file.
+        dataset: (str) key of the used data in data_file.
+        batch_size: (int) batch size of the evalution process.
+        num_workers: (int) number of workers used in loading data.
+    
+    Returns:
+        dset: (HDF5RGBDataset) HDF5 dataset of data_file.
+        loader: (torch.utils.data.Dataloader) Dataloader created 
+            using data_file.
+    """
+    
     dset = HDF5RGBDataset(data_file, partition=dataset)
 
     # Generate DataLoader
@@ -63,6 +79,13 @@ def build_loader(data_file, dataset, batch_size=1, num_workers=1):
     return dset, loader
 
 def calc_latent(model, image_tensor, using_gpu):
+    """
+    This is a function to calculate the latents.
+    Args:
+        model: (SupConResNet) model class used for latents.
+        image_tensor: (torch.tensor) image tensor of the data set.
+        using_gpu: (bool) flag for cude usage.
+    """
     if using_gpu:
         latents_tensor = model(image_tensor.cuda())
         latents_numpy = latents_tensor.cpu().numpy()
@@ -79,12 +102,12 @@ def model_latents_extract(opt, modis_data_file, modis_partition,
     """
     This function is used to obtain the latents of the training data.
     Args:
-        opt: (Parameters) parameters used to create the model
-        modis_data_file: (str)
-        modis_partition: (str)
-        model_path: (string) 
-        save_path: (string)
-        save_key: (string)
+        opt: (Parameters) parameters used to create the model.
+        modis_data_file: (str) path of modis_data_file.
+        modis_partition: (str) key of the h5py file.
+        model_path: (string) path of the saved model file.
+        save_path: (string) path for saving the latents.
+        save_key: (string) path for the key of the saved latents.
     """
     using_gpu = torch.cuda.is_available()
     model, _ = set_model(opt, cuda_use=using_gpu)
@@ -159,7 +182,7 @@ def orig_latents_extract(opt, modis_data,
     This function is used to obtain the latents of the training data.
     Args:
         opt: (Parameters) parameters used to create the model
-        modis_data_file: (str)
+        modis_data_file: (str) 
         model_path: (string) 
         save_path: (string)
         save_key: (string)

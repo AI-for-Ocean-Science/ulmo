@@ -51,6 +51,15 @@ def accuracy(output, target, topk=(1,)):
 
 
 def adjust_learning_rate(args, optimizer, epoch):
+    """
+    This function is used to adjust the learning rate during the 
+    training process.
+    
+    Args:
+        args: (Prams) option Prams for the training.
+        optimizer: (torch.optim) optim used in training.
+        epoch: (int) epoch of the training.
+    """
     lr = args.learning_rate
     if args.cosine:
         eta_min = lr * (args.lr_decay_rate ** 3)
@@ -66,6 +75,16 @@ def adjust_learning_rate(args, optimizer, epoch):
 
 
 def warmup_learning_rate(args, epoch, batch_id, total_batches, optimizer):
+    """
+    This is a function used for warm up the learning rate in the
+    training.
+    Args:
+        args: (Params) hyper-parameters and flags for training.
+        epoch: (int) epoch id for the training.
+        batch_id: (int) batch id for the training.
+        total_batches: (int) total_batches of the training.
+        optimizer: (torch.optim) optimizer used for training.
+    """
     if args.warm and epoch <= args.warm_epochs:
         p = (batch_id + (epoch - 1) * total_batches) / \
             (args.warm_epochs * total_batches)
@@ -76,6 +95,15 @@ def warmup_learning_rate(args, epoch, batch_id, total_batches, optimizer):
 
 
 def set_optimizer(opt, model):
+    """
+    Create the optim for the model
+    Args:
+        opt: (Params) opt for the training.
+        model: (torch.nn.Module) training model.
+        
+    Returns:
+        optimizer: (torch.optim) optimizer for the training.
+    """
     optimizer = optim.SGD(model.parameters(),
                           lr=opt.learning_rate,
                           momentum=opt.momentum,
@@ -84,6 +112,18 @@ def set_optimizer(opt, model):
 
 
 def save_model(model, optimizer, opt, epoch, save_file):
+    """
+    This is a function used for saving model.
+    Args:
+        model: (torch.nn.Module) training model.
+        optimizer: (torch.optim) optimizer for the model.
+        opt: (Params) hyper-parameters and flags for the training.
+        epoch: (int) epoch id of the training.
+        save_file: (str) path for the saving model.
+        
+    Returns:
+        state: (dict) dictionary for the saving model.
+    """
     print('==> Saving...')
     state = {
         'opt': opt,
