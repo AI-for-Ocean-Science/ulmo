@@ -242,21 +242,22 @@ class ModisDataset(Dataset):
     """
     Modis Dataset used for the training of the model.
     """
-    def __init__(self, data_path, transform):
+    def __init__(self, data_path, transform, data_key='train'):
         self.data_path = data_path
         self.transform = transform
+        self.data_key = data_key
 
     def _open_file(self):
         self.files = h5py.File(self.data_path, 'r')
 
     def __len__(self):
         self._open_file()
-        num_samples = self.files['train'].shape[0]
+        num_samples = self.files[self.data_key].shape[0]
         return num_samples
 
     def __getitem__(self, global_idx):     
         self._open_file()
-        image = self.files['train'][global_idx]
+        image = self.files[self.data_key][global_idx]
         image_transposed = np.transpose(image, (1, 2, 0))
         image_transformed = self.transform(image_transposed)
         
@@ -279,7 +280,7 @@ def modis_loader(opt):
     
     modis_path = opt.data_folder
     modis_file = os.path.join(modis_path, os.listdir(modis_path)[0])
-    modis_dataset = ModisDataset(modis_file, transform=TwoCropTransform(transforms_compose))
+    modis_dataset = ModisDataset(modis_file, transform=TwoCropTransform(transforms_compose), data_key=opt.data_key)
     train_sampler = None
     train_loader = torch.utils.data.DataLoader(
                     modis_dataset, batch_size=opt.batch_size, shuffle=(train_sampler is None),
@@ -307,7 +308,7 @@ def modis_loader_v2(opt):
     modis_file = os.path.join(modis_path, os.listdir(modis_path)[0])
     #from_s3 = (modis_path.split(':')[0] == 's3')
     #modis_dataset = ModisDataset(modis_path, transform=TwoCropTransform(transforms_compose), from_s3=from_s3)
-    modis_dataset = ModisDataset(modis_file, transform=TwoCropTransform(transforms_compose))
+    modis_dataset = ModisDataset(modis_file, transform=TwoCropTransform(transforms_compose), data_key=opt.data_key)
     train_sampler = None
     train_loader = torch.utils.data.DataLoader(
                     modis_dataset, batch_size=opt.batch_size, shuffle=(train_sampler is None),
@@ -335,7 +336,7 @@ def modis_loader_v2_with_blurring(opt):
     modis_file = os.path.join(modis_path, os.listdir(modis_path)[0])
     #from_s3 = (modis_path.split(':')[0] == 's3')
     #modis_dataset = ModisDataset(modis_path, transform=TwoCropTransform(transforms_compose), from_s3=from_s3)
-    modis_dataset = ModisDataset(modis_file, transform=TwoCropTransform(transforms_compose))
+    modis_dataset = ModisDataset(modis_file, transform=TwoCropTransform(transforms_compose), data_key=opt.data_key)
     train_sampler = None
     train_loader = torch.utils.data.DataLoader(
                     modis_dataset, batch_size=opt.batch_size, shuffle=(train_sampler is None),

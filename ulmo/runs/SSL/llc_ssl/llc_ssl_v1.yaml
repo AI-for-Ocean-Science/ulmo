@@ -1,0 +1,65 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: erdong-llc-modis-ssl-v1
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      containers:
+      - name: container
+        image: localhost:30081/karlschwarz2021/ulmos_ssl:v0 # UPDATE
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: "2"
+            memory: "36Gi"
+            ephemeral-storage: "1Gi" 
+          limits:
+            cpu: "4"
+            memory: "48Gi"
+            ephemeral-storage: "2Gi"
+            nvidia.com/gpu:  "2"  # See docs to exlude certain types
+            # https://ucsd-prp.gitlab.io/userdocs/running/gpu-pods/
+            #command: ["sh", "-c", "sleep infinity"]
+        command: ["/bin/bash", "-c"]
+        args:
+          - rm -rf /ulmo/;
+            git clone -b llc_ssl_v1 https://github.com/AI-for-Ocean-Science/ulmo.git;
+            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp s3://llc/PreProc/LLC_modis2012_test_noise_preproc.h5 /ulmo/ulmo/runs/SSL/experiments/datasets/llc_dataset/;
+            cd /ulmo/ulmo/runs/SSL/llc_ssl/;
+            python ./llc_ssl.py --opt_path ./experiments/llc_modis_2012/opts.json --func_flag train;
+            python ./llc_ssl.py --opt_path ./experiments/llc_modis_2012/opts.json --func_flag evaluate;
+            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp /ulmo/ulmo/runs/SSL/llc_ssl/experiments/LLC_MODIS_2012_latents/ s3://llc/LLC_MODIS_2012_latents/ --recursive;
+            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp /ulmo/ulmo/runs/SSL/llc_ssl/experiments/LLC_MODIS_2012_model/ s3://llc/LLC_MODIS_2012_model/ --recursive;
+        env:
+          - name: "ENDPOINT_URL"
+            value: "http://rook-ceph-rgw-nautiluss3.rook"
+          - name: "S3_ENDPOINT"
+            value: "rook-ceph-rgw-nautiluss3.rook"
+          - name: "PYTHONPATH"
+            value: "/ulmo/"
+        volumeMounts:
+          - name: prp-s3-credentials
+            mountPath: "/root/.aws/credentials"
+            subPath: "credentials"
+          - name: ephemeral 
+            mountPath: "/tmp"
+          - name: "dshm"
+            mountPath: "/dev/shm"
+      nodeSelector:
+        nautilus.io/disktype: nvme
+        gpu-type: "1080Ti"  # titan-xp
+      restartPolicy: Never
+      volumes:
+        # Secrets file for nautilus s3 credentials .aws/credentials and .s3cfg
+        - name: prp-s3-credentials
+          secret:
+            secretName: prp-s3-credentials
+        # Shared memory (necessary for Python's multiprocessing.shared_memory module to work)
+        - name: dshm
+          emptyDir:
+            medium: Memory
+        # Ephemeral storage
+        - name: ephemeral
+          emptyDir: {}
