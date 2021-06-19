@@ -218,11 +218,12 @@ def generate_umap(debug=False, orig=False):
 
     # Stack em
     ssl_analysis.do_umap(
-        latents, train, np.arange(len(valid_tbl)),
-        valid_tbl, fig_root='LLC_v1', debug=False,
-        write_to_file='s3://llc/Tables/LLC_MODIS2012_SSL_v1.parquet')
+        latents, train, valid, valid_tbl, 
+        fig_root='LLC_v1', 
+        write_to_file='s3://llc/Tables/LLC_MODIS2012_SSL_v1.parquet',
+        cut_prefix='modis_', debug=True)
 
-            
+
 if __name__ == "__main__":
     # get the argument of training.
     args = parse_option()

@@ -61,6 +61,8 @@ def do_umap(latents:np.ndarray, train:np.ndarray,
 
     # Save to Table
     print("Writing to the Table")
+    if debug:
+        embed(header='65 of ssl analysis')
     valid_tbl['U0'] = valid_embedding[:, 0]  # These are aligned
     valid_tbl['U1'] = valid_embedding[:, 1]
 
