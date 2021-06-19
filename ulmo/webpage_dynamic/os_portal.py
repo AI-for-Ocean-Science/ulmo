@@ -426,18 +426,24 @@ class os_web(object):
             return im
 
     def get_im_empty(self):
+        """ Grab an empty image
+        """
         if self.nchannel == 1:
             return np.zeros((self.imsize[0], self.imsize[1])).astype(np.uint8)
         else:
             return np.zeros((self.imsize[0], self.imsize[1], self.nchannel+1)).astype(np.uint8)
 
     def register_reset_on_double_tap_event(self, obj):
+        """ Deal with a double click
+        """
         obj.js_on_event(DoubleTap, CustomJS(args=dict(p=obj), code="""
             p.reset.emit()
             console.debug(p.x_range.start)
             """))
 
     def register_callbacks(self):
+        """ Register all of the callback code
+        """
         
         self.register_reset_on_double_tap_event(self.umap_figure)
         self.register_reset_on_double_tap_event(self.data_figure)
@@ -545,6 +551,8 @@ class os_web(object):
 
 
     def reset_stack_index(self):
+        """ Reset stack index
+        """
         self.stack_index = 0
 
 
@@ -666,6 +674,8 @@ class os_web(object):
 
 
     def search_object_callback(self):
+        """ Call back method for search_obj
+        """
         if self.verbose:
             print('search obj')
         def callback(attr, old, new):
@@ -742,8 +752,10 @@ class os_web(object):
             self.geo_source.data = geo_dict.copy()
 
     def stacks_callback(self):
-        
-        print('select_stacks_callback')
+        """ Callback method for stacks
+        """
+        if self.verbose: 
+            print('select_stacks_callback')
         selected_objects = self.selected_objects.data['index']
         selected_inds = np.array([int(s) for s in selected_objects])
         nof_selected = selected_inds.size
@@ -793,6 +805,8 @@ class os_web(object):
             self.data_figure.right[0].color_mapper.high = self.snap_color_mapper.high
 
     def plot_gallery(self):
+        """ Plot the gallery of images
+        """
         self.spectrum_stacks = []
         for i in range(self.nrow*self.ncol):
             spec_stack = self.gallery_figures[i].image(
@@ -802,7 +816,10 @@ class os_web(object):
             self.spectrum_stacks.append(spec_stack)
 
     def update_snapshot(self):
-        print("update snapshot")
+        """ Update the Zoom-in image
+        """
+        if self.verbose:
+            print("update snapshot")
         #TODO: BE CAREFUL W INDEX VS ID
         index = self.select_object.value
         specobjid = int(self.obj_links[int(index)])
@@ -824,6 +841,11 @@ class os_web(object):
         return
 
     def update_color(self, event):
+        """ Update the color bar
+
+        Args:
+            event (bokey event): 
+        """
         # Update?
         if event is not None:
             self.dropdown_dict['metric'] = event.item
@@ -857,7 +879,13 @@ class os_web(object):
 
 
     def update_umap_filter_event(self):
-        print("update umap")
+        """ Callback for UMAP
+
+        Returns:
+            callback: 
+        """
+        if self.verbose:
+            print("update umap")
         def callback(event):
             print('update_umap_filter_event')
 
@@ -893,6 +921,14 @@ class os_web(object):
 
     def get_new_view_keep_selected(self, background_objects, 
                                    selected_objects_, custom_sd = None):
+        """ Handle selected objects
+
+        Args:
+            background_objects ([type]): [description]
+            selected_objects_ ([type]): [description]
+            custom_sd ([type], optional): [description]. Defaults to None.
+        """
+
 
         embedding = self.dropdown_dict['embedding']
         print('get_new_view_keep_selected')
@@ -971,6 +1007,11 @@ class os_web(object):
         return
 
     def update_search_circle(self, index):
+        """ Move the search circle
+
+        Args:
+            index ([type]): [description]
+        """
         if self.verbose:
             print("update search circle")
         self.search_galaxy_source.data = dict(
@@ -980,6 +1021,8 @@ class os_web(object):
         return
 
     def update_umap_filter_reset(self):
+        """ Reset the x-y window
+        """
         def callback(event):
             if self.verbose:
                 print('reset double tap')
@@ -1022,6 +1065,8 @@ class os_web(object):
 
 
     def umap_figure_axes(self):
+        """ Set the x-y axes
+        """
 
         #embedding_name = self.select_umap.value
         embedding_name = self.dropdown_dict['embedding']
@@ -1069,6 +1114,18 @@ class os_web(object):
 
 
 def get_region_points(x_min, x_max, y_min, y_max, datasource):
+    """ Get the points within the box
+
+    Args:
+        x_min ([type]): [description]
+        x_max ([type]): [description]
+        y_min ([type]): [description]
+        y_max ([type]): [description]
+        datasource ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """
     IGNORE_TH = -9999
     xs = np.array(datasource['xs'])
     ys = np.array(datasource['ys'])
@@ -1082,6 +1139,14 @@ def get_region_points(x_min, x_max, y_min, y_max, datasource):
 
 
 def get_relevant_objects_coords(datasource):
+    """ ??
+
+    Args:
+        datasource ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """
     IGNORE_TH = -999
     xs = np.array(datasource['xs'])
     ys = np.array(datasource['ys'])
@@ -1090,6 +1155,19 @@ def get_relevant_objects_coords(datasource):
 
 
 def get_decimated_region_points(x_min, x_max, y_min, y_max, datasource, DECIMATE_NUMBER):
+    """ ??
+
+    Args:
+        x_min ([type]): [description]
+        x_max ([type]): [description]
+        y_min ([type]): [description]
+        y_max ([type]): [description]
+        datasource ([type]): [description]
+        DECIMATE_NUMBER ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """
     is_in_box_inds = get_region_points(x_min, x_max, y_min, y_max, datasource)
     print('total points before decimation', len(is_in_box_inds))
     if len(is_in_box_inds) < DECIMATE_NUMBER:
@@ -1100,35 +1178,7 @@ def get_decimated_region_points(x_min, x_max, y_min, y_max, datasource, DECIMATE
 
 
 
-
-class test_portal(object):
-    """ Test object for development"""
-    def __init__(self):
-        self.df = sea_surface_temperature.copy()
-        self.source = ColumnDataSource(data=self.df)
-
-        self.plot = figure(x_axis_type='datetime', y_range=(0, 25), y_axis_label='Temperature (Celsius)',
-                    title="Sea Surface Temperature at 43.18, -70.43")
-        self.plot.line('time', 'temperature', source=self.source)
-
-        self.slider = Slider(start=0, end=30, value=0, step=1, title="Smoothing by N Days")
-        self.slider.on_change('value', self.callback)
-
-    def __call__(self, doc):
-        doc.add_root(column(self.slider, self.plot))
-        doc.theme = Theme(filename="theme.yaml")
-
-    def callback(self, attr, old, new):
-        if new == 0:
-            data = self.df
-        else:
-            data = self.df.rolling(f"{new}D").mean()
-        self.source.data = ColumnDataSource.from_df(data)
-
-def get_test_session(doc):
-    sess = test_portal()
-    return sess(doc)
-
+# CODE HERE AND DOWN IS FOR TESTING
 def get_test_os_session(doc):
     images, objids, metric, umapd = grab_dum_data()
     # Instantiate
@@ -1196,15 +1246,12 @@ def grab_modis_subset():
 
 def main(flg):
     flg = int(flg)
-    if flg & (2 ** 0):
-        server = Server({'/': get_test_session}, num_procs=1)
-        server.start()
-        print('Opening Bokeh application on http://localhost:5006/')
 
-        server.io_loop.add_callback(server.show, "/")
-        server.io_loop.start()
+    # Deprecated test
+    if flg & (2 ** 0):
+        pass
     
-    # Test class
+    # Test main class
     if flg & (2 ** 1):
         dum_images, dum_objids, dum_metric, dum_umapd = grab_dum_data()
         sess = os_web(dum_images, dum_objids, dum_metric, dum_umapd)
