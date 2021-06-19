@@ -15,7 +15,8 @@ from IPython import embed
 
 def do_umap(latents:np.ndarray, train:np.ndarray, 
          valid:np.ndarray, valid_tbl:pandas.DataFrame,
-         fig_root='', debug=False, write_to_file=str):
+         fig_root='', debug=False, write_to_file=str,
+         cut_prefix=None):
 
     # UMAP me
     print("Running UMAP..")
@@ -60,11 +61,11 @@ def do_umap(latents:np.ndarray, train:np.ndarray,
 
     # Save to Table
     print("Writing to the Table")
-    valid_tbl['U0'] = valid_embedding[:, 0]
+    valid_tbl['U0'] = valid_embedding[:, 0]  # These are aligned
     valid_tbl['U1'] = valid_embedding[:, 1]
 
     # Vet
-    assert cat_utils.vet_main_table(valid_tbl, cut_prefix='modis_')
+    assert cat_utils.vet_main_table(valid_tbl, cut_prefix=cut_prefix)
 
     # Final write
     if write_to_file is not None:

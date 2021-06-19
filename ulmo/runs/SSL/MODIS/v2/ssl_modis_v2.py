@@ -51,7 +51,8 @@ def ssl_v2_umap(debug=False, orig=False):
         latents, np.arange(latents_train.shape[0]), 
         latents_train.shape[0]+np.arange(latents_valid.shape[0]),
         valid_tbl, fig_root='MODIS_2010_v2', debug=False,
-        write_to_file='s3://modis-l2/Tables/MODIS_2010_valid_SSLv2.parquet')
+        write_to_file='s3://modis-l2/Tables/MODIS_2010_valid_SSLv2.parquet',
+        cut_prefix='modis_')
 
 
 def main(flg):

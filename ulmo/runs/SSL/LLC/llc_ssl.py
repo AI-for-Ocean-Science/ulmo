@@ -214,6 +214,7 @@ def generate_umap(debug=False, orig=False):
 
     # Pick 150,000 random for UMAP training
     train = np.random.choice(len(valid_tbl), size=150000)
+    valid = valid_tbl.pp_idx.values
 
     # Stack em
     ssl_analysis.do_umap(
