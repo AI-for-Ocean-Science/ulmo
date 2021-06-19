@@ -1,4 +1,6 @@
-""" Taken from: https://raw.githubusercontent.com/kstoreyf/anomalies-GAN-HSC/master/webpage_dynamic/portal.py """
+""" Taken from: https://raw.githubusercontent.com/kstoreyf/anomalies-GAN-HSC/master/webpage_dynamic/portal.py 
+This code is not used in ulmo
+"""
 import pandas as pd
 from bokeh.plotting import figure, curdoc
 from bokeh.layouts import column, gridplot, row
