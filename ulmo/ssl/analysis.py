@@ -13,10 +13,27 @@ from ulmo.utils import catalog as cat_utils
 
 from IPython import embed
 
-def do_umap(latents:np.ndarray, train:np.ndarray, 
+def latents_umap(latents:np.ndarray, train:np.ndarray, 
          valid:np.ndarray, valid_tbl:pandas.DataFrame,
          fig_root='', debug=False, write_to_file=str,
          cut_prefix=None):
+    """ Run a UMAP on input latent vectors.
+    A subset are used to train the UMAP and then
+    one applies it to the valid set.
+
+    The UMAP U0, U1 coefficients are written to an input table.
+
+    Args:
+        latents (np.ndarray): Total set of latent vectors (training)
+            Shape should be (nvectors, size of latent space)
+        train (np.ndarray): indices for training
+        valid (np.ndarray): indices for applying the UMAP
+        valid_tbl (pandas.DataFrame): [description]
+        fig_root (str, optional): [description]. Defaults to ''.
+        debug (bool, optional): [description]. Defaults to False.
+        write_to_file ([type], optional): Write table to this file. Defaults to str.
+        cut_prefix ([type], optional): [description]. Defaults to None.
+    """
 
     # UMAP me
     print("Running UMAP..")

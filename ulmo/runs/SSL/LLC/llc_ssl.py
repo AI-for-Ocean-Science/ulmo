@@ -217,7 +217,7 @@ def generate_umap(debug=False, orig=False):
     valid = valid_tbl.pp_idx.values
 
     # Stack em
-    ssl_analysis.do_umap(
+    ssl_analysis.latents_umap(
         latents, train, valid, valid_tbl, 
         fig_root='LLC_v1', 
         write_to_file='s3://llc/Tables/LLC_MODIS2012_SSL_v1.parquet',

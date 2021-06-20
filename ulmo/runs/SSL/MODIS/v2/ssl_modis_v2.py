@@ -47,7 +47,7 @@ def ssl_v2_umap(debug=False, orig=False):
 
     # Stack em
     latents = np.concatenate([latents_train, latents_valid])
-    ssl_analysis.do_umap(
+    ssl_analysis.latents_umap(
         latents, np.arange(latents_train.shape[0]), 
         latents_train.shape[0]+np.arange(latents_valid.shape[0]),
         valid_tbl, fig_root='MODIS_2010_v2', debug=False,
