@@ -100,3 +100,28 @@ def set_fontsize(ax, fsz):
     for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] +
                  ax.get_xticklabels() + ax.get_yticklabels()):
         item.set_fontsize(fsz)
+
+
+def umap_gallery(main_tbl, outfile=None, point_sz_scl=1., width=800, 
+                 height=800, vmnx=(-1000.,None)):
+
+    num_samples = len(main_tbl)
+    point_size = point_sz_scl / np.sqrt(num_samples)
+    dpi = 100
+
+    # New plot
+    plt.figure(figsize=(width//dpi, height//dpi))
+    ax = plt.gca()
+    img = ax.scatter(main_tbl.U0, main_tbl.U1,
+            s=point_size, c=main_tbl.LL, 
+            cmap='jet', vmin=vmnx[0], vmax=vmnx[1])
+    cb = plt.colorbar(img, pad=0.)
+    cb.set_label('LL', fontsize=20.)
+    #
+    ax.set_xlabel(r'$U_0$')
+    ax.set_ylabel(r'$U_1$')
+    set_fontsize(ax, 15.)
+
+    if outfile is not None:
+        plt.savefig(outfile, dpi=300)
+    #
