@@ -125,3 +125,6 @@ def umap_gallery(main_tbl, outfile=None, point_sz_scl=1., width=800,
     if outfile is not None:
         plt.savefig(outfile, dpi=300)
     #
+
+    # ###################
+    # Gallery time

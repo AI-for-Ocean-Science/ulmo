@@ -14,7 +14,7 @@ def show_spatial(main_tbl:pandas.DataFrame,
                  nside=64, use_log=True, 
                  use_mask=True, tricontour=False,
                  lbl=None, figsize=(12,8), 
-                 color='Reds'):
+                 color='Reds', show=True):
     """Generate a global map of the location of the input
     cutouts
 
@@ -27,6 +27,7 @@ def show_spatial(main_tbl:pandas.DataFrame,
         lbl ([type], optional): [description]. Defaults to None.
         figsize (tuple, optional): [description]. Defaults to (12,8).
         color (str, optional): [description]. Defaults to 'Reds'.
+        show (bool, optional): If True, show on the screen.  Defaults to True
 
     Returns:
         matplotlib.Axis: axis holding the plot
@@ -88,9 +89,7 @@ def show_spatial(main_tbl:pandas.DataFrame,
 
 
     # Layout and save
-    plt.show()
-    #plt.savefig(outfile, dpi=300)
-    #plt.close()
-    #print('Wrote {:s}'.format(outfile))
+    if show:
+        plt.show()
 
     return ax
