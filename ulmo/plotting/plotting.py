@@ -1,4 +1,6 @@
 """ Plotting utilities """
+from ulmo.utils import image_utils
+from IPython.terminal.embed import embed
 from pkg_resources import resource_filename
 import os
 
@@ -105,6 +107,8 @@ def set_fontsize(ax, fsz):
 def umap_gallery(main_tbl, outfile=None, point_sz_scl=1., width=800, 
                  height=800, vmnx=(-1000.,None)):
 
+    _, cm = load_palette()
+
     num_samples = len(main_tbl)
     point_size = point_sz_scl / np.sqrt(num_samples)
     dpi = 100
@@ -122,9 +126,25 @@ def umap_gallery(main_tbl, outfile=None, point_sz_scl=1., width=800,
     ax.set_ylabel(r'$U_1$')
     set_fontsize(ax, 15.)
 
-    if outfile is not None:
-        plt.savefig(outfile, dpi=300)
-    #
-
     # ###################
     # Gallery time
+    U0, U1 = 3., -2.
+    # https://matplotlib.org/stable/tutorials/advanced/transforms_tutorial.html
+
+    idx = np.argmin(np.abs((main_tbl.U0-U0)**2 + (main_tbl.U1-U1)**2))
+    cutout = main_tbl.iloc[idx]
+    cutout_img, pp_hf = image_utils.grab_image(cutout, close=False)
+
+    embed(header='137 of plotting')
+    axins = ax.inset_axes([0.1, 0.3, 0.57, 0.57])
+    _ = sns.heatmap(np.flipud(cutout_img), xticklabels=[], 
+                     #vmin=vmnx[0], vmax=vmnx[1],
+                     yticklabels=[], cmap=cm, cbar=False,
+                     ax=axins)
+
+    # Finish
+    if outfile is not None:
+        plt.savefig(outfile, dpi=300)
+        print(f"Wrote: {outfile}")
+
+    return ax

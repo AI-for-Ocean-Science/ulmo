@@ -1,12 +1,14 @@
 """ Basic I/O routines for the LLC analysis """
 
 import os
+import warnings
 
 import xarray as xr
 import pandas
 import h5py
 
 from ulmo import io as ulmo_io
+from ulmo.utils import image_utils
 
 from IPython import embed
 
@@ -85,33 +87,11 @@ def grab_llc_datafile(datetime=None, root='LLC4320_', chk=True, local=False):
     return datafile
                     
                     
-def grab_image(cutout:pandas.core.series.Series, 
-               close=True, pp_hf=None, local_file=None):                
-    """Grab the cutout image
+def grab_image(**args):
+    warnings.warn('Use grab_image() in utils.image_utils',
+                  DeprecationWarning)
+    return image_utils.grab_image(args)
 
-    Args:
-        cutout (pandas.core.series.Series): [description]
-        close (bool, optional): [description]. Defaults to True.
-        pp_hf ([type], optional): Pointer to the HDF5 file. Defaults to None.
-        local_file (str, optional): Use this file, if provided
-
-    Returns:
-        [type]: [description]
-    """
-    if local_file is not None:
-        pp_hf = h5py.File(local_file, 'r')
-    # Open?
-    if pp_hf is None:
-        with ulmo_io.open(cutout.pp_file, 'rb') as f:
-            pp_hf = h5py.File(f, 'r')
-    img = pp_hf['valid'][cutout.pp_idx, 0, ...]
-
-    # Close?
-    if close:
-        pp_hf.close()
-        return img
-    else:
-        return img, pp_hf
 
 def grab_velocity(cutout:pandas.core.series.Series, ds=None,
                   add_SST=False):                
