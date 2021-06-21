@@ -694,7 +694,7 @@ def fig_umap_gallery(outfile='fig_umap_gallery.png',
         tbl_file = 's3://llc/Tables/LLC_MODIS2012_SSL_v1.parquet'
     if local:
         parsed_s3 = urlparse(tbl_file)
-        tbl_file = parsed_s3.path[1:]
+        tbl_file = os.path.basename(parsed_s3.path[1:])
     # Load
     llc_tbl = ulmo_io.load_main_table(tbl_file)
     ax = plotting.umap_gallery(llc_tbl, outfile=outfile)

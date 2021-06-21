@@ -105,7 +105,8 @@ def set_fontsize(ax, fsz):
 
 
 def umap_gallery(main_tbl, outfile=None, point_sz_scl=1., width=800, 
-                 height=800, vmnx=(-1000.,None)):
+                 height=800, vmnx=(-1000.,None), dxdy=(0.3, 0.3),
+                 Nx=20, debug=None):
 
     _, cm = load_palette()
 
@@ -124,24 +125,60 @@ def umap_gallery(main_tbl, outfile=None, point_sz_scl=1., width=800,
     #
     ax.set_xlabel(r'$U_0$')
     ax.set_ylabel(r'$U_1$')
-    set_fontsize(ax, 15.)
+
+    # Set boundaries
+    xmin, xmax = main_tbl.U0.min()-dxdy[0], main_tbl.U0.max()+dxdy[0]
+    ymin, ymax = main_tbl.U1.min()-dxdy[1], main_tbl.U1.max()+dxdy[1]
+    ax.set_xlim(xmin, xmax)
+    ax.set_ylim(ymin, ymax)
 
     # ###################
     # Gallery time
-    U0, U1 = 3., -2.
-    # https://matplotlib.org/stable/tutorials/advanced/transforms_tutorial.html
 
-    idx = np.argmin(np.abs((main_tbl.U0-U0)**2 + (main_tbl.U1-U1)**2))
-    cutout = main_tbl.iloc[idx]
-    cutout_img, pp_hf = image_utils.grab_image(cutout, close=False)
+    # Grid
+    xval = np.linspace(xmin, xmax, num=Nx)
+    dxv = xval[1]-xval[0]
+    yval = np.arange(ymin, ymax+dxv, step=dxv)
 
-    embed(header='137 of plotting')
-    axins = ax.inset_axes([0.1, 0.3, 0.57, 0.57])
-    _ = sns.heatmap(np.flipud(cutout_img), xticklabels=[], 
+    # Ugly for loop
+    pp_hf = None
+    ndone = 0
+    if debug:
+        nmax = 100
+    else:
+        nmax = 1000000000
+    for x in xval[:-1]:
+        for y in yval[:-1]:
+            pts = np.where((main_tbl.U0 >= x) & (main_tbl.U0 < x+dxv) & (
+                main_tbl.U1 >= y) & (main_tbl.U1 < y+dxv))[0]
+            if len(pts) == 0:
+                continue
+
+            # Pick a random one
+            ichoice = np.random.choice(len(pts), size=1)
+            idx = int(pts[ichoice])
+            cutout = main_tbl.iloc[idx]
+
+            # Image
+            axins = ax.inset_axes(
+                    [x, y, 0.9*dxv, 0.9*dxv], 
+                    transform=ax.transData)
+            cutout_img, pp_hf = image_utils.grab_image(cutout, 
+                                                       pp_hf=pp_hf,
+                                                       close=False)
+            _ = sns.heatmap(np.flipud(cutout_img), xticklabels=[], 
                      #vmin=vmnx[0], vmax=vmnx[1],
                      yticklabels=[], cmap=cm, cbar=False,
                      ax=axins)
+            ndone += 1
+            print(f'ndone= {ndone}, LL={cutout.LL}')
+            if ndone > nmax:
+                break
+        if ndone > nmax:
+            break
 
+    set_fontsize(ax, 15.)
+    ax.set_aspect('equal', 'datalim')
     # Finish
     if outfile is not None:
         plt.savefig(outfile, dpi=300)
