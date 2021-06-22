@@ -8,7 +8,6 @@ import pandas as pd
 from tqdm.auto import trange
 import argparse
 
-from comet_ml import Experiment
 
 import torch
 
@@ -18,7 +17,11 @@ from ulmo.ssl.util import set_optimizer, save_model
 from ulmo.ssl.train_util import Params, option_preprocess
 from ulmo.ssl.train_util import modis_loader_v2, set_model
 from ulmo.ssl.train_util import train_model
-from ulmo.ssl import train_modis
+
+from ulmo import io as ulmo_io
+from ulmo.ssl import analysis as ssl_analysis
+
+from IPython import embed
 
 def parse_option():
     """
@@ -29,12 +32,14 @@ def parse_option():
     """
     parser = argparse.ArgumentParser("argument for training.")
     parser.add_argument("--opt_path", type=str, help="path of 'opt.json' file.")
-    parser.add_argument("--func_flag", type=str, help="flag of the function to be execute: 'train' or 'evaluate'.")
+    parser.add_argument("--func_flag", type=str, 
+                        help="flag of the function to be execute: 'train','evaluate', 'umap'.")
     args = parser.parse_args()
     
     return args
 
 def main_train(opt_path: str):
+    from comet_ml import Experiment
     # loading parameters json file
     opt = Params(opt_path)
     opt = option_preprocess(opt)
@@ -49,8 +54,8 @@ def main_train(opt_path: str):
     optimizer = set_optimizer(opt, model)
     
     # comet
+    raise RuntimeError("The next lines were 'fixed'.  You may need to fix them back")
     experiment = Experiment(
-            api_key="CMd7nIgpIzRvoH90zGB3vA1Dk",
             project_name="llc_modis_2012", 
             workspace="edwkuo",
     )
@@ -184,7 +189,41 @@ def main_evaluate(opt_path):
             print("Extraction of latents of valid set is done.")
         else:
             raise Exception("opt.eval_datset is not right!")
-            
+
+
+def generate_umap(debug=False, orig=False):
+    # Latents file (subject to move)
+    latents_file = 's3://llc/LLC_MODIS_2012_latents/last_latents.h5'
+
+    # Load em in
+    basefile = os.path.basename(latents_file)
+    if not os.path.isfile(basefile):
+        print("Downloading latents (this is *much* faster than s3 access)...")
+        ulmo_io.download_file_from_s3(basefile, latents_file)
+        print("Done")
+    hf = h5py.File(basefile, 'r')
+
+    latents = hf['valid'][:]
+    print("Latents loaded")
+
+    # Table (useful for valid only)
+    valid_tbl = ulmo_io.load_main_table('s3://llc/Tables/test_noise_modis2012.parquet')
+
+    # Check
+    assert latents.shape[0] == len(valid_tbl)
+
+    # Pick 150,000 random for UMAP training
+    train = np.random.choice(len(valid_tbl), size=150000)
+    valid = valid_tbl.pp_idx.values
+
+    # Stack em
+    ssl_analysis.latents_umap(
+        latents, train, valid, valid_tbl, 
+        fig_root='LLC_v1', 
+        write_to_file='s3://llc/Tables/LLC_MODIS2012_SSL_v1.parquet',
+        cut_prefix='modis_', debug=True)
+
+
 if __name__ == "__main__":
     # get the argument of training.
     args = parse_option()
@@ -200,3 +239,8 @@ if __name__ == "__main__":
         print("Evaluation Starts.")
         main_evaluate(args.opt_path)
         print("Evaluation Ends.")
+
+    # run the "main_evaluate()" function.
+    if args.func_flag == 'umap':
+        print("Generating the umap")
+        generate_umap()
