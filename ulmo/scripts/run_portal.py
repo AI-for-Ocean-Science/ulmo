@@ -53,17 +53,10 @@ def main(pargs):
         else:
             metric_dict[metric[0]] = main_tbl[metric[1]].values[sub_idx]
 
-    # xy
-    if idict['xy_values'] == 'UMAP':
-        e1, e2 = main_tbl.U0.values, main_tbl.U1.values
-    else:
-        raise IOError("Not ready for multiple x,y")
-
-
     # Repack
     data_dict = {
         'images': images,
-        'xy_scatter': dict(UMAP=(np.array([e1, e2]).T)[sub_idx]),
+        'xy_values': idict['xy_values'],
         'metrics': metric_dict,
     }
 
