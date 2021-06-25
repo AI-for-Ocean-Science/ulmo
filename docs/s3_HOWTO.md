@@ -6,7 +6,7 @@ Nautilus notes: https://ucsd-prp.gitlab.io/userdocs/storage/ceph-s3/#ceph_s3_3
 
 1. Grab the policy file: aws s3api  get-bucket-acl --bucket modis-l2 --endpoint https://s3.nautilus.optiputer.net 
 
-1. Add Grantee, keeping all previous: aws s3api put-bucket-acl --profile default --bucket modis-l2 --grant-full-control id=profx,id=erdong,id=petercornillon --endpoint https://s3.nautilus.optiputer.net
+1. Add Grantee, keeping all previous: aws s3api put-bucket-acl --profile default --bucket modis-l2 --grant-full-control id=profx,id=erdong,id=petercornillon,id=mskelm --endpoint https://s3.nautilus.optiputer.net
 
    Note:  the id may not exactly match that on Matrix.  e.g. katmar instead of katmar4141
 
