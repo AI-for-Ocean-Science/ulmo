@@ -34,16 +34,21 @@ def main(pargs):
     with open(pargs.input_file, 'rt') as fh:
         idict = json.load(fh)
     
+
+    # Table
+    main_tbl = ulmo_io.load_main_table(idict['table_file'])
+
     # Load images 
-    print("Loading images..")
-    sub_idx = np.arange(idict['Nimages'])
+    if idict['Nimages'] == 0:
+        sub_idx = np.arange(len(main_tbl))
+    else:
+        sub_idx = np.arange(idict['Nimages'])
+    print(f"Loading {sub_idx.size} images..")
+
     f = h5py.File(idict['image_file'], 'r') 
     images = f[idict['image_key']][sub_idx,0,:,:]
     f.close()
     print("Done")
-
-    # Table
-    main_tbl = ulmo_io.load_main_table(idict['table_file'])
 
     # Metrics
     metric_dict = dict(obj_ID=sub_idx)
