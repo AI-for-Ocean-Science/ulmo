@@ -15,7 +15,7 @@ from IPython import embed
 
 def latents_umap(latents:np.ndarray, train:np.ndarray, 
          valid:np.ndarray, valid_tbl:pandas.DataFrame,
-         fig_root='', debug=False, write_to_file=str,
+         fig_root='', debug=False, write_to_file=None,
          cut_prefix=None):
     """ Run a UMAP on input latent vectors.
     A subset are used to train the UMAP and then
@@ -31,7 +31,7 @@ def latents_umap(latents:np.ndarray, train:np.ndarray,
         valid_tbl (pandas.DataFrame): [description]
         fig_root (str, optional): [description]. Defaults to ''.
         debug (bool, optional): [description]. Defaults to False.
-        write_to_file ([type], optional): Write table to this file. Defaults to str.
+        write_to_file ([type], optional): Write table to this file. Defaults to None.
         cut_prefix ([type], optional): [description]. Defaults to None.
     """
 
