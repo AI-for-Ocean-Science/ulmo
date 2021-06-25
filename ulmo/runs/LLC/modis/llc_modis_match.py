@@ -243,6 +243,7 @@ def main(flg):
     if flg & (2**2):
         modis_evaluate()
 
+    # 2012 + noise
     if flg & (2**3):
         modis_init_test(show=False, noise=True, localCC=False)
         #modis_init_test(show=True, noise=True, localCC=True)#, localM=False)

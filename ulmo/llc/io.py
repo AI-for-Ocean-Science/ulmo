@@ -86,17 +86,20 @@ def grab_llc_datafile(datetime=None, root='LLC4320_', chk=True, local=False):
                     
                     
 def grab_image(cutout:pandas.core.series.Series, 
-               close=True, pp_hf=None):                
+               close=True, pp_hf=None, local_file=None):                
     """Grab the cutout image
 
     Args:
         cutout (pandas.core.series.Series): [description]
         close (bool, optional): [description]. Defaults to True.
-        pp_hf ([type], optional): [description]. Defaults to None.
+        pp_hf ([type], optional): Pointer to the HDF5 file. Defaults to None.
+        local_file (str, optional): Use this file, if provided
 
     Returns:
         [type]: [description]
     """
+    if local_file is not None:
+        pp_hf = h5py.File(local_file, 'r')
     # Open?
     if pp_hf is None:
         with ulmo_io.open(cutout.pp_file, 'rb') as f:
@@ -109,3 +112,21 @@ def grab_image(cutout:pandas.core.series.Series,
         return img
     else:
         return img, pp_hf
+
+def grab_velocity(cutout:pandas.core.series.Series, ds=None,
+                  add_SST=False):                
+    with ulmo_io.open(cutout.filename, 'rb') as f:
+        ds = xr.open_dataset(f)
+    # U field
+    U_cutout = ds.U[cutout.row:cutout.row+cutout.field_size, 
+                cutout.col:cutout.col+cutout.field_size]
+    # Vfield
+    V_cutout = ds.V[cutout.row:cutout.row+cutout.field_size, 
+                cutout.col:cutout.col+cutout.field_size]
+    output = [U_cutout, V_cutout]
+    # Add SST?
+    if add_SST:
+        output.append(ds.Theta[cutout.row:cutout.row+cutout.field_size, 
+                cutout.col:cutout.col+cutout.field_size])
+    # Return
+    return output
