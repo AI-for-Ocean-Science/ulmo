@@ -107,6 +107,23 @@ def set_fontsize(ax, fsz):
 def umap_gallery(main_tbl, outfile=None, point_sz_scl=1., width=800, 
                  height=800, vmnx=(-1000.,None), dxdy=(0.3, 0.3),
                  Nx=20, debug=None):
+    """Generate a UMAP plot and overplot a gallery
+    of cutouts
+
+    Args:
+        main_tbl (pandas.DataFrame): Table of quantities
+        outfile (str, optional): Outfile for the figure. Defaults to None.
+        point_sz_scl (float, optional): Point size for UMAP points. Defaults to 1..
+        width (int, optional): Width of the figure. Defaults to 800.
+        height (int, optional): Height of the figure. Defaults to 800.
+        vmnx (tuple, optional): Color bar vmin,vmax. Defaults to (-1000.,None).
+        dxdy (tuple, optional): Amount to pad the xlim, ylim by. Defaults to (0.3, 0.3).
+        Nx (int, optional): Number of cutout images in x to show. Defaults to 20.
+        debug (bool, optional): Debug? Defaults to None.
+
+    Returns:
+        matplotlib.plt.Axes: Axis
+    """
 
     _, cm = load_palette()
 

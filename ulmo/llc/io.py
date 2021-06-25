@@ -95,6 +95,16 @@ def grab_image(**args):
 
 def grab_velocity(cutout:pandas.core.series.Series, ds=None,
                   add_SST=False):                
+    """Grab velocity
+
+    Args:
+        cutout (pandas.core.series.Series): cutout image
+        ds (xarray.DataSet, optional): Dataset. Defaults to None.
+        add_SST (bool, optional): Include SST too?. Defaults to False.
+
+    Returns:
+        list: U, V cutputs and SST too if add_SST=True
+    """
     with ulmo_io.open(cutout.filename, 'rb') as f:
         ds = xr.open_dataset(f)
     # U field
