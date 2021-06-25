@@ -1,4 +1,6 @@
 """ Plotting utilities """
+from ulmo.utils import image_utils
+from IPython.terminal.embed import embed
 from pkg_resources import resource_filename
 import os
 
@@ -100,3 +102,103 @@ def set_fontsize(ax, fsz):
     for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] +
                  ax.get_xticklabels() + ax.get_yticklabels()):
         item.set_fontsize(fsz)
+
+
+def umap_gallery(main_tbl, outfile=None, point_sz_scl=1., width=800, 
+                 height=800, vmnx=(-1000.,None), dxdy=(0.3, 0.3),
+                 Nx=20, debug=None):
+    """Generate a UMAP plot and overplot a gallery
+    of cutouts
+
+    Args:
+        main_tbl (pandas.DataFrame): Table of quantities
+        outfile (str, optional): Outfile for the figure. Defaults to None.
+        point_sz_scl (float, optional): Point size for UMAP points. Defaults to 1..
+        width (int, optional): Width of the figure. Defaults to 800.
+        height (int, optional): Height of the figure. Defaults to 800.
+        vmnx (tuple, optional): Color bar vmin,vmax. Defaults to (-1000.,None).
+        dxdy (tuple, optional): Amount to pad the xlim, ylim by. Defaults to (0.3, 0.3).
+        Nx (int, optional): Number of cutout images in x to show. Defaults to 20.
+        debug (bool, optional): Debug? Defaults to None.
+
+    Returns:
+        matplotlib.plt.Axes: Axis
+    """
+
+    _, cm = load_palette()
+
+    num_samples = len(main_tbl)
+    point_size = point_sz_scl / np.sqrt(num_samples)
+    dpi = 100
+
+    # New plot
+    plt.figure(figsize=(width//dpi, height//dpi))
+    ax = plt.gca()
+    img = ax.scatter(main_tbl.U0, main_tbl.U1,
+            s=point_size, c=main_tbl.LL, 
+            cmap='jet', vmin=vmnx[0], vmax=vmnx[1])
+    cb = plt.colorbar(img, pad=0.)
+    cb.set_label('LL', fontsize=20.)
+    #
+    ax.set_xlabel(r'$U_0$')
+    ax.set_ylabel(r'$U_1$')
+
+    # Set boundaries
+    xmin, xmax = main_tbl.U0.min()-dxdy[0], main_tbl.U0.max()+dxdy[0]
+    ymin, ymax = main_tbl.U1.min()-dxdy[1], main_tbl.U1.max()+dxdy[1]
+    ax.set_xlim(xmin, xmax)
+    ax.set_ylim(ymin, ymax)
+
+    # ###################
+    # Gallery time
+
+    # Grid
+    xval = np.linspace(xmin, xmax, num=Nx)
+    dxv = xval[1]-xval[0]
+    yval = np.arange(ymin, ymax+dxv, step=dxv)
+
+    # Ugly for loop
+    pp_hf = None
+    ndone = 0
+    if debug:
+        nmax = 100
+    else:
+        nmax = 1000000000
+    for x in xval[:-1]:
+        for y in yval[:-1]:
+            pts = np.where((main_tbl.U0 >= x) & (main_tbl.U0 < x+dxv) & (
+                main_tbl.U1 >= y) & (main_tbl.U1 < y+dxv))[0]
+            if len(pts) == 0:
+                continue
+
+            # Pick a random one
+            ichoice = np.random.choice(len(pts), size=1)
+            idx = int(pts[ichoice])
+            cutout = main_tbl.iloc[idx]
+
+            # Image
+            axins = ax.inset_axes(
+                    [x, y, 0.9*dxv, 0.9*dxv], 
+                    transform=ax.transData)
+            cutout_img, pp_hf = image_utils.grab_image(cutout, 
+                                                       pp_hf=pp_hf,
+                                                       close=False)
+            _ = sns.heatmap(np.flipud(cutout_img), xticklabels=[], 
+                     #vmin=vmnx[0], vmax=vmnx[1],
+                     yticklabels=[], cmap=cm, cbar=False,
+                     ax=axins)
+            ndone += 1
+            print(f'ndone= {ndone}, LL={cutout.LL}')
+            if ndone > nmax:
+                break
+        if ndone > nmax:
+            break
+
+    set_fontsize(ax, 15.)
+    ax.set_aspect('equal', 'datalim')
+    # Finish
+    if outfile is not None:
+        plt.savefig(outfile, dpi=300)
+        print(f"Wrote: {outfile}")
+
+    return ax

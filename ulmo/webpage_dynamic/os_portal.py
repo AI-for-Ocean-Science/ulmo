@@ -68,7 +68,12 @@ class os_web(object):
             self.geo = False
 
         # Main data
-        self.umap_data = data_dict['xy_scatter']
+        if 'xy_values' in data_dict.keys():
+            self.xkey, self.ykey = [item.strip() for item in 
+                          data_dict['xy_values'].split(',')]
+        else:
+            self.xkey, self.ykey = 'U0', 'U1'
+        self.set_umap_data()
 
         #
         if self.images.ndim == 3:
@@ -100,7 +105,7 @@ class os_web(object):
             data=dict(index=[], score=[], order=[], info_id=[], object_id=[]))
 
         self.dropdown_dict = {}
-        self.dropdown_dict['embedding'] = 'UMAP'
+        #self.dropdown_dict['embedding'] = 'UMAP'
         self.dropdown_dict['metric'] = 'LL'
 
 
@@ -118,6 +123,7 @@ class os_web(object):
                                 column(self.umap_figure, self.gallery_figure,
                                        self.geo_figure), 
                                 column(
+                                    row(self.x_text, self.y_text),
                                     self.select_metric,
                                     row(self.main_low, self.main_high),
                                     self.search_object, 
@@ -170,6 +176,10 @@ class os_web(object):
         self.search_object = TextInput(title='Select Object ID:')
         self.main_low = TextInput(title='Main CB Low:', max_width=100)
         self.main_high = TextInput(title='Main CB High:', max_width=100)
+
+        # x,y
+        self.x_text = TextInput(title='x:', max_width=100, value=self.xkey)
+        self.y_text = TextInput(title='y:', max_width=100, value=self.ykey)
 
     def gen_reverse_obj_links(self):
         """ makes a dictionary of info_ids to indices
@@ -327,11 +337,12 @@ class os_web(object):
         self.update_color(None)
         # Unpack for convenience
         metric = self.metric_dict[self.dropdown_dict['metric']]
-        embedding = self.dropdown_dict['embedding']
+        #embedding = self.dropdown_dict['embedding']
 
         self.xlim = (np.min(self.umap_source.data['xs']) - self.UMAP_XYLIM_DELTA, np.max(self.umap_source.data['xs']) + self.UMAP_XYLIM_DELTA)
         self.ylim = (np.min(self.umap_source.data['ys']) - self.UMAP_XYLIM_DELTA, np.max(self.umap_source.data['ys']) + self.UMAP_XYLIM_DELTA)
 
+        '''
         self.xlim_all = {}
         self.ylim_all = {}
 
@@ -348,13 +359,16 @@ class os_web(object):
             temp_ylim = (np.min(rys) - self.UMAP_XYLIM_DELTA, np.max(rys) + self.UMAP_XYLIM_DELTA)
             self.xlim_all[umap] = temp_xlim
             self.ylim_all[umap] = temp_ylim
+        '''
 
         points = get_decimated_region_points(self.xlim[0], self.xlim[1], self.ylim[0], self.ylim[1],
                                              self.umap_source.data, self.DECIMATE_NUMBER)
 
         self.umap_source_view = ColumnDataSource(
-            data=dict(xs=self.umap_data[embedding][points, 0],
-                      ys=self.umap_data[embedding][points, 1],
+            #data=dict(xs=self.umap_data[embedding][points, 0],
+            #          ys=self.umap_data[embedding][points, 1],
+            data=dict(xs=self.umap_data[points, 0],
+                      ys=self.umap_data[points, 1],
                       color_data=metric[points],
                       names=list(points),
                       radius=[self.R_DOT] * len(points)),
@@ -395,8 +409,10 @@ class os_web(object):
 
         # Locations
         self.search_galaxy_source = ColumnDataSource(dict(
-            xs=[self.umap_data[embedding][0, 0]],
-            ys=[self.umap_data[embedding][0, 1]],
+            xs=[self.umap_data[0, 0]],
+            ys=[self.umap_data[0, 1]],
+            #xs=[self.umap_data[embedding][0, 0]],
+            #ys=[self.umap_data[embedding][0, 1]],
         ))
 
         # Geography coords
@@ -461,6 +477,9 @@ class os_web(object):
         self.select_object.on_change('value', self.select_object_callback())
         self.search_object.on_change('value', self.search_object_callback())
         self.main_low.on_change('value', self.main_low_callback)
+        self.main_high.on_change('value', self.main_high_callback)
+
+        self.x_text.on_change('value', self.x_text_callback)
 
         # Dropdown's
         self.select_metric.on_click(self.update_color)
@@ -603,6 +622,21 @@ class os_web(object):
 
         return
 
+    def x_text_callback(self, attr, old, new):
+        """Fuss with the low value of the main color bar
+
+        Args:
+            attr ([type]): [description]
+            old ([type]): [description]
+            new (str): New value
+        """
+        if new not in self.metric_dict.keys():
+            print("Bad choice for x, not in metric dict")
+            self.x_text.value = old 
+        else:
+            self.x_key = new
+            self.set_umap_data()
+
     def main_low_callback(self, attr, old, new):
         """Fuss with the low value of the main color bar
 
@@ -672,6 +706,9 @@ class os_web(object):
 
         return callback
 
+    def set_umap_data(self):
+        self.umap_data = np.array([self.metric_dict[self.xkey], 
+                                       self.metric_dict[self.ykey]]).T
 
     def search_object_callback(self):
         """ Call back method for search_obj
@@ -853,7 +890,7 @@ class os_web(object):
 
         metric_key = self.dropdown_dict['metric']
         metric = self.metric_dict[metric_key]
-        embedding = self.dropdown_dict['embedding']
+        #embedding = self.dropdown_dict['embedding']
 
         self.set_colormap(metric, metric_key)
         # Set limits
@@ -861,8 +898,10 @@ class os_web(object):
         self.main_high.value = str(self.color_mapper.high)
 
         self.umap_source = ColumnDataSource(
-            data=dict(xs=self.umap_data[embedding][:, 0],
-                        ys=self.umap_data[embedding][:, 1],
+            #data=dict(xs=self.umap_data[embedding][:, 0],
+            #            ys=self.umap_data[embedding][:, 1],
+            data=dict(xs=self.umap_data[:, 0],
+                        ys=self.umap_data[:, 1],
                         color_data=metric,
                         radius=[self.R_DOT] * len(metric),
                         names=list(np.arange(len(metric))),
@@ -930,7 +969,7 @@ class os_web(object):
         """
 
 
-        embedding = self.dropdown_dict['embedding']
+        #embedding = self.dropdown_dict['embedding']
         print('get_new_view_keep_selected')
         _, _, is_relevant = get_relevant_objects_coords(self.umap_source.data)
         selected_objects = [s for s in selected_objects_ if is_relevant[int(s)]]
@@ -956,8 +995,8 @@ class os_web(object):
             metric = custom_sd
 
         self.umap_source_view = ColumnDataSource(
-                data=dict(xs=self.umap_data[embedding][new_objects, 0],
-                          ys=self.umap_data[embedding][new_objects, 1],
+                data=dict(xs=self.umap_data[new_objects, 0],
+                          ys=self.umap_data[new_objects, 1],
                           color_data=metric[new_objects],
                           names=list(new_objects),
                           radius=[self.R_DOT] * len(new_objects),
@@ -1068,8 +1107,8 @@ class os_web(object):
         """ Set the x-y axes
         """
 
-        #embedding_name = self.select_umap.value
-        embedding_name = self.dropdown_dict['embedding']
+        #embedding_name = self.dropdown_dict['embedding']
+        embedding_name = f"{self.xkey}, {self.ykey}"
         metric_name = self.dropdown_dict['metric']
         if metric_name == 'No color':
             self.umap_figure.title.text  = '{}'.format(embedding_name)
@@ -1077,30 +1116,22 @@ class os_web(object):
             self.umap_figure.title.text  = '{} - Colored by {}'.format(embedding_name , metric_name)
         self.umap_figure.title.text_font_size = '17pt'
 
-        # TODO -- Fix this
-        if 'ulmo' in embedding_name:
-            self.umap_figure.xaxis.major_tick_line_color = None  # turn off x-axis major ticks
-            self.umap_figure.xaxis.minor_tick_line_color = None  # turn off x-axis minor ticks
+        # Labels
+        self.umap_figure.xaxis.axis_label = self.xkey
+        self.umap_figure.yaxis.axis_label = self.ykey
 
-            self.umap_figure.yaxis.minor_tick_line_color = None  # turn off y-axis major ticks
-            self.umap_figure.yaxis.major_tick_line_color = None  # turn off y-axis minor ticks
+        self.umap_figure.xaxis.major_tick_line_color = None  # turn off x-axis major ticks
 
-            self.umap_figure.xaxis.major_label_text_font_size = "0pt"
-            self.umap_figure.yaxis.major_label_text_font_size = "0pt"
+        self.umap_figure.xaxis.major_tick_line_color = 'black'  # turn off x-axis major ticks
+        self.umap_figure.xaxis.minor_tick_line_color = 'black'  # turn off x-axis minor ticks
 
-            self.umap_figure.xaxis.axis_label_text_font_size = "0pt"
-            self.umap_figure.yaxis.axis_label_text_font_size = "0pt"
-        else:
-            self.umap_figure.xaxis.major_tick_line_color = 'black'  # turn off x-axis major ticks
-            self.umap_figure.xaxis.minor_tick_line_color = 'black'  # turn off x-axis minor ticks
+        self.umap_figure.yaxis.minor_tick_line_color = 'black'  # turn off y-axis major ticks
+        self.umap_figure.yaxis.major_tick_line_color = 'black'  # turn off y-axis minor ticks
 
-            self.umap_figure.yaxis.minor_tick_line_color = 'black'  # turn off y-axis major ticks
-            self.umap_figure.yaxis.major_tick_line_color = 'black'  # turn off y-axis minor ticks
-
-            self.umap_figure.xaxis.major_label_text_font_size = "15pt"
-            self.umap_figure.yaxis.major_label_text_font_size = "15pt"
-            self.umap_figure.xaxis.axis_label_text_font_size = "15pt"
-            self.umap_figure.yaxis.axis_label_text_font_size = "15pt"
+        self.umap_figure.xaxis.major_label_text_font_size = "15pt"
+        self.umap_figure.yaxis.major_label_text_font_size = "15pt"
+        self.umap_figure.xaxis.axis_label_text_font_size = "15pt"
+        self.umap_figure.yaxis.axis_label_text_font_size = "15pt"
 
             # self.umap_figure.yaxis.axis_label = 'Log(OIII / Hb)'
             # if 'NII' in embedding_name:

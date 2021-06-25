@@ -5,6 +5,8 @@ import healpy as hp
 
 import pandas
 
+from ulmo import io as ulmo_io
+
 from IPython import embed
 
 # Deal with paths
@@ -162,3 +164,32 @@ def evals_to_healpix(eval_tbl, nside, log=False, mask=True,
         return hpma, hp_lons, hp_lats
     else:
         return hpma, hp_lons, hp_lats, hp_extras
+
+
+def grab_image(cutout:pandas.core.series.Series, 
+               close=True, pp_hf=None, local_file=None):                
+    """Grab a cutout image
+
+    Args:
+        cutout (pandas.core.series.Series): [description]
+        close (bool, optional): [description]. Defaults to True.
+        pp_hf ([type], optional): Pointer to the HDF5 file. Defaults to None.
+        local_file (str, optional): Use this file, if provided
+
+    Returns:
+        [type]: [description]
+    """
+    if local_file is not None:
+        pp_hf = h5py.File(local_file, 'r')
+    # Open?
+    if pp_hf is None:
+        with ulmo_io.open(cutout.pp_file, 'rb') as f:
+            pp_hf = h5py.File(f, 'r')
+    img = pp_hf['valid'][cutout.pp_idx, 0, ...]
+
+    # Close?
+    if close:
+        pp_hf.close()
+        return img
+    else:
+        return img, pp_hf
