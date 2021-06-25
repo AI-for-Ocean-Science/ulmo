@@ -1,0 +1,21 @@
+{
+    "field_size": 128,
+    "quality_thresh": 2,
+    "nadir_offset": 480,
+    "nrepeat": 1,
+    "downscale": true,
+    "dscale_size": [
+        2,
+        2
+    ],
+    "scale": 10.0,
+    "inpaint": false,
+    "med_size": [
+        3,
+        1
+    ],
+    "median": true,
+    "de_mean": false,
+    "min_mean": 0.025,
+    "only_inpaint": false
+}

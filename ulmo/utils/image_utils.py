@@ -90,7 +90,8 @@ def grab_modis_l2_img(example, itype, ptype='std', preproc_file=None):
 
 
 
-def evals_to_healpix(eval_tbl, nside, log=False, mask=True):
+def evals_to_healpix(eval_tbl, nside, log=False, mask=True, 
+                     extras=None):
     """
     Generate a healpix map of where the input
     MHW Systems are located on the globe
@@ -100,10 +101,12 @@ def evals_to_healpix(eval_tbl, nside, log=False, mask=True):
     mhw_sys : pandas.DataFrame
     nside : int
     mask : bool, optional
+    extras : list, optional
 
     Returns
     -------
-    healpix_array, lats, lons : hp.ma, np.ndarray, np.ndarray
+    healpix_array, lats, lons, extras (optional) : hp.ma, np.ndarray, 
+        np.ndarray, dict
 
     """
     # Grab lats, lons
@@ -120,7 +123,23 @@ def evals_to_healpix(eval_tbl, nside, log=False, mask=True):
     all_events = np.ma.masked_array(np.zeros(npix_hp, dtype='int'))
     for idx in idx_all:
         all_events[idx] += 1
+    
+    # Extras?
+    if extras is not None:
+        # Init
+        hp_extras = {}
+        for extra in extras:
+            hp_extras[extra] = np.zeros(npix_hp)
+        # Loop me
+        uidx = np.unique(idx_all)
+        for iuidx in uidx:
+            mt = idx_all == iuidx
+            # Loop on extras
+            for extra in extras:
+                hp_extras[extra][iuidx] = np.median(eval_tbl[extra][mt])
 
+
+    # Zero me
     zero = all_events == 0
     if log:
         float_events = np.zeros_like(all_events).astype(float)
@@ -135,7 +154,11 @@ def evals_to_healpix(eval_tbl, nside, log=False, mask=True):
         hpma.mask = zero
 
     # Angles
-    hp_lons, hp_lats = hp.pixelfunc.pix2ang(nside, np.arange(npix_hp), lonlat=True)
+    hp_lons, hp_lats = hp.pixelfunc.pix2ang(nside, np.arange(npix_hp), 
+                                            lonlat=True)
 
     # Return
-    return hpma, hp_lons, hp_lats
+    if extras is None:
+        return hpma, hp_lons, hp_lats
+    else:
+        return hpma, hp_lons, hp_lats, hp_extras

@@ -27,28 +27,42 @@ open = functools.partial(smart_open.open,
 import boto3
 
 
-def list_of_bucket_files(bucket_name, prefix='/', delimiter='/'):
+def list_of_bucket_files(bucket_name:str, prefix='/', delimiter='/'):
+    """Generate a list of files in the bucket
+
+    Args:
+        bucket_name (str): [description]
+        prefix (str, optional): [description]. Defaults to '/'.
+        delimiter (str, optional): [description]. Defaults to '/'.
+
+    Returns:
+        [type]: [description]
+    """
     prefix = prefix[1:] if prefix.startswith(delimiter) else prefix
     bucket = s3.Bucket(bucket_name)
     return list(_.key for _ in bucket.objects.filter(Prefix=prefix))                                
 
-def load_nc(filename, verbose=True):
+def load_nc(filename, field='SST', verbose=True):
     """
     Load a MODIS or equivalent .nc file
+    Does not work for VIIRS
+    Does not work for s3
 
     Parameters
     ----------
     filename : str
+    field : str, optional
     verbose : bool, optional
 
     Returns
     -------
-    sst, qual, latitude, longitude : np.ndarray, np.ndarray, np.ndarray np.ndarray
+    field, qual, latitude, longitude : np.ndarray, np.ndarray, np.ndarray np.ndarray
         Temperture map
         Quality
         Latitutides
         Longitudes
-        or None's if the data is corrupt!
+
+    or None's if the data is corrupt!
 
     """
     geo = xr.open_dataset(
@@ -62,10 +76,17 @@ def load_nc(filename, verbose=True):
         engine='h5netcdf',
         mask_and_scale=True)
 
+    # Translate user field to MODIS
+    mfields = dict(SST='sst', aph_443='aph_443_giop')
+
+    # Flags
+    mflags = dict(SST='qual_sst', aph_443='l2_flags')
+
+    # Go for it
     try:
         # Fails if data is corrupt
-        sst = np.array(geo['sst'])
-        qual = np.array(geo['qual_sst'])
+        dfield = np.array(geo[mfields[field]])
+        qual = np.array(geo[mflags[field]])
         latitude = np.array(nav['latitude'])
         longitude = np.array(nav['longitude'])
     except:
@@ -77,7 +98,7 @@ def load_nc(filename, verbose=True):
     nav.close()
 
     # Return
-    return sst, qual, latitude, longitude
+    return dfield, qual, latitude, longitude
 
 def load_main_table(tbl_file:str, verbose=True):
     """Load the table of cutouts 
