@@ -97,6 +97,29 @@ class ConditionalFlow(nn.Module):
             context = self.encoder(context)
         log_prob = self.flow.log_prob(inputs, context)
         return log_prob
+    
+    
+    def latent_and_prob(self, inputs, context=None):
+        """Forward pass in density estimation direction.
+        Passes back noise latent vector in addition to log_prob
+
+        Args:
+            inputs (torch.Tensor): [*, dim] tensor of data.
+            context (torch.Tensor): [*, context_dim] tensor of context.
+        Returns:
+            noise (torch.Tensor): [*,] tensor of flow latent vector
+            logabsdet (torch.Tensor): [*,] tensor of log of absoulte determinant
+            log_prob (torch.Tensor): [*,] tensor of log probabilities.
+        """
+        if self.encoder is not None and context is not None:
+            context = self.encoder(context)
+        # These lines taken from _log_prob() method of Flow()
+        embedded_context = self.flow._embedding_net(context)
+        noise, logabsdet = self.flow._transform(inputs, context=embedded_context)
+        log_prob = self.flow._distribution.log_prob(noise, context=embedded_context)
+        # Return
+        return noise, logabsdet, log_prob + logabsdet
+
 
     def forward(self, inputs, context=None):
         """Forward pass to negative log likelihood (NLL).
