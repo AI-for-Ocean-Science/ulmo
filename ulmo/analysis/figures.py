@@ -56,7 +56,7 @@ def show_spatial(main_tbl:pandas.DataFrame,
         good = np.invert(hp_events.mask)
         img = plt.scatter(x=hp_lons[good],
             y=hp_lats[good],
-            c=hp_events[good],
+            c=hp_events[good], 
             cmap=cm,
             s=1,
             transform=tformP)
