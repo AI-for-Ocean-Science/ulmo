@@ -524,8 +524,20 @@ class ProbabilisticAutoencoder:
         return latents, float(LL[0])
 
 
-    def eval_data_file(self, data_file, dataset, output_file,
+    def eval_data_file(self, data_file:str, 
+                       dataset:str, output_file:str,
                        csv=False, **kwargs):
+        """ Run Ulmo on the input data file
+
+        Args:
+            data_file (str): path to data file; must end in .h5
+            dataset (str): dataset in the HDF file to evaluate
+            output_file (str): Output file; must include "log_prob" and .h5
+            csv (bool, optional): [description]. Defaults to False.
+
+        Returns:
+            np.ndarray: array log-likehood values
+        """
         # Make PyTorch dataset from HDF5 file
         assert data_file.endswith('.h5'), "Input file must be in .h5 format."
         assert output_file.endswith('.h5'), "Output file must be in .h5 format."
