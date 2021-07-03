@@ -86,6 +86,13 @@ def grab_llc_datafile(datetime=None, root='LLC4320_', chk=True, local=False):
     # Return
     return datafile
                     
+def load_llc_ds(filename, local=False):
+    if not local:
+        with ulmo_io.open(filename, 'rb') as f:
+            ds = xr.open_dataset(f)
+    else:
+        ds = xr.open_dataset(filename)
+    return ds
                     
 def grab_image(**args):
     warnings.warn('Use grab_image() in utils.image_utils',

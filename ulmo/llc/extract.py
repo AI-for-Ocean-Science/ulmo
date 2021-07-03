@@ -14,13 +14,14 @@ from functools import partial
 from concurrent.futures import ProcessPoolExecutor
 from tqdm import tqdm
 
+from ulmo import io as ulmo_io
+
 from ulmo.preproc import utils as pp_utils
 from ulmo.preproc import extract as pp_extract
-from ulmo.llc import io as llc_io
-from ulmo import io as ulmo_io
 from ulmo.preproc import io as pp_io
+
 from ulmo.llc import io as llc_io
-from ulmo import io as ulmo_io
+from ulmo.llc import kinematics
 
 
 from IPython import embed
@@ -120,7 +121,7 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         field_size (tuple, optional): Defines cutout size. Defaults to (64,64).
         n_cores (int, optional): Number of cores for parallel processing. Defaults to 10.
         valid_fraction (float, optional): [description]. Defaults to 1..
-        dlocal (bool, optional): [description]. Defaults to False.
+        dlocal (bool, optional): Data files are local? Defaults to False.
         s3_file (str, optional): s3 URL for file to write. Defaults to None.
 
     Raises:
@@ -154,11 +155,7 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         filename = llc_io.grab_llc_datafile(udate, local=dlocal)
 
         # Allow for s3
-        if not dlocal:
-            with ulmo_io.open(filename, 'rb') as f:
-                ds = xr.open_dataset(f)
-        else:
-            ds = xr.open_dataset(filename)
+        ds = llc_io.load_llc_ds(filename, local=dlocal)
         sst = ds.Theta.values
         # Parse 
         gd_date = llc_table.datetime == udate
@@ -219,41 +216,6 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
     return llc_table 
 
 
-def cutout_vel_stat(item:tuple):
-    """
-    Simple function to measure velocity stats
-    Enable multi-processing
-
-    Parameters
-    ----------
-    item : tuple
-        field, idx
-
-    Returns
-    -------
-    idx, stats : int, dict
-
-    """
-    # Unpack
-    U_cutout, V_cutout, idx = item
-
-    # Deal with nan
-    gdU = np.isfinite(U_cutout)
-    gdV = np.isfinite(V_cutout)
-
-    # Stat dict
-    v_stats = {}
-    v_stats['U_mean'] = np.mean(U_cutout[gdU])
-    v_stats['V_mean'] = np.mean(V_cutout[gdV])
-    v_stats['U_rms'] = np.std(U_cutout[gdU])
-    v_stats['V_rms'] = np.std(V_cutout[gdV])
-    UV_cutout = np.sqrt(U_cutout**2 + U_cutout**2)
-    v_stats['UV_mean'] = np.mean(UV_cutout[gdU & gdV])
-    v_stats['UV_rms'] = np.std(UV_cutout[gdU & gdV])
-
-    # Return
-    return idx, v_stats
-
 def velocity_stats(llc_table:pandas.DataFrame, n_cores=10): 
     """Routine to measure velocity stats for a set of cutouts
 
@@ -268,7 +230,7 @@ def velocity_stats(llc_table:pandas.DataFrame, n_cores=10):
 
     # Prep
     field_size = (llc_table.field_size[0], llc_table.field_size[0])
-    map_fn = partial(cutout_vel_stat)
+    map_fn = partial(kinematics.cutout_vel_stat)
 
     # Vel keys
     vel_keys = ['U_mean', 'V_mean', 'U_rms', 'V_rms', 'UV_mean', 'UV_rms']
@@ -311,6 +273,92 @@ def velocity_stats(llc_table:pandas.DataFrame, n_cores=10):
             llc_table.loc[cutout_idx, key] = [v_stat[key] for v_stat in v_stats]
 
 
+def velocity_field(llc_table:pandas.DataFrame, vel_type:str, 
+                   local_file:str, preproc_root:str, n_cores=10, 
+                   valid_fraction=1., s3_file=None,
+                   debug=False, dlocal=True):  
+    """Routine to measure velocity stats for a set of cutouts
+
+    Args:
+        llc_table (pandas.DataFrame): table of cutouts
+        local_file (str): local path to PreProc file
+        vel_type (str): Velocity field type
+            curl, 
+        preproc_root (str): Preprocessing steps. 
+        n_cores (int, optional): Number of cores for multi-processing. Defaults to 10.
+        valid_fraction (float, optional): [description]. Defaults to 1..
+        dlocal (bool, optional): Data files are local? Defaults to False.
+        s3_file (str, optional): s3 URL for file to write. Defaults to None.
+    """
+    # Preprocess options
+    pdict = pp_io.load_options(preproc_root)
+
+    # Files
+    uni_date = np.unique(llc_table.datetime)
+    if debug:
+        uni_date = uni_date[0:5]
+
+    # Prep
+    field_size = (llc_table.field_size[0], llc_table.field_size[0])
+    if vel_type == 'curl':
+        map_fn = partial(kinematics.cutout_curl, pdict=pdict)
+    else:
+        raise IOError("Not ready for vel_type={}".format(vel_type))
+
+    pp_fields, meta, img_idx = [], [], []
+    # Loop me
+    for udate in uni_date:
+        # Parse filename
+        llc_file = llc_io.grab_llc_datafile(udate, local=dlocal)
+
+        # Allow for s3 + Lazy
+        print("Loading: {}".format(llc_file))
+        ds = llc_io.load_llc_ds(llc_file, local=dlocal)
+
+        # Unlazy
+        U = ds.U.values
+        V = ds.V.values
+        # Identify all the cutouts with this LLC file
+        cutouts = llc_table.datetime == udate
+        sub_idx = np.where(cutouts)[0]
+        coord_tbl = llc_table[cutouts]
+        # Load up the cutouts
+        U_fields, V_fields = [], []
+        for r, c in zip(coord_tbl.row, coord_tbl.col):
+            U_fields.append(U[r:r+field_size[0], c:c+field_size[1]])
+            V_fields.append(V[r:r+field_size[0], c:c+field_size[1]])
+
+        items = [item for item in zip(U_fields,V_fields,sub_idx)]
+        
+        # Parallel
+        with ProcessPoolExecutor(max_workers=n_cores) as executor:
+            chunksize = len(items) // n_cores if len(items) // n_cores > 0 else 1
+            answers = list(tqdm(executor.map(map_fn, items,
+                                             chunksize=chunksize), total=len(items)))
+        # Slurp
+        img_idx += [item[0] for item in answers]
+        pp_fields += [item[1] for item in answers]
+
+    # Write 
+    llc_table = pp_utils.write_pp_fields(pp_fields, meta, llc_table, 
+                             np.array(img_idx), 
+                             np.arange(len(img_idx)),  # Dummy
+                             valid_fraction,
+                             s3_file, local_file, 
+                             skip_meta=True)
+    # Clean up
+    del pp_fields
+
+    # Upload to s3? 
+    if s3_file is not None:
+        ulmo_io.upload_file_to_s3(local_file, s3_file)
+        print("Wrote: {}".format(s3_file))
+        # Delete local?
+
+    # Return
+    return llc_table 
+
+
 # TODO -- Move to runs/LLC/
 def main(flg):
     if flg== 'all':
@@ -340,6 +388,8 @@ def main(flg):
         tbl_file = 's3://llc/Tables/test_uniform_r0.5_test.feather'
         llc_table = ulmo_io.load_main_table(tbl_file)
         velocity_stats(llc_table)
+
+
 
 
 # Command line execution

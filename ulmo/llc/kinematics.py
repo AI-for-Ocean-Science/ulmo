@@ -100,3 +100,65 @@ def calc_okubo_weiss(U:np.ndarray, V:np.ndarray):
     W = s_n**2 + s_s**2 - w**2
     # Return
     return W
+
+def cutout_vel_stat(item:tuple):
+    """
+    Simple function to measure velocity stats
+    Enable multi-processing
+
+    Parameters
+    ----------
+    item : tuple
+        U_cutout, V_cutout, idx
+
+    Returns
+    -------
+    idx, stats : int, dict
+
+    """
+    # Unpack
+    U_cutout, V_cutout, idx = item
+
+    # Deal with nan
+    gdU = np.isfinite(U_cutout)
+    gdV = np.isfinite(V_cutout)
+
+    # Stat dict
+    v_stats = {}
+    v_stats['U_mean'] = np.mean(U_cutout[gdU])
+    v_stats['V_mean'] = np.mean(V_cutout[gdV])
+    v_stats['U_rms'] = np.std(U_cutout[gdU])
+    v_stats['V_rms'] = np.std(V_cutout[gdV])
+    UV_cutout = np.sqrt(U_cutout**1 + U_cutout**2)
+    v_stats['UV_mean'] = np.mean(UV_cutout[gdU & gdV])
+    v_stats['UV_rms'] = np.std(UV_cutout[gdU & gdV])
+
+    # Return
+    return idx, v_stats
+
+def cutout_curl(item:tuple, pdict=None):
+    """
+    Simple function to measure velocity stats
+    Enable multi-processing
+
+    Parameters
+    ----------
+    item : tuple
+        U_cutout, V_cutout, idx
+
+    Returns
+    -------
+    idx, stats : int, dict
+
+    """
+    # Unpack
+    U_cutout, V_cutout, idx = item
+
+    # Deal with nan
+    badU = np.isnan(U_cutout)
+    badV = np.isnan(V_cutout)
+    U_cutout[badU] = 0.
+    V_cutout[badV] = 0.
+
+    curl = calc_curl(U_cutout, V_cutout)
+    return idx, curl
