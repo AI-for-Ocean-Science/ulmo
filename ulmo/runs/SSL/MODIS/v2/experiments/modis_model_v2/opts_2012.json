@@ -12,6 +12,7 @@
 	"momentum": 0.9,
 	"model": "resnet50",
 	"modis_file": "MODIS_R2019_2012_95clear_128x128_preproc_std.h5",
+	"dataset": "MODIS_R2019_2012",
 	"data_key": "valid",
 	"data_folder": "./experiments/datasets/",
 	"model_folder": "./experiments/MODIS_R2019_2012_model_v2",
