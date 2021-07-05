@@ -263,6 +263,7 @@ class ModisDataset(Dataset):
         
         return image_transformed
     
+'''
 def modis_loader(opt):
     """
     This is a function used to create the modis data loader.
@@ -280,15 +281,17 @@ def modis_loader(opt):
     
     modis_path = opt.data_folder
     modis_file = os.path.join(modis_path, os.listdir(modis_path)[0])
-    modis_dataset = ModisDataset(modis_file, transform=TwoCropTransform(transforms_compose), data_key=opt.data_key)
+    modis_dataset = ModisDataset(modis_file, 
+        transform=TwoCropTransform(transforms_compose), data_key=opt.data_key)
     train_sampler = None
     train_loader = torch.utils.data.DataLoader(
                     modis_dataset, batch_size=opt.batch_size, shuffle=(train_sampler is None),
                     num_workers=opt.num_workers, pin_memory=False, sampler=train_sampler)
     
     return train_loader
+'''
 
-def modis_loader_v2(opt):
+def modis_loader(opt):
     """
     This is a function used to create the modis data loader using the 
     RandomJitterCrop augmentation.
@@ -299,20 +302,31 @@ def modis_loader_v2(opt):
     Returns:
         train_loader: (Dataloader) Modis Dataloader.
     """
-    
-    transforms_compose = transforms.Compose([RandomRotate(),
-                                             RandomJitterCrop(),
-                                             GaussianNoise(instrument_noise=(0, 0.05)),
-                                             transforms.ToTensor()])
+    # Generate list of augmentations
+    augmentations = [RandomRotate()]
+
+    if opt.random_jitter is not None:
+        augmentations += [RandomJitterCrop(crop_lim=opt.random_jitter[0], 
+                                          jitter_lim=opt.random_jitter[1])]
+    if opt.gauss_noise is not None:
+        augmentations += [GaussianNoise(instrument_noise=(0, opt.gauss_noise)]
+    augmentations += [transforms.ToTensor()]
+    # Compose
+    transforms_compose = transforms.Compose(augmentations)
+
+    # Data
     modis_path = opt.data_folder
-    modis_file = os.path.join(modis_path, os.listdir(modis_path)[0])
-    #from_s3 = (modis_path.split(':')[0] == 's3')
-    #modis_dataset = ModisDataset(modis_path, transform=TwoCropTransform(transforms_compose), from_s3=from_s3)
-    modis_dataset = ModisDataset(modis_file, transform=TwoCropTransform(transforms_compose), data_key=opt.data_key)
+    modis_file = os.path.join(modis_path, opt.modis_file)
+
+    modis_dataset = ModisDataset(
+        modis_file, transform=TwoCropTransform(transforms_compose), 
+        data_key=opt.data_key)
     train_sampler = None
     train_loader = torch.utils.data.DataLoader(
-                    modis_dataset, batch_size=opt.batch_size, shuffle=(train_sampler is None),
-                    num_workers=opt.num_workers, pin_memory=False, sampler=train_sampler)
+        modis_dataset, batch_size=opt.batch_size, 
+        shuffle=(train_sampler is None), 
+        num_workers=opt.num_workers, pin_memory=False, 
+        sampler=train_sampler)
     
     return train_loader
 
@@ -327,6 +341,7 @@ def modis_loader_v2_with_blurring(opt):
     Returns:
         train_loader: (Dataloader) Modis Dataloader.
     """
+    raise IOError("Modify the loader instead!!")
     transforms_compose = transforms.Compose([RandomRotate(),
                                              RandomJitterCrop(),
                                              GaussianBlurring(),
