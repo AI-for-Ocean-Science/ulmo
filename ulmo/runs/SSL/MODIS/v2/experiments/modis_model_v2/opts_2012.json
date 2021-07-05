@@ -13,7 +13,7 @@
 	"model": "resnet50",
 	"modis_file": "MODIS_R2019_2012_95clear_128x128_preproc_std.h5",
 	"data_key": "valid",
-	"data_folder": "../experiments/datasets/modis_dataset/",
+	"data_folder": "./experiments/datasets/",
 	"model_folder": "./experiments/MODIS_R2019_2012_model_v2",
 	"latents_folder": "./experiments/MODIS_R2019_2012_latents_v2/",
 	"method": "SimCLR",

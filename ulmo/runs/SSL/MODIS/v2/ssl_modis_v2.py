@@ -78,6 +78,11 @@ def ssl_v2_umap(debug=False, orig=False):
 
 
 def main_train(opt_path: str):
+    """Train the model
+
+    Args:
+        opt_path (str): Path + filename of options file
+    """
     # loading parameters json file
     opt = Params(opt_path)
     opt = option_preprocess(opt)
