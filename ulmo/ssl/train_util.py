@@ -306,10 +306,12 @@ def modis_loader(opt):
     augmentations = [RandomRotate()]
 
     if opt.random_jitter is not None:
-        augmentations += [RandomJitterCrop(crop_lim=opt.random_jitter[0], 
-                                          jitter_lim=opt.random_jitter[1])]
+        augmentations += [RandomJitterCrop(
+            crop_lim=opt.random_jitter[0], 
+            jitter_lim=opt.random_jitter[1])]
     if opt.gauss_noise is not None:
-        augmentations += [GaussianNoise(instrument_noise=(0, opt.gauss_noise)]
+        augmentations += [GaussianNoise(
+            instrument_noise=(0, opt.gauss_noise))]
     augmentations += [transforms.ToTensor()]
     # Compose
     transforms_compose = transforms.Compose(augmentations)
