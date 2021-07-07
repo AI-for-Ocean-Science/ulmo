@@ -69,7 +69,7 @@ def main_train(opt_path: str):
             api_key=pin,
             project_name="LLC_modis2012_curl", 
             workspace=user,
-    #)
+    )
     #experiment.log_parameters(opt.dict)
     
     # training routine
