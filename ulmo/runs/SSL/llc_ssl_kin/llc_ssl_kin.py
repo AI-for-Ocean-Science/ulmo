@@ -9,6 +9,7 @@ from tqdm.auto import trange
 import argparse
 
 
+from comet_ml import Experiment
 import torch
 
 from ulmo import io as ulmo_io
@@ -43,7 +44,6 @@ def parse_option():
     return args
 
 def main_train(opt_path: str):
-    from comet_ml import Experiment
     # loading parameters json file
     opt = Params(opt_path)
     opt = option_preprocess(opt)
@@ -70,7 +70,7 @@ def main_train(opt_path: str):
             project_name="LLC_modis2012_curl", 
             workspace=user,
     )
-    #experiment.log_parameters(opt.dict)
+    experiment.log_parameters(opt.dict)
     
     # training routine
     for epoch in trange(1, opt.epochs + 1):
