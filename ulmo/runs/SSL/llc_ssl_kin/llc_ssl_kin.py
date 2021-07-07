@@ -12,8 +12,8 @@ import argparse
 from comet_ml import Experiment
 import torch
 
-from ulmo import io as ulmo_io
-from ulmo.llc import extract 
+#from ulmo import io as ulmo_io
+#from ulmo.llc import extract 
 
 from ulmo.ssl.util import adjust_learning_rate
 from ulmo.ssl.util import set_optimizer, save_model
@@ -22,11 +22,11 @@ from ulmo.ssl.train_util import Params, option_preprocess
 from ulmo.ssl.train_util import modis_loader_v2, set_model
 from ulmo.ssl.train_util import train_model
 
-from ulmo.utils import catalog as cat_utils
+#from ulmo.utils import catalog as cat_utils
 
-from ulmo.ssl import analysis as ssl_analysis
+#from ulmo.ssl import analysis as ssl_analysis
 
-from IPython import embed
+#from IPython import embed
 
 def parse_option():
     """
