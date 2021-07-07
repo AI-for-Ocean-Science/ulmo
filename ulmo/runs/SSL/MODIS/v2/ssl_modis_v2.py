@@ -111,11 +111,17 @@ def main_train(opt_path: str):
             save_file = os.path.join(
                 opt.save_folder, 'ckpt_epoch_{epoch}.pth'.format(epoch=epoch))
             save_model(model, optimizer, opt, epoch, save_file)
+            # Save to s3
+            s3_file = os.path.join(
+                opt.s3_outdir, 'ckpt_epoch_{epoch}.pth'.format(epoch=epoch))
+            ulmo_io.upload_file_to_s3(save_file, s3_file)
 
     # save the last model
-    save_file = os.path.join(
-        opt.save_folder, 'last.pth')
+    save_file = os.path.join(opt.save_folder, 'last.pth')
     save_model(model, optimizer, opt, opt.epochs, save_file)
+    # Save to s3
+    s3_file = os.path.join(opt.s3_outdir, 'last.pth')
+    ulmo_io.upload_file_to_s3(save_file, s3_file)
 
 def model_latents_extract(opt, modis_data, model_path, save_path, save_key):
     """

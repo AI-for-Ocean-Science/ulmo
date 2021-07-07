@@ -114,6 +114,7 @@ def set_optimizer(opt, model):
 def save_model(model, optimizer, opt, epoch, save_file):
     """
     This is a function used for saving model.
+
     Args:
         model: (torch.nn.Module) training model.
         optimizer: (torch.optim) optimizer for the model.
@@ -121,8 +122,6 @@ def save_model(model, optimizer, opt, epoch, save_file):
         epoch: (int) epoch id of the training.
         save_file: (str) path for the saving model.
         
-    Returns:
-        state: (dict) dictionary for the saving model.
     """
     print('==> Saving...')
     state = {
