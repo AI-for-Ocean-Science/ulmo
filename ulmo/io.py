@@ -57,8 +57,8 @@ def list_of_bucket_files(bucket_name:str, prefix='/', delimiter='/'):
     """Generate a list of files in the bucket
 
     Args:
-        bucket_name (str): [description]
-        prefix (str, optional): [description]. Defaults to '/'.
+        bucket_name (str): name of bucket
+        prefix (str, optional): Folder(s) path. Defaults to '/'.
         delimiter (str, optional): [description]. Defaults to '/'.
 
     Returns:

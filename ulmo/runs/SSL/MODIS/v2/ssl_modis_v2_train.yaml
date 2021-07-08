@@ -29,9 +29,9 @@ spec:
             git pull; 
             python setup.py develop;
             cd ulmo/runs/SSL/MODIS/v2;
-            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp s3://modis-l2/PreProc/MODIS_R2019_2012_95clear_128x128_preproc_std.h5 ./;
+            mkdir experiments/datasets/;
+            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp s3://modis-l2/PreProc/MODIS_R2019_2012_95clear_128x128_preproc_std.h5 ./experiments/datasets/;
             python ./ssl_modis_v2.py --opt_path ./experiments/modis_model_v2/opts_2012.json --func_flag train;
-            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp ./experiments/LLC_MODIS_2012_model/ s3://llc/LLC_MODIS_2012_model/ --recursive;
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"
