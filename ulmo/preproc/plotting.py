@@ -10,6 +10,8 @@ import cartopy.crs as ccrs
 import astropy_healpix
 from astropy import units
 
+from ulmo.utils import image_utils
+
 
 def plot_extraction(llc_table:pandas.DataFrame, figsize=(7,4),
                     resol=None, cbar=False, s=0.01):

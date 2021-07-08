@@ -1,5 +1,15 @@
-# Extraction (first attempt)
-  ulmo_extract_modis --field aph_443 --year 2010 --field_size 128 --ncores 10
+# Get the L2 files
+wget --no-check-certificate --user=profx --ask-password --auth-no-challenge=on -i FileList_IOC_2010.txt -nv -o Log_2010.txt
+wget --no-check-certificate --user=profx --ask-password --auth-no-challenge=on -i OC_list_2011.txt -nv -o Log_2011.txt
+
+# Extraction (second attempt)
+ulmo_extract_modis --field aph_443 --year 2010 --field_size 128 --ncores 10 --nrepeat 2
+ulmo_extract_modis --field aph_443 --year 2011 --field_size 128 --ncores 10 --nrepeat 2
 
 # Pre-process
-  ulmo_preproc_h5 MODIS_R2019_IOC_aph443_2010_95clear_128x128_inpaintT.h5 0.2 stdcolor MODIS_R2019_IOC_aph443_2010_95clear_128x128_preproc.h5
+ulmo_preproc_h5 Extractions/MODIS_R2019_IOC_aph443_2010_95clear_128x128_inpaintT.h5 0.2 stdcolor PreProc/MODIS_R2019_IOC_aph443_2010_95clear_128x128_preproc.h5 
+  # Only 42,278 images..
+ulmo_preproc_h5 Extractions/MODIS_R2019_IOC_aph443_2011_95clear_128x128_inpaintT.h5 1.0 stdcolor PreProc/MODIS_R2019_IOC_aph443_2011_95clear_128x128_preproc.h5 
+
+# Train
+#  Notebook on Nautilus

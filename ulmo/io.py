@@ -5,6 +5,7 @@ import numpy as np
 import xarray as xr
 
 import pandas
+import h5py 
 from urllib.parse import urlparse
 from io import BytesIO
 
@@ -26,29 +27,68 @@ open = functools.partial(smart_open.open,
 
 import boto3
 
+def grab_cutout(cutout:pandas.core.series.Series, 
+               close=True, pp_hf=None):                
+    """Grab the pre-processed image of a cutout
 
-def list_of_bucket_files(bucket_name, prefix='/', delimiter='/'):
+    Args:
+        cutout (pandas.core.series.Series): cutout
+        close (bool, optional): If True, close the file afterwards. Defaults to True.
+        pp_hf ([type], optional): [description]. Defaults to None.
+
+    Returns:
+        np.ndarray: Image of the cutout
+    """
+    # Open?
+    if pp_hf is None:
+        with open(cutout.pp_file, 'rb') as f:
+            pp_hf = h5py.File(f, 'r')
+    img = pp_hf['valid'][cutout.pp_idx, 0, ...]
+
+    # Close?
+    if close:
+        pp_hf.close()
+        return img
+    else:
+        return img, pp_hf
+
+
+def list_of_bucket_files(bucket_name:str, prefix='/', delimiter='/'):
+    """Generate a list of files in the bucket
+
+    Args:
+        bucket_name (str): [description]
+        prefix (str, optional): [description]. Defaults to '/'.
+        delimiter (str, optional): [description]. Defaults to '/'.
+
+    Returns:
+        [type]: [description]
+    """
     prefix = prefix[1:] if prefix.startswith(delimiter) else prefix
     bucket = s3.Bucket(bucket_name)
     return list(_.key for _ in bucket.objects.filter(Prefix=prefix))                                
 
-def load_nc(filename, verbose=True):
+def load_nc(filename, field='SST', verbose=True):
     """
     Load a MODIS or equivalent .nc file
+    Does not work for VIIRS
+    Does not work for s3
 
     Parameters
     ----------
     filename : str
+    field : str, optional
     verbose : bool, optional
 
     Returns
     -------
-    sst, qual, latitude, longitude : np.ndarray, np.ndarray, np.ndarray np.ndarray
+    field, qual, latitude, longitude : np.ndarray, np.ndarray, np.ndarray np.ndarray
         Temperture map
         Quality
         Latitutides
         Longitudes
-        or None's if the data is corrupt!
+
+    or None's if the data is corrupt!
 
     """
     geo = xr.open_dataset(
@@ -62,10 +102,17 @@ def load_nc(filename, verbose=True):
         engine='h5netcdf',
         mask_and_scale=True)
 
+    # Translate user field to MODIS
+    mfields = dict(SST='sst', aph_443='aph_443_giop')
+
+    # Flags
+    mflags = dict(SST='qual_sst', aph_443='l2_flags')
+
+    # Go for it
     try:
         # Fails if data is corrupt
-        sst = np.array(geo['sst'])
-        qual = np.array(geo['qual_sst'])
+        dfield = np.array(geo[mfields[field]])
+        qual = np.array(geo[mflags[field]])
         latitude = np.array(nav['latitude'])
         longitude = np.array(nav['longitude'])
     except:
@@ -77,7 +124,7 @@ def load_nc(filename, verbose=True):
     nav.close()
 
     # Return
-    return sst, qual, latitude, longitude
+    return dfield, qual, latitude, longitude
 
 def load_main_table(tbl_file:str, verbose=True):
     """Load the table of cutouts 
@@ -135,39 +182,6 @@ def load_to_bytes(s3_uri:str):
     f.seek(0)
     return f
 
-def write_main_table(main_table:pandas.DataFrame, outfile:str, to_s3=True):
-    """Write Main table for ULMO analysis
-    Format is determined from the outfile extension.
-        Options are ".csv", ".feather", ".parquet"
-
-    Args:
-        main_table (pandas.DataFrame): Main table for ULMO analysis
-        outfile (str): Output filename.  Its extension sets the format
-        to_s3 (bool, optional): If True, write to s3
-
-    Raises:
-        IOError: [description]
-    """
-    _, file_extension = os.path.splitext(outfile)
-    if file_extension == '.csv':
-        main_table.to_csv(outfile, date_format='%Y-%m-%d %H:%M:%S')
-    elif file_extension == '.feather':
-        bytes_ = BytesIO()
-        main_table.to_feather(path=bytes_)
-        if to_s3:
-            write_bytes_to_s3(bytes_, outfile)
-        else:
-            write_bytes_to_local(bytes_, outfile)
-    elif file_extension == '.parquet':
-        bytes_ = BytesIO()
-        main_table.to_parquet(path=bytes_)
-        if to_s3:
-            write_bytes_to_s3(bytes_, outfile)
-        else:
-            write_bytes_to_local(bytes_, outfile)
-    else:
-        raise IOError("Not ready for this")
-    print("Wrote Analysis Table: {}".format(outfile))
 
 def download_file_from_s3(local_file:str, s3_uri:str, 
                           clobber_local=True):
@@ -218,3 +232,37 @@ def write_bytes_to_s3(bytes_:BytesIO, s3_uri:str):
     s3.meta.client.upload_fileobj(Fileobj=bytes_, 
                              Bucket=parsed_s3.netloc, 
                              Key=parsed_s3.path[1:])
+
+def write_main_table(main_table:pandas.DataFrame, outfile:str, to_s3=True):
+    """Write Main table for ULMO analysis
+    Format is determined from the outfile extension.
+        Options are ".csv", ".feather", ".parquet"
+
+    Args:
+        main_table (pandas.DataFrame): Main table for ULMO analysis
+        outfile (str): Output filename.  Its extension sets the format
+        to_s3 (bool, optional): If True, write to s3
+
+    Raises:
+        IOError: [description]
+    """
+    _, file_extension = os.path.splitext(outfile)
+    if file_extension == '.csv':
+        main_table.to_csv(outfile, date_format='%Y-%m-%d %H:%M:%S')
+    elif file_extension == '.feather':
+        bytes_ = BytesIO()
+        main_table.to_feather(path=bytes_)
+        if to_s3:
+            write_bytes_to_s3(bytes_, outfile)
+        else:
+            write_bytes_to_local(bytes_, outfile)
+    elif file_extension == '.parquet':
+        bytes_ = BytesIO()
+        main_table.to_parquet(path=bytes_)
+        if to_s3:
+            write_bytes_to_s3(bytes_, outfile)
+        else:
+            write_bytes_to_local(bytes_, outfile)
+    else:
+        raise IOError("Not ready for this")
+    print("Wrote Analysis Table: {}".format(outfile))

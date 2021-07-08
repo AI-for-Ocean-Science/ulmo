@@ -13,25 +13,38 @@ from skimage.transform import downscale_local_mean
 from skimage import filters
 from sklearn.utils import shuffle
 
+from functools import partial
+from concurrent.futures import ProcessPoolExecutor
+from tqdm import tqdm
+
 from ulmo import defs as ulmo_defs
+from ulmo.preproc import io as pp_io
+from ulmo import io as ulmo_io
 
 from IPython import embed
 
 
-def build_mask(sst, qual, qual_thresh=2, temp_bounds=(-2,33)):
+def build_mask(dfield, qual, qual_thresh=2, lower_qual=True,
+               temp_bounds=(-2,33), field='SST'):
     """
-    Generate a mask based on NaN, qual, and temperature bounds
+    Generate a mask based on NaN, qual, and other bounds
 
     Parameters
     ----------
-    sst : np.ndarray
-        Full SST image
+    dfield : np.ndarray
+        Full data image
     qual : np.ndarray
         Quality image
-    qual_thresh : int
-        Quality threshold value;  qual must exceed this
+    qual_thresh : int, optional
+        Quality threshold value  
+    lower_qual : bool, optional
+        If True, the qual_thresh is a lower bound, i.e. mask values above this  
+        Otherwise, mask those below!
     temp_bounds : tuple
         Temperature interval considered valid
+        Used for SST
+    field : str, optional
+        Options: SST, aph_443
 
     Returns
     -------
@@ -39,23 +52,34 @@ def build_mask(sst, qual, qual_thresh=2, temp_bounds=(-2,33)):
         mask;  True = bad
 
     """
-    # Deal with NANs
-    sst[np.isnan(sst)] = np.nan
-    if qual is not None:
+    dfield[np.isnan(dfield)] = np.nan
+    if field == 'SST':
+        if qual is None:
+            qual = np.zeros_like(dfield).astype(int)
         qual[np.isnan(qual)] = np.nan
-        masks = np.logical_or(np.isnan(sst), np.isnan(qual))
     else:
-        masks = np.isnan(sst)
+        if qual is None:
+            raise IOError("Need to deal with qual for color.  Just a reminder")
+        # Deal with NaN
+    masks = np.logical_or(np.isnan(dfield), np.isnan(qual))
 
-    # Temperature bounds and quality
+    # Quality
+    # TODO -- Do this right for color
     qual_masks = np.zeros_like(masks)
-    if qual is not None:
-        qual_masks[~masks] = (qual[~masks] > qual_thresh) | (sst[~masks] <= temp_bounds[0]) | (sst[~masks] > temp_bounds[1])
-    else:
-        qual_masks[~masks] = (sst[~masks] <= temp_bounds[0]) | (sst[~masks] > temp_bounds[1])
 
-    # Finish
-    masks = np.logical_or(masks, qual_masks)
+    if qual is not None and qual_thresh is not None:
+        if lower_qual:
+            qual_masks[~masks] = (qual[~masks] > qual_thresh) 
+        else:
+            qual_masks[~masks] = (qual[~masks] < qual_thresh) 
+
+    # Temperature bounds
+    #
+    value_masks = np.zeros_like(masks)
+    if field == 'SST':
+        value_masks = (dfield[~masks] <= temp_bounds[0]) | (dfield[~masks] > temp_bounds[1])
+    # Union
+    masks = np.logical_or(masks, qual_masks, value_masks)
 
     # Return
     return masks
@@ -73,7 +97,8 @@ def prep_table_for_preproc(tbl, preproc_root, field_size=None):
     # 
     return tbl
 
-def preproc_image(item:tuple, pdict:dict, use_mask=False):
+def preproc_image(item:tuple, pdict:dict, use_mask=False,
+                  inpainted_mask=False):
     """
     Simple wrapper for preproc_field()
     Mainly for multi-processing
@@ -86,6 +111,9 @@ def preproc_image(item:tuple, pdict:dict, use_mask=False):
         Preprocessing dict
     use_mask : bool, optional
         If True, allow for an input mask
+    inpainted_mask : bool, optional
+        If True, the tuple includes an inpainted_mask
+        instead of a simple mask.
 
     Returns
     -------
@@ -95,6 +123,12 @@ def preproc_image(item:tuple, pdict:dict, use_mask=False):
     # Unpack
     if use_mask:
         field, mask, idx = item
+        if inpainted_mask:
+            true_mask = np.isfinite(mask)
+            # Fill-in inpainted values
+            field[true_mask] = mask[true_mask]
+            # Overwrite
+            mask = true_mask
     else:
         field, idx = item
         mask = None
@@ -113,6 +147,7 @@ def preproc_image(item:tuple, pdict:dict, use_mask=False):
 def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
                   downscale=True, dscale_size=(2,2), sigmoid=False, scale=None,
                   expon=None, only_inpaint=False, gradient=False,
+                  min_mean=None, de_mean=True,
                   noise=None,
                   log_scale=False, **kwargs):
     """
@@ -151,6 +186,10 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
         Exponate the SSTa values by this exponent
     gradient : bool, optional
         If True, apply a Sobel gradient enhancing filter
+    de_mean : bool, optional
+        If True, subtract the mean
+    min_mean : float, optional
+        If provided, require the image has a mean exceeding this value
     **kwargs : catches extraction keywords
 
     Returns
@@ -198,10 +237,17 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
     if np.any(np.isnan(field)):
         return None, None
 
-    # De-mean the field
+    # Check mean
     mu = np.mean(field)
-    pp_field = field - mu
     meta_dict['mu'] = mu
+    if min_mean is not None and mu < min_mean:
+        return None, None
+
+    # De-mean the field
+    if de_mean:
+        pp_field = field - mu
+    else:
+        pp_field = field
 
     # Sigmoid?
     if sigmoid:
@@ -246,6 +292,126 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
     return pp_field, meta_dict
 
 
+def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float, 
+                s3_bucket:str,
+                preproc_root='standard',
+                debug=False, 
+                extract_folder='Extract',
+                preproc_folder='PreProc',
+                nsub_fields=10000, 
+                use_mask=True,
+                inpainted_mask=False,
+                n_cores=10):
+
+    # Preprocess options
+    pdict = pp_io.load_options(preproc_root)
+
+    # Setup for parallel
+    map_fn = partial(preproc_image, pdict=pdict,
+                     use_mask=use_mask,
+                     inpainted_mask=inpainted_mask)
+
+    # Prep table
+    data_tbl = prep_table_for_preproc(data_tbl, preproc_root)
+    
+    # Folders
+    if not os.path.isdir(extract_folder):
+        os.mkdir(extract_folder)                                            
+    if not os.path.isdir(preproc_folder):
+        os.mkdir(preproc_folder)                                            
+
+    # Unique extraction files
+    uni_ex_files = np.unique(data_tbl.ex_filename)
+
+    for ex_file in uni_ex_files:
+        print("Working on Extraction file: {}".format(ex_file))
+
+        # Download to local
+        local_file = os.path.join(extract_folder, os.path.basename(ex_file))
+        ulmo_io.download_file_from_s3(local_file, ex_file)
+
+        # Output file -- This is prone to crash
+        local_outfile = local_file.replace('inpaint', 
+                                           'preproc_'+preproc_root).replace(
+                                               extract_folder, preproc_folder)
+        s3_file = os.path.join(s3_bucket, preproc_folder, 
+                               os.path.basename(local_outfile))
+
+        # Find the matches
+        gd_exfile = data_tbl.ex_filename == ex_file
+        ex_idx = np.where(gd_exfile)[0]
+
+        # 
+        nimages = np.sum(gd_exfile)
+        nloop = nimages // nsub_fields + ((nimages % nsub_fields) > 0)
+
+        # Write the file locally
+        # Process them all, then deal with train/validation
+        pp_fields, meta, img_idx = [], [], []
+        for kk in range(nloop):
+            f = h5py.File(local_file, mode='r')
+
+            # Load the images into memory
+            i0 = kk*nsub_fields
+            i1 = min((kk+1)*nsub_fields, nimages)
+            print('Fields: {}:{} of {}'.format(i0, i1, nimages))
+            fields = f['fields'][i0:i1]
+            shape =fields.shape
+            if inpainted_mask:
+                masks = f['inpainted_masks'][i0:i1]
+            else:
+                masks = f['masks'][i0:i1].astype(np.uint8)
+            sub_idx = np.arange(i0, i1).tolist()
+
+            # Convert to lists
+            print('Making lists')
+            fields = np.vsplit(fields, shape[0])
+            fields = [field.reshape(shape[1:]) for field in fields]
+
+            # These may be inpainted_masks
+            masks = np.vsplit(masks, shape[0])
+            masks = [mask.reshape(shape[1:]) for mask in masks]
+
+            items = [item for item in zip(fields,masks,sub_idx)]
+
+            print('Process time')
+            # Do it
+            with ProcessPoolExecutor(max_workers=n_cores) as executor:
+                chunksize = len(items) // n_cores if len(items) // n_cores > 0 else 1
+                answers = list(tqdm(executor.map(map_fn, items,
+                                                chunksize=chunksize), total=len(items)))
+
+            # Deal with failures
+            answers = [f for f in answers if f is not None]
+
+            # Slurp
+            pp_fields += [item[0] for item in answers]
+            img_idx += [item[1] for item in answers]
+            meta += [item[2] for item in answers]
+
+            del answers, fields, masks, items
+            f.close()
+
+        # Remove local_file
+        os.remove(local_file)
+        print("Removed: {}".format(local_file))
+
+        # Write
+        data_tbl = write_pp_fields(pp_fields, 
+                                 meta, 
+                                 data_tbl, 
+                                 ex_idx, 
+                                 img_idx,
+                                 valid_fraction, 
+                                 s3_file, 
+                                 local_outfile)
+
+        # Write to s3
+        ulmo_io.upload_file_to_s3(local_outfile, s3_file)
+
+    print("Done with generating pre-processed files..")
+    return data_tbl
+
 def write_pp_fields(pp_fields:list, meta:list, 
                     main_tbl:pandas.DataFrame, 
                     ex_idx:np.ndarray,
@@ -256,6 +422,7 @@ def write_pp_fields(pp_fields:list, meta:list,
     # Recast
     pp_fields = np.stack(pp_fields)
     pp_fields = pp_fields[:, None, :, :]  # Shaped for training
+    pp_fields = pp_fields.astype(np.float32) # Recast
 
     print("After pre-processing, there are {} images ready for analysis".format(pp_fields.shape[0]))
     
@@ -289,6 +456,7 @@ def write_pp_fields(pp_fields:list, meta:list,
 
     # ###################
     # Write to disk (avoids holding another 20Gb in memory)
+    print("Writing: {}".format(local_file))
     with h5py.File(local_file, 'w') as f:
         # Validation
         f.create_dataset('valid', data=pp_fields[valid_idx].astype(np.float32))

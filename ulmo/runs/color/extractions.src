@@ -1,2 +1,3 @@
 #!/bin/bash -f
-screen -L ulmo_extract_modis --ncores 20 --year 2010 --day --nrepeat=2
+#screen -L ulmo_extract_modis --ncores 20 --year 2010 --day --nrepeat=2
+#ulmo_extract_modis --ncores 8 --field aph_443 --nrepeat=2

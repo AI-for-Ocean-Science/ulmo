@@ -28,9 +28,11 @@ def load_log_prob(pproc, table_files=None, add_UID=False, feather=False):
     -------
 
     """
+    raise IOError("This routine is now in analysis/tbl_utils.py")
 
     if feather:
-        ffile = os.path.join(defs.eval_path, 'R2010_results_{}.feather'.format(pproc))
+        ffile = os.path.join(defs.eval_path, 
+                             'R2010_results_{}.feather'.format(pproc))
         print("Loading: {}".format(ffile))
         return pandas.read_feather(ffile)
 

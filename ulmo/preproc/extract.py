@@ -9,7 +9,8 @@ from IPython import embed
 
 
 def clear_grid(mask, field_size, method, CC_max=0.05,
-                 nsgrid_draw=1, return_fracCC=False):
+                 nsgrid_draw=1, return_fracCC=False,
+                 sub_grid_step=4):
     """
 
     Parameters
@@ -22,6 +23,8 @@ def clear_grid(mask, field_size, method, CC_max=0.05,
     CC_max : float
         Maximum cloudy fraction allowed
     ndraw_mnx
+    nsub : int, optional
+        Fraction of field-size to use for sub-gridding
     nsgrid_draw : int, optional
         Number of fields to draw per sub-grid
     return_fracCC : bool, optional
@@ -29,6 +32,7 @@ def clear_grid(mask, field_size, method, CC_max=0.05,
 
     Returns
     -------
+    picked_row, picked_col, CC_mask[idx_clear][keep] : rows, columns, CC_fraction
 
     """
     # Some checks
@@ -58,7 +62,7 @@ def clear_grid(mask, field_size, method, CC_max=0.05,
         return None, None, None
 
     # Sub-grid me
-    sub_size = field_size // 4
+    sub_size = field_size // sub_grid_step
     rows = np.arange(mask.shape[0]) // sub_size + 1
     sub_nrows = rows[-1]  # The 1 was already added in
     cols = np.arange(mask.shape[1]) // sub_size * rows[-1]
@@ -98,6 +102,5 @@ def clear_grid(mask, field_size, method, CC_max=0.05,
 
     # Return
     return picked_row, picked_col, CC_mask[idx_clear][keep]
-
 
 

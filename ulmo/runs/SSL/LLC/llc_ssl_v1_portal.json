@@ -1,0 +1,16 @@
+{
+    "image_file": "/home/xavier/Oceanography/AI/OOD/LLC/PreProc/LLC_modis2012_test_noise_preproc.h5",
+    "image_key": "valid",
+    "Nimages": 500000,
+    "xy_values": "U0, U1",
+    "table_file": "s3://llc/Tables/LLC_MODIS2012_SSL_v1.parquet",
+    "metrics": [
+        ["U0", "U0"],
+        ["U1", "U1"],
+        ["LL", "LL"],
+        ["DT", "DT"],
+        ["lon", "lon"],
+        ["lat", "lat"],
+        ["avgT", "mean_temperature"]
+    ]
+}
