@@ -103,7 +103,8 @@ def main_train(opt_path: str):
 
         # train for one epoch
         time1 = time.time()
-        loss = train_model(train_loader, model, criterion, optimizer, epoch, opt, cuda_use=opt.cuda_use)
+        loss = train_model(train_loader, model, criterion, 
+                           optimizer, epoch, opt, cuda_use=opt.cuda_use)
         time2 = time.time()
         print('epoch {}, total time {:.2f}'.format(epoch, time2 - time1))
 
