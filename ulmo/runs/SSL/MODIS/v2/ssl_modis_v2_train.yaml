@@ -13,8 +13,8 @@ spec:
         imagePullPolicy: Always
         resources:
           requests:
-            cpu: "2"
-            memory: "36Gi"
+            cpu: "2"   # Should have used 4 instead of 2
+            memory: "36Gi"  # This was way too much! -- I see why Erdong used 1 Gb
             ephemeral-storage: 50Gi
           limits:
             cpu: "4"
