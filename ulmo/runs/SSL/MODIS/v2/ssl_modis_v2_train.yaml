@@ -13,14 +13,14 @@ spec:
         imagePullPolicy: Always
         resources:
           requests:
-            cpu: "2"   # Should have used 4 instead of 2
-            memory: "36Gi"  # This was way too much! -- I see why Erdong used 1 Gb
+            cpu: "4"   # Should have used 4 instead of 2
+            memory: "2Gi"  # This was way too much! -- I see why Erdong used 1 Gb
             ephemeral-storage: 50Gi
           limits:
-            cpu: "4"
-            memory: "36Gi"
+            cpu: "8"
+            memory: "8Gi"
             ephemeral-storage: 100Gi
-            nvidia.com/gpu:  "2"  # See docs to exlude certain types
+            nvidia.com/gpu:  "4"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]
         args:
           - cd ulmo; 
