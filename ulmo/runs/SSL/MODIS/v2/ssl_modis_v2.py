@@ -37,6 +37,9 @@ def parse_option():
     parser = argparse.ArgumentParser("argument for training.")
     parser.add_argument("--opt_path", type=str, help="path of 'opt.json' file.")
     parser.add_argument("--func_flag", type=str, help="flag of the function to be execute: 'train' or 'evaluate'.")
+        # JFH Should the default now be true with the new definition.
+    parser.add_argument('--debug', default=False, action='store_true',
+                        help='Debug?')
     args = parser.parse_args()
     
     return args
@@ -182,7 +185,8 @@ def model_latents_extract(opt, modis_data, model_path,
         opt.s3_outdir, 'ckpt_epoch_{epoch}.pth'.format(epoch=epoch))
     ulmo_io.upload_file_to_s3(save_file, s3_file)
         
-def main_evaluate(opt_path, model_file, preproc='_std'):
+def main_evaluate(opt_path, model_file, preproc='_std', 
+                  debug=False):
     """
     This function is used to obtain the latents of the trained models
     for all of MODIS
@@ -203,6 +207,8 @@ def main_evaluate(opt_path, model_file, preproc='_std'):
 
     # Loop on files
     key_train, key_valid = "train", "valid"
+    if debug:
+        pp_files = pp_files[0:1]
     for ifile in pp_files:
         data_file = os.path.basename(ifile)
         ulmo_io.download_file_from_s3(data_file,
@@ -248,7 +254,8 @@ if __name__ == "__main__":
     if args.func_flag == 'evaluate':
         print("Evaluation Starts.")
         main_evaluate(args.opt_path,
-                      's3://modis-l2/SSL/SSL_v2_2012/last.pth')
+                      's3://modis-l2/SSL/SSL_v2_2012/last.pth',
+                      debug=args.debug)
         print("Evaluation Ends.")
 
     # run the umap
