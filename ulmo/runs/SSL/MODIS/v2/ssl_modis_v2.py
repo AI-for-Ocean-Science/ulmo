@@ -210,6 +210,7 @@ def main_evaluate(opt_path, model_file, preproc='_std',
     if debug:
         pp_files = pp_files[0:1]
     for ifile in pp_files:
+        print("Working on ifile")
         data_file = os.path.basename(ifile)
         ulmo_io.download_file_from_s3(data_file,
                                       f's3://modis-l2/PreProc/{data_file}')
@@ -225,19 +226,25 @@ def main_evaluate(opt_path, model_file, preproc='_std',
 
         # Remove
         os.remove(data_file)
+        print(f'{data_file} removed')
     
     
+        # Setup
         model_path = os.path.join(opt.save_folder, model_file)
         latents_file = data_file.replace(preproc, '_latents')
         latents_path = os.path.join(opt.latents_folder, latents_file) 
         if dataset_train is not None:
+            print("Starting train evaluation")
             model_latents_extract(opt, dataset_train, model_path, 
                               latents_file, key_train)
             print("Extraction of Latents of train set is done.")
+        print("Starting valid evaluation")
         model_latents_extract(opt, dataset_valid, model_path, 
                               latents_file, key_valid)
         print("Extraction of Latents of valid set is done.")
+
         # Push to s3
+        print("Uploading to s3..")
         ulmo_io.upload_file_to_s3(latents_file, latents_path)
         
 if __name__ == "__main__":
