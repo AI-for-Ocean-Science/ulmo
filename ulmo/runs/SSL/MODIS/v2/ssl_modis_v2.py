@@ -128,6 +128,7 @@ def model_latents_extract(opt, modis_data, model_path,
                           save_path, save_key):
     """
     This function is used to obtain the latents of the training data.
+
     Args:
         opt: (Parameters) parameters used to create the model.
         modis_data: (numpy.array) modis_data used in the latents
@@ -176,6 +177,10 @@ def model_latents_extract(opt, modis_data, model_path,
     # Write locally
     with h5py.File(save_path, 'a') as file:
         file.create_dataset(save_key, data=latents_numpy)
+    # Write to s3
+    s3_file = os.path.join(
+        opt.s3_outdir, 'ckpt_epoch_{epoch}.pth'.format(epoch=epoch))
+    ulmo_io.upload_file_to_s3(save_file, s3_file)
         
 def main_evaluate(opt_path, model_file, preproc='_std'):
     """
@@ -243,7 +248,7 @@ if __name__ == "__main__":
     if args.func_flag == 'evaluate':
         print("Evaluation Starts.")
         main_evaluate(args.opt_path,
-                      's3://modis-l2/SSL/SSL_v2_2012/ckpt_epoch_15.pth')
+                      's3://modis-l2/SSL/SSL_v2_2012/last.pth')
         print("Evaluation Ends.")
 
     # run the umap
