@@ -14,7 +14,7 @@ spec:
         resources:
           requests:
             cpu: "4"   # Should have used 4 instead of 2
-            memory: "18Gi"  # This was way too much! -- I see why Erdong used 1 Gb
+            memory: "18Gi"  # Needs to be large enough to slurp in the images
             ephemeral-storage: 50Gi
           limits:
             cpu: "8"

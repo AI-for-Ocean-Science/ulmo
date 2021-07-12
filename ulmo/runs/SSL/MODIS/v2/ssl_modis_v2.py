@@ -147,11 +147,12 @@ def model_latents_extract(opt, modis_data, model_path,
     model_file = os.path.basename(model_path)
     ulmo_io.download_file_from_s3(model_file, model_path)
     # Load
+    print(f"Loading model")
     model_dict = torch.load(model_file)
     model.load_state_dict(model_dict['model'])
     os.remove(model_file)
 
-    modis_data = np.repeat(modis_data, 3, axis=1)
+    #modis_data = np.repeat(modis_data, 3, axis=1)
     num_samples = modis_data.shape[0]
     batch_size = opt.batch_size
     num_steps = num_samples // batch_size
@@ -159,9 +160,11 @@ def model_latents_extract(opt, modis_data, model_path,
     latents_df = pd.DataFrame()
 
     # Process
+    print(f"Processing..")
     with torch.no_grad():
         for i in trange(num_steps):
             image_batch = modis_data[i*batch_size: (i+1)*batch_size]
+            import pdb; pdb.set_trace()
             image_tensor = torch.tensor(image_batch)
             if opt.cuda_use and torch.cuda.is_available():
                 image_tensor = image_tensor.cuda()
@@ -210,8 +213,8 @@ def main_evaluate(opt_path, model_file,
     for ifile in pp_files:
         print("Working on ifile")
         data_file = os.path.basename(ifile)
-        ulmo_io.download_file_from_s3(
-            data_file, 
+        if not os.path.isfile(data_file):
+            ulmo_io.download_file_from_s3(data_file, 
             f's3://modis-l2/PreProc/{data_file}')
 
         # Read
