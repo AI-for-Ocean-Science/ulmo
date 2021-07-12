@@ -28,7 +28,7 @@ from IPython import embed
 tbl_file_2014 = 's3://viirs/Tables/VIIRS_2014_std.parquet'
 s3_bucket = 's3://viirs'
 
-def viirs_get_data_into_s3(year=2014, day1=1):
+def viirs_get_data_into_s3(debug=False, year=2014, day1=1):
     """Use wget to download data into s3
 
     Args:
@@ -322,13 +322,13 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg = 0
-        #flg += 2 ** 0  # 1 -- VIIRS 2014 download
+        flg += 2 ** 0  # 1 -- VIIRS 2014 download
         #flg += 2 ** 1  # Extract test
         #flg += 2 ** 2  # Extract for reals
-        flg += 2 ** 3  # Pre-proc test
-        flg += 2 ** 4  # Pre-proc for reals [16]
-        flg += 2 ** 5  # Eval test [32]
-        flg += 2 ** 6  # Eval for reals [64]
+        #flg += 2 ** 3  # Pre-proc test
+        #flg += 2 ** 4  # Pre-proc for reals [16]
+        #flg += 2 ** 5  # Eval test [32]
+        #flg += 2 ** 6  # Eval for reals [64]
     else:
         flg = sys.argv[1]
 
