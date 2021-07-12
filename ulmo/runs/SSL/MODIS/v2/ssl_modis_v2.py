@@ -164,13 +164,14 @@ def model_latents_extract(opt, modis_data, model_path,
     with torch.no_grad():
         for i in trange(num_steps):
             image_batch = modis_data[i*batch_size: (i+1)*batch_size]
-            import pdb; pdb.set_trace()
+            image_batch = np.repeat(image_batch, 3, axis=1)
             image_tensor = torch.tensor(image_batch)
             if opt.cuda_use and torch.cuda.is_available():
                 image_tensor = image_tensor.cuda()
             latents_tensor = model(image_tensor)
             latents_numpy = latents_tensor.cpu().numpy()
             latents_df = pd.concat([latents_df, pd.DataFrame(latents_numpy)], ignore_index=True)
+            import pdb; pdb.set_trace()
         if remainder:
             image_remainder = modis_data[-remainder:]
             image_tensor = torch.tensor(image_remainder)
