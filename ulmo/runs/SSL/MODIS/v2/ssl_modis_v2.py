@@ -173,6 +173,7 @@ def model_latents_extract(opt, modis_data, model_path,
             latents_df = pd.concat([latents_df, pd.DataFrame(latents_numpy)], ignore_index=True)
         if remainder:
             image_remainder = modis_data[-remainder:]
+            image_remainder = np.repeat(image_remainder, 3, axis=1)
             image_tensor = torch.tensor(image_remainder)
             if opt.cuda_use and torch.cuda.is_available():
                 image_tensor = image_tensor.cuda()
