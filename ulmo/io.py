@@ -185,6 +185,13 @@ def load_to_bytes(s3_uri:str):
 
 def download_file_from_s3(local_file:str, s3_uri:str, 
                           clobber_local=True):
+    """ Grab an s3 file
+
+    Args:
+        local_file (str): [description]
+        s3_uri (str): [description]
+        clobber_local (bool, optional): [description]. Defaults to True.
+    """
     parsed_s3 = urlparse(s3_uri)
     # Download preproc file for speed
     if not os.path.isfile(local_file) or clobber_local:

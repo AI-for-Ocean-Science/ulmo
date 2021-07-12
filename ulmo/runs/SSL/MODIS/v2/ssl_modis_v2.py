@@ -112,16 +112,16 @@ def main_train(opt_path: str):
         print('epoch {}, total time {:.2f}'.format(epoch, time2 - time1))
 
         if epoch % opt.save_freq == 0:
-            save_file = os.path.join(
-                opt.save_folder, 'ckpt_epoch_{epoch}.pth'.format(epoch=epoch))
+            # Save locally
+            save_file = 'ckpt_epoch_{epoch}.pth'.format(epoch=epoch)
             save_model(model, optimizer, opt, epoch, save_file)
             # Save to s3
             s3_file = os.path.join(
                 opt.s3_outdir, 'ckpt_epoch_{epoch}.pth'.format(epoch=epoch))
             ulmo_io.upload_file_to_s3(save_file, s3_file)
 
-    # save the last model
-    save_file = os.path.join(opt.save_folder, 'last.pth')
+    # save the last model local
+    save_file = 'last.pth'
     save_model(model, optimizer, opt, opt.epochs, save_file)
     # Save to s3
     s3_file = os.path.join(opt.s3_outdir, 'last.pth')
@@ -143,6 +143,7 @@ def model_latents_extract(opt, modis_data, model_path,
     # Init model
     model, _ = set_model(opt, cuda_use=opt.cuda_use)
     # Download
+    print(f"Using model {model_path} for evaluation")
     model_file = os.path.basename(model_path)
     ulmo_io.download_file_from_s3(model_file, model_path)
     # Load
@@ -180,10 +181,6 @@ def model_latents_extract(opt, modis_data, model_path,
     # Write locally
     with h5py.File(save_path, 'a') as file:
         file.create_dataset(save_key, data=latents_numpy)
-    # Write to s3
-    s3_file = os.path.join(
-        opt.s3_outdir, 'ckpt_epoch_{epoch}.pth'.format(epoch=epoch))
-    ulmo_io.upload_file_to_s3(save_file, s3_file)
         
 def main_evaluate(opt_path, model_file, preproc='_std', 
                   debug=False):
@@ -230,13 +227,13 @@ def main_evaluate(opt_path, model_file, preproc='_std',
     
     
         # Setup
-        model_path = os.path.join(opt.save_folder, model_file)
+        model_path = os.path.join(opt.s3_outdir, model_file)
         latents_file = data_file.replace(preproc, '_latents')
         latents_path = os.path.join(opt.latents_folder, latents_file) 
         if dataset_train is not None:
             print("Starting train evaluation")
-            model_latents_extract(opt, dataset_train, model_path, 
-                              latents_file, key_train)
+            model_latents_extract(opt, dataset_train, 
+                                  model_path, latents_file, key_train)
             print("Extraction of Latents of train set is done.")
         print("Starting valid evaluation")
         model_latents_extract(opt, dataset_valid, model_path, 
