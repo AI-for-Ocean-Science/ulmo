@@ -234,7 +234,7 @@ def main_evaluate(opt_path, model_file,
     
         # Setup
         model_path = os.path.join(opt.s3_outdir, model_file)
-        latents_file = data_file.replace(preproc, '_latents')
+        latents_file = data_file.replace('_preproc', '_latents')
         latents_path = os.path.join(opt.latents_folder, latents_file) 
         if dataset_train is not None:
             print("Starting train evaluation")
