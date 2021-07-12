@@ -182,21 +182,22 @@ def model_latents_extract(opt, modis_data, model_path,
     with h5py.File(save_path, 'a') as file:
         file.create_dataset(save_key, data=latents_numpy)
         
-def main_evaluate(opt_path, model_file, preproc='_std', 
-                  debug=False):
+def main_evaluate(opt_path, model_file, 
+                  preproc='_std', debug=False):
     """
     This function is used to obtain the latents of the trained models
     for all of MODIS
 
     Args:
         opt_path: (str) option file path.
-        model: (str)
+        model: (str) Baseame of the model (in s3_outdir)
         preproc: (str, optional)
     """
     opt = option_preprocess(Params(opt_path))
     
     # Data files
-    all_pp_files = ulmo_io.list_of_bucket_files('modis-l2', 'PreProc')
+    all_pp_files = ulmo_io.list_of_bucket_files(
+        'modis-l2', 'PreProc')
     pp_files = []
     for ifile in all_pp_files:
         if preproc in ifile:
@@ -209,8 +210,9 @@ def main_evaluate(opt_path, model_file, preproc='_std',
     for ifile in pp_files:
         print("Working on ifile")
         data_file = os.path.basename(ifile)
-        ulmo_io.download_file_from_s3(data_file,
-                                      f's3://modis-l2/PreProc/{data_file}')
+        ulmo_io.download_file_from_s3(
+            data_file, 
+            f's3://modis-l2/PreProc/{data_file}')
 
         # Read
         with h5py.File(data_file, 'r') as file:
@@ -257,8 +259,7 @@ if __name__ == "__main__":
     # run the "main_evaluate()" function.
     if args.func_flag == 'evaluate':
         print("Evaluation Starts.")
-        main_evaluate(args.opt_path,
-                      's3://modis-l2/SSL/SSL_v2_2012/last.pth',
+        main_evaluate(args.opt_path, 'last.pth',
                       debug=args.debug)
         print("Evaluation Ends.")
 
