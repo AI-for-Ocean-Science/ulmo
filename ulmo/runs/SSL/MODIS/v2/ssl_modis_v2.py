@@ -171,7 +171,6 @@ def model_latents_extract(opt, modis_data, model_path,
             latents_tensor = model(image_tensor)
             latents_numpy = latents_tensor.cpu().numpy()
             latents_df = pd.concat([latents_df, pd.DataFrame(latents_numpy)], ignore_index=True)
-            import pdb; pdb.set_trace()
         if remainder:
             image_remainder = modis_data[-remainder:]
             image_tensor = torch.tensor(image_remainder)
