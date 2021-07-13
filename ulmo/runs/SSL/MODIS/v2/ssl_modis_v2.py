@@ -20,6 +20,7 @@ from ulmo import io as ulmo_io
 from ulmo.ssl import analysis as ssl_analysis
 from ulmo.ssl.util import adjust_learning_rate
 from ulmo.ssl.util import set_optimizer, save_model
+from ulmo.ssl import latents_extraction
 
 from ulmo.ssl.train_util import Params, option_preprocess
 from ulmo.ssl.train_util import modis_loader, set_model
@@ -37,6 +38,9 @@ def parse_option():
     parser = argparse.ArgumentParser("argument for training.")
     parser.add_argument("--opt_path", type=str, help="path of 'opt.json' file.")
     parser.add_argument("--func_flag", type=str, help="flag of the function to be execute: 'train' or 'evaluate'.")
+        # JFH Should the default now be true with the new definition.
+    parser.add_argument('--debug', default=False, action='store_true',
+                        help='Debug?')
     args = parser.parse_args()
     
     return args
@@ -103,29 +107,32 @@ def main_train(opt_path: str):
 
         # train for one epoch
         time1 = time.time()
-        loss = train_model(train_loader, model, criterion, optimizer, epoch, opt, cuda_use=opt.cuda_use)
+        loss = train_model(train_loader, model, criterion, 
+                           optimizer, epoch, opt, cuda_use=opt.cuda_use)
         time2 = time.time()
         print('epoch {}, total time {:.2f}'.format(epoch, time2 - time1))
 
         if epoch % opt.save_freq == 0:
-            save_file = os.path.join(
-                opt.save_folder, 'ckpt_epoch_{epoch}.pth'.format(epoch=epoch))
+            # Save locally
+            save_file = 'ckpt_epoch_{epoch}.pth'.format(epoch=epoch)
             save_model(model, optimizer, opt, epoch, save_file)
             # Save to s3
             s3_file = os.path.join(
                 opt.s3_outdir, 'ckpt_epoch_{epoch}.pth'.format(epoch=epoch))
             ulmo_io.upload_file_to_s3(save_file, s3_file)
 
-    # save the last model
-    save_file = os.path.join(opt.save_folder, 'last.pth')
+    # save the last model local
+    save_file = 'last.pth'
     save_model(model, optimizer, opt, opt.epochs, save_file)
     # Save to s3
     s3_file = os.path.join(opt.s3_outdir, 'last.pth')
     ulmo_io.upload_file_to_s3(save_file, s3_file)
 
-def model_latents_extract(opt, modis_data, model_path, save_path, save_key):
+def old_model_latents_extract(opt, modis_data, model_path, 
+                          save_path, save_key):
     """
     This function is used to obtain the latents of the training data.
+
     Args:
         opt: (Parameters) parameters used to create the model.
         modis_data: (numpy.array) modis_data used in the latents
@@ -134,18 +141,34 @@ def model_latents_extract(opt, modis_data, model_path, save_path, save_key):
         save_path: (string) path to save the extracted latents
         save_key: (string) key of the h5py file for the latents.
     """
+    # Init model
     model, _ = set_model(opt, cuda_use=opt.cuda_use)
-    model_dict = torch.load(model_path)
+    # Download
+    print(f"Using model {model_path} for evaluation")
+    model_file = os.path.basename(model_path)
+    ulmo_io.download_file_from_s3(model_file, model_path)
+    # Load
+    print(f"Loading model")
+    if not opt.cuda_use:
+        model_dict = torch.load(model_path, map_location=torch.device('cpu'))
+    else:
+        model_dict = torch.load(model_path)
     model.load_state_dict(model_dict['model'])
-    modis_data = np.repeat(modis_data, 3, axis=1)
+    os.remove(model_file)
+
+    #modis_data = np.repeat(modis_data, 3, axis=1)
     num_samples = modis_data.shape[0]
     batch_size = opt.batch_size
     num_steps = num_samples // batch_size
     remainder = num_samples % batch_size
     latents_df = pd.DataFrame()
+
+    # Process
+    print(f"Processing..")
     with torch.no_grad():
         for i in trange(num_steps):
             image_batch = modis_data[i*batch_size: (i+1)*batch_size]
+            image_batch = np.repeat(image_batch, 3, axis=1)
             image_tensor = torch.tensor(image_batch)
             if opt.cuda_use and torch.cuda.is_available():
                 image_tensor = image_tensor.cuda()
@@ -154,6 +177,7 @@ def model_latents_extract(opt, modis_data, model_path, save_path, save_key):
             latents_df = pd.concat([latents_df, pd.DataFrame(latents_numpy)], ignore_index=True)
         if remainder:
             image_remainder = modis_data[-remainder:]
+            image_remainder = np.repeat(image_remainder, 3, axis=1)
             image_tensor = torch.tensor(image_remainder)
             if opt.cuda_use and torch.cuda.is_available():
                 image_tensor = image_tensor.cuda()
@@ -161,45 +185,71 @@ def model_latents_extract(opt, modis_data, model_path, save_path, save_key):
             latents_numpy = latents_tensor.cpu().numpy()
             latents_df = pd.concat([latents_df, pd.DataFrame(latents_numpy)], ignore_index=True)
             latents_numpy = latents_df.values
+
+    # Write locally
     with h5py.File(save_path, 'a') as file:
         file.create_dataset(save_key, data=latents_numpy)
         
-def main_evaluate(opt_path):
+def main_evaluate(opt_path, model_file, 
+                  preproc='_std', debug=False):
     """
-    This function is used to obtain the latents of the trained models.
+    This function is used to obtain the latents of the trained models
+    for all of MODIS
+
     Args:
         opt_path: (str) option file path.
-        model_path: (str)
-        model_list: (list)
-        save_key: (str)
-        save_path: (str)
-        save_base: (str) base name for the saving file
+        model: (str) Baseame of the model (in s3_outdir)
+        preproc: (str, optional)
     """
     opt = option_preprocess(Params(opt_path))
     
-    # get the model files in the model directory.
-    model_files = os.listdir(opt.save_folder)
-    model_name_list = [f.split(".")[0] for f in model_files if f.endswith(".pth")]
+    # Data files
+    all_pp_files = ulmo_io.list_of_bucket_files(
+        'modis-l2', 'PreProc')
+    pp_files = []
+    for ifile in all_pp_files:
+        if preproc in ifile:
+            pp_files.append(ifile)
 
-    data_file = os.path.join(opt.data_folder, os.listdir(opt.data_folder)[0])
-    with h5py.File(data_file, 'r') as file:
-        dataset_train = file['train'][:]
-        dataset_valid = file['valid'][:]
-    print("Reading data is done.")
-    
-    if not os.path.isdir(opt.latents_folder):
-        os.makedirs(opt.latents_folder)
-    
+    # Loop on files
     key_train, key_valid = "train", "valid"
-    
-    for i, model_name in enumerate(model_name_list):
-        model_path = os.path.join(opt.save_folder, model_files[i])
-        file_name = "_".join([model_name, "latents.h5"])
-        latents_path = os.path.join(opt.latents_folder, file_name) 
-        model_latents_extract(opt, dataset_train, model_path, latents_path, key_train)
-        print("Extraction of Latents of train set is done.")
-        model_latents_extract(opt, dataset_valid, model_path, latents_path, key_valid)
+    if debug:
+        pp_files = pp_files[0:1]
+    for ifile in pp_files:
+        print("Working on ifile")
+        data_file = os.path.basename(ifile)
+        if not os.path.isfile(data_file):
+            ulmo_io.download_file_from_s3(data_file, 
+            f's3://modis-l2/PreProc/{data_file}')
+
+        # Read
+        with h5py.File(data_file, 'r') as file:
+            if 'train' in file.keys():
+                train=True
+            else:
+                train=False
+
+        # Setup
+        model_path = os.path.join(opt.s3_outdir, model_file)
+        latents_file = data_file.replace('_preproc', '_latents')
+        latents_path = os.path.join(opt.latents_folder, latents_file) 
+        if train: 
+            print("Starting train evaluation")
+            latents_extraction.model_latents_extract(opt, data_file, 
+                'train', model_path, latents_file, key_train)
+            print("Extraction of Latents of train set is done.")
+        print("Starting valid evaluation")
+        latents_extraction.model_latents_extract(opt, data_file, 
+                'valid', model_path, latents_file, key_train)
         print("Extraction of Latents of valid set is done.")
+
+        # Push to s3
+        print("Uploading to s3..")
+        ulmo_io.upload_file_to_s3(latents_file, latents_path)
+
+        # Remove data file
+        os.remove(data_file)
+        print(f'{data_file} removed')
         
 if __name__ == "__main__":
     # get the argument of training.
@@ -214,7 +264,8 @@ if __name__ == "__main__":
     # run the "main_evaluate()" function.
     if args.func_flag == 'evaluate':
         print("Evaluation Starts.")
-        main_evaluate(args.opt_path)
+        main_evaluate(args.opt_path, 'last.pth',
+                      debug=args.debug)
         print("Evaluation Ends.")
 
     # run the umap

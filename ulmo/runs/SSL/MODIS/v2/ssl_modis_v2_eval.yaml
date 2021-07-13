@@ -2,7 +2,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-ssl-modis-2012-train
+  name: xavier-ssl-modis-2012-eval #-debug
 spec:
   backoffLimit: 0
   template:
@@ -13,14 +13,14 @@ spec:
         imagePullPolicy: Always
         resources:
           requests:
-            cpu: "4"   # Should have used 4 instead of 2
-            memory: "2Gi"  # This was way too much! -- I see why Erdong used 1 Gb
+            cpu: "2"   # Should have used 4 instead of 2
+            memory: "18Gi"  # Needs to be large enough to slurp in the images
             ephemeral-storage: 50Gi
           limits:
-            cpu: "8"
-            memory: "8Gi"
+            cpu: "4"
+            memory: "32Gi"
             ephemeral-storage: 100Gi
-            nvidia.com/gpu:  "4"  # See docs to exlude certain types
+            nvidia.com/gpu:  "1"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]
         args:
           - cd ulmo; 
@@ -29,9 +29,7 @@ spec:
             git pull; 
             python setup.py develop;
             cd ulmo/runs/SSL/MODIS/v2;
-            mkdir experiments/datasets/;
-            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp s3://modis-l2/PreProc/MODIS_R2019_2012_95clear_128x128_preproc_std.h5 ./experiments/datasets/;
-            python ./ssl_modis_v2.py --opt_path ./experiments/modis_model_v2/opts_2012.json --func_flag train;
+            python ./ssl_modis_v2.py --opt_path ./experiments/modis_model_v2/opts_2012.json --func_flag evaluate; # --debug;
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"

@@ -105,7 +105,7 @@ def model_latents_extract(opt, modis_data_file, modis_partition,
     Args:
         opt: (Parameters) parameters used to create the model.
         modis_data_file: (str) path of modis_data_file.
-        modis_partition: (str) key of the h5py file.
+        modis_partition: (str) key of the h5py file [e.g. 'train', 'valid'].
         model_path: (string) path of the saved model file.
         save_path: (string) path for saving the latents.
         save_key: (string) path for the key of the saved latents.
@@ -137,39 +137,6 @@ def model_latents_extract(opt, modis_data_file, modis_partition,
                 loader, total=len(loader), unit='batch', 
                 desc='Computing log probs')]
     
-    '''
-    modis_data = np.repeat(modis_data, 3, axis=1)
-    num_samples = modis_data.shape[0]
-    #batch_size = opt.batch_size
-    batch_size = 1
-    num_steps = num_samples // batch_size
-    #num_steps = 1
-    remainder = num_samples % batch_size
-    latents_df = pd.DataFrame()
-    print("Beginning to evaluate")
-    with torch.no_grad():
-        for i in trange(num_steps):
-            image_batch = modis_data[i*batch_size: (i+1)*batch_size]
-            image_tensor = torch.tensor(image_batch)
-            if using_gpu:
-                latents_tensor = model(image_tensor.cuda())
-                latents_numpy = latents_tensor.cpu().numpy()
-            else:
-                latents_tensor = model(image_tensor)
-                latents_numpy = latents_tensor.numpy()
-            latents_df = pd.concat([latents_df, pd.DataFrame(latents_numpy)], ignore_index=True)
-        if remainder:
-            image_remainder = torch.tensor(modis_data[-remainder:])
-            image_tensor = torch.tensor(image_remainder)
-            if using_gpu:
-                latents_tensor = model(image_tensor.cuda())
-                latents_numpy = latents_tensor.cpu().numpy()
-            else:
-                latents_tensor = model(image_tensor)
-                latents_numpy = latents_tensor.numpy()
-            latents_df = pd.concat([latents_df, pd.DataFrame(latents_numpy)], ignore_index=True)
-            latents_numpy = latents_df.values
-    '''
     with h5py.File(save_path, 'w') as file:
         file.create_dataset(save_key, data=np.concatenate(latents_numpy))
     print("Wrote: {}".format(save_path))

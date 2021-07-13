@@ -1,7 +1,7 @@
 {
 	"print_freq": 2,
 	"save_freq": 5,
-	"batch_size": 64,
+	"batch_size": 128,
 	"num_workers": 16,
 	"epochs": 20,
 	"learning_rate": 0.05,
@@ -16,7 +16,7 @@
 	"data_key": "valid",
 	"data_folder": "./experiments/datasets/",
 	"model_folder": "./experiments/MODIS_R2019_2012_model_v2",
-	"latents_folder": "./experiments/MODIS_R2019_2012_latents_v2/",
+	"latents_folder": "s3://modis-l2/SSL/SSL_v2_2012/latents",
 	"s3_outdir": "s3://modis-l2/SSL/SSL_v2_2012",
 	"method": "SimCLR",
 	"temp": 0.07,
