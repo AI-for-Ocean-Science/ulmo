@@ -86,6 +86,7 @@ def calc_latent(model, image_tensor, using_gpu):
         image_tensor: (torch.tensor) image tensor of the data set.
         using_gpu: (bool) flag for cude usage.
     """
+    model.eval()
     if using_gpu:
         latents_tensor = model(image_tensor.cuda())
         latents_numpy = latents_tensor.cpu().numpy()
@@ -129,6 +130,7 @@ def model_latents_extract(opt, modis_data_file, modis_partition,
     _, loader = build_loader(modis_data_file, modis_partition)
 
     print("Beginning to evaluate")
+    model.eval()
     with torch.no_grad():
         latents_numpy = [calc_latent(
             model, data[0], using_gpu) for data in tqdm.tqdm(
@@ -212,6 +214,7 @@ def orig_latents_extract(opt, modis_data,
     remainder = num_samples % batch_size
     latents_df = pd.DataFrame()
     print("Beginning to evaluate")
+    model.eval()
     with torch.no_grad():
         for i in trange(num_steps):
             image_batch = modis_data[i*batch_size: (i+1)*batch_size]
