@@ -128,6 +128,7 @@ def main_train(opt_path: str):
     s3_file = os.path.join(opt.s3_outdir, 'last.pth')
     ulmo_io.upload_file_to_s3(save_file, s3_file)
 
+'''
 def old_model_latents_extract(opt, modis_data, model_path, 
                           save_path, save_key):
     """
@@ -189,6 +190,7 @@ def old_model_latents_extract(opt, modis_data, model_path,
     # Write locally
     with h5py.File(save_path, 'a') as file:
         file.create_dataset(save_key, data=latents_numpy)
+'''
         
 def main_evaluate(opt_path, model_file, 
                   preproc='_std', debug=False):
@@ -202,6 +204,9 @@ def main_evaluate(opt_path, model_file,
         preproc: (str, optional)
     """
     opt = option_preprocess(Params(opt_path))
+
+    model_file = os.path.basename(model_path)
+    ulmo_io.download_file_from_s3(model_file, model_path)
     
     # Data files
     all_pp_files = ulmo_io.list_of_bucket_files(
@@ -264,7 +269,8 @@ if __name__ == "__main__":
     # run the "main_evaluate()" function.
     if args.func_flag == 'evaluate':
         print("Evaluation Starts.")
-        main_evaluate(args.opt_path, 'last.pth',
+        main_evaluate(args.opt_path, 
+                      's3://modis-l2/SSL/SSL_v2_2012/last.pth',
                       debug=args.debug)
         print("Evaluation Ends.")
 
