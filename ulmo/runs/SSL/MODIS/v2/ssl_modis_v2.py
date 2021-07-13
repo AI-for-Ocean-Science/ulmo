@@ -20,6 +20,7 @@ from ulmo import io as ulmo_io
 from ulmo.ssl import analysis as ssl_analysis
 from ulmo.ssl.util import adjust_learning_rate
 from ulmo.ssl.util import set_optimizer, save_model
+from ulmo.ssl import latents_extraction
 
 from ulmo.ssl.train_util import Params, option_preprocess
 from ulmo.ssl.train_util import modis_loader, set_model
@@ -127,7 +128,7 @@ def main_train(opt_path: str):
     s3_file = os.path.join(opt.s3_outdir, 'last.pth')
     ulmo_io.upload_file_to_s3(save_file, s3_file)
 
-def model_latents_extract(opt, modis_data, model_path, 
+def old_model_latents_extract(opt, modis_data, model_path, 
                           save_path, save_key):
     """
     This function is used to obtain the latents of the training data.
@@ -148,7 +149,10 @@ def model_latents_extract(opt, modis_data, model_path,
     ulmo_io.download_file_from_s3(model_file, model_path)
     # Load
     print(f"Loading model")
-    model_dict = torch.load(model_file)
+    if not opt.cuda_use:
+        model_dict = torch.load(model_path, map_location=torch.device('cpu'))
+    else:
+        model_dict = torch.load(model_path)
     model.load_state_dict(model_dict['model'])
     os.remove(model_file)
 
@@ -221,34 +225,31 @@ def main_evaluate(opt_path, model_file,
         # Read
         with h5py.File(data_file, 'r') as file:
             if 'train' in file.keys():
-                dataset_train = file['train'][:]
+                train=True
             else:
-                dataset_train = None
-            dataset_valid = file['valid'][:]
-        print("Reading data is done.")
+                train=False
 
-        # Remove
-        os.remove(data_file)
-        print(f'{data_file} removed')
-    
-    
         # Setup
         model_path = os.path.join(opt.s3_outdir, model_file)
         latents_file = data_file.replace('_preproc', '_latents')
         latents_path = os.path.join(opt.latents_folder, latents_file) 
-        if dataset_train is not None:
+        if train: 
             print("Starting train evaluation")
-            model_latents_extract(opt, dataset_train, 
-                                  model_path, latents_file, key_train)
+            latents_extraction.model_latents_extract(opt, data_file, 
+                'train', model_path, latents_file, key_train)
             print("Extraction of Latents of train set is done.")
         print("Starting valid evaluation")
-        model_latents_extract(opt, dataset_valid, model_path, 
-                              latents_file, key_valid)
+        latents_extraction.model_latents_extract(opt, data_file, 
+                'valid', model_path, latents_file, key_train)
         print("Extraction of Latents of valid set is done.")
 
         # Push to s3
         print("Uploading to s3..")
         ulmo_io.upload_file_to_s3(latents_file, latents_path)
+
+        # Remove data file
+        os.remove(data_file)
+        print(f'{data_file} removed')
         
 if __name__ == "__main__":
     # get the argument of training.
