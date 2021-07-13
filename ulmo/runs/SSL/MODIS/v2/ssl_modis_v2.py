@@ -200,13 +200,13 @@ def main_evaluate(opt_path, model_file,
 
     Args:
         opt_path: (str) option file path.
-        model: (str) Baseame of the model (in s3_outdir)
+        model_file: (str) s3 filename
         preproc: (str, optional)
     """
     opt = option_preprocess(Params(opt_path))
 
-    model_file = os.path.basename(model_path)
-    ulmo_io.download_file_from_s3(model_file, model_path)
+    model_base = os.path.basename(model_file)
+    ulmo_io.download_file_from_s3(model_base, model_file)
     
     # Data files
     all_pp_files = ulmo_io.list_of_bucket_files(
@@ -235,17 +235,16 @@ def main_evaluate(opt_path, model_file,
                 train=False
 
         # Setup
-        model_path = os.path.join(opt.s3_outdir, model_file)
         latents_file = data_file.replace('_preproc', '_latents')
         latents_path = os.path.join(opt.latents_folder, latents_file) 
         if train: 
             print("Starting train evaluation")
             latents_extraction.model_latents_extract(opt, data_file, 
-                'train', model_path, latents_file, key_train)
+                'train', model_base, latents_file, key_train)
             print("Extraction of Latents of train set is done.")
         print("Starting valid evaluation")
         latents_extraction.model_latents_extract(opt, data_file, 
-                'valid', model_path, latents_file, key_train)
+                'valid', model_base, latents_file, key_train)
         print("Extraction of Latents of valid set is done.")
 
         # Push to s3
