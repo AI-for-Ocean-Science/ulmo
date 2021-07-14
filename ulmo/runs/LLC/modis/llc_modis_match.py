@@ -195,12 +195,13 @@ def modis_extract(test=True, debug_local=False,
         ulmo_io.write_main_table(llc_table, tbl_file)
     
 
-def modis_evaluate(test=True, noise=False):
+def modis_evaluate(test=True, noise=False, tbl_file=None):
 
-    if test:
-        tbl_file = tbl_test_noise_file if noise else tbl_test_file
-    else:
-        raise IOError("Not ready for anything but testing..")
+    if tbl_file is None:
+        if test:
+            tbl_file = tbl_test_noise_file if noise else tbl_test_file
+        else:
+            raise IOError("Not ready for anything but testing..")
     
     # Load
     llc_table = ulmo_io.load_main_table(tbl_file)
@@ -254,6 +255,10 @@ def main(flg):
     if flg & (2**5):
         modis_evaluate(noise=True)
 
+    if flg & (2**6):  # Debuggin
+        modis_evaluate(tbl_file='s3://llc/Tables/test2_modis2012.parquet')
+
+
 # Command line execution
 if __name__ == '__main__':
     import sys
@@ -266,6 +271,7 @@ if __name__ == '__main__':
         #flg += 2 ** 3  # 8 -- Init test + noise
         #flg += 2 ** 4  # 16 -- Extract + noise
         #flg += 2 ** 5  # 32 -- Evaluate + noise
+        flg += 2 ** 6  # 64 -- Evaluate debug run
     else:
         flg = sys.argv[1]
 
