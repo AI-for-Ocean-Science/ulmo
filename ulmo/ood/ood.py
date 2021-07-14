@@ -587,21 +587,6 @@ class ProbabilisticAutoencoder:
             Scaled latent vectors,  LL probabilities
 
         """
-        #if self.scaler is None:
-        #    scaler_path = os.path.join(self.logdir, self.stem + '_scaler.pkl')
-        #    if os.path.exists(scaler_path):
-        #        if query:
-        #            load = input("Scaler file found in logdir. Use this (y/n)?") == 'y'
-        #        else:
-        #            load = True
-        #        if load:
-        #            with ulmo_io.open(scaler_path, 'rb') as f:
-        #                self.scaler = pickle.load(f)
-        #        else:
-        #            raise RuntimeError("No scaler provided. Saved scaler found but not loaded.")
-        #    else:
-        #        raise RuntimeError("No scaler found or provided.")
-
         # Generate DataLoader
         loader = torch.utils.data.DataLoader(
             dset, batch_size=batch_size, shuffle=False, 
