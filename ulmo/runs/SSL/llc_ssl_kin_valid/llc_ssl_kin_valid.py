@@ -67,7 +67,7 @@ def main_train(opt_path: str):
     # comet log
     experiment = Experiment(
             api_key=pin,
-            project_name="LLC_modis2012_curl", 
+            project_name="LLC_modis2012_curl_train_valid", 
             workspace=user,
     )
     experiment.log_parameters(opt.dict)
@@ -122,7 +122,7 @@ def main_train_valid(opt_path: str):
     # comet log
     experiment = Experiment(
             api_key=pin,
-            project_name="LLC_modis2012_curl", 
+            project_name="LLC_modis2012_curl_train_valid", 
             workspace=user,
     )
     experiment.log_parameters(opt.dict)

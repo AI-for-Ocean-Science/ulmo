@@ -487,6 +487,8 @@ def valid_model(valid_loader, model, criterion, epoch, opt, cuda_use=True):
         else:
             raise ValueError('contrastive method not supported: {}'.
                              format(opt.method))
+        # update metric
+        losses.update(loss.item(), bsz)
 
         # measure elapsed time
         batch_time.update(time.time() - end)
@@ -498,7 +500,7 @@ def valid_model(valid_loader, model, criterion, epoch, opt, cuda_use=True):
                   'BT {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                   'DT {data_time.val:.3f} ({data_time.avg:.3f})\t'
                   'loss {loss.val:.3f} ({loss.avg:.3f})'.format(
-                   epoch, idx + 1, len(train_loader), batch_time=batch_time,
+                   epoch, idx + 1, len(valid_loader), batch_time=batch_time,
                    data_time=data_time, loss=losses))
             sys.stdout.flush()
     return losses.avg
