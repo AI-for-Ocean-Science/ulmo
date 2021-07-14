@@ -87,7 +87,7 @@ def grab_llc_datafile(datetime=None, root='LLC4320_', chk=True, local=False):
     return datafile
                     
                     
-def grab_image(**args):
+def grab_image(*args):
     warnings.warn('Use grab_image() in utils.image_utils',
                   DeprecationWarning)
     return image_utils.grab_image(args)
