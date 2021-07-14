@@ -27,7 +27,7 @@ spec:
         args:
           - cd ulmo; 
             git fetch;
-            git checkout llc_modis_match; 
+            git checkout llc_analysis; 
             git pull; 
             python setup.py develop;
             cd ../tmp; 
