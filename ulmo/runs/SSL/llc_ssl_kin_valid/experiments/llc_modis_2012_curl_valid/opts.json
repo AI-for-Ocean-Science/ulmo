@@ -3,6 +3,7 @@
 	"save_freq": 5,
 	"valid_freq": 2,
 	"batch_size": 64,
+	"valid_batch_size": 32,
 	"num_workers": 16,
 	"epochs": 25,
 	"learning_rate": 0.05,
