@@ -312,16 +312,18 @@ def modis_loader_v2(opt, valid=False):
     if not valid:
         modis_path = opt.data_folder
         data_key = opt.data_key
+        batch_size = opt.batch_size
     else:
         modis_path = opt.valid_folder
         data_key = opt.valid_key
+        batch_size = opt.valid_batch_size
     modis_file = os.path.join(modis_path, os.listdir(modis_path)[0])
     #from_s3 = (modis_path.split(':')[0] == 's3')
     #modis_dataset = ModisDataset(modis_path, transform=TwoCropTransform(transforms_compose), from_s3=from_s3)
     modis_dataset = ModisDataset(modis_file, transform=TwoCropTransform(transforms_compose), data_key=data_key)
     train_sampler = None
     train_loader = torch.utils.data.DataLoader(
-                    modis_dataset, batch_size=opt.batch_size, shuffle=(train_sampler is None),
+                    modis_dataset, batch_size=batch_size, shuffle=(train_sampler is None),
                     num_workers=opt.num_workers, pin_memory=False, sampler=train_sampler)
     
     return train_loader
