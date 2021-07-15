@@ -319,6 +319,8 @@ class ProbabilisticAutoencoder:
         self._train_module('flow', **kwargs)
                 
     def _compute_latents(self):
+        """Compute latent vectors from the autoencoder
+        """
         if os.path.isfile(self.filepath['latents']):
             compute = input("Existing latents file found. Use file (y) or recompute (n)?").strip().lower() == 'n'
         else:
@@ -348,6 +350,8 @@ class ProbabilisticAutoencoder:
         self.up_to_date_latents = True
     
     def _compute_log_probs(self):
+        """ Compute the LL values in the flow space
+        """ 
         if os.path.isfile(self.filepath['log_probs']):
             compute = input("Existing log probs file found. Use file (y) or recompute (n)?").strip().lower() == 'n'
         else:
@@ -524,21 +528,19 @@ class ProbabilisticAutoencoder:
         return latents, float(LL[0])
 
 
-    def eval_data_file(self, data_file:str, 
-                       dataset:str, output_file:str,
+    def eval_data_file(self, data_file:str, dataset:str, output_file:str,
                        csv=False, **kwargs):
-        """ Run Ulmo on the input data file
+        """ Make PyTorch dataset from HDF5 file
 
         Args:
-            data_file (str): path to data file; must end in .h5
-            dataset (str): dataset in the HDF file to evaluate
-            output_file (str): Output file; must include "log_prob" and .h5
-            csv (bool, optional): [description]. Defaults to False.
+            data_file (str): PreProc data file. Must have .h5 extension
+            dataset (str): dataset in PreProc to analyze.  Usually 'valid'
+            output_file (str): Output file for LL values.  Must have extension log_prob.h5
+            csv (bool, optional): Write CSV file. Defaults to False.  Effectively deprecated
 
         Returns:
-            np.ndarray: array log-likehood values
+            np.ndarray: LL values
         """
-        # Make PyTorch dataset from HDF5 file
         assert data_file.endswith('.h5'), "Input file must be in .h5 format."
         assert output_file.endswith('.h5'), "Output file must be in .h5 format."
         
