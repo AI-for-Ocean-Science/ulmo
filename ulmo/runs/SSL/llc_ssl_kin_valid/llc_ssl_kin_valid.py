@@ -153,16 +153,11 @@ def main_train_valid(opt_path: str):
     optimizer = set_optimizer(opt, model)
     
     # read 'user' and 'pin' for comet log
-    with open('./password', 'r') as f:
-        pin = f.read()
-    with open('./username', 'r') as f:
+    with open('/etc/comet-pin-volume/username', 'r') as f:
         user = f.read()
-        
-    #with open('/etc/comet-pin-volume/username', 'r') as f:
-    #    user = f.read()
-    #
-    #with open('/etc/comet-pin-volume/password', 'r') as f:
-    #    pin = f.read()
+    
+    with open('/etc/comet-pin-volume/password', 'r') as f:
+        pin = f.read()
     
     # comet log
     experiment = Experiment(
