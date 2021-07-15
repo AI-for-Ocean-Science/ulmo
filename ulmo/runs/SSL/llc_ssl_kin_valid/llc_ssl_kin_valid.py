@@ -8,7 +8,6 @@ import pandas as pd
 from tqdm.auto import trange
 import argparse
 
-
 from comet_ml import Experiment
 import torch
 
@@ -97,6 +96,47 @@ def main_train(opt_path: str):
         opt.save_folder, 'last.pth')
     save_model(model, optimizer, opt, opt.epochs, save_file)
     
+def main_valid_test(opt_path: str):
+    # loading parameters json file
+    opt = Params(opt_path)
+    opt = option_preprocess(opt)
+
+    # build data loader
+    valid_loader = modis_loader_v2(opt)
+
+    # build model and criterion
+    model, criterion = set_model(opt, cuda_use=opt.cuda_use)
+
+    # build optimizer
+    optimizer = set_optimizer(opt, model)
+    
+    # read 'user' and 'pin' for comet log
+    with open('/etc/comet-pin-volume/username', 'r') as f:
+        user = f.read()
+    
+    with open('/etc/comet-pin-volume/password', 'r') as f:
+        pin = f.read()
+        
+    # comet log
+    experiment = Experiment(
+            api_key=pin,
+            project_name="LLC_modis2012_curl_train_valid_test", 
+            workspace=user,
+    )
+    experiment.log_parameters(opt.dict)
+    
+    # training routine
+    for epoch in trange(1, opt.epochs + 1):
+
+        # train for one epoch
+        time1 = time.time()
+        loss_valid = valid_model(valid_loader, model, criterion, epoch, opt, cuda_use=opt.cuda_use)
+        time2 = time.time()
+        print('epoch {}, total time {:.2f}'.format(epoch, time2 - time1))
+        
+        # comet
+        experiment.log_metric('loss_valid', loss_valid, step=epoch)       
+    
 def main_train_valid(opt_path: str):
     # loading parameters json file
     opt = Params(opt_path)
@@ -113,11 +153,16 @@ def main_train_valid(opt_path: str):
     optimizer = set_optimizer(opt, model)
     
     # read 'user' and 'pin' for comet log
-    with open('/etc/comet-pin-volume/username', 'r') as f:
-        user = f.read()
-    
-    with open('/etc/comet-pin-volume/password', 'r') as f:
+    with open('./password', 'r') as f:
         pin = f.read()
+    with open('./username', 'r') as f:
+        user = f.read()
+        
+    #with open('/etc/comet-pin-volume/username', 'r') as f:
+    #    user = f.read()
+    #
+    #with open('/etc/comet-pin-volume/password', 'r') as f:
+    #    pin = f.read()
     
     # comet log
     experiment = Experiment(
@@ -134,7 +179,7 @@ def main_train_valid(opt_path: str):
 
         # train for one epoch
         time1 = time.time()
-        loss = train_model(train_loader, model, criterion, optimizer, epoch, opt)
+        loss = train_model(train_loader, model, criterion, optimizer, epoch, opt, cuda_use=opt.cuda_use)
         time2 = time.time()
         print('epoch {}, total time {:.2f}'.format(epoch, time2 - time1))
         
@@ -145,7 +190,7 @@ def main_train_valid(opt_path: str):
         if epoch % opt.valid_freq == 0:
             epoch_valid = epoch // opt.valid_freq
             time1_valid = time.time()
-            loss_valid = valid_model(valid_loader, model, criterion, epoch_valid, opt)
+            loss_valid = valid_model(valid_loader, model, criterion, epoch_valid, opt, cuda_use=opt.cuda_use)
             time2_valid = time.time()
             print('valid epoch {}, total time {:.2f}'.format(epoch_valid, time2_valid - time1_valid))
 
@@ -307,6 +352,12 @@ if __name__ == "__main__":
         print("Training Starts.")
         main_train(args.opt_path)
         print("Training Ends.")
+        
+    # run the 'main_valid()' function.
+    if args.func_flag == 'valid':
+        print("Validation Starts.")
+        main_valid_test(args.opt_path)
+        print("validation Ends.")
         
     # run the 'main_train_valid()' function.
     if args.func_flag == 'train_valid':
