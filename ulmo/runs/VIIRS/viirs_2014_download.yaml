@@ -1,4 +1,5 @@
 # Script to perform VIIRS 2014 extractions 
+#  Jumping into a pod -- kubectl exec -it pod-name -- /bin/bash
 apiVersion: batch/v1
 kind: Job
 metadata:
