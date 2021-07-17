@@ -102,10 +102,10 @@ def viirs_get_data_into_s3(year=2014, day1=1, debug=False):
         push_to_s3(nc_files, pvday, year)
 
 
-def viirs_extract_2014(debug=False, n_cores=20, 
-                       nsub_files=5000,
-                       ndebug_files=0):
-    """Extract "cloud free" images for 2014
+def viirs_extract(debug=False, year=2014, 
+                  n_cores=20, nsub_files=5000,
+                  ndebug_files=0):
+    """Extract "cloud free" images for a given year
 
     Args:
         debug (bool, optional): [description]. Defaults to False.
@@ -115,41 +115,26 @@ def viirs_extract_2014(debug=False, n_cores=20,
     """
     # 10 cores took 6hrs
     # 20 cores took 3hrs
+    tbl_file = f's3://viirs/Tables/VIIRS_{year}_std.parquet'
 
-    if debug:
-        tbl_file = 's3://viirs/Tables/VIIRS_2014_tst.parquet'
-    else:
-        tbl_file = tbl_file_2014
     # Pre-processing (and extraction) settings
     pdict = pp_io.load_options('viirs_std')
     
-    # 2014 
+    # 
     print("Grabbing the file list")
     all_viirs_files = ulmo_io.list_of_bucket_files('viirs')
     files = []
     bucket = 's3://viirs/'
     for ifile in all_viirs_files:
-        if 'data/2014' in ifile:
+        if f'data/{year}' in ifile:
             files.append(bucket+ifile)
 
     # Output
-    if debug:
-        save_path = ('VIIRS_2014'
-                 '_{}clear_{}x{}_tst_inpaint.h5'.format(pdict['clear_threshold'],
-                                                    pdict['field_size'],
-                                                    pdict['field_size']))
-    else:                                                
-        save_path = ('VIIRS_2014'
+    save_path = (f'VIIRS_{year}'
                  '_{}clear_{}x{}_inpaint.h5'.format(pdict['clear_threshold'],
                                                     pdict['field_size'],
                                                     pdict['field_size']))
     s3_filename = 's3://viirs/Extractions/{}'.format(save_path)
-
-    if debug:
-        # Grab 100 random
-        files = shuffle(files, random_state=1234)
-        files = files[:ndebug_files]  # 10%
-        #files = files[:100]
 
     # Setup for preproc
     map_fn = partial(viirs_extract.extract_file,
