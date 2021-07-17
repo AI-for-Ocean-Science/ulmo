@@ -1,4 +1,4 @@
-""" Module for Ulmo analysis on VIIRS 2014"""
+""" Module for Ulmo analysis on VIIRS"""
 import os
 import glob
 import numpy as np
@@ -18,6 +18,7 @@ from ulmo.modis import utils as modis_utils
 from ulmo.analysis import evaluate as ulmo_evaluate 
 from ulmo.utils import catalog as cat_utils
 
+import argparse
 
 
 from functools import partial
@@ -27,10 +28,26 @@ from tqdm import tqdm
 
 from IPython import embed
 
-tbl_file_2014 = 's3://viirs/Tables/VIIRS_2014_std.parquet'
+#tbl_file_2014 = 's3://viirs/Tables/VIIRS_2014_std.parquet'
 s3_bucket = 's3://viirs'
 
-def viirs_get_data_into_s3(debug=False, year=2014, day1=1):
+def parse_option():
+    """
+    This is a function used to parse the arguments in the training.
+    
+    Returns:
+        args: (dict) dictionary of the arguments.
+    """
+    parser = argparse.ArgumentParser("VIIRS")
+    parser.add_argument("--task", type=str, 
+                        help="task to execute: 'download','evaluate', 'umap'.")
+    parser.add_argument("--year", type=int, help="Year to work on")
+    args = parser.parse_args()
+    
+    return args
+
+
+def viirs_get_data_into_s3(year=2014, day1=1, debug=False):
     """Use wget to download data into s3
 
     Args:
@@ -38,7 +55,7 @@ def viirs_get_data_into_s3(debug=False, year=2014, day1=1):
         day1 (int, optional): day to start with (in case you restart). Defaults to 1.
     """
     # Check that the PODAAC password exists
-    assert os.getenv('PO_DAAC') is not None
+    #assert os.getenv('PO_DAAC') is not None
     # Loop on days
 
     pushed_files = []
@@ -318,20 +335,13 @@ def main(flg):
     #    modis_day_evaluate()
 
 
-# Command line execution
-if __name__ == '__main__':
-    import sys
-
-    if len(sys.argv) == 1:
-        flg = 0
-        flg += 2 ** 0  # 1 -- VIIRS 2014 download
-        #flg += 2 ** 1  # Extract test
-        #flg += 2 ** 2  # Extract for reals
-        #flg += 2 ** 3  # Pre-proc test
-        #flg += 2 ** 4  # Pre-proc for reals [16]
-        #flg += 2 ** 5  # Eval test [32]
-        #flg += 2 ** 6  # Eval for reals [64]
+if __name__ == "__main__":
+    # get the argument of training.
+    pargs = parse_option()
+    
+    if pargs.task == 'download':
+        print("Downloading Starts.")
+        viirs_get_data_into_s3(year=pargs.year)
+        print("Downloading Ends.")
     else:
-        flg = sys.argv[1]
-
-    main(flg)
+        raise IOError("Bad choice")

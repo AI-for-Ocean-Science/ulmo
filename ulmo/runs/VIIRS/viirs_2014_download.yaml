@@ -2,7 +2,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: erdong-viirs-2014-extract
+  name: xavier-viirs-2014-download
 spec:
   backoffLimit: 0
   template:
@@ -23,15 +23,15 @@ spec:
             #nvidia.com/gpu:  "1"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]
         args:
-          - rm -rf /ulmo;
-            git clone -b viirs https://github.com/AI-for-Ocean-Science/ulmo.git;
-            cd /ulmo;
+          - cd ulmo; 
+            git fetch;
+            git checkout viirs; 
+            git pull; 
             python setup.py develop;
             cd ../tmp; 
             mkdir foo; 
             cd foo; 
-            mkdir PreProc;   
-            python -u /ulmo/ulmo/runs/VIIRS/2013/viirs_2013.py 4;
+            python -u /ulmo/ulmo/runs/VIIRS/viirs_ulmo.py --task download --year 2014;
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"
