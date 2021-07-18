@@ -92,7 +92,7 @@ def load_llc_ds(filename, local=False):
         filename: (str) path of the file to be read.
         local: (bool) flag to show if the file is local or not.
     Returns:
-        
+        ds: (xarray.Dataset) Dataset.
     """
     if not local:
         with ulmo_io.open(filename, 'rb') as f:
