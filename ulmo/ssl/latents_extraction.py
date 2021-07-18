@@ -49,7 +49,7 @@ class HDF5RGBDataset(torch.utils.data.Dataset):
         #else:
         metadata = None
         return data, metadata
-    
+
 
 def build_loader(data_file, dataset, batch_size=1, num_workers=1):
     # Generate dataset
@@ -67,7 +67,6 @@ def build_loader(data_file, dataset, batch_size=1, num_workers=1):
         loader: (torch.utils.data.Dataloader) Dataloader created 
             using data_file.
     """
-    
     dset = HDF5RGBDataset(data_file, partition=dataset)
 
     # Generate DataLoader
@@ -97,9 +96,8 @@ def calc_latent(model, image_tensor, using_gpu):
 
 
 def model_latents_extract(opt, modis_data_file, modis_partition, 
-                          model_path, save_path, 
-                          save_key,
-                          remove_module=True):
+                          model_path, save_path, save_key,
+                          remove_module=True, loader=None):
     """
     This function is used to obtain the latents of the training data.
     Args:
@@ -107,8 +105,9 @@ def model_latents_extract(opt, modis_data_file, modis_partition,
         modis_data_file: (str) path of modis_data_file.
         modis_partition: (str) key of the h5py file [e.g. 'train', 'valid'].
         model_path: (string) path of the saved model file.
-        save_path: (string) path for saving the latents.
-        save_key: (string) path for the key of the saved latents.
+        save_path: (string or None) path for saving the latents.
+        save_key: (string or None) path for the key of the saved latents.
+        loader: (torch.utils.data.DataLoader, optional) Use this DataLoader, if provided
     """
     using_gpu = torch.cuda.is_available()
     model, _ = set_model(opt, cuda_use=using_gpu)
@@ -127,7 +126,8 @@ def model_latents_extract(opt, modis_data_file, modis_partition,
     print("Model loaded")
 
     # Data
-    _, loader = build_loader(modis_data_file, modis_partition)
+    if loader is None:
+        _, loader = build_loader(modis_data_file, modis_partition)
 
     print("Beginning to evaluate")
     model.eval()
@@ -137,80 +137,16 @@ def model_latents_extract(opt, modis_data_file, modis_partition,
                 loader, total=len(loader), unit='batch', 
                 desc='Computing log probs')]
     
-    with h5py.File(save_path, 'w') as file:
-        file.create_dataset(save_key, data=np.concatenate(latents_numpy))
-    print("Wrote: {}".format(save_path))
+    # Save
+    if save_path is not None:
+        with h5py.File(save_path, 'w') as file:
+            file.create_dataset(save_key, data=np.concatenate(latents_numpy))
+        print("Wrote: {}".format(save_path))
 
+    return np.concatenate(latents_numpy)
     
 
-def orig_latents_extract(opt, modis_data, 
-                          model_path, save_path, 
-                          save_key,
-                          remove_module=True):
-    """
-    This function is used to obtain the latents of the training data.
-    Args:
-        opt: (Parameters) parameters used to create the model
-        modis_data_file: (str) 
-        model_path: (string) 
-        save_path: (string)
-        save_key: (string)
-    """
-    using_gpu = torch.cuda.is_available()
-    model, _ = set_model(opt, cuda_use=using_gpu)
-    if not using_gpu:
-        model_dict = torch.load(model_path, map_location=torch.device('cpu'))
-    else:
-        model_dict = torch.load(model_path)
-
-    if remove_module:
-        new_dict = {}
-        for key in model_dict['model'].keys():
-            new_dict[key.replace('module.','')] = model_dict['model'][key]
-        model.load_state_dict(new_dict)
-    else:
-        model.load_state_dict(model_dict['model'])
-    print("Model loaded")
-
-    modis_data = np.repeat(modis_data, 3, axis=1)
-    num_samples = modis_data.shape[0]
-    #batch_size = opt.batch_size
-    batch_size = 1
-    num_steps = num_samples // batch_size
-    #num_steps = 1
-    remainder = num_samples % batch_size
-    latents_df = pd.DataFrame()
-    print("Beginning to evaluate")
-    model.eval()
-    with torch.no_grad():
-        for i in trange(num_steps):
-            image_batch = modis_data[i*batch_size: (i+1)*batch_size]
-            image_tensor = torch.tensor(image_batch)
-            if using_gpu:
-                latents_tensor = model(image_tensor.cuda())
-                latents_numpy = latents_tensor.cpu().numpy()
-            else:
-                latents_tensor = model(image_tensor)
-                latents_numpy = latents_tensor.numpy()
-            latents_df = pd.concat([latents_df, pd.DataFrame(latents_numpy)], ignore_index=True)
-        if remainder:
-            image_remainder = torch.tensor(modis_data[-remainder:])
-            image_tensor = torch.tensor(image_remainder)
-            if using_gpu:
-                latents_tensor = model(image_tensor.cuda())
-                latents_numpy = latents_tensor.cpu().numpy()
-            else:
-                latents_tensor = model(image_tensor)
-                latents_numpy = latents_tensor.numpy()
-            latents_df = pd.concat([latents_df, pd.DataFrame(latents_numpy)], ignore_index=True)
-    latents_numpy = latents_df.values
-
-    with h5py.File(save_path, 'w') as file:
-        file.create_dataset(save_key, data=latents_numpy)
-    print("Wrote: {}".format(save_path))
-
-    
-        
+'''        
 if __name__ == "__main__":
     
     model_path = "./experiments/base_modis_model/SimCLR_modis_resnet50_lr_0.05_decay_0.0001_bsz_64_temp_0.07_trial_1_cosine_warm/" \
@@ -236,3 +172,4 @@ if __name__ == "__main__":
     save_key = 'modis_latents'
     
     model_latents_extract(opt, dataset_train, model_path_title, latents_path, save_key)
+'''        

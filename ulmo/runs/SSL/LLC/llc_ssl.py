@@ -191,7 +191,8 @@ def main_evaluate(opt_path):
             raise Exception("opt.eval_datset is not right!")
 
 
-def generate_umap(debug=False, orig=False):
+def generate_umap(debug=False, orig=False, write=True,
+                  transformer_file=None):
     # Latents file (subject to move)
     latents_file = 's3://llc/LLC_MODIS_2012_latents/last_latents.h5'
 
@@ -216,12 +217,17 @@ def generate_umap(debug=False, orig=False):
     train = np.random.choice(len(valid_tbl), size=150000)
     valid = valid_tbl.pp_idx.values
 
-    # Stack em
+    # UMAP time
+    if write:
+        write_to_file='s3://llc/Tables/LLC_MODIS2012_SSL_v1.parquet'
+    else:
+        write_to_file=None
     ssl_analysis.latents_umap(
         latents, train, valid, valid_tbl, 
         fig_root='LLC_v1', 
-        write_to_file='s3://llc/Tables/LLC_MODIS2012_SSL_v1.parquet',
-        cut_prefix='modis_', debug=True)
+        transformer_file=transformer_file,
+        write_to_file=write_to_file,
+        cut_prefix='modis_', debug=False)
 
 
 if __name__ == "__main__":
@@ -244,3 +250,5 @@ if __name__ == "__main__":
     if args.func_flag == 'umap':
         print("Generating the umap")
         generate_umap()
+        #generate_umap(write=False,
+        #              transformer_file='ssl_LLC_v1_umap.pkl')
