@@ -74,6 +74,7 @@ def viirs_get_data_into_s3(year=2014, day1=1, debug=False):
             os.remove(nc_file)
 
     # for ss in range(365):
+    ndays = 366
     for ss in range(day1-1, ndays):
         iday = ss + 1
         print("Working on day: {}".format(iday))
