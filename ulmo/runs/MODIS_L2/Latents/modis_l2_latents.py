@@ -9,7 +9,7 @@ from ulmo.analysis import evaluate as ulmo_evaluate
 
 from IPython import embed
 
-tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.feather'
+tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
 
 
 def u_evaluate(clobber_local=False):
