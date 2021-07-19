@@ -13,7 +13,7 @@ from sklearn.utils import shuffle
 from ulmo import io as ulmo_io
 from ulmo.preproc import io as pp_io
 from ulmo.preproc import utils as pp_utils
-from ulmo.viirs import extract as viirs_extract
+from ulmo.viirs import extract as viirs_ext
 from ulmo.modis import utils as modis_utils
 from ulmo.analysis import evaluate as ulmo_evaluate
 from ulmo.utils import catalog as cat_utils
@@ -124,7 +124,8 @@ def viirs_extract(debug=False, year=2014,
 
     #
     print("Grabbing the file list")
-    all_viirs_files = ulmo_io.list_of_bucket_files('viirs')
+    all_viirs_files = ulmo_io.list_of_bucket_files('viirs', 
+                                                   prefix=f'data/{year}')
     files = []
     bucket = 's3://viirs/'
     for ifile in all_viirs_files:
@@ -139,7 +140,7 @@ def viirs_extract(debug=False, year=2014,
     s3_filename = 's3://viirs/Extractions/{}'.format(save_path)
 
     # Setup for preproc
-    map_fn = partial(viirs_extract.extract_file,
+    map_fn = partial(viirs_ext.extract_file,
                      field_size=(pdict['field_size'], pdict['field_size']),
                      CC_max=1.-pdict['clear_threshold'] / 100.,
                      nadir_offset=pdict['nadir_offset'],
