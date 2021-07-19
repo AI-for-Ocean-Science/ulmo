@@ -199,6 +199,8 @@ def viirs_extract(debug=False, year=2014,
             f_h5['fields'][-fields.shape[0]:] = fields
             f_h5['inpainted_masks'][-fields.shape[0]:] = inpainted_masks
 
+        del fields, inpainted_masks
+
     # Metadata
     columns = ['filename', 'row', 'column', 'latitude', 'longitude',
                'clear_fraction']
