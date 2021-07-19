@@ -44,6 +44,7 @@ def parse_option():
                         help="task to execute: 'download','evaluate', 'umap'.")
     parser.add_argument("--year", type=int, help="Year to work on")
     parser.add_argument("--n_cores", type=int, help="Number of CPU to use")
+    parser.add_argument("--day", type=int, default=1, help="Day to start extraction from")
     args = parser.parse_args()
 
     return args
@@ -289,7 +290,7 @@ if __name__ == "__main__":
 
     if pargs.task == 'download':
         print("Downloading Starts.")
-        viirs_get_data_into_s3(year=pargs.year)
+        viirs_get_data_into_s3(year=pargs.year, day1=pargs.day)
         print("Downloading Ends.")
     elif pargs.task == 'extract':
         print("Extraction Starts.")
