@@ -1,8 +1,8 @@
-# Script to perform VIIRS 2014 extractions 
+# Script to perform VIIRS 2015 extractions 
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-viirs-2014-extract
+  name: xavier-viirs-2015-extract
 spec:
   backoffLimit: 0
   template:
@@ -31,7 +31,7 @@ spec:
             cd ../tmp; 
             mkdir foo; 
             cd foo; 
-            python -u /ulmo/ulmo/runs/VIIRS/viirs_ulmo.py --task extract --year 2014 --n_cores 20;
+            python -u /ulmo/ulmo/runs/VIIRS/viirs_ulmo.py --task extract --year 2015 --n_cores 20;
             #cd ..;
             #aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp foo s3://llc --recursive --force;
         env:
