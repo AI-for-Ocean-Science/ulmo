@@ -170,7 +170,6 @@ def viirs_extract(debug=False, year=2014,
                 sub_files) // n_cores if len(sub_files) // n_cores > 0 else 1
             answers = list(tqdm(executor.map(map_fn, sub_files,
                                              chunksize=chunksize), total=len(sub_files)))
-        embed(header='167 of viirs_ulmo')
 
         # Trim None's
         answers = [f for f in answers if f is not None]
