@@ -74,7 +74,6 @@ def viirs_get_data_into_s3(year=2014, day1=1, debug=False):
             os.remove(nc_file)
 
     # for ss in range(365):
-    ndays = 366
     for ss in range(day1-1, ndays):
         iday = ss + 1
         print("Working on day: {}".format(iday))
@@ -88,7 +87,7 @@ def viirs_get_data_into_s3(year=2014, day1=1, debug=False):
             # '*.nc',
             'https://podaac-tools.jpl.nasa.gov/drive/files/allData/ghrsst/data/GDS2/L2P/VIIRS_NPP/OSPO/v2.61/{}/{}/'.format(
                 year, sday)])
-        if ss == 0:
+        if ss == day-1:
             pass
         else:
             if len(nc_files) > 0:
