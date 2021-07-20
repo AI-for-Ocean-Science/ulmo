@@ -87,6 +87,13 @@ def grab_llc_datafile(datetime=None, root='LLC4320_', chk=True, local=False):
     return datafile
                     
 def load_llc_ds(filename, local=False):
+    """
+    Args:
+        filename: (str) path of the file to be read.
+        local: (bool) flag to show if the file is local or not.
+    Returns:
+        ds: (xarray.Dataset) Dataset.
+    """
     if not local:
         with ulmo_io.open(filename, 'rb') as f:
             ds = xr.open_dataset(f)
