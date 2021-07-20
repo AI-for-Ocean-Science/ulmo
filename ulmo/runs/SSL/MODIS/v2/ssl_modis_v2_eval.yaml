@@ -2,7 +2,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-ssl-modis-2012-eval-debug
+  name: xavier-ssl-modis-2012-eval #-debug
 spec:
   backoffLimit: 0
   template:
@@ -13,14 +13,14 @@ spec:
         imagePullPolicy: Always
         resources:
           requests:
-            cpu: "2"   
+            cpu: "8"   
             memory: "2Gi"  # Needs to be large enough to slurp in the images
             ephemeral-storage: 50Gi
           limits:
-            cpu: "8"
+            cpu: "16"
             memory: "16Gi"
             ephemeral-storage: 100Gi
-            nvidia.com/gpu:  "2"  # See docs to exlude certain types
+            #nvidia.com/gpu:  "2"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]
         args:
           - cd ulmo; 
@@ -29,7 +29,7 @@ spec:
             git pull; 
             python setup.py develop;
             cd ulmo/runs/SSL/MODIS/v2;
-            python ./ssl_modis_v2.py --opt_path ./experiments/modis_model_v2/opts_2012.json --func_flag evaluate --debug;
+            python ./ssl_modis_v2.py --opt_path ./experiments/modis_model_v2/opts_2012.json --func_flag evaluate; # --debug;
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"
