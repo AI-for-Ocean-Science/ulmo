@@ -24,7 +24,7 @@ def latents_umap(latents:np.ndarray, train:np.ndarray,
     The UMAP U0, U1 coefficients are written to an input table.
 
     Args:
-        latents (np.ndarray): Total set of latent vectors (training)
+        latents (np.ndarray): Total set of latent vectors (training+valid)
             Shape should be (nvectors, size of latent space)
         train (np.ndarray): indices for training
         valid (np.ndarray): indices for applying the UMAP
@@ -43,6 +43,7 @@ def latents_umap(latents:np.ndarray, train:np.ndarray,
 
     # Apply to embedding
     print("Applying to the valid images")
+    train_embedding = latents_mapping.transform(latents[train])
     valid_embedding = latents_mapping.transform(latents[valid])
     print("Done")
 
@@ -76,6 +77,9 @@ def latents_umap(latents:np.ndarray, train:np.ndarray,
         #
         plt.savefig(fig_root+'_valid_UMAP.png', dpi=300)
 
+    # Return
+    return train_embedding, valid_embedding, latents_mapping
+
     # Save to Table
     print("Writing to the Table")
     if debug:
@@ -83,8 +87,6 @@ def latents_umap(latents:np.ndarray, train:np.ndarray,
     valid_tbl['U0'] = valid_embedding[:, 0]  # These are aligned
     valid_tbl['U1'] = valid_embedding[:, 1]
 
-    # Vet
-    assert cat_utils.vet_main_table(valid_tbl, cut_prefix=cut_prefix)
 
     # Final write
     if write_to_file is not None:

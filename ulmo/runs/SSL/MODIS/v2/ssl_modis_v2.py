@@ -46,28 +46,42 @@ def parse_option():
     return args
 
 def ssl_v2_umap(debug=False, orig=False):
+    """Run a UMAP analysis on all the MODIS L2 data
+
+    Args:
+        debug (bool, optional): [description]. Defaults to False.
+        orig (bool, optional): [description]. Defaults to False.
+    """
+    # Load table
+    tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
+    modis_tbl = ulmo_io.load_main_table(tbl_file)
+
+    # Train the UMAP
+
+    # Valid
+    train = modis_tbl.pp_type == 0
+    valid = modis_tbl.pp_type == 0
+    y2010 = modis_tbl.pp_file == 's3://modis-l2/PreProc/MODIS_R2019_2010_95clear_128x128_preproc_std.h5'
+    valid_tbl = modis_tbl[valid & y2010].copy()
+    train_tbl = modis_tbl[train & y2010].copy()
+
     # Latents file (subject to move)
-    latents_file = 's3://modis-l2/SSL_MODIS_R2019_2010_latents_v2/modis_R2019_2010_latents_last_v2.h5'
+    latents_train_file = 's3://modis-l2/SSL/SSL_v2_2012/latents/MODIS_R2019_2010_95clear_128x128_latents_std.h5'
 
     # Load em in
-    basefile = os.path.basename(latents_file)
+    basefile = os.path.basename(latents_train_file)
     if not os.path.isfile(basefile):
         print("Downloading latents (this is *much* faster than s3 access)...")
-        ulmo_io.download_file_from_s3(basefile, latents_file)
+        ulmo_io.download_file_from_s3(basefile, latents_train_file)
         print("Done")
     hf = h5py.File(basefile, 'r')
     latents_train = hf['modis_latents_v2_train'][:]
     latents_valid = hf['modis_latents_v2_valid'][:]
     print("Latents loaded")
 
-        # Table (useful for valid only)
+    # Table (useful for valid only)
     modis_tbl = ulmo_io.load_main_table('s3://modis-l2/Tables/MODIS_L2_std.parquet')
 
-    # Valid
-    valid = modis_tbl.pp_type == 0
-    y2010 = modis_tbl.pp_file == 's3://modis-l2/PreProc/MODIS_R2019_2010_95clear_128x128_preproc_std.h5'
-    valid_tbl = modis_tbl[valid & y2010].copy()
-    
     # Check
     assert latents_valid.shape[0] == len(valid_tbl)
 
@@ -80,6 +94,8 @@ def ssl_v2_umap(debug=False, orig=False):
         write_to_file='s3://modis-l2/Tables/MODIS_2010_valid_SSLv2.parquet',
         cut_prefix='modis_')
 
+    # Vet
+    assert cat_utils.vet_main_table(valid_tbl, cut_prefix=cut_prefix)
 
 def main_train(opt_path: str):
     """Train the model
