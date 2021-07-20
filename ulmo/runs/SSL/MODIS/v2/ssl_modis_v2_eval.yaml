@@ -13,14 +13,14 @@ spec:
         imagePullPolicy: Always
         resources:
           requests:
-            cpu: "2"   # Should have used 4 instead of 2
-            memory: "3Gi"  # Needs to be large enough to slurp in the images
+            cpu: "2"   
+            memory: "2Gi"  # Needs to be large enough to slurp in the images
             ephemeral-storage: 50Gi
           limits:
-            cpu: "4"
+            cpu: "8"
             memory: "16Gi"
             ephemeral-storage: 100Gi
-            #nvidia.com/gpu:  "1"  # See docs to exlude certain types
+            nvidia.com/gpu:  "2"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]
         args:
           - cd ulmo; 

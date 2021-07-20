@@ -16,6 +16,7 @@ import h5py
 import torch
 
 from ulmo import io as ulmo_io
+from ulmo.utils import catalog as cat_utils
 
 from ulmo.ssl import analysis as ssl_analysis
 from ulmo.ssl.util import adjust_learning_rate
@@ -58,7 +59,7 @@ def ssl_v2_umap(debug=False, orig=False):
 
     # Train the UMAP
 
-    # Valid
+    # Split
     train = modis_tbl.pp_type == 0
     valid = modis_tbl.pp_type == 0
     y2010 = modis_tbl.pp_file == 's3://modis-l2/PreProc/MODIS_R2019_2010_95clear_128x128_preproc_std.h5'
@@ -87,15 +88,31 @@ def ssl_v2_umap(debug=False, orig=False):
 
     # Stack em
     latents = np.concatenate([latents_train, latents_valid])
-    ssl_analysis.latents_umap(
+    _, _, latents_mapping = ssl_analysis.latents_umap(
         latents, np.arange(latents_train.shape[0]), 
         latents_train.shape[0]+np.arange(latents_valid.shape[0]),
-        valid_tbl, fig_root='MODIS_2010_v2', debug=False,
-        write_to_file='s3://modis-l2/Tables/MODIS_2010_valid_SSLv2.parquet',
-        cut_prefix='modis_')
+        valid_tbl, debug=False)
+
+    # Loop on em all
+    latent_files = ulmo_io.list_of_bucket_files('modis-l2',
+                                                prefix='SSL/SSL_v2_2012/latents/')
+
+    for latents_file in latent_files:
+        basefile = os.path.basename(latents_file)
+        # Download?
+        if not os.path.isfile(basefile):
+            print(f"Downloading {latents_file} (this is *much* faster than s3 access)...")
+            ulmo_io.download_file_from_s3(basefile, latents_train_file)
+            print("Done")
+        # 
+        hf = h5py.File(basefile, 'r')
+        latents_train = hf['modis_latents_v2_train'][:]
+        latents_valid = hf['modis_latents_v2_valid'][:]
+
 
     # Vet
-    assert cat_utils.vet_main_table(valid_tbl, cut_prefix=cut_prefix)
+    assert cat_utils.vet_main_table(valid_tbl, cut_prefix='modis_')
+
 
 def main_train(opt_path: str):
     """Train the model
@@ -144,69 +161,6 @@ def main_train(opt_path: str):
     s3_file = os.path.join(opt.s3_outdir, 'last.pth')
     ulmo_io.upload_file_to_s3(save_file, s3_file)
 
-'''
-def old_model_latents_extract(opt, modis_data, model_path, 
-                          save_path, save_key):
-    """
-    This function is used to obtain the latents of the training data.
-
-    Args:
-        opt: (Parameters) parameters used to create the model.
-        modis_data: (numpy.array) modis_data used in the latents
-            extraction process.
-        model_path: (string) path of the model file. 
-        save_path: (string) path to save the extracted latents
-        save_key: (string) key of the h5py file for the latents.
-    """
-    # Init model
-    model, _ = set_model(opt, cuda_use=opt.cuda_use)
-    # Download
-    print(f"Using model {model_path} for evaluation")
-    model_file = os.path.basename(model_path)
-    ulmo_io.download_file_from_s3(model_file, model_path)
-    # Load
-    print(f"Loading model")
-    if not opt.cuda_use:
-        model_dict = torch.load(model_path, map_location=torch.device('cpu'))
-    else:
-        model_dict = torch.load(model_path)
-    model.load_state_dict(model_dict['model'])
-    os.remove(model_file)
-
-    #modis_data = np.repeat(modis_data, 3, axis=1)
-    num_samples = modis_data.shape[0]
-    batch_size = opt.batch_size
-    num_steps = num_samples // batch_size
-    remainder = num_samples % batch_size
-    latents_df = pd.DataFrame()
-
-    # Process
-    print(f"Processing..")
-    with torch.no_grad():
-        for i in trange(num_steps):
-            image_batch = modis_data[i*batch_size: (i+1)*batch_size]
-            image_batch = np.repeat(image_batch, 3, axis=1)
-            image_tensor = torch.tensor(image_batch)
-            if opt.cuda_use and torch.cuda.is_available():
-                image_tensor = image_tensor.cuda()
-            latents_tensor = model(image_tensor)
-            latents_numpy = latents_tensor.cpu().numpy()
-            latents_df = pd.concat([latents_df, pd.DataFrame(latents_numpy)], ignore_index=True)
-        if remainder:
-            image_remainder = modis_data[-remainder:]
-            image_remainder = np.repeat(image_remainder, 3, axis=1)
-            image_tensor = torch.tensor(image_remainder)
-            if opt.cuda_use and torch.cuda.is_available():
-                image_tensor = image_tensor.cuda()
-            latents_tensor = model(image_tensor)
-            latents_numpy = latents_tensor.cpu().numpy()
-            latents_df = pd.concat([latents_df, pd.DataFrame(latents_numpy)], ignore_index=True)
-            latents_numpy = latents_df.values
-
-    # Write locally
-    with h5py.File(save_path, 'a') as file:
-        file.create_dataset(save_key, data=latents_numpy)
-'''
         
 def main_evaluate(opt_path, model_file, 
                   preproc='_std', debug=False):
@@ -260,7 +214,7 @@ def main_evaluate(opt_path, model_file,
             print("Extraction of Latents of train set is done.")
         print("Starting valid evaluation")
         latents_extraction.model_latents_extract(opt, data_file, 
-                'valid', model_base, latents_file, key_train)
+                'valid', model_base, latents_file, key_valid)
         print("Extraction of Latents of valid set is done.")
 
         # Push to s3

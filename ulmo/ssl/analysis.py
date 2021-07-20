@@ -9,14 +9,12 @@ import umap
 
 from ulmo import io as ulmo_io
 from ulmo.plotting import plotting
-from ulmo.utils import catalog as cat_utils
 
 from IPython import embed
 
 def latents_umap(latents:np.ndarray, train:np.ndarray, 
          valid:np.ndarray, valid_tbl:pandas.DataFrame,
-         fig_root='', debug=False, write_to_file=None,
-         cut_prefix=None):
+         fig_root='', debug=False):
     """ Run a UMAP on input latent vectors.
     A subset are used to train the UMAP and then
     one applies it to the valid set.
@@ -31,8 +29,10 @@ def latents_umap(latents:np.ndarray, train:np.ndarray,
         valid_tbl (pandas.DataFrame): [description]
         fig_root (str, optional): [description]. Defaults to ''.
         debug (bool, optional): [description]. Defaults to False.
-        write_to_file ([type], optional): Write table to this file. Defaults to None.
         cut_prefix ([type], optional): [description]. Defaults to None.
+
+    Returns:
+        tuple: train_embedding, valid_embedding, latents_mapping
     """
 
     # UMAP me
@@ -79,16 +79,3 @@ def latents_umap(latents:np.ndarray, train:np.ndarray,
 
     # Return
     return train_embedding, valid_embedding, latents_mapping
-
-    # Save to Table
-    print("Writing to the Table")
-    if debug:
-        embed(header='65 of ssl analysis')
-    valid_tbl['U0'] = valid_embedding[:, 0]  # These are aligned
-    valid_tbl['U1'] = valid_embedding[:, 1]
-
-
-    # Final write
-    if write_to_file is not None:
-        ulmo_io.write_main_table(valid_tbl, write_to_file)
-    	
