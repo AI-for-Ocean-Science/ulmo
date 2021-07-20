@@ -212,6 +212,7 @@ def orig_latents_extract(opt, modis_data,
     remainder = num_samples % batch_size
     latents_df = pd.DataFrame()
     print("Beginning to evaluate")
+    model.eval()
     with torch.no_grad():
         for i in trange(num_steps):
             image_batch = modis_data[i*batch_size: (i+1)*batch_size]
