@@ -12,6 +12,7 @@ import torch
 import xmitgcm.llcreader as llcreader
 
 from ulmo.llc.slurp import write_xr
+from ulmo import io as ulmo_io
 
 from IPython import embed
 
@@ -32,7 +33,8 @@ def parse_option():
     return args
 
 def llc_download(pargs, model_name='LLC4320', tstep=6, istart=0,
-                 varnames=['Theta','U','V','W','Salt','Eta']): 
+                 varnames=['Theta','U','V','W','Salt','Eta'],
+                 clobber=False): 
     if model_name == 'LLC4320':
         model = llcreader.ECCOPortalLLC4320Model()
         tstep_hr = 144  # Time steps per hour
@@ -46,6 +48,11 @@ def llc_download(pargs, model_name='LLC4320', tstep=6, istart=0,
     tsize = ds.time.size
     print("Model is ready")
 
+    # Check for existing files
+    s3_path = f'/data/{tstep}-hour/'
+    s3_files = ulmo_io.list_of_bucket_files('llc',
+                                            prefix=s3_path)
+
     # Loop me
     for tt in range(istart, tsize):
         # Get dataset
@@ -55,20 +62,27 @@ def llc_download(pargs, model_name='LLC4320', tstep=6, istart=0,
                                iter_step=iter_step)
         #
         print("Time step = {} of {}".format(tt, ds.time.size))
-        #SST = ds_sst.Theta.isel(time=tt, k=0)  # , i=slice(1000,2000), j=slice(1000,2000))
-        ds_0 = ds.isel(time=tt, k=0)  # , i=slice(1000,2000), j=slice(1000,2000))
+
+        ds_0 = ds.isel(time=tt, k=0)  
         # Generate outfile name
         outfile = '{:s}_{:s}.nc'.format(model_name,
             str(ds_0.time.values)[:19].replace(':','_'))
+        s3_file = 's3://llc/'+s3_path+f'/{outfile}'
         # No clobber
-        if os.path.isfile(outfile):
-            print("Not clobbering: {}".format(outfile))
+        if not clobber and s3_file in s3_files:
+            print("Not clobbering: {}".format(s3_file))
             continue
         # Write
         write_xr(ds_0, outfile)
         print("Wrote: {}".format(outfile))
+
+        # Push to s3
+        ulmo_io.upload_file_to_s3(outfile, s3_file)
+
         del(ds)
         embed(header='71 of download')
+
+        os.remove(outfile)
 
 
 # ulmo_grab_llc 12 --var Theta,U,V,W,Salt --istart 480
