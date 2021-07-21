@@ -1,4 +1,5 @@
 # Script to perform LLC extractions
+# kubectl exec -it pod-name -- /bin/bash
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -14,18 +15,17 @@ spec:
         resources:
           requests:
             cpu: "1"
-            memory: "2Gi"
+            memory: "6Gi"
             ephemeral-storage: 32Gi
           limits:
             cpu: "2"
-            memory: "4Gi"
+            memory: "12Gi"
             ephemeral-storage: 150Gi
             #nvidia.com/gpu:  "1"  # See docs to exlude certain types
             # https://ucsd-prp.gitlab.io/userdocs/running/gpu-pods/
         command: ["/bin/bash", "-c"]
         args:
-          - sleep 600;
-            cd ulmo; 
+          - cd ulmo; 
             git fetch;
             git checkout more_llc_downloads; 
             git pull; 
@@ -33,6 +33,7 @@ spec:
             pip install xmitgcm;
             pip install zarr;
             pip install aiohttp;
+            pip install netcdf4;
             cd ../tmp; 
             mkdir foo; 
             cd foo; 
