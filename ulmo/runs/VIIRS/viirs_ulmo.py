@@ -41,7 +41,7 @@ def parse_option():
     """
     parser = argparse.ArgumentParser("VIIRS")
     parser.add_argument("--task", type=str,
-                        help="task to execute: 'download','evaluate', 'umap'.")
+                        help="task to execute: 'download', 'extract', 'preproc', 'eval'.")
     parser.add_argument("--year", type=int, help="Year to work on")
     parser.add_argument("--n_cores", type=int, help="Number of CPU to use")
     parser.add_argument("--day", type=int, default=1, help="Day to start extraction from")
