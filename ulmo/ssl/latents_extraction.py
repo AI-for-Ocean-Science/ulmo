@@ -135,7 +135,7 @@ def model_latents_extract(opt, modis_data_file, modis_partition,
         latents_numpy = [calc_latent(
             model, data[0], using_gpu) for data in tqdm.tqdm(
                 loader, total=len(loader), unit='batch', 
-                desc='Computing log probs')]
+                desc='Computing latents')]
     
     with h5py.File(save_path, 'w') as file:
         file.create_dataset(save_key, data=np.concatenate(latents_numpy))

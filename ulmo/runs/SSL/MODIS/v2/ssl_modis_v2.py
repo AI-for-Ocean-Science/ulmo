@@ -5,15 +5,12 @@ import numpy as np
 import time
 import h5py
 import numpy as np
-import pandas as pd
 from tqdm.auto import trange
 import argparse
 
 
 import h5py
-
-
-import torch
+import umap
 
 from ulmo import io as ulmo_io
 from ulmo.utils import catalog as cat_utils
@@ -38,7 +35,7 @@ def parse_option():
     """
     parser = argparse.ArgumentParser("argument for training.")
     parser.add_argument("--opt_path", type=str, help="path of 'opt.json' file.")
-    parser.add_argument("--func_flag", type=str, help="flag of the function to be execute: 'train' or 'evaluate'.")
+    parser.add_argument("--func_flag", type=str, help="flag of the function to be execute: 'train' or 'evaluate' or 'umap'.")
         # JFH Should the default now be true with the new definition.
     parser.add_argument('--debug', default=False, action='store_true',
                         help='Debug?')
@@ -56,18 +53,22 @@ def ssl_v2_umap(debug=False, orig=False):
     # Load table
     tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
     modis_tbl = ulmo_io.load_main_table(tbl_file)
+    modis_tbl['U0'] = 0.
+    modis_tbl['U1'] = 0.
 
     # Train the UMAP
 
     # Split
-    train = modis_tbl.pp_type == 0
+    train = modis_tbl.pp_type == 1
     valid = modis_tbl.pp_type == 0
     y2010 = modis_tbl.pp_file == 's3://modis-l2/PreProc/MODIS_R2019_2010_95clear_128x128_preproc_std.h5'
     valid_tbl = modis_tbl[valid & y2010].copy()
-    train_tbl = modis_tbl[train & y2010].copy()
 
     # Latents file (subject to move)
-    latents_train_file = 's3://modis-l2/SSL/SSL_v2_2012/latents/MODIS_R2019_2010_95clear_128x128_latents_std.h5'
+    if debug:
+        latents_train_file = 's3://modis-l2/SSL_MODIS_R2019_2010_latents_v2/modis_R2019_2010_latents_last_v2.h5'
+    else:
+        latents_train_file = 's3://modis-l2/SSL/SSL_v2_2012/latents/MODIS_R2019_2010_95clear_128x128_latents_std.h5'
 
     # Load em in
     basefile = os.path.basename(latents_train_file)
@@ -80,18 +81,13 @@ def ssl_v2_umap(debug=False, orig=False):
     latents_valid = hf['modis_latents_v2_valid'][:]
     print("Latents loaded")
 
-    # Table (useful for valid only)
-    modis_tbl = ulmo_io.load_main_table('s3://modis-l2/Tables/MODIS_L2_std.parquet')
-
     # Check
     assert latents_valid.shape[0] == len(valid_tbl)
 
-    # Stack em
-    latents = np.concatenate([latents_train, latents_valid])
-    _, _, latents_mapping = ssl_analysis.latents_umap(
-        latents, np.arange(latents_train.shape[0]), 
-        latents_train.shape[0]+np.arange(latents_valid.shape[0]),
-        valid_tbl, debug=False)
+    print("Running UMAP..")
+    reducer_umap = umap.UMAP()
+    latents_mapping = reducer_umap.fit(latents_train)
+    print("Done..")
 
     # Loop on em all
     latent_files = ulmo_io.list_of_bucket_files('modis-l2',
@@ -99,16 +95,43 @@ def ssl_v2_umap(debug=False, orig=False):
 
     for latents_file in latent_files:
         basefile = os.path.basename(latents_file)
+        year = int(basefile[12:16])
         # Download?
         if not os.path.isfile(basefile):
             print(f"Downloading {latents_file} (this is *much* faster than s3 access)...")
             ulmo_io.download_file_from_s3(basefile, latents_train_file)
             print("Done")
-        # 
-        hf = h5py.File(basefile, 'r')
-        latents_train = hf['modis_latents_v2_train'][:]
-        latents_valid = hf['modis_latents_v2_valid'][:]
 
+        #  Load and apply
+        hf = h5py.File(basefile, 'r')
+        '''
+        if 'train' in hf.keys():
+            latents_train = hf['train'][:]
+            train_embedding = latents_mapping.transform(latents_train)
+        '''
+
+        # THIS LINE IS WRONG.  FIX WHEN THE REST IS FIXED
+        latents_valid = hf['train'][:]
+        valid_embedding = latents_mapping.transform(latents_valid)
+
+        # Save to table
+        embed(header='118 of ssl modis 2012')
+        yidx = modis_tbl.pp_file == f's3://modis-l2/PreProc/MODIS_R2019_{year}_95clear_128x128_preproc_std.h5'
+        valid_idx = valid & yidx
+        modis_tbl.loc[valid_idx, 'U0'] = valid_embedding[:,0]
+        modis_tbl.loc[valid_idx, 'U1'] = valid_embedding[:,1]
+
+        '''
+        train_idx = train & yidx
+        if np.sum(train_idx) > 0:
+            modis_tbl.loc[train_idx, 'U0'] = train_embedding[:,0]
+            modis_tbl.loc[train_idx, 'U1'] = train_embedding[:,1]
+        '''
+
+        hf.close()
+
+        # Clean up
+        os.remove(basefile)
 
     # Vet
     assert cat_utils.vet_main_table(valid_tbl, cut_prefix='modis_')
@@ -246,5 +269,5 @@ if __name__ == "__main__":
     # run the umap
     if args.func_flag == 'umap':
         print("UMAP Starts.")
-        ssl_v2_umap()
+        ssl_v2_umap(debug=args.debug)
         print("UMAP Ends.")
