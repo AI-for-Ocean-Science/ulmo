@@ -33,7 +33,8 @@ def parse_option():
     return args
 
 def llc_download(pargs, model_name='LLC4320', tstep=6, istart=0,
-                 varnames=['Theta','U','V','W','Salt','Eta'],
+                 varnames=['Theta','U','V','W','Salt','Eta',
+                           'oceTAUX','oceTAUY'],
                  clobber=False): 
     if model_name == 'LLC4320':
         model = llcreader.ECCOPortalLLC4320Model()
@@ -67,7 +68,7 @@ def llc_download(pargs, model_name='LLC4320', tstep=6, istart=0,
         # Generate outfile name
         outfile = '{:s}_{:s}.nc'.format(model_name,
             str(ds_0.time.values)[:19].replace(':','_'))
-        s3_file = 's3://llc/'+s3_path+f'/{outfile}'
+        s3_file = 's3://llc'+s3_path+outfile
         # No clobber
         if not clobber and s3_file in s3_files:
             print("Not clobbering: {}".format(s3_file))
@@ -83,9 +84,6 @@ def llc_download(pargs, model_name='LLC4320', tstep=6, istart=0,
         embed(header='71 of download')
 
         os.remove(outfile)
-
-
-# ulmo_grab_llc 12 --var Theta,U,V,W,Salt --istart 480
 
 if __name__ == "__main__":
     # get the argument of training.
