@@ -53,6 +53,8 @@ def llc_download(pargs, model_name='LLC4320', tstep=6, istart=0,
     s3_path = f'/data/{tstep}-hour/'
     s3_files = ulmo_io.list_of_bucket_files('llc',
                                             prefix=s3_path)
+    if len(s3_files) > 0:
+        s3_files = ['s3://llc/'+ifile for ifile in s3_files]
 
     # Loop me
     for tt in range(istart, tsize):
@@ -80,9 +82,8 @@ def llc_download(pargs, model_name='LLC4320', tstep=6, istart=0,
         # Push to s3
         ulmo_io.upload_file_to_s3(outfile, s3_file)
 
+        # Clean up
         del(ds)
-        embed(header='71 of download')
-
         os.remove(outfile)
 
 if __name__ == "__main__":
