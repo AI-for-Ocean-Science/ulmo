@@ -25,7 +25,7 @@ setup_keywords['requires'] = ['Python (>3.7.0)']
 setup_keywords['install_requires'] = [
     'xarray', 'h5netcdf', 'torch==1.8.1', 'torchvision', 'seaborn', 'smart-open[s3]==4.2.0', 'pyarrow',
     'scikit-learn', 'scikit-image', 'tqdm', 'astropy', 'astropy-healpix',
-    'healpy', 'cftime', 'bokeh']
+    'healpy', 'cftime', 'bokeh', 'xmitgcm']
 setup_keywords['zip_safe'] = False
 setup_keywords['use_2to3'] = False
 setup_keywords['packages'] = find_packages()

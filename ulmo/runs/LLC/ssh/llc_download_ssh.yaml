@@ -24,7 +24,8 @@ spec:
             # https://ucsd-prp.gitlab.io/userdocs/running/gpu-pods/
         command: ["/bin/bash", "-c"]
         args:
-          - cd ulmo; 
+          - sleep 600;
+            cd ulmo; 
             git fetch;
             git checkout more_llc_downloads; 
             git pull; 
