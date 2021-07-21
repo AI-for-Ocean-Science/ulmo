@@ -30,6 +30,9 @@ spec:
             git checkout more_llc_downloads; 
             git pull; 
             python setup.py develop;
+            pip install xmitgcm;
+            pip install zarr;
+            pip install aiohttp;
             cd ../tmp; 
             mkdir foo; 
             cd foo; 
