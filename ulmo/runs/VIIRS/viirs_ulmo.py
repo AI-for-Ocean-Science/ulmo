@@ -50,7 +50,8 @@ def parse_option():
     return args
 
 
-def viirs_get_data_into_s3(year=2014, day1=1, debug=False):
+def viirs_get_data_into_s3(year=2014, day1=1, 
+                           debug=False):
     """Use wget to download data into s3
 
     Args:
@@ -291,7 +292,8 @@ if __name__ == "__main__":
 
     if pargs.task == 'download':
         print("Downloading Starts.")
-        viirs_get_data_into_s3(year=pargs.year, day1=pargs.day)
+        viirs_get_data_into_s3(year=pargs.year, 
+                               day1=pargs.day)
         print("Downloading Ends.")
     elif pargs.task == 'extract':
         print("Extraction Starts.")

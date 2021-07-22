@@ -1,9 +1,8 @@
-# Script to perform VIIRS 2012 downloads
-#  Jumping into a pod -- kubectl exec -it pod-name -- /bin/bash
+# Script to perform VIIRS 2019 extractions 
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-viirs-2012-download
+  name: xavier-viirs-2019-extract
 spec:
   backoffLimit: 0
   template:
@@ -14,12 +13,12 @@ spec:
         imagePullPolicy: Always
         resources:
           requests:
-            cpu: "2"
-            memory: "1Gi"
-            ephemeral-storage: 200Gi  # Could use 100Gi if gzip compression is on
+            cpu: "20"
+            memory: "64Gi"
+            ephemeral-storage: 400Gi  # Could use 100Gi if gzip compression is on
           limits:
-            cpu: "4"
-            memory: "3Gi"
+            cpu: "20"
+            memory: "128Gi"
             ephemeral-storage: 400Gi
             #nvidia.com/gpu:  "1"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]
@@ -32,8 +31,9 @@ spec:
             cd ../tmp; 
             mkdir foo; 
             cd foo; 
-            python -u /ulmo/ulmo/runs/VIIRS/viirs_ulmo.py --task download --year 2012 --day 290;
-            #python -u /ulmo/ulmo/runs/VIIRS/viirs_ulmo.py --task download --year 2012;
+            python -u /ulmo/ulmo/runs/VIIRS/viirs_ulmo.py --task extract --year 2019 --n_cores 20;
+            #cd ..;
+            #aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp foo s3://llc --recursive --force;
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"
@@ -63,4 +63,3 @@ spec:
         # Ephemeral storage
         - name: ephemeral
           emptyDir: {}
-
