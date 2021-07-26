@@ -1,9 +1,8 @@
-# Script to perform VIIRS 2014 extractions 
-# kubectl exec -it pod-name -- /bin/bash
+# Script to perform VIIRS 2012 Pre-proc
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-viirs-2014-eval
+  name: xavier-viirs-2012-preproc
 spec:
   backoffLimit: 0
   template:
@@ -14,14 +13,14 @@ spec:
         imagePullPolicy: Always
         resources:
           requests:
-            cpu: "1"
-            memory: "32Gi"
-            ephemeral-storage: 50Gi
+            cpu: "5"
+            memory: "72Gi"  # Took 60Gi+ on my machine
+            ephemeral-storage: 150Gi  # Fine if compressed
           limits:
-            cpu: "2"
-            memory: "32Gi"
-            ephemeral-storage: 100Gi
-            nvidia.com/gpu:  "1"  # See docs to exlude certain types
+            cpu: "10"
+            memory: "84Gi"
+            ephemeral-storage: 200Gi
+            #nvidia.com/gpu:  "1"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]
         args:
           - cd ulmo; 
@@ -33,9 +32,9 @@ spec:
             mkdir foo; 
             cd foo; 
             mkdir PreProc;   
-            python -u /ulmo/ulmo/runs/VIIRS/viirs_ulmo.py --task eval --year 2014;
-            cd ..;
-            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp foo s3://viirs --recursive --force;
+            python -u /ulmo/ulmo/runs/VIIRS/viirs_ulmo.py --task preproc --year 2012 --n_cores 20;
+            #cd ..;
+            #aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp foo s3://llc --recursive --force;
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"

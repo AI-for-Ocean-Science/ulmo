@@ -1,9 +1,9 @@
-# Script to perform VIIRS 2014 extractions 
+# Script to perform VIIRS 2012 extractions 
 # kubectl exec -it pod-name -- /bin/bash
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-viirs-2014-eval
+  name: xavier-viirs-2012-eval
 spec:
   backoffLimit: 0
   template:
@@ -33,7 +33,7 @@ spec:
             mkdir foo; 
             cd foo; 
             mkdir PreProc;   
-            python -u /ulmo/ulmo/runs/VIIRS/viirs_ulmo.py --task eval --year 2014;
+            python -u /ulmo/ulmo/runs/VIIRS/viirs_ulmo.py --task eval --year 2012;
             cd ..;
             aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp foo s3://viirs --recursive --force;
         env:
