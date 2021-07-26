@@ -1,0 +1,65 @@
+# Script to perform VIIRS 2014 extractions 
+#  Jumping into a pod -- kubectl exec -it pod-name -- /bin/bash
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: xavier-viirs-2014-download
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      containers:
+      - name: container
+        image: localhost:30081/profxj/ulmo_nvidia:latest  # UPDATE
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: "2"
+            memory: "2Gi"
+            ephemeral-storage: 200Gi  # Could use 100Gi if gzip compression is on
+          limits:
+            cpu: "4"
+            memory: "4Gi"
+            ephemeral-storage: 400Gi
+            #nvidia.com/gpu:  "1"  # See docs to exlude certain types
+        command: ["/bin/bash", "-c"]
+        args:
+          - cd ulmo; 
+            git fetch;
+            git checkout viirs; 
+            git pull; 
+            python setup.py develop;
+            cd ../tmp; 
+            mkdir foo; 
+            cd foo; 
+            python -u /ulmo/ulmo/runs/VIIRS/viirs_ulmo.py --task download --year 2014;
+        env:
+          - name: "ENDPOINT_URL"
+            value: "http://rook-ceph-rgw-nautiluss3.rook"
+          - name: "S3_ENDPOINT"
+            value: "rook-ceph-rgw-nautiluss3.rook"
+        volumeMounts:
+          - name: prp-s3-credentials
+            mountPath: "/root/.aws/credentials"
+            subPath: "credentials"
+          - name: ephemeral
+            mountPath: "/tmp"
+          - name: "dshm"
+            mountPath: "/dev/shm"
+      nodeSelector:
+        nautilus.io/disktype: nvme
+        gpu-type: "1080Ti"  # titan-xp
+      restartPolicy: Never
+      volumes:
+        # Secrets file for nautilus s3 credentials .aws/credentials and .s3cfg
+        - name: prp-s3-credentials
+          secret:
+            secretName: prp-s3-credentials
+        # Shared memory (necessary for Python's multiprocessing.shared_memory module to work)
+        - name: dshm
+          emptyDir:
+            medium: Memory
+        # Ephemeral storage
+        - name: ephemeral
+          emptyDir: {}
+
