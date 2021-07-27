@@ -126,8 +126,9 @@ def model_latents_extract(opt, modis_data_file, modis_partition,
         model.load_state_dict(model_dict['model'])
     print("Model loaded")
 
-    # Data
-    _, loader = build_loader(modis_data_file, modis_partition)
+    # Create Data Loader for evaluation
+    batch_size_eval, num_workers_eval = opt.batch_size_eval, opt.num_workers_eval
+    _, loader = build_loader(modis_data_file, modis_partition, batch_size_eval, num_workers_eval)
 
     print("Beginning to evaluate")
     model.eval()
