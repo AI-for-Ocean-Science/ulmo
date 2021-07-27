@@ -20,7 +20,7 @@ spec:
             cpu: "16"
             memory: "16Gi"
             ephemeral-storage: 100Gi
-            #nvidia.com/gpu:  "2"  # See docs to exlude certain types
+            nvidia.com/gpu:  "1"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]
         args:
           - cd ulmo; 
