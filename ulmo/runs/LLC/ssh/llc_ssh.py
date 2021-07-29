@@ -25,14 +25,15 @@ def parse_option():
     parser = argparse.ArgumentParser("LLC SSH")
     parser.add_argument("--task", type=str,
                         help="task to execute: 'download','evaluate', 'umap'.")
-    #parser.add_argument("--year", type=int, help="Year to work on")
+    parser.add_argument("--istart", type=int, default=0,
+                        help="Starting file")
     #parser.add_argument("--n_cores", type=int, help="Number of CPU to use")
     #parser.add_argument("--day", type=int, default=1, help="Day to start extraction from")
     args = parser.parse_args()
 
     return args
 
-def llc_download(pargs, model_name='LLC4320', tstep=6, istart=0,
+def llc_download(pargs, model_name='LLC4320', tstep=6, 
                  varnames=['Theta','U','V','W','Salt','Eta',
                            'oceTAUX','oceTAUY'],
                  clobber=False): 
@@ -57,7 +58,7 @@ def llc_download(pargs, model_name='LLC4320', tstep=6, istart=0,
         s3_files = ['s3://llc/'+ifile for ifile in s3_files]
 
     # Loop me
-    for tt in range(istart, tsize):
+    for tt in range(pargs.istart, tsize):
         # Get dataset
         iter_step = tstep_hr*tstep
         ds = model.get_dataset(varnames=varnames,
