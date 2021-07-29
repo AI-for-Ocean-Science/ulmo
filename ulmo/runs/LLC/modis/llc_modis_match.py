@@ -259,7 +259,7 @@ def main(flg):
         modis_evaluate(tbl_file='s3://llc/Tables/test2_modis2012.parquet')
 
     if flg & (2**7):  
-        modis_evaluate(tbl_file='s3://llc/Tables/LLC_modis_noise.parquet')
+        modis_evaluate(tbl_file='s3://llc/Tables/LLC_modis_noise_track.parquet')
 
 
 # Command line execution
