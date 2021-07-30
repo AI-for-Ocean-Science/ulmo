@@ -3,7 +3,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: katharina-llc-modis2012-eval-test
+  name: katharina-llc-modis2012-noise_avgd-test
 spec:
   backoffLimit: 0
   template:
@@ -34,7 +34,7 @@ spec:
             mkdir foo; 
             cd foo; 
             mkdir Evaluations;   
-            python -u /ulmo/ulmo/runs/LLC/modis/llc_modis_match.py 128;
+            python -u /ulmo/ulmo/runs/LLC/modis/llc_modis_match.py 256;
             rm PreProc/*;
             cd ..;
             aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp foo s3://llc --recursive;

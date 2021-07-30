@@ -259,9 +259,16 @@ def main(flg):
         modis_evaluate(tbl_file='s3://llc/Tables/test2_modis2012.parquet')
 
     if flg & (2**7):  
+        modis_evaluate(tbl_file='s3://llc/Tables/ulmo2_test.parquet')
+    
+    if flg & (2**8):
+        modis_evaluate(tbl_file='s3://llc/Tables/LLC_modis_noise2.parquet')
+
+    if flg & (2**9): 
         modis_evaluate(tbl_file='s3://llc/Tables/LLC_modis_noise_track.parquet')
-
-
+    
+    if flg & (2**10):
+        modis_evaluate(tbl_file='s3://llc/Tables/LLC_uniform_test.parquet')
 # Command line execution
 if __name__ == '__main__':
     import sys
