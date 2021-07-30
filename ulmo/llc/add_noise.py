@@ -4,7 +4,9 @@
 import h5py
 import numpy as np
 
-with h5py.File( '/home/jovyan/LLC_modis2012_noise_track_preproc.h5', 'r+') as f:
+filename = input('Enter local filename with cutouts to be edited: ')
+
+with h5py.File( filename, 'r+') as f:
     mdata = f['valid_metadata'][()]
     mean_T = mdata[:,7]
      
