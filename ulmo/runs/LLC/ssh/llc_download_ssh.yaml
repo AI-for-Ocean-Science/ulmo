@@ -3,7 +3,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-llc-download-restart2
+  name: xavier-llc-download-restart3
 spec:
   backoffLimit: 0
   template:
@@ -37,7 +37,7 @@ spec:
             cd ../tmp; 
             mkdir foo; 
             cd foo; 
-            python -u /ulmo/ulmo/runs/LLC/ssh/llc_ssh.py --task download --istart 1129;
+            python -u /ulmo/ulmo/runs/LLC/ssh/llc_ssh.py --task download --istart 1533;
             #cd ..;
             #aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp foo s3://llc --recursive --force;
         env:
