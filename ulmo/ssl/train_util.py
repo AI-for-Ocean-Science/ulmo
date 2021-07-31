@@ -284,14 +284,16 @@ def modis_loader(opt, valid=False):
         modis_path = opt.valid_folder
         data_key = opt.valid_key
     modis_file = os.path.join(modis_path, os.listdir(modis_path)[0])
-    print(data_key)
-    modis_dataset = ModisDataset(modis_file, transform=TwoCropTransform(transforms_compose), data_key=data_key)
+    modis_dataset = ModisDataset(modis_file, 
+                                 transform=TwoCropTransform(transforms_compose), 
+                                 data_key=data_key)
     train_sampler = None
     train_loader = torch.utils.data.DataLoader(
                     modis_dataset, batch_size=opt.batch_size, shuffle=(train_sampler is None),
                     num_workers=opt.num_workers, pin_memory=False, sampler=train_sampler)
     
     return train_loader
+
 
 def modis_loader_v2(opt, valid=False):
     """
@@ -339,6 +341,7 @@ def modis_loader_v2_with_blurring(opt, valid=False):
     Returns:
         train_loader: (Dataloader) Modis Dataloader.
     """
+    raise IOError("Modify the loader instead!!")
     transforms_compose = transforms.Compose([RandomRotate(),
                                              RandomJitterCrop(),
                                              GaussianBlurring(),
