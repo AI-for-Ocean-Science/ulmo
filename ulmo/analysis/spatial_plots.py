@@ -9,6 +9,8 @@ from matplotlib import pyplot as plt
 import cartopy.crs as ccrs
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
+from ulmo.utils import image_utils
+
 
 def evals_to_healpix(eval_tbl, nside, mask=True):
     """
@@ -588,6 +590,100 @@ def scatter_diff_med(tbl1:pandas.DataFrame, tbl2:pandas.DataFrame,
     plt.xlabel('num of cutouts : table 2')
     plt.ylabel('diff_median_LL')
     plt.ylim(-1000, 1000)
+
+
+    # Layout and save
+    if show:
+        plt.show()
+
+    return ax
+
+
+def show_spatial_two_slices(sub_tbl1:pandas.DataFrame, sub_tbl2:pandas.DataFrame,
+                 nside=64, use_log=True, 
+                 use_mask=True,
+                 lbl1=None, lbl2=None, figsize=(24,16), 
+                 color1='Reds', color2='Blues', show=True):
+    """Generate a global map of the location of the input
+    cutouts
+
+    Args:
+        main_tbl (pandas.DataFrame): table of cutouts
+        nside (int, optional): [description]. Defaults to 64.
+        use_log (bool, optional): [description]. Defaults to True.
+        use_mask (bool, optional): [description]. Defaults to True.
+        lbl ([type], optional): [description]. Defaults to None.
+        figsize (tuple, optional): [description]. Defaults to (12,8).
+        color (str, optional): [description]. Defaults to 'Reds'.
+        show (bool, optional): If True, show on the screen.  Defaults to True
+
+    Returns:
+        matplotlib.Axis: axis holding the plot
+    """
+    # Healpix me
+    hp_events1, hp_lons1, hp_lats1 = image_utils.evals_to_healpix(
+        sub_tbl1, nside, log=use_log, mask=use_mask)
+    
+    hp_events2, hp_lons2, hp_lats2 = image_utils.evals_to_healpix(
+        sub_tbl2, nside, log=use_log, mask=use_mask)
+    
+    # Figure
+    
+    fig = plt.figure(figsize=figsize)
+    plt.clf()
+
+    tformM = ccrs.Mollweide()
+    tformP = ccrs.PlateCarree()
+
+    ax = plt.axes(projection=tformM)
+
+    cm1 = plt.get_cmap(color1)
+    cm2 = plt.get_cmap(color2)
+    # Cut
+    good1 = np.invert(hp_events1.mask)
+    img1 = plt.scatter(x=hp_lons1[good1],
+        y=hp_lats1[good1],
+        c=hp_events1[good1], 
+        cmap=cm1,
+        s=1,
+        transform=tformP)
+    
+    good2 = np.invert(hp_events2.mask)
+    img2 = plt.scatter(x=hp_lons2[good2],
+        y=hp_lats2[good2],
+        c=hp_events2[good2], 
+        cmap=cm2,
+        s=1,
+        transform=tformP)
+
+    # Colorbar
+    cb1 = plt.colorbar(img1, orientation='vertical', location = 'left', shrink = 0.25)
+    cb2 = plt.colorbar(img2, orientation='vertical', location = 'right',shrink = 0.25)
+    
+    if lbl1 is not None:
+        clbl1=r'$\log_{10} \, N_{\rm '+'{}'.format(lbl1)+'}$'
+        cb1.set_label(clbl1, fontsize=20.)
+    cb1.ax.tick_params(labelsize=17)
+    
+    if lbl2 is not None:
+        clbl2=r'$\log_{10} \, N_{\rm '+'{}'.format(lbl2)+'}$'
+        cb2.set_label(clbl2, fontsize=20.)
+    cb2.ax.tick_params(labelsize=17)
+
+    # Coast lines
+    ax.coastlines(zorder=10)
+    ax.set_global()
+
+    gl = ax.gridlines(crs=ccrs.PlateCarree(), linewidth=1, 
+        color='black', alpha=0.5, linestyle=':', draw_labels=True)
+    gl.xlabels_top = False
+    gl.ylabels_left = True
+    gl.ylabels_right=False
+    gl.xlines = True
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.yformatter = LATITUDE_FORMATTER
+    gl.xlabel_style = {'color': 'black'}# 'weight': 'bold'}
+    gl.ylabel_style = {'color': 'black'}# 'weight': 'bold'}
 
 
     # Layout and save
