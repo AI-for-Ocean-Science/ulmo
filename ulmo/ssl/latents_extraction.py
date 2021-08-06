@@ -107,8 +107,11 @@ def model_latents_extract(opt, modis_data_file, modis_partition,
         modis_data_file: (str) path of modis_data_file.
         modis_partition: (str) key of the h5py file [e.g. 'train', 'valid'].
         model_path: (string) path of the saved model file.
-        save_path: (string) path for saving the latents.
-        save_key: (string) path for the key of the saved latents.
+        save_path: (str or None) path for saving the latents.
+        save_key: (str or None) path for the key of the saved latents.
+
+    Returns:
+        np.ndarray: latents_numpy
     """
     using_gpu = torch.cuda.is_available()
     model, _ = set_model(opt, cuda_use=using_gpu)
@@ -138,9 +141,12 @@ def model_latents_extract(opt, modis_data_file, modis_partition,
                 loader, total=len(loader), unit='batch', 
                 desc='Computing latents')]
     
-    with h5py.File(save_path, 'w') as file:
-        file.create_dataset(save_key, data=np.concatenate(latents_numpy))
-    print("Wrote: {}".format(save_path))
+    if save_path is not None:
+        with h5py.File(save_path, 'w') as file:
+            file.create_dataset(save_key, data=np.concatenate(latents_numpy))
+        print("Wrote: {}".format(save_path))
+
+    return np.concatenate(latents_numpy)
 
     
 

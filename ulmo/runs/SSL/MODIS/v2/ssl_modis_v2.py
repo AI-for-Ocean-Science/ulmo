@@ -239,15 +239,25 @@ def main_evaluate(opt_path, model_file,
         # Setup
         latents_file = data_file.replace('_preproc', '_latents')
         latents_path = os.path.join(opt.latents_folder, latents_file) 
+        latents_hf = h5py.File(latents_file, 'w')
+
+        # Train?
         if train: 
             print("Starting train evaluation")
-            latents_extraction.model_latents_extract(opt, data_file, 
-                'train', model_base, latents_file, key_train)
+            latents_numpy = latents_extraction.model_latents_extract(opt, data_file, 
+                'train', model_base, None, None)
+            latents_hf.create_dataset('train', data=latents_numpy)
             print("Extraction of Latents of train set is done.")
+
+        # Valid
         print("Starting valid evaluation")
-        latents_extraction.model_latents_extract(opt, data_file, 
-                'valid', model_base, latents_file, key_valid)
+        latents_numpy = latents_extraction.model_latents_extract(opt, data_file, 
+                'valid', model_base, None, None)
+        latents_hf.create_dataset('valid', data=latents_numpy)
         print("Extraction of Latents of valid set is done.")
+
+        # Close
+        latents_hf.close()
 
         # Push to s3
         print("Uploading to s3..")
