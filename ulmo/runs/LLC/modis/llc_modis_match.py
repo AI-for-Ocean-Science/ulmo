@@ -270,7 +270,7 @@ def main(flg):
     if flg & (2**10):
         modis_evaluate(tbl_file='s3://llc/Tables/LLC_uniform_test.parquet')
 
-    if flg & (2**11):
+    if flg & (2**11): # 2048
         modis_evaluate(tbl_file='s3://llc/Tables/LLC_uniform_viirs_noise.parquet')
 
 # Command line execution
