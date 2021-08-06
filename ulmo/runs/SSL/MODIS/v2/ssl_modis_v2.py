@@ -223,7 +223,7 @@ def main_evaluate(opt_path, model_file,
         pp_files = pp_files[0:1]
 
     for ifile in pp_files:
-        print("Working on ifile")
+        print(f"Working on {ifile}")
         data_file = os.path.basename(ifile)
         if not os.path.isfile(data_file):
             ulmo_io.download_file_from_s3(data_file, 
