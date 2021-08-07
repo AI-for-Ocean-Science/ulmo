@@ -56,8 +56,13 @@ def ssl_v2_umap(debug=False):
     modis_tbl['U0'] = 0.
     modis_tbl['U1'] = 0.
 
-    # Train the UMAP
 
+    # Prep latent_files
+    latent_files = ulmo_io.list_of_bucket_files('modis-l2',
+                                                prefix='SSL/SSL_v2_2012/latents/')
+    latent_files = ['s3://modis-l2/'+item for item in latent_files]
+
+    # Train the UMAP
     # Split
     train = modis_tbl.pp_type == 1
     valid = modis_tbl.pp_type == 0
@@ -93,8 +98,6 @@ def ssl_v2_umap(debug=False):
     print("Done..")
 
     # Loop on em all
-    latent_files = ulmo_io.list_of_bucket_files('modis-l2',
-                                                prefix='SSL/SSL_v2_2012/latents/')
     if debug:
         latent_files = latent_files[0:1]
 
@@ -104,23 +107,25 @@ def ssl_v2_umap(debug=False):
         # Download?
         if not os.path.isfile(basefile):
             print(f"Downloading {latents_file} (this is *much* faster than s3 access)...")
-            ulmo_io.download_file_from_s3(basefile, latents_train_file)
-            print("Done")
+            ulmo_io.download_file_from_s3(basefile, latents_file)
 
         #  Load and apply
         hf = h5py.File(basefile, 'r')
 
         # Train
         if 'train' in hf.keys():
+            print("Embedding the training..")
             latents_train = hf['train'][:]
             train_embedding = latents_mapping.transform(latents_train)
 
         # Valid
+        print("Embedding valid..")
         latents_valid = hf['valid'][:]
         valid_embedding = latents_mapping.transform(latents_valid)
 
         # Save to table
         yidx = modis_tbl.pp_file == f's3://modis-l2/PreProc/MODIS_R2019_{year}_95clear_128x128_preproc_std.h5'
+        embed(header='125 of ssl')
         valid_idx = valid & yidx
         modis_tbl.loc[valid_idx, 'U0'] = valid_embedding[:,0]
         modis_tbl.loc[valid_idx, 'U1'] = valid_embedding[:,1]
@@ -135,6 +140,7 @@ def ssl_v2_umap(debug=False):
         hf.close()
 
         # Clean up
+        print(f"Done with {basefile}.  Cleaning up")
         os.remove(basefile)
 
     # Vet
