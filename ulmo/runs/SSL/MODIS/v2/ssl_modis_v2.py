@@ -125,7 +125,6 @@ def ssl_v2_umap(debug=False):
 
         # Save to table
         yidx = modis_tbl.pp_file == f's3://modis-l2/PreProc/MODIS_R2019_{year}_95clear_128x128_preproc_std.h5'
-        embed(header='125 of ssl')
         valid_idx = valid & yidx
         modis_tbl.loc[valid_idx, 'U0'] = valid_embedding[:,0]
         modis_tbl.loc[valid_idx, 'U1'] = valid_embedding[:,1]
