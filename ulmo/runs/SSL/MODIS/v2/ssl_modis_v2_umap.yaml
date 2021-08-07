@@ -27,7 +27,7 @@ spec:
             git fetch;
             git checkout modis_ssl_full; 
             git pull; 
-            yes | pip install umap healpy torchvision;
+            yes | pip install umap-learn healpy torchvision;
             python setup.py develop;
             cd ulmo/runs/SSL/MODIS/v2;
             python -u ./ssl_modis_v2.py --func_flag umap;
