@@ -80,9 +80,21 @@ def fig_augmenting(outfile='fig_augmenting.png', use_s3=False):
     plt.close()
     print('Wrote {:s}'.format(outfile))
 
-def fig_umap_gallery(outfile='fig_umap_gallery.png',
-                     version=1, local=True, restrict_DT=False,
+
+def fig_umap_LL(outfile='fig_umap_LL.png',
+                     version=1, local=True, 
                      debug=False): 
+    """ UMAP colored by LL
+
+    Args:
+        outfile (str, optional): [description]. Defaults to 'fig_umap_LL.png'.
+        version (int, optional): [description]. Defaults to 1.
+        local (bool, optional): [description]. Defaults to True.
+        debug (bool, optional): [description]. Defaults to False.
+
+    Raises:
+        IOError: [description]
+    """
     if version == 1:                    
         tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
     else:
@@ -107,9 +119,9 @@ def fig_umap_gallery(outfile='fig_umap_gallery.png',
     #    llc_tbl['DT'] = llc_tbl.T90 - llc_tbl.T10
     #    llc_tbl = llc_tbl[ll]
 
-    fig = plt.figure(figsize=(12, 8))
+    fig = plt.figure(figsize=(8, 8))
     plt.clf()
-    gs = gridspec.GridSpec(1, 2)
+    gs = gridspec.GridSpec(1, 1)
 
     # Just the UMAP colored by LL
     ax0 = plt.subplot(gs[0])
@@ -118,28 +130,77 @@ def fig_umap_gallery(outfile='fig_umap_gallery.png',
     img = ax0.scatter(modis_tbl.U0, modis_tbl.U1,
             s=point_size, c=modis_tbl.LL, 
             cmap='jet', vmin=-1000., vmax=None)
-    cb = plt.colorbar(img, pad=0.)
-    cb.set_label('LL', fontsize=20.)
+    cb = plt.colorbar(img, pad=0., fraction=0.030)
+    cb.set_label('LL', fontsize=12.)
     #
     ax0.set_xlabel(r'$U_0$')
     ax0.set_ylabel(r'$U_1$')
-    ax0.set_aspect('equal', 'datalim')
+    #ax0.set_aspect('equal')#, 'datalim')
 
-    fsz = 15.
+    fsz = 13.
     set_fontsize(ax0, fsz)
 
     # Set boundaries
-    dxdy=(0.3, 0.3)
-    xmin, xmax = modis_tbl.U0.min()-dxdy[0], modis_tbl.U0.max()+dxdy[0]
-    ymin, ymax = modis_tbl.U1.min()-dxdy[1], modis_tbl.U1.max()+dxdy[1]
+    #xmin, xmax = modis_tbl.U0.min()-dxdy[0], modis_tbl.U0.max()+dxdy[0]
+    #ymin, ymax = modis_tbl.U1.min()-dxdy[1], modis_tbl.U1.max()+dxdy[1]
+    xmin, xmax = -4.5, 7
+    ymin, ymax = 4.5, 10.5
     ax0.set_xlim(xmin, xmax)
     ax0.set_ylim(ymin, ymax)
 
-    # Gallery
-    ax1 = plt.subplot(gs[1])
-    _ = plotting.umap_gallery(modis_tbl, ax=ax1, skip_scatter=True, dxdy=dxdy,
-                              fsz=fsz)
+    #plt.tight_layout(pad=0.0, h_pad=0.0, w_pad=0.0)
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
 
+
+def fig_umap_gallery(outfile='fig_umap_gallery.png',
+                     version=1, local=True, 
+                     debug=False): 
+    """ UMAP gallery
+
+    Args:
+        outfile (str, optional): [description]. Defaults to 'fig_umap_LL.png'.
+        version (int, optional): [description]. Defaults to 1.
+        local (bool, optional): [description]. Defaults to True.
+        debug (bool, optional): [description]. Defaults to False.
+
+    Raises:
+        IOError: [description]
+    """
+    if version == 1:                    
+        tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
+    else:
+        raise IOError("bad version number")
+    if local:
+        tbl_file = local_modis_file
+    # Load
+    modis_tbl = ulmo_io.load_main_table(tbl_file)
+    num_samples = len(modis_tbl)
+
+    if debug: # take a subset
+        print("DEBUGGING IS ON")
+        nsub = 500000
+        idx = np.arange(num_samples)
+        np.random.shuffle(idx)
+        idx = idx[0:nsub]
+        modis_tbl = modis_tbl.loc[idx].copy()
+
+    # Restrict on DT?
+    #if restrict_DT:
+    #    llc_tbl['DT'] = llc_tbl.T90 - llc_tbl.T10
+    #    llc_tbl = llc_tbl[ll]
+
+    fig = plt.figure(figsize=(8, 8))
+    plt.clf()
+    ax = plt.gca()
+
+    # Gallery
+    dxdy=(0.3, 0.3)
+    _ = plotting.umap_gallery(modis_tbl, ax=ax, skip_scatter=True, 
+                              dxdy=dxdy, debug=debug, fsz=15.)
+
+    #plt.tight_layout(pad=0.0, h_pad=0.0, w_pad=0.0)
     plt.savefig(outfile, dpi=300)
     plt.close()
     print('Wrote {:s}'.format(outfile))
@@ -171,8 +232,12 @@ def main(flg_fig):
     if flg_fig & (2 ** 0):
         fig_augmenting()
 
-    # UMAP gallery
+    # UMAP LL
     if flg_fig & (2 ** 1):
+        fig_umap_LL()
+
+    # UMAP gallery
+    if flg_fig & (2 ** 2):
         fig_umap_gallery(debug=True)
 
 # Command line execution
@@ -181,7 +246,8 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         flg_fig = 0
         #flg_fig += 2 ** 0  # Augmenting
-        flg_fig += 2 ** 1  # UMAP SSL gallery
+        #flg_fig += 2 ** 1  # UMAP colored by LL
+        flg_fig += 2 ** 2  # UMAP SSL gallery
     else:
         flg_fig = sys.argv[1]
 

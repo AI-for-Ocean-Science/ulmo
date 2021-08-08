@@ -109,7 +109,7 @@ def set_fontsize(ax, fsz):
 def umap_gallery(main_tbl, outfile=None, point_sz_scl=1., 
                  width=800, 
                  height=800, vmnx=(-1000.,None), dxdy=(0.3, 0.3),
-                 Nx=20, debug=None, skip_scatter=False,
+                 Nx=20, debug=False, skip_scatter=False,
                  fsz=15., ax=None):
     """Generate a UMAP plot and overplot a gallery
     of cutouts
@@ -124,7 +124,7 @@ def umap_gallery(main_tbl, outfile=None, point_sz_scl=1.,
         dxdy (tuple, optional): Amount to pad the xlim, ylim by. Defaults to (0.3, 0.3).
         Nx (int, optional): Number of cutout images in x to show. Defaults to 20.
         skip_scatter (bool, optional): Skip the scatter plot?
-        debug (bool, optional): Debug? Defaults to None.
+        debug (bool, optional): Debug? Defaults to False.
         ax (matplotlib.plt.Axes, optional): Use this axis!
         fsz (float, optional): fontsize
 
@@ -190,9 +190,12 @@ def umap_gallery(main_tbl, outfile=None, point_sz_scl=1.,
             axins = ax.inset_axes(
                     [x, y, 0.9*dxv, 0.9*dxv], 
                     transform=ax.transData)
-            cutout_img, pp_hf = image_utils.grab_image(cutout, 
+            try:
+                cutout_img, pp_hf = image_utils.grab_image(cutout, 
                                                        pp_hf=pp_hf,
                                                        close=False)
+            except:
+                embed(header='198 of plotting')                                                    
             _ = sns.heatmap(np.flipud(cutout_img), xticklabels=[], 
                      #vmin=vmnx[0], vmax=vmnx[1],
                      yticklabels=[], cmap=cm, cbar=False,
