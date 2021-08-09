@@ -82,9 +82,14 @@ def fig_augmenting(outfile='fig_augmenting.png', use_s3=False):
     print('Wrote {:s}'.format(outfile))
 
 
-def fig_umap_LL(outfile='fig_umap_LL.png',
-                     version=1, local=True, 
-                     debug=False): 
+def fig_umap_colored(outfile='fig_umap_LL.png', 
+                metric='LL',
+                version=1, local=False, 
+                point_size = None, 
+                lbl=None,
+                vmnx = (-1000., None),
+                region=None,
+                debug=False): 
     """ UMAP colored by LL
 
     Args:
@@ -105,6 +110,21 @@ def fig_umap_LL(outfile='fig_umap_LL.png',
     # Load
     modis_tbl = ulmo_io.load_main_table(tbl_file)
     num_samples = len(modis_tbl)
+    if 'DT' not in modis_tbl.keys():
+        modis_tbl['DT'] = modis_tbl.T90 - modis_tbl.T10
+
+    # Region?
+    if region is None:
+        pass
+    elif region == 'brazil':
+            # Add in DT
+
+        # Brazil
+        in_brazil = ((np.abs(modis_tbl.lon.values + 57.5) < 10.)  & 
+            (np.abs(modis_tbl.lat.values + 43.0) < 10))
+        in_DT = np.abs(modis_tbl.DT - 2.05) < 0.05
+        modis_tbl = modis_tbl[in_brazil & in_DT].copy()
+    
 
     if debug: # take a subset
         print("DEBUGGING IS ON")
@@ -114,12 +134,18 @@ def fig_umap_LL(outfile='fig_umap_LL.png',
         idx = idx[0:nsub]
         modis_tbl = modis_tbl.loc[idx].copy()
 
+    # Metric
+    if metric == 'LL':
+        values = modis_tbl.LL 
+    elif metric == 'DT':
+        values = modis_tbl.DT
+    elif metric == 'clouds':
+        values = modis_tbl.clear_fraction
+    else:
+        raise IOError("Bad metric!")
+    
 
-    # Restrict on DT?
-    #if restrict_DT:
-    #    llc_tbl['DT'] = llc_tbl.T90 - llc_tbl.T10
-    #    llc_tbl = llc_tbl[ll]
-
+    # Start the figure
     fig = plt.figure(figsize=(8, 8))
     plt.clf()
     gs = gridspec.GridSpec(1, 1)
@@ -127,12 +153,13 @@ def fig_umap_LL(outfile='fig_umap_LL.png',
     # Just the UMAP colored by LL
     ax0 = plt.subplot(gs[0])
 
-    point_size = 1. / np.sqrt(num_samples)
+    if point_size is None:
+        point_size = 1. / np.sqrt(num_samples)
     img = ax0.scatter(modis_tbl.U0, modis_tbl.U1,
-            s=point_size, c=modis_tbl.LL, 
-            cmap='jet', vmin=-1000., vmax=None)
+            s=point_size, c=values,
+            cmap='jet', vmin=vmnx[0], vmax=vmnx[1])
     cb = plt.colorbar(img, pad=0., fraction=0.030)
-    cb.set_label('LL', fontsize=12.)
+    cb.set_label(metric, fontsize=12.)
     #
     ax0.set_xlabel(r'$U_0$')
     ax0.set_ylabel(r'$U_1$')
@@ -149,14 +176,19 @@ def fig_umap_LL(outfile='fig_umap_LL.png',
     ax0.set_xlim(xmin, xmax)
     ax0.set_ylim(ymin, ymax)
 
+    # Label
+    if lbl is not None:
+        ax0.text(0.05, 0.9, lbl, transform=ax0.transAxes,
+              fontsize=15, ha='left', color='k')
+
     #plt.tight_layout(pad=0.0, h_pad=0.0, w_pad=0.0)
     plt.savefig(outfile, dpi=300)
     plt.close()
     print('Wrote {:s}'.format(outfile))
 
 
-def fig_umap_gallery(outfile='fig_umap_gallery.png',
-                     version=1, local=True, 
+def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
+                     version=1, local=False, 
                      vmnx=(-5., 5.),
                      debug=False): 
     """ UMAP gallery
@@ -182,8 +214,8 @@ def fig_umap_gallery(outfile='fig_umap_gallery.png',
     # Cut table
     xmin, xmax = -4.5, 7
     ymin, ymax = 4.5, 10.5
-    good = (modis_tbl.U0 > xmin) & (modis_tbl.U1 < xmax) & (
-        modis_tbl.U1 > ymin) and (modis_tbl.U1 < ymax) & np.isfinite(modis_tbl.LL))
+    good = (modis_tbl.U0 > xmin) & (modis_tbl.U0 < xmax) & (
+        modis_tbl.U1 > ymin) & (modis_tbl.U1 < ymax) & np.isfinite(modis_tbl.LL)
     modis_tbl = modis_tbl.loc[good].copy()
     num_samples = len(modis_tbl)
 
@@ -193,13 +225,9 @@ def fig_umap_gallery(outfile='fig_umap_gallery.png',
         idx = np.arange(num_samples)
         np.random.shuffle(idx)
         idx = idx[0:nsub]
-        modis_tbl = modis_tbl.loc[idx].copy()
+        modis_tbl = modis_tbl.iloc[idx].copy()
 
-    # Restrict on DT?
-    #if restrict_DT:
-    #    llc_tbl['DT'] = llc_tbl.T90 - llc_tbl.T10
-    #    llc_tbl = llc_tbl[ll]
-
+    # Fig
     _, cm = plotting.load_palette()
     fsz = 15.
     fig = plt.figure(figsize=(8, 8))
@@ -210,21 +238,23 @@ def fig_umap_gallery(outfile='fig_umap_gallery.png',
     ax.set_ylabel(r'$U_1$')
 
     # Gallery
-    dxdy=(0.3, 0.3)
-    xmin, xmax = modis_tbl.U0.min()-dxdy[0], modis_tbl.U0.max()+dxdy[0]
-    ymin, ymax = modis_tbl.U1.min()-dxdy[1], modis_tbl.U1.max()+dxdy[1]
+    #dxdy=(0.3, 0.3)
+    #xmin, xmax = modis_tbl.U0.min()-dxdy[0], modis_tbl.U0.max()+dxdy[0]
+    #ymin, ymax = modis_tbl.U1.min()-dxdy[1], modis_tbl.U1.max()+dxdy[1]
     ax.set_xlim(xmin, xmax)
     ax.set_ylim(ymin, ymax)
+
+    print('x,y', xmin, xmax, ymin, ymax)
 
     
     # ###################
     # Gallery time
 
     # Grid
-    Nx = 20
-    xval = np.linspace(xmin, xmax, num=Nx)
-    dxv = xval[1]-xval[0]
-    yval = np.arange(ymin, ymax+dxv, step=dxv)
+    dxv = 0.5
+    dyv = 0.25
+    xval = np.arange(xmin, xmax+dxv, dxv)
+    yval = np.arange(ymin, ymax+dyv, dyv)
 
     # Ugly for loop
     ndone = 0
@@ -247,7 +277,7 @@ def fig_umap_gallery(outfile='fig_umap_gallery.png',
 
             # Image
             axins = ax.inset_axes(
-                    [x, y, 0.9*dxv, 0.9*dxv], 
+                    [x, y, 0.9*dxv, 0.9*dyv], 
                     transform=ax.transData)
             try:
                 cutout_img = image_utils.grab_image(cutout, close=True)
@@ -265,9 +295,71 @@ def fig_umap_gallery(outfile='fig_umap_gallery.png',
             break
 
     set_fontsize(ax, fsz)
-    ax.set_aspect('equal', 'datalim')
+    #ax.set_aspect('equal', 'datalim')
+    #ax.set_aspect('equal')#, 'datalim')
 
     #plt.tight_layout(pad=0.0, h_pad=0.0, w_pad=0.0)
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
+def fig_umap_2dhist(outfile='fig_umap_2dhist.png',
+                    version=1, local=False, vmax=None, 
+                    cmap=None, cuts=None,
+                    scl = 1):
+
+    if version == 1:                    
+        tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
+    else:
+        raise IOError("bad version number")
+    if local:
+        tbl_file = local_modis_file
+
+    # Load
+    modis_tbl = ulmo_io.load_main_table(tbl_file)
+
+    # Cut
+    goodLL = np.isfinite(modis_tbl.LL)
+    if cuts is None:
+        good = goodLL
+    elif cuts == 'inliers':
+        inliers = (modis_tbl.LL > 200.) & (modis_tbl.LL < 400)
+        good = goodLL & inliers
+    modis_tbl = modis_tbl[good].copy()
+
+    # 
+    xmin, xmax = -4.5, 7
+    ymin, ymax = 4.5, 10.5
+    # Histogram
+    bins_U0 = np.linspace(xmin, xmax, 23*scl)
+    bins_U1 = np.linspace(ymin,ymax, 24*scl)
+    counts, xedges, yedges = np.histogram2d(modis_tbl.U0, modis_tbl.U1,
+                                            bins=(bins_U0, bins_U1))
+
+    fig = plt.figure(figsize=(12, 12))
+    plt.clf()
+    ax = plt.gca()
+
+    if cmap is None:
+        cmap = "Blues"
+    cm = plt.get_cmap(cmap)
+    values = counts.transpose()
+    lbl = 'Counts'
+    mplt = ax.pcolormesh(xedges, yedges, values, 
+                         cmap=cm, 
+                         vmax=vmax) 
+
+    # Color bar
+    #cbaxes = fig.add_axes([0.03, 0.1, 0.05, 0.7])
+    cbaxes = plt.colorbar(mplt, pad=0., fraction=0.030)
+    cbaxes.set_label(lbl, fontsize=15.)
+    #cb.set_label(lbl, fontsize=20.)
+    #cbaxes.yaxis.set_ticks_position('left')
+
+    ax.set_xlabel(r'$U_0$')
+    ax.set_ylabel(r'$U_1$')
+
+    plotting.set_fontsize(ax, 19.)
     plt.savefig(outfile, dpi=300)
     plt.close()
     print('Wrote {:s}'.format(outfile))
@@ -289,7 +381,7 @@ def set_fontsize(ax,fsz):
 
 
 #### ########################## #########################
-def main(flg_fig):
+def main(flg_fig, local, debug):
     if flg_fig == 'all':
         flg_fig = np.sum(np.array([2 ** ii for ii in range(25)]))
     else:
@@ -301,24 +393,54 @@ def main(flg_fig):
 
     # UMAP LL
     if flg_fig & (2 ** 1):
-        fig_umap_LL()
+        # LL
+        #fig_umap_colored(local=local)
+        # DT
+        #fig_umap_colored(local=local, metric='DT', outfile='fig_umap_DT.png',
+        # Clouds
+        fig_umap_colored(local=local, metric='clouds', outfile='fig_umap_clouds.png',
+                         vmnx=(None,None))
 
     # UMAP gallery
     if flg_fig & (2 ** 2):
-        fig_umap_gallery()#debug=True)
-        #fig_umap_gallery(debug=True, vmnx=(None,None), 
-        #                 outfile='fig_umap_gallery_novmnx.png')
+        #fig_umap_gallery(debug=debug, local=local)
+        fig_umap_gallery(debug=debug, vmnx=(None,None), 
+                         outfile='fig_umap_gallery_novmnx.png')
+        fig_umap_gallery(debug=debug, vmnx=(-1.,1.), 
+                         outfile='fig_umap_gallery_vmnx1.png')
+
+    # UMAP LL Brazil
+    if flg_fig & (2 ** 3):
+        fig_umap_colored(outfile='fig_umap_brazil.png', 
+                    region='brazil',
+                    point_size=1., 
+                    lbl=r'Brazil, $\Delta T \approx 2$K',
+                    vmnx=(-400, 400))
+
+    # UMAP 2d Histogram
+    if flg_fig & (2 ** 4):
+        #
+        fig_umap_2dhist(vmax=80000, local=local)
+        # Near norm
+        fig_umap_2dhist(outfile='fig_umap_2dhist_inliers.png',
+                        local=local, cmap='Greens', 
+                        cuts='inliers')
+
 
 # Command line execution
 if __name__ == '__main__':
 
+    local = True if 'local' in sys.argv else False
+    debug = True if 'debug' in sys.argv else False
     if len(sys.argv) == 1:
         flg_fig = 0
         #flg_fig += 2 ** 0  # Augmenting
-        #flg_fig += 2 ** 1  # UMAP colored by LL
+        #flg_fig += 2 ** 1  # UMAP colored by various things
         flg_fig += 2 ** 2  # UMAP SSL gallery
+        #flg_fig += 2 ** 3  # UMAP brazil
+        #flg_fig += 2 ** 4  # UMAP 2d Histogram
     else:
         flg_fig = sys.argv[1]
 
-    main(flg_fig)
+    main(flg_fig, local, debug)
 
