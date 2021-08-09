@@ -27,6 +27,7 @@ from ulmo.utils import utils as utils
 
 from ulmo import io as ulmo_io
 from ulmo.ssl import single_image as ssl_simage
+from ulmo.utils import image_utils
 
 from IPython import embed
 
@@ -156,6 +157,7 @@ def fig_umap_LL(outfile='fig_umap_LL.png',
 
 def fig_umap_gallery(outfile='fig_umap_gallery.png',
                      version=1, local=True, 
+                     vmnx=(-5., 5.),
                      debug=False): 
     """ UMAP gallery
 
@@ -176,6 +178,13 @@ def fig_umap_gallery(outfile='fig_umap_gallery.png',
         tbl_file = local_modis_file
     # Load
     modis_tbl = ulmo_io.load_main_table(tbl_file)
+
+    # Cut table
+    xmin, xmax = -4.5, 7
+    ymin, ymax = 4.5, 10.5
+    good = (modis_tbl.U0 > xmin) & (modis_tbl.U1 < xmax) & (
+        modis_tbl.U1 > ymin) and (modis_tbl.U1 < ymax) & np.isfinite(modis_tbl.LL))
+    modis_tbl = modis_tbl.loc[good].copy()
     num_samples = len(modis_tbl)
 
     if debug: # take a subset
@@ -191,14 +200,72 @@ def fig_umap_gallery(outfile='fig_umap_gallery.png',
     #    llc_tbl['DT'] = llc_tbl.T90 - llc_tbl.T10
     #    llc_tbl = llc_tbl[ll]
 
+    _, cm = plotting.load_palette()
+    fsz = 15.
     fig = plt.figure(figsize=(8, 8))
     plt.clf()
     ax = plt.gca()
 
+    ax.set_xlabel(r'$U_0$')
+    ax.set_ylabel(r'$U_1$')
+
     # Gallery
     dxdy=(0.3, 0.3)
-    _ = plotting.umap_gallery(modis_tbl, ax=ax, skip_scatter=True, 
-                              dxdy=dxdy, debug=debug, fsz=15.)
+    xmin, xmax = modis_tbl.U0.min()-dxdy[0], modis_tbl.U0.max()+dxdy[0]
+    ymin, ymax = modis_tbl.U1.min()-dxdy[1], modis_tbl.U1.max()+dxdy[1]
+    ax.set_xlim(xmin, xmax)
+    ax.set_ylim(ymin, ymax)
+
+    
+    # ###################
+    # Gallery time
+
+    # Grid
+    Nx = 20
+    xval = np.linspace(xmin, xmax, num=Nx)
+    dxv = xval[1]-xval[0]
+    yval = np.arange(ymin, ymax+dxv, step=dxv)
+
+    # Ugly for loop
+    ndone = 0
+    if debug:
+        nmax = 100
+    else:
+        nmax = 1000000000
+    for x in xval[:-1]:
+        for y in yval[:-1]:
+            pts = np.where((modis_tbl.U0 >= x) & (modis_tbl.U0 < x+dxv) & (
+                modis_tbl.U1 >= y) & (modis_tbl.U1 < y+dxv)
+                           & np.isfinite(modis_tbl.LL))[0]
+            if len(pts) == 0:
+                continue
+
+            # Pick a random one
+            ichoice = np.random.choice(len(pts), size=1)
+            idx = int(pts[ichoice])
+            cutout = modis_tbl.iloc[idx]
+
+            # Image
+            axins = ax.inset_axes(
+                    [x, y, 0.9*dxv, 0.9*dxv], 
+                    transform=ax.transData)
+            try:
+                cutout_img = image_utils.grab_image(cutout, close=True)
+            except:
+                embed(header='198 of plotting')                                                    
+            _ = sns.heatmap(np.flipud(cutout_img), xticklabels=[], 
+                     vmin=vmnx[0], vmax=vmnx[1],
+                     yticklabels=[], cmap=cm, cbar=False,
+                     ax=axins)
+            ndone += 1
+            print(f'ndone= {ndone}, LL={cutout.LL}')
+            if ndone > nmax:
+                break
+        if ndone > nmax:
+            break
+
+    set_fontsize(ax, fsz)
+    ax.set_aspect('equal', 'datalim')
 
     #plt.tight_layout(pad=0.0, h_pad=0.0, w_pad=0.0)
     plt.savefig(outfile, dpi=300)
@@ -238,7 +305,9 @@ def main(flg_fig):
 
     # UMAP gallery
     if flg_fig & (2 ** 2):
-        fig_umap_gallery(debug=True)
+        fig_umap_gallery()#debug=True)
+        #fig_umap_gallery(debug=True, vmnx=(None,None), 
+        #                 outfile='fig_umap_gallery_novmnx.png')
 
 # Command line execution
 if __name__ == '__main__':
