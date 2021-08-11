@@ -138,7 +138,7 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
     if metric == 'LL':
         values = modis_tbl.LL 
     elif metric == 'DT':
-        values = modis_tbl.DT
+        values = np.log10(modis_tbl.DT.values)
     elif metric == 'clouds':
         values = modis_tbl.clear_fraction
     else:
@@ -189,7 +189,7 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
 
 def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
                      version=1, local=False, 
-                     vmnx=(-5., 5.),
+                     in_vmnx=None,
                      debug=False): 
     """ UMAP gallery
 
@@ -283,6 +283,14 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
                 cutout_img = image_utils.grab_image(cutout, close=True)
             except:
                 embed(header='198 of plotting')                                                    
+            # Limits
+            if in_vmnx is not None:
+                vmnx = in_vmnx
+            else:
+                imin, imax = cutout_img.min(), cutout_img.max()
+                amax = max(np.abs(imin), np.abs(imax))
+                vmnx = (-1*amax, amax)
+            # Plot
             _ = sns.heatmap(np.flipud(cutout_img), xticklabels=[], 
                      vmin=vmnx[0], vmax=vmnx[1],
                      yticklabels=[], cmap=cm, cbar=False,
@@ -396,18 +404,19 @@ def main(flg_fig, local, debug):
         # LL
         #fig_umap_colored(local=local)
         # DT
-        #fig_umap_colored(local=local, metric='DT', outfile='fig_umap_DT.png',
+        fig_umap_colored(local=local, metric='DT', outfile='fig_umap_DT.png',
+                         vmnx=(None, None))
         # Clouds
-        fig_umap_colored(local=local, metric='clouds', outfile='fig_umap_clouds.png',
-                         vmnx=(None,None))
+        #fig_umap_colored(local=local, metric='clouds', outfile='fig_umap_clouds.png',
+        #                 vmnx=(None,None))
 
     # UMAP gallery
     if flg_fig & (2 ** 2):
-        #fig_umap_gallery(debug=debug, local=local)
-        fig_umap_gallery(debug=debug, vmnx=(None,None), 
+        #fig_umap_gallery(debug=debug, in_vmnx=(-5.,5.)) 
+        fig_umap_gallery(debug=debug, in_vmnx=None,
                          outfile='fig_umap_gallery_novmnx.png')
-        fig_umap_gallery(debug=debug, vmnx=(-1.,1.), 
-                         outfile='fig_umap_gallery_vmnx1.png')
+        #fig_umap_gallery(debug=debug, in_vmnx=(-1.,1.), 
+        #                 outfile='fig_umap_gallery_vmnx1.png')
 
     # UMAP LL Brazil
     if flg_fig & (2 ** 3):
