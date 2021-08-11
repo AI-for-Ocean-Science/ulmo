@@ -28,8 +28,14 @@ from IPython import embed
 tbl_file_2013 = 's3://viirs/Tables/VIIRS_2013_std.parquet'
 s3_bucket = 's3://viirs'
 
-def viirs_get_data_into_s3(debug=False, year=2013, day1=1):
-    # Check
+def viirs_get_data_into_s3(year=2013, day1=1):
+    """Use wget to download data into s3
+
+    Args:
+        year (int, optional): year to download. Defaults to 2013.
+        day1 (int, optional): day to start with (in case you restart). Defaults to 1.
+    """
+    # Check that the PODAAC password exists
     assert os.getenv('PO_DAAC') is not None
     # Loop on days
 
@@ -77,8 +83,17 @@ def viirs_get_data_into_s3(debug=False, year=2013, day1=1):
         push_to_s3(nc_files, pvday, year)
 
 
-def viirs_extract_2013(debug=False, n_cores=20, nsub_files=5000,
+def viirs_extract_2013(debug=False, n_cores=20, 
+                       nsub_files=5000,
                        ndebug_files=0):
+    """Extract "cloud free" images for 2013
+
+    Args:
+        debug (bool, optional): [description]. Defaults to False.
+        n_cores (int, optional): Number of cores to use. Defaults to 20.
+        nsub_files (int, optional): Number of sub files to process at a time. Defaults to 5000.
+        ndebug_files (int, optional): [description]. Defaults to 0.
+    """
     # 10 cores took 6hrs
     # 20 cores took 3hrs
 
@@ -215,7 +230,7 @@ def viirs_2013_preproc(debug=False, n_cores=20):
     """Pre-process the files
 
     Args:
-        test (bool, optional): [description]. Defaults to False.
+        n_cores (int, optional): Number of cores to use
     """
     if debug:
         tbl_file = 's3://viirs/Tables/VIIRS_2013_tst.parquet'
@@ -236,13 +251,19 @@ def viirs_2013_preproc(debug=False, n_cores=20):
     ulmo_io.write_main_table(viirs_tbl, tbl_file)
 
 def viirs_2013_evaluate(debug=False, model='modis-l2-std'):
+    """Evaluate the VIIRS 2013 data using Ulmo
+
+    Args:
+        debug (bool, optional): [description]. Defaults to False.
+        model (str, optional): [description]. Defaults to 'modis-l2-std'.
+    """
 
     if debug:
         tbl_file = 's3://viirs/Tables/VIIRS_2013_tst.parquet'
     else:
         tbl_file = tbl_file_2013
 
-    # Load
+    # Load Ulmo
     viirs_tbl = ulmo_io.load_main_table(tbl_file)
 
     # Evaluate

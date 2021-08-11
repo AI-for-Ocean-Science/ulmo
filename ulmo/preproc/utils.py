@@ -33,7 +33,7 @@ def build_mask(dfield, qual, qual_thresh=2, lower_qual=True,
     ----------
     dfield : np.ndarray
         Full data image
-    qual : np.ndarray
+    qual : np.ndarray of int
         Quality image
     qual_thresh : int, optional
         Quality threshold value  
@@ -52,16 +52,19 @@ def build_mask(dfield, qual, qual_thresh=2, lower_qual=True,
         mask;  True = bad
 
     """
+    # Mask val
+    qual_maskval = 999999 if lower_qual else -999999
+
     dfield[np.isnan(dfield)] = np.nan
     if field == 'SST':
         if qual is None:
             qual = np.zeros_like(dfield).astype(int)
-        qual[np.isnan(qual)] = np.nan
+        qual[np.isnan(dfield)] = qual_maskval
     else:
         if qual is None:
             raise IOError("Need to deal with qual for color.  Just a reminder")
         # Deal with NaN
-    masks = np.logical_or(np.isnan(dfield), np.isnan(qual))
+    masks = np.logical_or(np.isnan(dfield), qual==qual_maskval)
 
     # Quality
     # TODO -- Do this right for color
@@ -77,7 +80,7 @@ def build_mask(dfield, qual, qual_thresh=2, lower_qual=True,
     #
     value_masks = np.zeros_like(masks)
     if field == 'SST':
-        value_masks = (dfield[~masks] <= temp_bounds[0]) | (dfield[~masks] > temp_bounds[1])
+        value_masks[~masks] = (dfield[~masks] <= temp_bounds[0]) | (dfield[~masks] > temp_bounds[1])
     # Union
     masks = np.logical_or(masks, qual_masks, value_masks)
 
