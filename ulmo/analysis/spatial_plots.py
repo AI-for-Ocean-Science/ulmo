@@ -74,7 +74,7 @@ def show_avg_LL(main_tbl:pandas.DataFrame,
                  use_mask=True, tricontour=False,
                  lbl=None, figsize=(12,8), 
                  color='viridis', show=True):
-    """Generate a global map of the location of the input
+    """Generate a global map of mean LL of the input
     cutouts
     Args:
         main_tbl (pandas.DataFrame): table of cutouts
@@ -157,8 +157,8 @@ def show_avg_LL(main_tbl:pandas.DataFrame,
 
 def evals_to_healpix_meds(eval_tbl, nside,  mask=True):
     """
-    Generate a healpix map of where the input
-    MHW Systems are located on the globe
+    Find out where the input cutouts are located and the median LL values associated
+    with each pixel
 
     Parameters
     ----------
@@ -237,8 +237,8 @@ def show_med_LL(main_tbl:pandas.DataFrame,
                  use_mask=True, tricontour=False,
                  lbl=None, figsize=(12,8), 
                  color='viridis', show=True):
-    """Generate a global map of the location of the input
-    cutouts
+    """Generate a global map of median LL of cutouts at that location 
+    
     Args:
         main_tbl (pandas.DataFrame): table of cutouts
         nside (int, optional): [description]. Defaults to 64.
@@ -319,8 +319,7 @@ def show_spatial_two_avg(tbl1:pandas.DataFrame, tbl2:pandas.DataFrame,
                  use_mask=True, tricontour=False,
                  lbl=None, figsize=(12,8), 
                  color='coolwarm', show=True):
-    """Generate a global map of the location of the input
-    cutouts
+    """Generate a global map of difference in the mean LL 
 
     Args:
         main_tbl (pandas.DataFrame): table of cutouts
@@ -409,8 +408,7 @@ def show_spatial_two_med(tbl1:pandas.DataFrame, tbl2:pandas.DataFrame,
                  use_mask=True, tricontour=False,
                  lbl=None, figsize=(12,8), 
                  color='coolwarm', show=True):
-    """Generate a global map of the location of the input
-    cutouts
+    """Generate a global map of the difference in median LL
 
     Args:
         main_tbl (pandas.DataFrame): table of cutouts
@@ -552,7 +550,7 @@ def scatter_diff_med(tbl1:pandas.DataFrame, tbl2:pandas.DataFrame,
                  use_mask=True, tricontour=False,
                  lbl=None, figsize=(12,8), 
                  color='plasma', show=True):
-    """Generate a scatter plot with the difference of mean LL between two
+    """Generate a scatter plot with the difference of median LL between two
     dataframes (pixel-wise) as a function of the number of cutouts
 
     Args:
@@ -604,8 +602,7 @@ def show_spatial_two_slices(sub_tbl1:pandas.DataFrame, sub_tbl2:pandas.DataFrame
                  use_mask=True,
                  lbl1=None, lbl2=None, figsize=(24,16), 
                  color1='Reds', color2='Blues', show=True):
-    """Generate a global map of the location of the input
-    cutouts
+    """Show where most cutouts come from (from table 1 or table 2) on a global map 
 
     Args:
         main_tbl (pandas.DataFrame): table of cutouts
@@ -810,7 +807,7 @@ def show_spatial_diff(sub_tbl1:pandas.DataFrame, sub_tbl2:pandas.DataFrame,
 def evals_to_healpix1(eval_tbl, nside, mask=True):
     """
     Generate a healpix map of where the input
-    MHW Systems are located on the globe
+    MHW Systems are located on the globe, simplified
     Parameters
     ----------
     mhw_sys : pandas.DataFrame
@@ -862,7 +859,12 @@ def show_spatial_diff1(sub_tbl1:pandas.DataFrame, sub_tbl2:pandas.DataFrame,
                  lbl1=None, lbl2=None, figsize=(24,16), 
                  color ='coolwarm', show=True):
     """Generate a global map of the location of the input
-    cutouts
+    cutouts and what their source is.
+    
+    Table 1 cutouts are blue
+    Table 2 cutouts are red
+    
+    Shared pixels are colored in a range from blue to gray to red to what the main source is.
 
     Args:
         main_tbl (pandas.DataFrame): table of cutouts
