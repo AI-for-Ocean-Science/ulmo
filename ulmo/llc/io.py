@@ -101,7 +101,7 @@ def load_llc_ds(filename, local=False):
         ds = xr.open_dataset(filename)
     return ds
                     
-def grab_image(**args):
+def grab_image(args):
     warnings.warn('Use grab_image() in utils.image_utils',
                   DeprecationWarning)
     return image_utils.grab_image(args)
