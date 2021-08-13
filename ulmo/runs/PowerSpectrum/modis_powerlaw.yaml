@@ -2,7 +2,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-modis-powerlaw-debug
+  name: xavier-modis-powerlaw
 spec:
   backoffLimit: 0
   template:
@@ -14,11 +14,11 @@ spec:
         resources:
           requests:
             cpu: "1"
-            memory: "16Gi"  # Took 60Gi+ on my machine
-            ephemeral-storage: 30Gi  # Fine if compressed
+            memory: "24Gi"  # Ran at ~21 Gb
+            ephemeral-storage: 30Gi  # Fine 
           limits:
             cpu: "2"
-            memory: "30Gi"
+            memory: "32Gi"
             ephemeral-storage: 200Gi
             #nvidia.com/gpu:  "1"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]
@@ -31,7 +31,7 @@ spec:
             cd ../tmp; 
             mkdir foo; 
             cd foo; 
-            python -u /ulmo/ulmo/runs/PowerLaw/modis_powerlaw.py --task powerlaw --debug;
+            python -u /ulmo/ulmo/runs/PowerLaw/modis_powerlaw.py --task powerlaw; # --debug;
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"
