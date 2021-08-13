@@ -1,8 +1,8 @@
-# Script to perform VIIRS 2013 extractions 
+# Script to perform VIIRS 2020 Pre-proc
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-ssl-modis-2012-eval #-debug
+  name: xavier-modis-powerlaw
 spec:
   backoffLimit: 0
   template:
@@ -13,30 +13,30 @@ spec:
         imagePullPolicy: Always
         resources:
           requests:
-            cpu: "8"   
-            memory: "16Gi"  # Needs to be large enough to slurp in the images
-            ephemeral-storage: 50Gi
+            cpu: "1"
+            memory: "24Gi"  # Ran at ~21 Gb
+            ephemeral-storage: 30Gi  # Fine 
           limits:
-            cpu: "16"
-            memory: "16Gi"
-            ephemeral-storage: 100Gi
-            nvidia.com/gpu:  "1"  # See docs to exlude certain types
+            cpu: "2"
+            memory: "32Gi"
+            ephemeral-storage: 200Gi
+            #nvidia.com/gpu:  "1"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]
         args:
           - cd ulmo; 
             git fetch;
             git checkout modis_ssl_full; 
             git pull; 
-            yes | pip install umap healpy torchvision;
-            cd ulmo/runs/SSL/MODIS/v2;
-            python ./ssl_modis_v2.py --opt_path ./experiments/modis_model_v2/opts_2012.json --func_flag evaluate; # --debug;
+            python setup.py develop;
+            cd ../tmp; 
+            mkdir foo; 
+            cd foo; 
+            python -u /ulmo/ulmo/runs/PowerLaw/modis_powerlaw.py --task powerlaw; # --debug;
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"
           - name: "S3_ENDPOINT"
             value: "rook-ceph-rgw-nautiluss3.rook"
-          - name: "PYTHONPATH"
-            value: "/ulmo/"
         volumeMounts:
           - name: prp-s3-credentials
             mountPath: "/root/.aws/credentials"
