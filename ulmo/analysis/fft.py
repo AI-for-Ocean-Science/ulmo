@@ -29,8 +29,19 @@ apply_hanning_filter = input('To apply Hanning window, enter y : ')
 # Hanning window or Detrend/Demean
 '''
 
-def process_preproc_file(pp_hf, dtdm=True, debug=False,
-                         key='valid'):
+def process_preproc_file(pp_hf, dtdm=True, debug=False, key='valid'):
+    """Calculate slopes for an input PreProc file
+
+    Args:
+        pp_hf (h5py.File): [description]
+        dtdm (bool, optional): Detrend and demean? Defaults to True.
+        debug (bool, optional): Defaults to False.
+        key (str, optional): Dataset in the hdf5 file to analyze. Defaults to 'valid'.
+
+    Returns:
+        tuple: data1, data2, data3, data4
+            See code below for the specifics
+    """
 
     # Load up
     if debug: 
