@@ -4,6 +4,7 @@ Simple script to run Evals on all data sets in LLC and VIIRS
 
 import os
 import numpy as np
+import shutil
 
 from ulmo.models import io as model_io
 from ulmo import io as ulmo_io
@@ -72,6 +73,7 @@ def run_evals_extension(model_dir, train_dir, bucket_name, clobber=False, local=
         # Remove local
         if not local:
             os.remove(data_file)
+    shutil.rmtree('./Evaluations')
 
 def parse_option(options=None):
     import argparse
