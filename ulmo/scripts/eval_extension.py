@@ -40,9 +40,10 @@ def run_evals_extension(model_dir, train_dir, bucket_name, clobber=False, local=
     
     # Prep
     for data_file in data_list:
+        print(f"Start to process {data_file}.")
         if not local:
-            if not os.path.isdir('PreProc'):
-                os.mkdir('PreProc')
+            if not os.path.isdir("PreProc"):
+                os.mkdir("PreProc")
             ulmo_io.s3.Bucket(bucket_name).download_file(data_file, data_file)
             print("Dowloaded: {} from s3".format(data_file))
         # Check
@@ -52,21 +53,27 @@ def run_evals_extension(model_dir, train_dir, bucket_name, clobber=False, local=
 
         # Output
         data_title = os.path.splitext(os.path.split(data_file)[1])[0]
-         
-        log_prob_file = f'Evaluations/{data_title}_log_probs.h5'
+        
+        log_prob_file = f"./Evaluations/{data_title}_log_probs.h5"
+        print(f'The output file is: {log_prob_file}.')
         if os.path.isfile(log_prob_file) and not clobber:
             print("Eval file {} exists! Skipping..".format(log_prob_file))
             continue
         
         # Run
-        pae.eval_data_file(data_file, 'valid', 
+        pae.eval_data_file(data_file, "valid", 
                            log_prob_file, csv=False)  # Tends to crash on kuber
-
+        
+        # Upload the log_probs file to s3 bucket
+        s3_file = os.path.join(model_dir, f"{bucket_name}_log_probs", f"{data_title}_log_probs.h5")
+        #print(f"The s3 path is: {s3_file}.")
+        ulmo_io.upload_file_to_s3(log_prob_file, s3_file)
+        print(f"{log_prob_file} is uploaded to s3 successfully!")
         # Remove local
         if not local:
             os.remove(data_file)
 
-def parser(options=None):
+def parse_option(options=None):
     import argparse
     # Parse
     parser = argparse.ArgumentParser(description='Evalute the model to get log_probs.')
@@ -82,9 +89,11 @@ def parser(options=None):
         pargs = parser.parse_args(options)
     return pargs
 
-def main():
+if  __name__ == "__main__":
     """ Run
     """
     import warnings
-    pargs = parser()
+    pargs = parse_option()
+    print('pargs is created successfully!')
     run_evals_extension(pargs.model_dir, pargs.data_dir, pargs.bucket_name, clobber=pargs.clobber, local=pargs.local)
+    
