@@ -14,7 +14,7 @@ spec:
         resources:
           requests:
             cpu: "2"   
-            memory: "8Gi"  # Needs to be large enough to slurp in the images
+            memory: "16Gi"  # Needs to be large enough to slurp in the images
             ephemeral-storage: 50Gi
           limits:
             cpu: "4"
