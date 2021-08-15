@@ -336,7 +336,7 @@ def fig_umap_2dhist(outfile='fig_umap_2dhist.png',
     modis_tbl = modis_tbl[good].copy()
 
     # 
-    xmin, xmax = -4.5, 7
+    xmin, xmax = -4.5, 8
     ymin, ymax = 4.5, 10.5
     # Histogram
     bins_U0 = np.linspace(xmin, xmax, 23*scl)
@@ -412,11 +412,11 @@ def main(flg_fig, local, debug):
 
     # UMAP gallery
     if flg_fig & (2 ** 2):
-        #fig_umap_gallery(debug=debug, in_vmnx=(-5.,5.)) 
+        fig_umap_gallery(debug=debug, in_vmnx=(-5.,5.)) 
         fig_umap_gallery(debug=debug, in_vmnx=None,
                          outfile='fig_umap_gallery_novmnx.png')
-        #fig_umap_gallery(debug=debug, in_vmnx=(-1.,1.), 
-        #                 outfile='fig_umap_gallery_vmnx1.png')
+        fig_umap_gallery(debug=debug, in_vmnx=(-1.,1.), 
+                         outfile='fig_umap_gallery_vmnx1.png')
 
     # UMAP LL Brazil
     if flg_fig & (2 ** 3):
