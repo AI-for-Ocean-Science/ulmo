@@ -34,6 +34,27 @@ from IPython import embed
 local_modis_file = os.path.join(os.getenv('SST_OOD'),
                                 'MODIS_L2/Tables/MODIS_L2_std.parquet')
 
+def load_modis_tbl(tbl_file=None, local=False, cuts=None):
+    if tbl_file is None:
+        tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
+    if local:
+        tbl_file = local_modis_file
+
+    # Load
+    modis_tbl = ulmo_io.load_main_table(tbl_file)
+    if 'DT' not in modis_tbl.keys():
+        modis_tbl['DT'] = modis_tbl.T90 - modis_tbl.T10
+
+    # Cut
+    goodLL = np.isfinite(modis_tbl.LL)
+    if cuts is None:
+        good = goodLL
+    elif cuts == 'inliers':
+        inliers = (modis_tbl.LL > 200.) & (modis_tbl.LL < 400)
+        good = goodLL & inliers
+    modis_tbl = modis_tbl[good].copy()
+
+    return modis_tbl
 
 def fig_augmenting(outfile='fig_augmenting.png', use_s3=False):
 
@@ -372,6 +393,29 @@ def fig_umap_2dhist(outfile='fig_umap_2dhist.png',
     plt.close()
     print('Wrote {:s}'.format(outfile))
 
+
+def fig_LLvsDT(outfile='fig_LLvsDT.png', local=False, vmax=None, 
+                    cmap=None, cuts=None, scl = 1):
+
+    # Load table
+    modis_tbl = load_modis_tbl(local=local, cuts=cuts)
+
+    # Plot
+    fig = plt.figure(figsize=(12, 12))
+    plt.clf()
+
+
+    jg = sns.jointplot(data=modis_tbl, x='DT', y='LL',
+                  kind='hex')
+
+    #ax.set_xlabel(r'$U_0$')
+    #ax.set_ylabel(r'$U_1$')
+
+    plotting.set_fontsize(jg.ax_joint, 15.)
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
 def set_fontsize(ax,fsz):
     '''
     Generate a Table of columns and so on
@@ -390,17 +434,13 @@ def set_fontsize(ax,fsz):
 
 #### ########################## #########################
 def main(flg_fig, local, debug):
-    if flg_fig == 'all':
-        flg_fig = np.sum(np.array([2 ** ii for ii in range(25)]))
-    else:
-        flg_fig = int(flg_fig)
 
     # UMAP gallery
-    if flg_fig & (2 ** 0):
+    if flg_fig == 'augment':
         fig_augmenting()
 
     # UMAP LL
-    if flg_fig & (2 ** 1):
+    if flg_fig == 'umap_LL':
         # LL
         #fig_umap_colored(local=local)
         # DT
@@ -411,7 +451,7 @@ def main(flg_fig, local, debug):
         #                 vmnx=(None,None))
 
     # UMAP gallery
-    if flg_fig & (2 ** 2):
+    if flg_fig == 'umap_gallery':
         fig_umap_gallery(debug=debug, in_vmnx=(-5.,5.)) 
         fig_umap_gallery(debug=debug, in_vmnx=None,
                          outfile='fig_umap_gallery_novmnx.png')
@@ -419,7 +459,7 @@ def main(flg_fig, local, debug):
                          outfile='fig_umap_gallery_vmnx1.png')
 
     # UMAP LL Brazil
-    if flg_fig & (2 ** 3):
+    if flg_fig  == 'umap_brazil':
         fig_umap_colored(outfile='fig_umap_brazil.png', 
                     region='brazil',
                     point_size=1., 
@@ -427,13 +467,17 @@ def main(flg_fig, local, debug):
                     vmnx=(-400, 400))
 
     # UMAP 2d Histogram
-    if flg_fig & (2 ** 4):
+    if flg_fig == 'umap_2dhist':
         #
         fig_umap_2dhist(vmax=80000, local=local)
         # Near norm
         fig_umap_2dhist(outfile='fig_umap_2dhist_inliers.png',
                         local=local, cmap='Greens', 
                         cuts='inliers')
+
+    # LL vs DT
+    if flg_fig == 'LLvsDT':
+        fig_LLvsDT(local=local, debug=debug)
 
 
 # Command line execution
@@ -442,12 +486,13 @@ if __name__ == '__main__':
     local = True if 'local' in sys.argv else False
     debug = True if 'debug' in sys.argv else False
     if len(sys.argv) == 1:
-        flg_fig = 0
+        flg_fig = 'LLvsDT'
         #flg_fig += 2 ** 0  # Augmenting
         #flg_fig += 2 ** 1  # UMAP colored by various things
-        flg_fig += 2 ** 2  # UMAP SSL gallery
+        #flg_fig += 2 ** 2  # UMAP SSL gallery
         #flg_fig += 2 ** 3  # UMAP brazil
         #flg_fig += 2 ** 4  # UMAP 2d Histogram
+        #flg_fig += 2 ** 5  # 
     else:
         flg_fig = sys.argv[1]
 
