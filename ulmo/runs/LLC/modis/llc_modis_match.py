@@ -259,8 +259,19 @@ def main(flg):
         modis_evaluate(tbl_file='s3://llc/Tables/test2_modis2012.parquet')
 
     if flg & (2**7):  
-        modis_evaluate(tbl_file='s3://llc/Tables/LLC_modis_noise.parquet')
+        modis_evaluate(tbl_file='s3://llc/Tables/ulmo2_test.parquet')
+    
+    if flg & (2**8):
+        modis_evaluate(tbl_file='s3://llc/Tables/LLC_modis_noise2.parquet')
 
+    if flg & (2**9): 
+        modis_evaluate(tbl_file='s3://llc/Tables/LLC_modis_noise_track.parquet')
+    
+    if flg & (2**10):
+        modis_evaluate(tbl_file='s3://llc/Tables/LLC_uniform_test.parquet')
+
+    if flg & (2**11): # 2048
+        modis_evaluate(tbl_file='s3://llc/Tables/LLC_uniform_viirs_noise.parquet')
 
 # Command line execution
 if __name__ == '__main__':
@@ -275,7 +286,15 @@ if __name__ == '__main__':
         #flg += 2 ** 4  # 16 -- Extract + noise
         #flg += 2 ** 5  # 32 -- Evaluate + noise
         #flg += 2 ** 6  # 64 -- Evaluate debug run
-        flg += 2 ** 7  # 128 -- Katharina's first noise try
+        #flg += 2 ** 7  # 128 -- Katharina's first noise try
+        #flg += 2 ** 8  #256 -- Katharina: modis noise avgd
+        #flg += 2 ** 9  #512 -- Katharina: modis along track noise
+        #flg += 2 ** 10 #1024 -- Katharina: LLc uniformly sampled, no noise (not done)
+        flg += 2 ** 11  #2048 -- Katharina: LLC uniform viirs along scan noise
+
+
+
+
     else:
         flg = sys.argv[1]
 
