@@ -1,7 +1,6 @@
 """
 Simple script to run Evals on all data sets in LLC and VIIRS
 """
-
 import os
 import numpy as np
 import shutil
@@ -55,7 +54,7 @@ def run_evals_extension(model_dir, train_dir, bucket_name, clobber=False, local=
         # Output
         data_title = os.path.splitext(os.path.split(data_file)[1])[0]
         
-        log_prob_file = f"./Evaluations/{data_title}_log_probs.h5"
+        log_prob_file = f"./Evaluations_{bucket_name}/{data_title}_log_probs.h5"
         print(f'The output file is: {log_prob_file}.')
         if os.path.isfile(log_prob_file) and not clobber:
             print("Eval file {} exists! Skipping..".format(log_prob_file))
@@ -73,7 +72,7 @@ def run_evals_extension(model_dir, train_dir, bucket_name, clobber=False, local=
         # Remove local
         if not local:
             os.remove(data_file)
-    shutil.rmtree('./Evaluations')
+    shutil.rmtree(f'./Evaluations_{bucket_name}/')
 
 def parse_option(options=None):
     import argparse
