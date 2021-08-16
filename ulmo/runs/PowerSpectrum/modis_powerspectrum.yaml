@@ -2,7 +2,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-modis-powerlaw
+  name: xavier-modis-powerspectrum
 spec:
   backoffLimit: 0
   template:
@@ -25,13 +25,13 @@ spec:
         args:
           - cd ulmo; 
             git fetch;
-            git checkout modis_ssl_full; 
+            git checkout ssl_paper; 
             git pull; 
             python setup.py develop;
             cd ../tmp; 
             mkdir foo; 
             cd foo; 
-            python -u /ulmo/ulmo/runs/PowerLaw/modis_powerlaw.py --task powerlaw; # --debug;
+            python -u /ulmo/ulmo/runs/PowerSpectrum/modis_powerspectrum.py --task slopes; # --debug;
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"

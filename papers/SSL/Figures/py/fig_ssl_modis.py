@@ -415,20 +415,40 @@ def fig_LLvsDT(outfile='fig_LLvsDT.png', local=False, vmax=None,
                        bins='log', gridsize=250, xscale='log',
                        cmap=plt.get_cmap('winter'), mincnt=1,
                        marginal_kws=dict(fill=False, color='black', bins=100)) 
-    #jg = plt.hexbin(modis_tbl.DT, modis_tbl.LL, 
-    #                   bins='log', gridsize=200, xscale='log',
-    #                   cmap=plt.get_cmap('BuGn'))
-    #jg = sns.jointplot(data=modis_tbl, x='logDT', y='LL',
-    #    kind='hist', binrange=[[-1, 1.], ymnx])
-                  #     kind='kde',
-                  #     levels=[0.001, 0.01, 0.1, 0.68])
-
-    #jg.ax_joint.set_xlabel(r'$\log \Delta T$')
     jg.ax_joint.set_xlabel(r'$\Delta T$')
     jg.ax_joint.set_ylim(ymnx)
-    #ax.set_ylabel(r'$U_1$')
-    #jg.plot_joint(sns.kdeplot, color="r", 
-    #              zorder=0, levels=6)
+
+    plotting.set_fontsize(jg.ax_joint, 15.)
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
+
+def fig_slopes(outfile='fig_slopes.png', local=False, vmax=None, 
+                    cmap=None, cuts=None, scl = 1, debug=False):
+
+    # Load table
+    modis_tbl = load_modis_tbl(local=local, cuts=cuts)
+
+    # Debug?
+    if debug:
+        modis_tbl = modis_tbl.loc[np.arange(1000000)].copy()
+
+    # Plot
+    fig = plt.figure(figsize=(12, 12))
+    plt.clf()
+
+    ymnx = [-5000., 1000.]
+
+    jg = sns.jointplot(data=modis_tbl, x='zonal_slope', y='merid_slope', 
+                       kind='hex', #bins='log', xscale='log',
+                       gridsize=250) 
+                       #cmap=plt.get_cmap('winter'), 
+                       #mincnt=1,
+                       #marginal_kws=dict(fill=False, color='black', bins=100)) 
+    
+    #jg.ax_joint.set_xlabel(r'$\Delta T$')
+    jg.ax_joint.set_ylim(ymnx)
 
     plotting.set_fontsize(jg.ax_joint, 15.)
     plt.savefig(outfile, dpi=300)
@@ -497,6 +517,10 @@ def main(flg_fig, local, debug):
     # LL vs DT
     if flg_fig == 'LLvsDT':
         fig_LLvsDT(local=local, debug=debug)
+
+    # slopes
+    if flg_fig == 'slopes':
+        fig_slopes(local=local, debug=debug)
 
 
 # Command line execution
