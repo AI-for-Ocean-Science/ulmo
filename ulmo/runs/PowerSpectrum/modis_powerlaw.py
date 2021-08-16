@@ -34,6 +34,8 @@ def measure_powerlaw(pargs):
     # Init
     modis_tbl['zonal_slope'] = 0.
     modis_tbl['merid_slope'] = 0.
+    modis_tbl['zonal_slope_err'] = 0.
+    modis_tbl['merid_slope_err'] = 0.
 
     train = modis_tbl.pp_type == 1
     valid = modis_tbl.pp_type == 0
@@ -58,22 +60,26 @@ def measure_powerlaw(pargs):
             do_train = False
 
         # Valid
-        data1, data2, data3, data4  = fft.process_preproc_file(
+        data1, data2, slopes, data4  = fft.process_preproc_file(
             pp_hf, key='valid') #, debug=pargs.debug
 
         # Save
         pidx = modis_tbl.pp_file == pp_file
         valid_idx = valid & pidx
-        modis_tbl.loc[valid_idx, 'zonal_slope'] = data3[:, 1]  # large
-        modis_tbl.loc[valid_idx, 'merid_slope'] = data3[:, 3]  # large
+        modis_tbl.loc[valid_idx, 'zonal_slope'] = slopes[:, 1]  # large
+        modis_tbl.loc[valid_idx, 'zonal_slope_err'] = slopes[:, 2]  # large
+        modis_tbl.loc[valid_idx, 'merid_slope'] = slopes[:, 4]  # large
+        modis_tbl.loc[valid_idx, 'merid_slope_err'] = slopes[:, 5]  # large
 
         # Train
         if do_train:
-            data1, data2, data3, data4  = fft.process_preproc_file(
+            data1, data2, slopes, data4  = fft.process_preproc_file(
                 pp_hf, key='train') #, debug=pargs.debug
             train_idx = train & pidx
-            modis_tbl.loc[train_idx, 'zonal_slope'] = data3[:, 1]  # large
-            modis_tbl.loc[train_idx, 'merid_slope'] = data3[:, 3]  # large
+            modis_tbl.loc[train_idx, 'zonal_slope'] = slopes[:, 1]  # large
+            modis_tbl.loc[train_idx, 'zonal_slope_err'] = slopes[:, 2]  # large
+            modis_tbl.loc[train_idx, 'merid_slope'] = slopes[:, 4]  # large
+            modis_tbl.loc[train_idx, 'merid_slope_err'] = slopes[:, 5]  # large
         
         pp_hf.close()
 
