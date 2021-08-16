@@ -19,14 +19,14 @@ def parse_option():
         args: (dict) dictionary of the arguments.
     """
     parser = argparse.ArgumentParser("argument for training.")
-    parser.add_argument("--task", type=str, help="function to execute: 'powerlaw'")
+    parser.add_argument("--task", type=str, help="function to execute: 'slopes'")
     parser.add_argument('--debug', default=False, action='store_true',
                         help='Debug?')
     args = parser.parse_args()
     
     return args
 
-def measure_powerlaw(pargs):
+def measure_slopes(pargs):
     # Load the table
     tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
     modis_tbl = ulmo_io.load_main_table(tbl_file)
@@ -101,8 +101,8 @@ if __name__ == "__main__":
     args = parse_option()
     
     # run the 'main_train()' function.
-    if args.task == 'powerlaw':
+    if args.task == 'slopes':
         print("Powerlaw measurements start.")
-        measure_powerlaw(args)
+        measure_slopes(args)
         print("PowerLaw Ends.")
     
