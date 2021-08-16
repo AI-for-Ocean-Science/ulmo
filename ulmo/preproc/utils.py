@@ -420,7 +420,25 @@ def write_pp_fields(pp_fields:list, meta:list,
                     ex_idx:np.ndarray,
                     ppf_idx:np.ndarray,
                     valid_fraction:float,
-                    s3_file:str, local_file:str):
+                    s3_file:str, local_file:str,
+                    skip_meta=False):
+    """Write a set of pre-processed cutouts to disk
+
+    Args:
+        pp_fields (list): List of preprocessed fields
+        meta (list): List of meta measurements
+        main_tbl (pandas.DataFrame): Main table
+        ex_idx (np.ndarray): Items in table extracted
+        ppf_idx (np.ndarray): Order of items in table extracted
+        valid_fraction (float): Valid fraction (the rest is Train)
+        s3_file (str): [description]
+        local_file (str): [description]
+        skip_meta (bool, optional):
+            If True, don't fuss with meta data
+
+    Returns:
+        pandas.DataFrame: Updated main table
+    """
     
     # Recast
     pp_fields = np.stack(pp_fields)
@@ -436,15 +454,17 @@ def write_pp_fields(pp_fields:list, meta:list,
     idx_idx = ex_idx[ppf_idx]
 
     # Mu
-    main_tbl['mean_temperature'] = [imeta['mu'] for imeta in meta]
     clms = list(main_tbl.keys())
-    # Others
-    for key in ['Tmin', 'Tmax', 'T90', 'T10']:
-        if key in meta[0].keys():
-            main_tbl.loc[idx_idx, key] = [imeta[key] for imeta in meta]
-            # Add to clms
-            if key not in clms:
-                clms += [key]
+    if not skip_meta:
+        main_tbl['mean_temperature'] = [imeta['mu'] for imeta in meta]
+        clms += ['mean_temperature']
+        # Others
+        for key in ['Tmin', 'Tmax', 'T90', 'T10']:
+            if key in meta[0].keys():
+                main_tbl.loc[idx_idx, key] = [imeta[key] for imeta in meta]
+                # Add to clms
+                if key not in clms:
+                    clms += [key]
 
     # Train/validation
     n = int(valid_fraction * pp_fields.shape[0])

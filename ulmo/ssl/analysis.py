@@ -9,14 +9,12 @@ import umap
 
 from ulmo import io as ulmo_io
 from ulmo.plotting import plotting
-from ulmo.utils import catalog as cat_utils
 
 from IPython import embed
 
 def latents_umap(latents:np.ndarray, train:np.ndarray, 
          valid:np.ndarray, valid_tbl:pandas.DataFrame,
-         fig_root='', debug=False, write_to_file=None,
-         cut_prefix=None):
+         fig_root='', debug=False):
     """ Run a UMAP on input latent vectors.
     A subset are used to train the UMAP and then
     one applies it to the valid set.
@@ -24,15 +22,17 @@ def latents_umap(latents:np.ndarray, train:np.ndarray,
     The UMAP U0, U1 coefficients are written to an input table.
 
     Args:
-        latents (np.ndarray): Total set of latent vectors (training)
+        latents (np.ndarray): Total set of latent vectors (training+valid)
             Shape should be (nvectors, size of latent space)
         train (np.ndarray): indices for training
         valid (np.ndarray): indices for applying the UMAP
         valid_tbl (pandas.DataFrame): [description]
         fig_root (str, optional): [description]. Defaults to ''.
         debug (bool, optional): [description]. Defaults to False.
-        write_to_file ([type], optional): Write table to this file. Defaults to None.
         cut_prefix ([type], optional): [description]. Defaults to None.
+
+    Returns:
+        tuple: train_embedding, valid_embedding, latents_mapping
     """
 
     # UMAP me
@@ -43,6 +43,7 @@ def latents_umap(latents:np.ndarray, train:np.ndarray,
 
     # Apply to embedding
     print("Applying to the valid images")
+    train_embedding = latents_mapping.transform(latents[train])
     valid_embedding = latents_mapping.transform(latents[valid])
     print("Done")
 
@@ -76,17 +77,5 @@ def latents_umap(latents:np.ndarray, train:np.ndarray,
         #
         plt.savefig(fig_root+'_valid_UMAP.png', dpi=300)
 
-    # Save to Table
-    print("Writing to the Table")
-    if debug:
-        embed(header='65 of ssl analysis')
-    valid_tbl['U0'] = valid_embedding[:, 0]  # These are aligned
-    valid_tbl['U1'] = valid_embedding[:, 1]
-
-    # Vet
-    assert cat_utils.vet_main_table(valid_tbl, cut_prefix=cut_prefix)
-
-    # Final write
-    if write_to_file is not None:
-        ulmo_io.write_main_table(valid_tbl, write_to_file)
-    	
+    # Return
+    return train_embedding, valid_embedding, latents_mapping

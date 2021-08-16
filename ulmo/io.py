@@ -57,12 +57,12 @@ def list_of_bucket_files(bucket_name:str, prefix='/', delimiter='/'):
     """Generate a list of files in the bucket
 
     Args:
-        bucket_name (str): [description]
-        prefix (str, optional): [description]. Defaults to '/'.
+        bucket_name (str): name of bucket
+        prefix (str, optional): Folder(s) path. Defaults to '/'.
         delimiter (str, optional): [description]. Defaults to '/'.
 
     Returns:
-        [type]: [description]
+        list: List of files matching with full s3 path
     """
     prefix = prefix[1:] if prefix.startswith(delimiter) else prefix
     bucket = s3.Bucket(bucket_name)
@@ -185,6 +185,13 @@ def load_to_bytes(s3_uri:str):
 
 def download_file_from_s3(local_file:str, s3_uri:str, 
                           clobber_local=True):
+    """ Grab an s3 file
+
+    Args:
+        local_file (str): [description]
+        s3_uri (str): [description]
+        clobber_local (bool, optional): [description]. Defaults to True.
+    """
     parsed_s3 = urlparse(s3_uri)
     # Download preproc file for speed
     if not os.path.isfile(local_file) or clobber_local:
