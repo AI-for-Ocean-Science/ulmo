@@ -410,7 +410,7 @@ def fig_LLvsDT(outfile='fig_LLvsDT.png', local=False, vmax=None,
 
 
     jg = sns.jointplot(data=modis_tbl, x='DT', y='LL',
-        kind='hist')
+        kind='hist', binrange=[[0, 10.], [-5000., 1000.]])
                   #     kind='kde',
                   #     levels=[0.001, 0.01, 0.1, 0.68])
 
