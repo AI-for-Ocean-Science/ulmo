@@ -400,17 +400,24 @@ def fig_LLvsDT(outfile='fig_LLvsDT.png', local=False, vmax=None,
     # Load table
     modis_tbl = load_modis_tbl(local=local, cuts=cuts)
 
+    # Debug?
+    if debug:
+        modis_tbl = modis_tbl.loc[np.arange(100000)].copy()
+
     # Plot
     fig = plt.figure(figsize=(12, 12))
     plt.clf()
 
 
-    jg = sns.jointplot(data=modis_tbl, x='DT', y='LL')# kind='hex')
+    jg = sns.jointplot(data=modis_tbl, x='DT', y='LL',
+        kind='hist')
+                  #     kind='kde',
+                  #     levels=[0.001, 0.01, 0.1, 0.68])
 
     #ax.set_xlabel(r'$U_0$')
     #ax.set_ylabel(r'$U_1$')
-    jg.plot_joint(sns.kdeplot, color="r", 
-                  zorder=0, levels=6)
+    #jg.plot_joint(sns.kdeplot, color="r", 
+    #              zorder=0, levels=6)
 
     plotting.set_fontsize(jg.ax_joint, 15.)
     plt.savefig(outfile, dpi=300)
