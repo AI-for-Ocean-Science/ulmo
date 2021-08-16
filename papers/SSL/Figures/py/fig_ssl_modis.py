@@ -44,6 +44,7 @@ def load_modis_tbl(tbl_file=None, local=False, cuts=None):
     modis_tbl = ulmo_io.load_main_table(tbl_file)
     if 'DT' not in modis_tbl.keys():
         modis_tbl['DT'] = modis_tbl.T90 - modis_tbl.T10
+    modis_tbl['logDT'] = np.log10(modis_tbl.DT)
 
     # Cut
     goodLL = np.isfinite(modis_tbl.LL)
@@ -402,19 +403,29 @@ def fig_LLvsDT(outfile='fig_LLvsDT.png', local=False, vmax=None,
 
     # Debug?
     if debug:
-        modis_tbl = modis_tbl.loc[np.arange(100000)].copy()
+        modis_tbl = modis_tbl.loc[np.arange(1000000)].copy()
 
     # Plot
     fig = plt.figure(figsize=(12, 12))
     plt.clf()
 
+    ymnx = [-5000., 1000.]
 
-    jg = sns.jointplot(data=modis_tbl, x='DT', y='LL',
-        kind='hist', binrange=[[0, 10.], [-5000., 1000.]])
+    jg = sns.jointplot(data=modis_tbl, x='DT', y='LL', kind='hex',
+                       bins='log', gridsize=250, xscale='log',
+                       cmap=plt.get_cmap('winter'), mincnt=1,
+                       marginal_kws=dict(fill=False, color='black', bins=100)) 
+    #jg = plt.hexbin(modis_tbl.DT, modis_tbl.LL, 
+    #                   bins='log', gridsize=200, xscale='log',
+    #                   cmap=plt.get_cmap('BuGn'))
+    #jg = sns.jointplot(data=modis_tbl, x='logDT', y='LL',
+    #    kind='hist', binrange=[[-1, 1.], ymnx])
                   #     kind='kde',
                   #     levels=[0.001, 0.01, 0.1, 0.68])
 
-    #ax.set_xlabel(r'$U_0$')
+    #jg.ax_joint.set_xlabel(r'$\log \Delta T$')
+    jg.ax_joint.set_xlabel(r'$\Delta T$')
+    jg.ax_joint.set_ylim(ymnx)
     #ax.set_ylabel(r'$U_1$')
     #jg.plot_joint(sns.kdeplot, color="r", 
     #              zorder=0, levels=6)
