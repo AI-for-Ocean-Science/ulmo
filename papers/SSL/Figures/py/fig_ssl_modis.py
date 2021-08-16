@@ -395,7 +395,7 @@ def fig_umap_2dhist(outfile='fig_umap_2dhist.png',
 
 
 def fig_LLvsDT(outfile='fig_LLvsDT.png', local=False, vmax=None, 
-                    cmap=None, cuts=None, scl = 1):
+                    cmap=None, cuts=None, scl = 1, debug=False):
 
     # Load table
     modis_tbl = load_modis_tbl(local=local, cuts=cuts)
@@ -405,11 +405,12 @@ def fig_LLvsDT(outfile='fig_LLvsDT.png', local=False, vmax=None,
     plt.clf()
 
 
-    jg = sns.jointplot(data=modis_tbl, x='DT', y='LL',
-                  kind='hex')
+    jg = sns.jointplot(data=modis_tbl, x='DT', y='LL')# kind='hex')
 
     #ax.set_xlabel(r'$U_0$')
     #ax.set_ylabel(r'$U_1$')
+    jg.plot_joint(sns.kdeplot, color="r", 
+                  zorder=0, levels=6)
 
     plotting.set_fontsize(jg.ax_joint, 15.)
     plt.savefig(outfile, dpi=300)
