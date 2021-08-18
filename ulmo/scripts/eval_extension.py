@@ -39,6 +39,8 @@ def run_evals_extension(model_dir, train_dir, bucket_name, clobber=False, local=
     # Generate evaluation data list
     
     # Prep
+    if not os.path.isdir(f'./Evaluations_{bucket_name}/'):
+        os.mkdir(f'./Evaluations_{bucket_name}/')
     for data_file in data_list:
         print(f"Start to process {data_file}.")
         if not local:
