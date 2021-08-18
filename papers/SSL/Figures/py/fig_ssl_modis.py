@@ -432,23 +432,27 @@ def fig_slopes(outfile='fig_slopes.png', local=False, vmax=None,
 
     # Debug?
     if debug:
-        modis_tbl = modis_tbl.loc[np.arange(1000000)].copy()
+        modis_tbl = modis_tbl.loc[np.arange(100000)].copy()
 
     # Plot
     fig = plt.figure(figsize=(12, 12))
     plt.clf()
 
-    ymnx = [-5000., 1000.]
+    #ymnx = [-5000., 1000.]
 
     jg = sns.jointplot(data=modis_tbl, x='zonal_slope', y='merid_slope', 
                        kind='hex', #bins='log', xscale='log',
-                       gridsize=250) 
-                       #cmap=plt.get_cmap('winter'), 
+                       gridsize=100,
+                       mincnt=1,
+                       marginal_kws=dict(fill=False, 
+                                         color='black', bins=100),
+                       cmap=plt.get_cmap('OrRd')) 
                        #mincnt=1,
-                       #marginal_kws=dict(fill=False, color='black', bins=100)) 
     
-    #jg.ax_joint.set_xlabel(r'$\Delta T$')
-    jg.ax_joint.set_ylim(ymnx)
+    jg.ax_joint.set_xlabel(r'$\alpha_z$')
+    jg.ax_joint.set_ylabel(r'$\alpha_m$')
+    jg.ax_joint.plot([-5, 1.], [-5, 1.], 'k--')
+    #jg.ax_joint.set_ylim(ymnx)
 
     plotting.set_fontsize(jg.ax_joint, 15.)
     plt.savefig(outfile, dpi=300)
