@@ -20,7 +20,16 @@ import pandas
 import seaborn as sns
 
 import h5py
+from tqdm.auto import trange
+import time
 
+import torch
+from ulmo.ssl.util import adjust_learning_rate
+from ulmo.ssl.util import set_optimizer
+
+from ulmo.ssl.train_util import Params, option_preprocess
+from ulmo.ssl.train_util import modis_loader_v2, set_model
+from ulmo.ssl.train_util import train_learn_curve, valid_learn_curve
 
 from ulmo import plotting
 from ulmo.utils import utils as utils
@@ -31,8 +40,8 @@ from ulmo.utils import image_utils
 
 from IPython import embed
 
-local_modis_file = os.path.join(os.getenv('SST_OOD'),
-                                'MODIS_L2/Tables/MODIS_L2_std.parquet')
+#local_modis_file = os.path.join(os.getenv('SST_OOD'),
+#                                'MODIS_L2/Tables/MODIS_L2_std.parquet')
 
 def load_modis_tbl(tbl_file=None, local=False, cuts=None):
     if tbl_file is None:
@@ -521,23 +530,90 @@ def main(flg_fig, local, debug):
     # slopes
     if flg_fig == 'slopes':
         fig_slopes(local=local, debug=debug)
+        
+#########################################################
+### function used to create the learning plots
 
+def main_train_valid(opt_path: str):
+    # loading parameters json file
+    opt = Params(opt_path)
+    opt = option_preprocess(opt)
+   
+    # build data loader
+    train_loader = modis_loader_v2(opt)
+    valid_loader = modis_loader_v2(opt, valid=True)
 
+    # build model and criterion
+    model, criterion = set_model(opt)
+
+    # build optimizer
+    optimizer = set_optimizer(opt, model)
+    
+    # build loss list
+    loss_train, loss_step_train, loss_avg_train = [], [], []
+    loss_valid, loss_step_valid, loss_avg_valid = [], [], []
+    # training routine
+    for epoch in trange(1, opt.epochs + 1):
+
+        adjust_learning_rate(opt, optimizer, epoch)
+
+        # train for one epoch
+        time1 = time.time()
+        loss, losses_step, losses_avg = train_learn_curve(train_loader, model, criterion, optimizer, epoch, opt, cuda_use=opt.cuda_use)
+        
+        # record train loss
+        loss_train.append(loss)
+        loss_step_train += losses_step
+        loss_avg_train += losses_avg
+        
+        time2 = time.time()
+        print('epoch {}, total time {:.2f}'.format(epoch, time2 - time1))
+        
+        if epoch % opt.valid_freq == 0:
+            epoch_valid = epoch // opt.valid_freq
+            time1_valid = time.time()
+            loss, losses_step, losses_avg = valid_learn_curve(valid_loader, model, criterion, epoch_valid, opt, cuda_use=opt.cuda_use)
+           
+            # record valid loss
+            loss_valid.append(loss)
+            loss_step_valid += losses_step
+            loss_avg_valid += losses_avg
+        
+            time2_valid = time.time()
+            print('valid epoch {}, total time {:.2f}'.format(epoch_valid, time2_valid - time1_valid))
+            
+    if not os.path.isdir('./learning_curve/'):
+        os.mkdir('./learning_curve/')
+        
+    losses_file = f'./learning_curve/{opt.dataset}_losses.h5'
+    with h5py.File(losses_file, 'w') as f:
+        f.create_dataset('loss_train', np.array(loss_train))
+        f.create_dataset('loss_valid', np.array(loss_valid))
+        f.create_dataset('loss_step_train', np.array(loss_step_train))
+        f.create_dataset('loss_step_valid', np.array(loss_step_valid))
+        f.create_dataset('loss_avg_train', np.array(loss_avg_train))
+        f.create_dataset('loss_avg_valid', np.array(loss_avg_valid))
+    
 # Command line execution
 if __name__ == '__main__':
 
     local = True if 'local' in sys.argv else False
     debug = True if 'debug' in sys.argv else False
-    if len(sys.argv) == 1:
-        flg_fig = 'LLvsDT'
-        #flg_fig += 2 ** 0  # Augmenting
-        #flg_fig += 2 ** 1  # UMAP colored by various things
-        #flg_fig += 2 ** 2  # UMAP SSL gallery
-        #flg_fig += 2 ** 3  # UMAP brazil
-        #flg_fig += 2 ** 4  # UMAP 2d Histogram
-        #flg_fig += 2 ** 5  # 
-    else:
-        flg_fig = sys.argv[1]
-
-    main(flg_fig, local, debug)
+    learn_curve = True if 'learn_curve' in sys.argv else False
+    if learn_curve:
+        opt_path = './experiments/opt.json'
+        main_train_valid(opt_path)
+    else: 
+        if len(sys.argv) == 1:
+            flg_fig = 'LLvsDT'
+            #flg_fig += 2 ** 0  # Augmenting
+            #flg_fig += 2 ** 1  # UMAP colored by various things
+            #flg_fig += 2 ** 2  # UMAP SSL gallery
+            #flg_fig += 2 ** 3  # UMAP brazil
+            #flg_fig += 2 ** 4  # UMAP 2d Histogram
+            #flg_fig += 2 ** 5  # 
+        else:
+            flg_fig = sys.argv[1]
+    
+        main(flg_fig, local, debug)
 
