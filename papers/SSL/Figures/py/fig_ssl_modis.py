@@ -38,9 +38,9 @@ from ulmo.utils import image_utils
 
 from IPython import embed
 
-local_modis_file = os.path.join(os.getenv('SST_OOD'),
-                                'MODIS_L2/Tables/MODIS_L2_std.parquet')
-
+if os.getenv['SST_OOD']:
+    local_modis_file = os.path.join(os.getenv('SST_OOD'),
+                                    'MODIS_L2/Tables/MODIS_L2_std.parquet')
 
 def parse_option():
     """
@@ -615,14 +615,17 @@ def fig_train_valid_learn_curve(opt_path: str):
     if not os.path.isdir('./learning_curve/'):
         os.mkdir('./learning_curve/')
         
-    losses_file = f'./learning_curve/{opt.dataset}_losses.h5'
-    with h5py.File(losses_file, 'w') as f:
-        f.create_dataset('loss_train', np.array(loss_train))
-        f.create_dataset('loss_valid', np.array(loss_valid))
-        f.create_dataset('loss_step_train', np.array(loss_step_train))
-        f.create_dataset('loss_step_valid', np.array(loss_step_valid))
-        f.create_dataset('loss_avg_train', np.array(loss_avg_train))
-        f.create_dataset('loss_avg_valid', np.array(loss_avg_valid))
+    losses_file_train = f'./learning_curve/{opt.dataset}_losses_train.h5'
+    losses_file_valid = f'./learning_curve/{opt.dataset}_losses_valid.h5'
+    
+    with h5py.File(losses_file_train, 'w') as f:
+        f.create_dataset('loss_train', data=np.array(loss_train))
+        f.create_dataset('loss_step_train', data=np.array(loss_step_train))
+        f.create_dataset('loss_avg_train', data=np.array(loss_avg_train))
+    with h5py.File(losses_file_valid, 'w') as f:
+        f.create_dataset('loss_valid', data=p.array(loss_valid))
+        f.create_dataset('loss_step_valid', data=np.array(loss_step_valid))
+        f.create_dataset('loss_avg_valid', data=np.array(loss_avg_valid))
     
 #### ########################## #########################
 def main(pargs):
@@ -689,4 +692,3 @@ if __name__ == '__main__':
 
     pargs = parse_option()
     main(pargs)
-
