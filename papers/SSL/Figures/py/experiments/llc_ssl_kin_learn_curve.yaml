@@ -1,0 +1,72 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: erdong-llc-modis-ssl-kin-learning-curves
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      containers:
+      - name: container
+        image: localhost:30081/profxj/ulmo_nvidia:latest # UPDATE
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: "2"
+            memory: "36Gi"
+            ephemeral-storage: "50Gi" 
+          limits:
+            cpu: "4"
+            memory: "48Gi"
+            ephemeral-storage: "100Gi"
+            nvidia.com/gpu:  "2"  # See docs to exlude certain types
+            # https://ucsd-prp.gitlab.io/userdocs/running/gpu-pods/
+            #command: ["sh", "-c", "sleep 1000000"]
+        command: ["/bin/bash", "-c"]
+        args:
+          - rm -rf /ulmo/;
+            conda install -c conda-forge -y cartopy;
+            yes | pip install umap healpy torchvision;
+            git clone -b ssl_paper https://github.com/AI-for-Ocean-Science/ulmo.git;
+            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp s3://llc/SSL/LLC_MODIS_2012_kin_data/train/LLC_modis2012_curl_preproc_train.h5 /ulmo/papers/SSL/Figures/py/experiments/datasets/llc_kin_dataset/train/;
+            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp s3://llc/SSL/LLC_MODIS_2012_kin_data/valid/LLC_modis2012_curl_preproc_valid.h5 /ulmo/papers/SSL/Figures/py/experiments/datasets/llc_kin_dataset/valid/;
+            cd /ulmo/papers/SSL/Figures/py/;
+            python ./fig_ssl_modis.py learning_curve;
+            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp /ulmo/papers/SSL/Figures/py/learning_curve/ s3://llc/SSL/LLC_MODIS_2012_kin_data/ --recursive;
+        env:
+          - name: "ENDPOINT_URL"
+            value: "http://rook-ceph-rgw-nautiluss3.rook"
+          - name: "S3_ENDPOINT"
+            value: "rook-ceph-rgw-nautiluss3.rook"
+          - name: "PYTHONPATH"
+            value: "/ulmo/"
+        volumeMounts:
+          - name: prp-s3-credentials
+            mountPath: "/root/.aws/credentials"
+            subPath: "credentials"
+          - name: ephemeral 
+            mountPath: "/tmp"
+          - name: "dshm"
+            mountPath: "/dev/shm"
+          - name: comet-pin-volume
+            mountPath: "/etc/comet-pin-volume"
+      nodeSelector:
+        nautilus.io/disktype: nvme
+        gpu-type: "1080Ti"  # titan-xp
+      restartPolicy: Never
+      volumes:
+        # Secrets file for nautilus s3 credentials .aws/credentials and .s3cfg
+        - name: prp-s3-credentials
+          secret:
+            secretName: prp-s3-credentials
+        # Shared memory (necessary for Python's multiprocessing.shared_memory module to work)
+        - name: dshm
+          emptyDir:
+            medium: Memory
+        # Ephemeral storage
+        - name: ephemeral
+          emptyDir: {}
+        # Comet pin volume
+        - name: comet-pin-volume
+          secret:
+            secretName: erdong-comet-secret
