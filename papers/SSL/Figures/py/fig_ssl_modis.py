@@ -2,15 +2,13 @@
 import os, sys
 from typing import IO
 import numpy as np
-import glob
+import scipy
 
-from urllib.parse import urlparse
+import argparse
 
 import matplotlib as mpl
 import matplotlib.gridspec as gridspec
 from matplotlib import pyplot as plt
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-import matplotlib.ticker as mticker
 
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
@@ -40,8 +38,28 @@ from ulmo.utils import image_utils
 
 from IPython import embed
 
-#local_modis_file = os.path.join(os.getenv('SST_OOD'),
-#                                'MODIS_L2/Tables/MODIS_L2_std.parquet')
+local_modis_file = os.path.join(os.getenv('SST_OOD'),
+                                'MODIS_L2/Tables/MODIS_L2_std.parquet')
+
+
+def parse_option():
+    """
+    This is a function used to parse the arguments in the training.
+    
+    Returns:
+        args: (dict) dictionary of the arguments.
+    """
+    parser = argparse.ArgumentParser("SSL Figures")
+    parser.add_argument("figure", type=str, help="function to execute: 'slopes'")
+    parser.add_argument('--stat', type=str, help='Stat for the figure')
+    parser.add_argument('--local', default=False, action='store_true', 
+                        help='Use local file(s)?')
+    parser.add_argument('--debug', default=False, action='store_true',
+                        help='Debug?')
+    args = parser.parse_args()
+    
+    return args
+
 
 def load_modis_tbl(tbl_file=None, local=False, cuts=None):
     if tbl_file is None:
@@ -51,9 +69,15 @@ def load_modis_tbl(tbl_file=None, local=False, cuts=None):
 
     # Load
     modis_tbl = ulmo_io.load_main_table(tbl_file)
+
+    # DT
     if 'DT' not in modis_tbl.keys():
         modis_tbl['DT'] = modis_tbl.T90 - modis_tbl.T10
     modis_tbl['logDT'] = np.log10(modis_tbl.DT)
+
+    # Slopes
+    modis_tbl['min_slope'] = np.minimum(
+        modis_tbl.zonal_slope, modis_tbl.merid_slope)
 
     # Cut
     goodLL = np.isfinite(modis_tbl.LL)
@@ -441,28 +465,83 @@ def fig_slopes(outfile='fig_slopes.png', local=False, vmax=None,
 
     # Debug?
     if debug:
-        modis_tbl = modis_tbl.loc[np.arange(1000000)].copy()
+        modis_tbl = modis_tbl.loc[np.arange(100000)].copy()
 
     # Plot
     fig = plt.figure(figsize=(12, 12))
     plt.clf()
 
-    ymnx = [-5000., 1000.]
+    #ymnx = [-5000., 1000.]
 
     jg = sns.jointplot(data=modis_tbl, x='zonal_slope', y='merid_slope', 
                        kind='hex', #bins='log', xscale='log',
-                       gridsize=250) 
-                       #cmap=plt.get_cmap('winter'), 
+                       gridsize=100,
+                       mincnt=1,
+                       marginal_kws=dict(fill=False, 
+                                         color='black', bins=100),
+                       cmap=plt.get_cmap('OrRd')) 
                        #mincnt=1,
-                       #marginal_kws=dict(fill=False, color='black', bins=100)) 
     
-    #jg.ax_joint.set_xlabel(r'$\Delta T$')
-    jg.ax_joint.set_ylim(ymnx)
+    jg.ax_joint.set_xlabel(r'$\alpha_z$')
+    jg.ax_joint.set_ylabel(r'$\alpha_m$')
+    jg.ax_joint.plot([-5, 1.], [-5, 1.], 'k--')
+    #jg.ax_joint.set_ylim(ymnx)
 
     plotting.set_fontsize(jg.ax_joint, 15.)
     plt.savefig(outfile, dpi=300)
     plt.close()
     print('Wrote {:s}'.format(outfile))
+
+
+def fig_2dstats(outroot='fig_2dstats_', stat=None,
+                local=False, vmax=None, 
+                cmap=None, cuts=None, scl = 1, debug=False):
+
+    # Load table
+    modis_tbl = load_modis_tbl(local=local, cuts=cuts)
+
+    # Debug?
+    if debug:
+        modis_tbl = modis_tbl.loc[np.arange(1000000)].copy()
+
+    # Stat
+    if stat is None:
+        stat = 'min_slope'
+    lbls = dict(min_slope=r'$\alpha_{\rm min}$')
+    if cmap is None:
+        cmap = 'hot'
+    outfile = outroot+stat+'.png'
+
+    # Do it
+    median_slope, x_edge, y_edge, ibins = scipy.stats.binned_statistic_2d(
+        modis_tbl.U0, modis_tbl.U1, modis_tbl[stat],
+        statistic='median', expand_binnumbers=True, bins=[24, 24])
+
+    # Plot
+    fig = plt.figure(figsize=(12, 12))
+    plt.clf()
+    ax = plt.gca()
+
+
+    cm = plt.get_cmap(cmap)
+    mplt = ax.pcolormesh(x_edge, y_edge, 
+                     median_slope.transpose(),
+                     cmap=cm, 
+                     vmax=None) 
+
+    # Color bar
+    cbaxes = plt.colorbar(mplt, pad=0., fraction=0.030)
+    cbaxes.set_label(f'median({lbls[stat]})', fontsize=17.)
+    cbaxes.ax.tick_params(labelsize=15)
+
+    ax.set_xlabel(r'$U_0$')
+    ax.set_ylabel(r'$U_1$')
+
+    plotting.set_fontsize(ax, 17.)
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
 
 def set_fontsize(ax,fsz):
     '''
@@ -480,61 +559,12 @@ def set_fontsize(ax,fsz):
         item.set_fontsize(fsz)
 
 
-#### ########################## #########################
-def main(flg_fig, local, debug):
 
-    # UMAP gallery
-    if flg_fig == 'augment':
-        fig_augmenting()
-
-    # UMAP LL
-    if flg_fig == 'umap_LL':
-        # LL
-        #fig_umap_colored(local=local)
-        # DT
-        fig_umap_colored(local=local, metric='DT', outfile='fig_umap_DT.png',
-                         vmnx=(None, None))
-        # Clouds
-        #fig_umap_colored(local=local, metric='clouds', outfile='fig_umap_clouds.png',
-        #                 vmnx=(None,None))
-
-    # UMAP gallery
-    if flg_fig == 'umap_gallery':
-        fig_umap_gallery(debug=debug, in_vmnx=(-5.,5.)) 
-        fig_umap_gallery(debug=debug, in_vmnx=None,
-                         outfile='fig_umap_gallery_novmnx.png')
-        fig_umap_gallery(debug=debug, in_vmnx=(-1.,1.), 
-                         outfile='fig_umap_gallery_vmnx1.png')
-
-    # UMAP LL Brazil
-    if flg_fig  == 'umap_brazil':
-        fig_umap_colored(outfile='fig_umap_brazil.png', 
-                    region='brazil',
-                    point_size=1., 
-                    lbl=r'Brazil, $\Delta T \approx 2$K',
-                    vmnx=(-400, 400))
-
-    # UMAP 2d Histogram
-    if flg_fig == 'umap_2dhist':
-        #
-        fig_umap_2dhist(vmax=80000, local=local)
-        # Near norm
-        fig_umap_2dhist(outfile='fig_umap_2dhist_inliers.png',
-                        local=local, cmap='Greens', 
-                        cuts='inliers')
-
-    # LL vs DT
-    if flg_fig == 'LLvsDT':
-        fig_LLvsDT(local=local, debug=debug)
-
-    # slopes
-    if flg_fig == 'slopes':
-        fig_slopes(local=local, debug=debug)
         
 #########################################################
 ### function used to create the learning plots
 
-def main_train_valid(opt_path: str):
+def fig_train_valid_learn_curve(opt_path: str):
     # loading parameters json file
     opt = Params(opt_path)
     opt = option_preprocess(opt)
@@ -594,26 +624,69 @@ def main_train_valid(opt_path: str):
         f.create_dataset('loss_avg_train', np.array(loss_avg_train))
         f.create_dataset('loss_avg_valid', np.array(loss_avg_valid))
     
+#### ########################## #########################
+def main(pargs):
+
+    # UMAP gallery
+    if pargs.figure == 'augment':
+        fig_augmenting()
+
+    # UMAP LL
+    if pargs.figure == 'umap_LL':
+        # LL
+        #fig_umap_colored(local=local)
+        # DT
+        fig_umap_colored(local=local, metric='DT', outfile='fig_umap_DT.png',
+                         vmnx=(None, None))
+        # Clouds
+        #fig_umap_colored(local=local, metric='clouds', outfile='fig_umap_clouds.png',
+        #                 vmnx=(None,None))
+
+    # UMAP gallery
+    if pargs.figure == 'umap_gallery':
+        fig_umap_gallery(debug=pargs.debug, in_vmnx=(-5.,5.)) 
+        fig_umap_gallery(debug=pargs.debug, in_vmnx=None,
+                         outfile='fig_umap_gallery_novmnx.png')
+        fig_umap_gallery(debug=pargs.debug, in_vmnx=(-1.,1.), 
+                         outfile='fig_umap_gallery_vmnx1.png')
+
+    # UMAP LL Brazil
+    if pargs.figure  == 'umap_brazil':
+        fig_umap_colored(outfile='fig_umap_brazil.png', 
+                    region='brazil',
+                    point_size=1., 
+                    lbl=r'Brazil, $\Delta T \approx 2$K',
+                    vmnx=(-400, 400))
+
+    # UMAP 2d Histogram
+    if pargs.figure == 'umap_2dhist':
+        #
+        fig_umap_2dhist(vmax=80000, local=pargs.local)
+        # Near norm
+        fig_umap_2dhist(outfile='fig_umap_2dhist_inliers.png',
+                        local=pargs.local, cmap='Greens', 
+                        cuts='inliers')
+
+    # LL vs DT
+    if pargs.figure == 'LLvsDT':
+        fig_LLvsDT(local=pargs.local, debug=pargs.debug)
+    
+    # slopts
+    if pargs.figure == 'slopes':
+        fig_slopes(local=pargs.local, debug=pargs.debug)
+
+    # 2D Stats
+    if pargs.figure == '2d_stats':
+        fig_2dstats(local=pargs.local, debug=pargs.debug)
+        
+    # learning_curve
+    if pargs.figure == 'learning_curve':
+        opt_path = './experiments/opt.json'
+        fig_train_valid_learn_curve(opt_path)
+
 # Command line execution
 if __name__ == '__main__':
 
-    local = True if 'local' in sys.argv else False
-    debug = True if 'debug' in sys.argv else False
-    learn_curve = True if 'learn_curve' in sys.argv else False
-    if learn_curve:
-        opt_path = './experiments/opt.json'
-        main_train_valid(opt_path)
-    else: 
-        if len(sys.argv) == 1:
-            flg_fig = 'LLvsDT'
-            #flg_fig += 2 ** 0  # Augmenting
-            #flg_fig += 2 ** 1  # UMAP colored by various things
-            #flg_fig += 2 ** 2  # UMAP SSL gallery
-            #flg_fig += 2 ** 3  # UMAP brazil
-            #flg_fig += 2 ** 4  # UMAP 2d Histogram
-            #flg_fig += 2 ** 5  # 
-        else:
-            flg_fig = sys.argv[1]
-    
-        main(flg_fig, local, debug)
+    pargs = parse_option()
+    main(pargs)
 
