@@ -623,7 +623,7 @@ def fig_train_valid_learn_curve(opt_path: str):
         f.create_dataset('loss_step_train', data=np.array(loss_step_train))
         f.create_dataset('loss_avg_train', data=np.array(loss_avg_train))
     with h5py.File(losses_file_valid, 'w') as f:
-        f.create_dataset('loss_valid', data=p.array(loss_valid))
+        f.create_dataset('loss_valid', data=np.array(loss_valid))
         f.create_dataset('loss_step_valid', data=np.array(loss_step_valid))
         f.create_dataset('loss_avg_valid', data=np.array(loss_avg_valid))
     
