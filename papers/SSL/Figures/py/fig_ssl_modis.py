@@ -19,7 +19,16 @@ import pandas
 import seaborn as sns
 
 import h5py
+from tqdm.auto import trange
+import time
 
+import torch
+from ulmo.ssl.util import adjust_learning_rate
+from ulmo.ssl.util import set_optimizer
+
+from ulmo.ssl.train_util import Params, option_preprocess
+from ulmo.ssl.train_util import modis_loader_v2, set_model
+from ulmo.ssl.train_util import train_learn_curve, valid_learn_curve
 
 from ulmo import plotting
 from ulmo.utils import utils as utils
@@ -30,8 +39,6 @@ from ulmo.utils import image_utils
 
 from IPython import embed
 
-local_modis_file = os.path.join(os.getenv('SST_OOD'),
-                                'MODIS_L2/Tables/MODIS_L2_std.parquet')
 
 metric_lbls = dict(min_slope=r'$\alpha_{\rm min}$',
                    DT=r'$\Delta T$',
@@ -39,6 +46,10 @@ metric_lbls = dict(min_slope=r'$\alpha_{\rm min}$',
                    zonal_slope=r'$\alpha_z$',
                    merid_slope=r'$\alpha_m$',
                    )
+
+if os.getenv('SST_OOD'):
+    local_modis_file = os.path.join(os.getenv('SST_OOD'),
+                                    'MODIS_L2/Tables/MODIS_L2_std.parquet')
 
 def parse_option():
     """
@@ -609,6 +620,74 @@ def fig_fit_metric(outroot='fig_fit_', metric=None,
     print('Wrote {:s}'.format(outfile))
 
 
+
+        
+#########################################################
+### function used to create the learning plots
+
+def fig_train_valid_learn_curve(opt_path: str):
+    # loading parameters json file
+    opt = Params(opt_path)
+    opt = option_preprocess(opt)
+   
+    # build data loader
+    train_loader = modis_loader_v2(opt)
+    valid_loader = modis_loader_v2(opt, valid=True)
+
+    # build model and criterion
+    model, criterion = set_model(opt)
+
+    # build optimizer
+    optimizer = set_optimizer(opt, model)
+    
+    # build loss list
+    loss_train, loss_step_train, loss_avg_train = [], [], []
+    loss_valid, loss_step_valid, loss_avg_valid = [], [], []
+    # training routine
+    for epoch in trange(1, opt.epochs + 1):
+
+        adjust_learning_rate(opt, optimizer, epoch)
+
+        # train for one epoch
+        time1 = time.time()
+        loss, losses_step, losses_avg = train_learn_curve(train_loader, model, criterion, optimizer, epoch, opt, cuda_use=opt.cuda_use)
+        
+        # record train loss
+        loss_train.append(loss)
+        loss_step_train += losses_step
+        loss_avg_train += losses_avg
+        
+        time2 = time.time()
+        print('epoch {}, total time {:.2f}'.format(epoch, time2 - time1))
+        
+        if epoch % opt.valid_freq == 0:
+            epoch_valid = epoch // opt.valid_freq
+            time1_valid = time.time()
+            loss, losses_step, losses_avg = valid_learn_curve(valid_loader, model, criterion, epoch_valid, opt, cuda_use=opt.cuda_use)
+           
+            # record valid loss
+            loss_valid.append(loss)
+            loss_step_valid += losses_step
+            loss_avg_valid += losses_avg
+        
+            time2_valid = time.time()
+            print('valid epoch {}, total time {:.2f}'.format(epoch_valid, time2_valid - time1_valid))
+            
+    if not os.path.isdir('./learning_curve/'):
+        os.mkdir('./learning_curve/')
+        
+    losses_file_train = f'./learning_curve/{opt.dataset}_losses_train.h5'
+    losses_file_valid = f'./learning_curve/{opt.dataset}_losses_valid.h5'
+    
+    with h5py.File(losses_file_train, 'w') as f:
+        f.create_dataset('loss_train', data=np.array(loss_train))
+        f.create_dataset('loss_step_train', data=np.array(loss_step_train))
+        f.create_dataset('loss_avg_train', data=np.array(loss_avg_train))
+    with h5py.File(losses_file_valid, 'w') as f:
+        f.create_dataset('loss_valid', data=np.array(loss_valid))
+        f.create_dataset('loss_step_valid', data=np.array(loss_step_valid))
+        f.create_dataset('loss_avg_valid', data=np.array(loss_avg_valid))
+    
 #### ########################## #########################
 def main(pargs):
 
@@ -655,8 +734,8 @@ def main(pargs):
     # LL vs DT
     if pargs.figure == 'LLvsDT':
         fig_LLvsDT(local=pargs.local, debug=pargs.debug)
-
-    # slopes
+    
+    # slopts
     if pargs.figure == 'slopes':
         fig_slopes(local=pargs.local, debug=pargs.debug)
 
@@ -671,11 +750,15 @@ def main(pargs):
                        metric=pargs.metric,
                        distr=pargs.distr)
 
+        fig_2dstats(local=pargs.local, debug=pargs.debug)
+        
+    # learning_curve
+    if pargs.figure == 'learning_curve':
+        opt_path = './experiments/opt.json'
+        fig_train_valid_learn_curve(opt_path)
 
 # Command line execution
 if __name__ == '__main__':
 
     pargs = parse_option()
-
     main(pargs)
-
