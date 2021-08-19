@@ -38,7 +38,7 @@ from ulmo.utils import image_utils
 
 from IPython import embed
 
-if os.getenv['SST_OOD']:
+if os.getenv('SST_OOD'):
     local_modis_file = os.path.join(os.getenv('SST_OOD'),
                                     'MODIS_L2/Tables/MODIS_L2_std.parquet')
 
