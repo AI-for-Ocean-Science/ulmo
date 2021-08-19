@@ -453,7 +453,7 @@ def train_model(train_loader, model, criterion, optimizer, epoch, opt, cuda_use=
                    epoch, idx + 1, len(train_loader), batch_time=batch_time,
                    data_time=data_time, loss=losses))
             sys.stdout.flush()
-
+            
     return losses.avg
 
 def valid_model(valid_loader, model, criterion, epoch, opt, cuda_use=True):
@@ -508,5 +508,158 @@ def valid_model(valid_loader, model, criterion, epoch, opt, cuda_use=True):
                    epoch, idx + 1, len(valid_loader), batch_time=batch_time,
                    data_time=data_time, loss=losses))
             sys.stdout.flush()
+            
     return losses.avg
+    
+##############################################################################################
+### modules for learning curve plots
+
+def train_learn_curve(train_loader, model, criterion, optimizer, epoch, opt, cuda_use=True):
+    """
+    one epoch training.
+    
+    Args:
+        train_loader: (Dataloader) data loader for the training 
+        process.
+        model: (torch.nn.Module)
+        criterion: (torch.nn.Module) loss of the training model.
+    
+    Returns:
+        losses.avg: (float32) 
+        losses_step_list: (list)
+        losses_avg_list: (list)
+    """
+    
+    model.train()
+
+    batch_time = AverageMeter()
+    data_time = AverageMeter()
+    losses = AverageMeter()
+
+    end = time.time()
+    losses_avg_list, losses_step_list = [], []
+    
+    for idx, images in enumerate(train_loader):
+        #if idx > 2:
+        #    break
+        
+        data_time.update(time.time() - end)
+
+        images = torch.cat([images[0], images[1]], dim=0)
+        if torch.cuda.is_available() and cuda_use:
+            images = images.cuda(non_blocking=True)
+            #labels = labels.cuda(non_blocking=True)
+        bsz = images.shape[0] // 2
+
+        # warm-up learning rate
+        warmup_learning_rate(opt, epoch, idx, len(train_loader), optimizer)
+
+        # compute loss
+        features = model(images)
+        f1, f2 = torch.split(features, [bsz, bsz], dim=0)
+        features = torch.cat([f1.unsqueeze(1), f2.unsqueeze(1)], dim=1)
+        if opt.method == 'SupCon':
+            loss = criterion(features, labels)
+        elif opt.method == 'SimCLR':
+            loss = criterion(features)
+        else:
+            raise ValueError('contrastive method not supported: {}'.
+                             format(opt.method))
+
+        # update metric
+        losses.update(loss.item(), bsz)
+
+        # SGD
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        # measure elapsed time
+        batch_time.update(time.time() - end)
+        end = time.time()
+        
+        # record losses
+        losses_step_list.append(losses.val)
+        losses_avg_list.append(losses.avg)
+       
+        # print info
+        if (idx + 1) % opt.print_freq == 0:
+            print('Train: [{0}][{1}/{2}]\t'
+                  'BT {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                  'DT {data_time.val:.3f} ({data_time.avg:.3f})\t'
+                  'loss {loss.val:.3f} ({loss.avg:.3f})'.format(
+                   epoch, idx + 1, len(train_loader), batch_time=batch_time,
+                   data_time=data_time, loss=losses))
+            sys.stdout.flush()
+
+    return losses.avg, losses_step_list, losses_avg_list
+
+def valid_learn_curve(valid_loader, model, criterion, epoch, opt, cuda_use=True):
+    """
+    one epoch validation.
+    
+    Args:
+        valid_loader: (Dataloader) data loader for the training 
+        process.
+        model: (torch.nn.Module)
+        criterion: (torch.nn.Module) loss of the training model.
+        
+    Returns:
+        losses.avg: (float32)
+        losses_step_list: (list)
+        losses_avg_list: (list)
+    """
+    
+    batch_time = AverageMeter()
+    data_time = AverageMeter()
+    losses = AverageMeter()
+
+    end = time.time()
+    losses_avg_list, losses_step_list = [], []
+    
+    for idx, images in enumerate(valid_loader):
+        #if idx > 2:
+        #    break
+            
+        data_time.update(time.time() - end)
+
+        images = torch.cat([images[0], images[1]], dim=0)
+        if torch.cuda.is_available() and cuda_use:
+            images = images.cuda(non_blocking=True)
+            #labels = labels.cuda(non_blocking=True)
+        bsz = images.shape[0] // 2
+
+        # compute loss
+        features = model(images)
+        f1, f2 = torch.split(features, [bsz, bsz], dim=0)
+        features = torch.cat([f1.unsqueeze(1), f2.unsqueeze(1)], dim=1)
+        if opt.method == 'SupCon':
+            loss = criterion(features, labels)
+        elif opt.method == 'SimCLR':
+            loss = criterion(features)
+        else:
+            raise ValueError('contrastive method not supported: {}'.
+                             format(opt.method))
+        # update metric
+        losses.update(loss.item(), bsz)
+
+        # measure elapsed time
+        batch_time.update(time.time() - end)
+        end = time.time()
+        
+        # record losses
+        losses_step_list.append(losses.val)
+        losses_avg_list.append(losses.avg)
+        
+        # print info
+        if (idx + 1) % opt.print_freq == 0:
+            print('Valid: [{0}][{1}/{2}]\t'
+                  'BT {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                  'DT {data_time.val:.3f} ({data_time.avg:.3f})\t'
+                  'loss {loss.val:.3f} ({loss.avg:.3f})'.format(
+                   epoch, idx + 1, len(valid_loader), batch_time=batch_time,
+                   data_time=data_time, loss=losses))
+            sys.stdout.flush()
+            
+    return losses.avg, losses_step_list, losses_avg_list
     
