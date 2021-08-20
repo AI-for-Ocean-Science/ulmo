@@ -368,7 +368,7 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
         if ndone > nmax:
             break
 
-    set_fontsize(ax, fsz)
+    plotting.set_fontsize(ax, fsz)
     #ax.set_aspect('equal', 'datalim')
     #ax.set_aspect('equal')#, 'datalim')
 
@@ -468,10 +468,49 @@ def fig_LLvsDT(outfile='fig_LLvsDT.png', local=False, vmax=None,
 
     jg = sns.jointplot(data=modis_tbl, x='DT', y='LL', kind='hex',
                        bins='log', gridsize=250, xscale='log',
-                       cmap=plt.get_cmap('winter'), mincnt=1,
+                       cmap=plt.get_cmap('autumn'), mincnt=1,
                        marginal_kws=dict(fill=False, color='black', bins=100)) 
     jg.ax_joint.set_xlabel(r'$\Delta T$')
     jg.ax_joint.set_ylim(ymnx)
+
+    plotting.set_fontsize(jg.ax_joint, 15.)
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
+
+def fig_slopevsDT(outfile='fig_slopevsDT.png', local=False, vmax=None, 
+                    cmap=None, cuts=None, scl = 1, debug=False):
+    """ Bivariate of slope_min vs. DT
+
+    Args:
+        outfile (str, optional): [description]. Defaults to 'fig_slopevsDT.png'.
+        local (bool, optional): [description]. Defaults to False.
+        vmax ([type], optional): [description]. Defaults to None.
+        cmap ([type], optional): [description]. Defaults to None.
+        cuts ([type], optional): [description]. Defaults to None.
+        scl (int, optional): [description]. Defaults to 1.
+        debug (bool, optional): [description]. Defaults to False.
+    """
+
+    # Load table
+    modis_tbl = load_modis_tbl(local=local, cuts=cuts)
+
+    # Debug?
+    if debug:
+        modis_tbl = modis_tbl.loc[np.arange(1000000)].copy()
+
+    # Plot
+    fig = plt.figure(figsize=(12, 12))
+    plt.clf()
+
+
+    jg = sns.jointplot(data=modis_tbl, x='DT', y='min_slope', kind='hex',
+                       bins='log', gridsize=250, xscale='log',
+                       cmap=plt.get_cmap('autumn'), mincnt=1,
+                       marginal_kws=dict(fill=False, color='black', bins=100)) 
+    jg.ax_joint.set_xlabel(r'$\Delta T$')
+    jg.ax_joint.set_ylabel(metric_lbls['min_slope'])
 
     plotting.set_fontsize(jg.ax_joint, 15.)
     plt.savefig(outfile, dpi=300)
@@ -758,6 +797,7 @@ def main(pargs):
     if pargs.figure == 'slopes':
         fig_slopes(local=pargs.local, debug=pargs.debug)
 
+    # Slope vs DT
     if pargs.figure == 'slopevsDT':
         fig_slopevsDT(local=pargs.local, debug=pargs.debug)
     
