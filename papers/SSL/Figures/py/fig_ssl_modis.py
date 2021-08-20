@@ -3,6 +3,7 @@ import os, sys
 from typing import IO
 import numpy as np
 import scipy
+from scipy import stats
 
 import argparse
 
@@ -38,6 +39,14 @@ from ulmo.utils import image_utils
 
 from IPython import embed
 
+
+metric_lbls = dict(min_slope=r'$\alpha_{\rm min}$',
+                   DT=r'$\Delta T$',
+                   LL='LL',
+                   zonal_slope=r'$\alpha_z$',
+                   merid_slope=r'$\alpha_m$',
+                   )
+
 if os.getenv('SST_OOD'):
     local_modis_file = os.path.join(os.getenv('SST_OOD'),
                                     'MODIS_L2/Tables/MODIS_L2_std.parquet')
@@ -51,7 +60,9 @@ def parse_option():
     """
     parser = argparse.ArgumentParser("SSL Figures")
     parser.add_argument("figure", type=str, help="function to execute: 'slopes'")
-    parser.add_argument('--stat', type=str, help='Stat for the figure')
+    parser.add_argument('--metric', type=str, help='Metric for the figure')
+    parser.add_argument('--distr', type=str, default='normal',
+                        help='Distribution to fit [normal, lognorm]')
     parser.add_argument('--local', default=False, action='store_true', 
                         help='Use local file(s)?')
     parser.add_argument('--debug', default=False, action='store_true',
@@ -507,7 +518,6 @@ def fig_2dstats(outroot='fig_2dstats_', stat=None,
     # Stat
     if stat is None:
         stat = 'min_slope'
-    lbls = dict(min_slope=r'$\alpha_{\rm min}$')
     if cmap is None:
         cmap = 'hot'
     outfile = outroot+stat+'.png'
@@ -531,7 +541,7 @@ def fig_2dstats(outroot='fig_2dstats_', stat=None,
 
     # Color bar
     cbaxes = plt.colorbar(mplt, pad=0., fraction=0.030)
-    cbaxes.set_label(f'median({lbls[stat]})', fontsize=17.)
+    cbaxes.set_label(f'median({metric_lbls[stat]})', fontsize=17.)
     cbaxes.ax.tick_params(labelsize=15)
 
     ax.set_xlabel(r'$U_0$')
@@ -543,20 +553,71 @@ def fig_2dstats(outroot='fig_2dstats_', stat=None,
     print('Wrote {:s}'.format(outfile))
 
 
-def set_fontsize(ax,fsz):
-    '''
-    Generate a Table of columns and so on
-    Restrict to those systems where flg_clm > 0
+def fig_fit_metric(outroot='fig_fit_', metric=None, 
+                   local=False, vmax=None, 
+                   distr='normal',
+                   cmap=None, cuts=None, debug=False):
 
-    Parameters
-    ----------
-    ax : Matplotlib ax class
-    fsz : float
-      Font size
-    '''
-    for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] +
-                ax.get_xticklabels() + ax.get_yticklabels()):
-        item.set_fontsize(fsz)
+    # Load table
+    modis_tbl = load_modis_tbl(local=local, cuts=cuts)
+
+    # Debug?
+    if debug:
+        modis_tbl = modis_tbl.loc[np.arange(1000000)].copy()
+
+    # Stat
+    if metric is None:
+        metric = 'DT'
+    outfile = outroot+metric+'.png'
+
+    # Fit
+    xmnx = modis_tbl[metric].min(), modis_tbl[metric].max()
+    xval = np.linspace(xmnx[0], xmnx[1], 1000)
+    dx = xval[1]-xval[0]
+    if distr == 'normal':
+        mean, sigma = stats.norm.fit(modis_tbl[metric])
+        vals = stats.norm.pdf(xval, mean, sigma)
+        print(f"Gaussian fit: mean={mean}, sigma={sigma}")
+    elif distr == 'lognorm':
+        shape,loc,scale = stats.lognorm.fit(modis_tbl[metric])
+        vals = stats.lognorm.pdf(xval, shape, loc, scale)
+        print(f"Log-norm fit: shape={shape}, loc={loc}, scale={scale}")
+    else: 
+        raise IOError(f"Bad distribution {distr}")
+
+    # Normalize
+    sum = dx * np.sum(vals)
+    vals /= sum
+
+    # Cumulative
+    cumsum = np.cumsum(vals)
+    cumsum /= cumsum[-1]
+    
+    # Plot
+    fig = plt.figure(figsize=(10, 5))
+    plt.clf()
+    gs = gridspec.GridSpec(1,2)
+
+    # Histogram
+    ax_hist = plt.subplot(gs[0])
+
+    _ = sns.histplot(modis_tbl, x=metric, ax=ax_hist,
+                     stat='density')
+    ax_hist.plot(xval, vals, 'k-')
+    
+
+
+    # CDF
+    ax_cdf = plt.subplot(gs[1])
+    _ = sns.ecdfplot(modis_tbl, x=metric, ax=ax_cdf)
+    ax_cdf.plot(xval, cumsum, 'k--')
+
+    for ax in [ax_hist, ax_cdf]:
+        ax.set_xlabel(metric_lbls[metric])
+        plotting.set_fontsize(ax, 17.)
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
 
 
 
@@ -680,6 +741,15 @@ def main(pargs):
 
     # 2D Stats
     if pargs.figure == '2d_stats':
+        fig_2dstats(local=pargs.local, debug=pargs.debug,
+                    stat=pargs.metric)
+
+    # Fit a given metric
+    if pargs.figure == 'fit_metric':
+        fig_fit_metric(local=pargs.local, debug=pargs.debug,
+                       metric=pargs.metric,
+                       distr=pargs.distr)
+
         fig_2dstats(local=pargs.local, debug=pargs.debug)
         
     # learning_curve
