@@ -441,6 +441,17 @@ def fig_umap_2dhist(outfile='fig_umap_2dhist.png',
 
 def fig_LLvsDT(outfile='fig_LLvsDT.png', local=False, vmax=None, 
                     cmap=None, cuts=None, scl = 1, debug=False):
+    """ Bivariate of LL vs. DT
+
+    Args:
+        outfile (str, optional): [description]. Defaults to 'fig_LLvsDT.png'.
+        local (bool, optional): [description]. Defaults to False.
+        vmax ([type], optional): [description]. Defaults to None.
+        cmap ([type], optional): [description]. Defaults to None.
+        cuts ([type], optional): [description]. Defaults to None.
+        scl (int, optional): [description]. Defaults to 1.
+        debug (bool, optional): [description]. Defaults to False.
+    """
 
     # Load table
     modis_tbl = load_modis_tbl(local=local, cuts=cuts)
@@ -477,6 +488,14 @@ def fig_slopes(outfile='fig_slopes.png', local=False, vmax=None,
     # Debug?
     if debug:
         modis_tbl = modis_tbl.loc[np.arange(100000)].copy()
+
+    # Check on isotropy
+    diff = np.abs(modis_tbl.zonal_slope - modis_tbl.merid_slope)
+    sig = np.sqrt(modis_tbl.zonal_slope_err**2 + modis_tbl.merid_slope**2)
+
+    one_sig = diff < 1*sig
+    frac = np.sum(one_sig) / len(diff)
+    print(f"Fraction within 1 sigma = {frac}")
 
     # Plot
     fig = plt.figure(figsize=(12, 12))
@@ -739,6 +758,9 @@ def main(pargs):
     if pargs.figure == 'slopes':
         fig_slopes(local=pargs.local, debug=pargs.debug)
 
+    if pargs.figure == 'slopevsDT':
+        fig_slopevsDT(local=pargs.local, debug=pargs.debug)
+    
     # 2D Stats
     if pargs.figure == '2d_stats':
         fig_2dstats(local=pargs.local, debug=pargs.debug,
@@ -749,9 +771,6 @@ def main(pargs):
         fig_fit_metric(local=pargs.local, debug=pargs.debug,
                        metric=pargs.metric,
                        distr=pargs.distr)
-
-        fig_2dstats(local=pargs.local, debug=pargs.debug)
-        
     # learning_curve
     if pargs.figure == 'learning_curve':
         opt_path = './experiments/opt.json'
