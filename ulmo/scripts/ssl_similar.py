@@ -6,7 +6,6 @@ from ulmo import io as ulmo_io
 import os
 
 
-
 def parser(options=None):
     import argparse
     # Parse
@@ -25,7 +24,7 @@ def parser(options=None):
 def load_umap(pargs):
     print("Loading UMAP")
     if pargs.model == 'LLC':
-        umap_file = 's3://llc/LLC_MODIS_2012_model/ssl_LLC_v1_umap.pkl'
+        umap_file = 's3://llc/SSL/LLC_MODIS_2012_model/ssl_LLC_v1_umap.pkl'
     else:
         raise IOError("bad model")
     umap_base = os.path.basename(umap_file)
@@ -33,7 +32,7 @@ def load_umap(pargs):
         ulmo_io.download_file_from_s3(umap_base, umap_file)
     print("UMAP Loaded")
     # Return
-    return pickle.load(ulmo_io.open(umap_base, "rb" ) )
+    return pickle.load(ulmo_io.open(umap_base, "rb")) 
 
 def build_gallery(pargs, img, data_tbl, srt, 
                   outfile='similar_images.png', n_new=5):
@@ -106,7 +105,7 @@ def main(pargs):
 
     # Prep
     if pargs.model == 'LLC':
-        model_file = 's3://llc/LLC_MODIS_2012_model/SimCLR_LLC_MODIS_2012_resnet50_lr_0.05_decay_0.0001_bsz_64_temp_0.07_trial_0_cosine_warm/last.pth'
+        model_file = 's3://llc/SSL/LLC_MODIS_2012_model/SimCLR_LLC_MODIS_2012_resnet50_lr_0.05_decay_0.0001_bsz_64_temp_0.07_trial_0_cosine_warm/last.pth'
         opt_file = os.path.join(resource_filename('ulmo', 'runs'),
                                 'SSL', 'LLC', 'experiments', 
                                 'llc_modis_2012', 'opts.json')
