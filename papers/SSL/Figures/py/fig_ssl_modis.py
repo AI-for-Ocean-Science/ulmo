@@ -41,6 +41,7 @@ from IPython import embed
 
 
 metric_lbls = dict(min_slope=r'$\alpha_{\rm min}$',
+                   clear_fraction='1-CC',
                    DT=r'$\Delta T$',
                    LL='LL',
                    zonal_slope=r'$\alpha_z$',
@@ -51,25 +52,6 @@ if os.getenv('SST_OOD'):
     local_modis_file = os.path.join(os.getenv('SST_OOD'),
                                     'MODIS_L2/Tables/MODIS_L2_std.parquet')
 
-def parse_option():
-    """
-    This is a function used to parse the arguments in the training.
-    
-    Returns:
-        args: (dict) dictionary of the arguments.
-    """
-    parser = argparse.ArgumentParser("SSL Figures")
-    parser.add_argument("figure", type=str, help="function to execute: 'slopes'")
-    parser.add_argument('--metric', type=str, help='Metric for the figure')
-    parser.add_argument('--distr', type=str, default='normal',
-                        help='Distribution to fit [normal, lognorm]')
-    parser.add_argument('--local', default=False, action='store_true', 
-                        help='Use local file(s)?')
-    parser.add_argument('--debug', default=False, action='store_true',
-                        help='Debug?')
-    args = parser.parse_args()
-    
-    return args
 
 
 def load_modis_tbl(tbl_file=None, local=False, cuts=None):
@@ -562,9 +544,21 @@ def fig_slopes(outfile='fig_slopes.png', local=False, vmax=None,
     print('Wrote {:s}'.format(outfile))
 
 
-def fig_2dstats(outroot='fig_2dstats_', stat=None,
-                local=False, vmax=None, 
+def fig_2d_stats(outroot='fig_2dstats_', stat=None,
+                local=False, vmax=None, nbins=40,
                 cmap=None, cuts=None, scl = 1, debug=False):
+    """ 2D histograms in the UMAP space
+
+    Args:
+        outroot (str, optional): [description]. Defaults to 'fig_2dstats_'.
+        stat ([type], optional): [description]. Defaults to None.
+        local (bool, optional): [description]. Defaults to False.
+        vmax ([type], optional): [description]. Defaults to None.
+        cmap ([type], optional): [description]. Defaults to None.
+        cuts ([type], optional): [description]. Defaults to None.
+        scl (int, optional): [description]. Defaults to 1.
+        debug (bool, optional): [description]. Defaults to False.
+    """
 
     # Load table
     modis_tbl = load_modis_tbl(local=local, cuts=cuts)
@@ -583,7 +577,7 @@ def fig_2dstats(outroot='fig_2dstats_', stat=None,
     # Do it
     median_slope, x_edge, y_edge, ibins = scipy.stats.binned_statistic_2d(
         modis_tbl.U0, modis_tbl.U1, modis_tbl[stat],
-        statistic='median', expand_binnumbers=True, bins=[24, 24])
+        statistic='median', expand_binnumbers=True, bins=[nbins,nbins])
 
     # Plot
     fig = plt.figure(figsize=(12, 12))
@@ -803,7 +797,7 @@ def main(pargs):
     
     # 2D Stats
     if pargs.figure == '2d_stats':
-        fig_2dstats(local=pargs.local, debug=pargs.debug,
+        fig_2d_stats(local=pargs.local, debug=pargs.debug,
                     stat=pargs.metric)
 
     # Fit a given metric
@@ -815,6 +809,26 @@ def main(pargs):
     if pargs.figure == 'learning_curve':
         opt_path = './experiments/opt.json'
         fig_train_valid_learn_curve(opt_path)
+
+def parse_option():
+    """
+    This is a function used to parse the arguments in the training.
+    
+    Returns:
+        args: (dict) dictionary of the arguments.
+    """
+    parser = argparse.ArgumentParser("SSL Figures")
+    parser.add_argument("figure", type=str, help="function to execute: 'slopes, 2d_stats'")
+    parser.add_argument('--metric', type=str, help="Metric for the figure: 'DT'")
+    parser.add_argument('--distr', type=str, default='normal',
+                        help='Distribution to fit [normal, lognorm]')
+    parser.add_argument('--local', default=False, action='store_true', 
+                        help='Use local file(s)?')
+    parser.add_argument('--debug', default=False, action='store_true',
+                        help='Debug?')
+    args = parser.parse_args()
+    
+    return args
 
 # Command line execution
 if __name__ == '__main__':
