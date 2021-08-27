@@ -194,7 +194,7 @@ def main_evaluate(opt_path):
 def generate_umap(debug=False, orig=False, write=True,
                   transformer_file=None):
     # Latents file (subject to move)
-    latents_file = 's3://llc/LLC_MODIS_2012_latents/last_latents.h5'
+    latents_file = 's3://llc/SSL/LLC_MODIS_2012_latents/last_latents.h5'
 
     # Load em in
     basefile = os.path.basename(latents_file)
