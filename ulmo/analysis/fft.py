@@ -97,7 +97,8 @@ def analyze_cutout(img, dtdm=True):
     return zonal_results, merid_results
 
 
-def fast_fft( array, dim, d, small_range= [6000,15000], large_range=[12000,50000], Detrend_Demean=False ):
+def fast_fft( array, dim, d, small_range= [6000,15000], 
+             large_range=[12000,50000], Detrend_Demean=False ):
    
     """ Fast- Fast Fourier Transform to calculate the power spectral density
    

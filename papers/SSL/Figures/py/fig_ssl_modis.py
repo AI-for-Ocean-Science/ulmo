@@ -43,6 +43,7 @@ from IPython import embed
 metric_lbls = dict(min_slope=r'$\alpha_{\rm min}$',
                    clear_fraction='1-CC',
                    DT=r'$\Delta T$',
+                   lowDT=r'$\Delta T_{\rm low}$',
                    LL='LL',
                    zonal_slope=r'$\alpha_z$',
                    merid_slope=r'$\alpha_m$',
@@ -67,6 +68,7 @@ def load_modis_tbl(tbl_file=None, local=False, cuts=None):
     if 'DT' not in modis_tbl.keys():
         modis_tbl['DT'] = modis_tbl.T90 - modis_tbl.T10
     modis_tbl['logDT'] = np.log10(modis_tbl.DT)
+    modis_tbl['lowDT'] = modis_tbl.mean_temperature - modis_tbl.T10
 
     # Slopes
     modis_tbl['min_slope'] = np.minimum(
@@ -131,35 +133,27 @@ def fig_augmenting(outfile='fig_augmenting.png', use_s3=False):
 
 
 def fig_umap_colored(outfile='fig_umap_LL.png', 
+                cuts=None,
                 metric='LL',
-                version=1, local=False, 
+                local=False, 
                 point_size = None, 
                 lbl=None,
                 vmnx = (-1000., None),
                 region=None,
                 debug=False): 
-    """ UMAP colored by LL
+    """ UMAP colored by LL or something else
 
     Args:
         outfile (str, optional): [description]. Defaults to 'fig_umap_LL.png'.
-        version (int, optional): [description]. Defaults to 1.
         local (bool, optional): [description]. Defaults to True.
         debug (bool, optional): [description]. Defaults to False.
 
     Raises:
         IOError: [description]
     """
-    if version == 1:                    
-        tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
-    else:
-        raise IOError("bad version number")
-    if local:
-        tbl_file = local_modis_file
-    # Load
-    modis_tbl = ulmo_io.load_main_table(tbl_file)
+    # Load table
+    modis_tbl = load_modis_tbl(local=local, cuts=cuts)
     num_samples = len(modis_tbl)
-    if 'DT' not in modis_tbl.keys():
-        modis_tbl['DT'] = modis_tbl.T90 - modis_tbl.T10
 
     # Region?
     if region is None:
@@ -207,14 +201,14 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
             s=point_size, c=values,
             cmap='jet', vmin=vmnx[0], vmax=vmnx[1])
     cb = plt.colorbar(img, pad=0., fraction=0.030)
-    cb.set_label(metric, fontsize=12.)
+    cb.set_label(metric, fontsize=14.)
     #
     ax0.set_xlabel(r'$U_0$')
     ax0.set_ylabel(r'$U_1$')
     #ax0.set_aspect('equal')#, 'datalim')
 
-    fsz = 13.
-    set_fontsize(ax0, fsz)
+    fsz = 17.
+    plotting.set_fontsize(ax0, fsz)
 
     # Set boundaries
     #xmin, xmax = modis_tbl.U0.min()-dxdy[0], modis_tbl.U0.max()+dxdy[0]
@@ -489,7 +483,7 @@ def fig_slopevsDT(outfile='fig_slopevsDT.png', local=False, vmax=None,
 
     jg = sns.jointplot(data=modis_tbl, x='DT', y='min_slope', kind='hex',
                        bins='log', gridsize=250, xscale='log',
-                       cmap=plt.get_cmap('autumn'), mincnt=1,
+                       cmap=plt.get_cmap('winter'), mincnt=1,
                        marginal_kws=dict(fill=False, color='black', bins=100)) 
     jg.ax_joint.set_xlabel(r'$\Delta T$')
     jg.ax_joint.set_ylabel(metric_lbls['min_slope'])
@@ -530,7 +524,7 @@ def fig_slopes(outfile='fig_slopes.png', local=False, vmax=None,
                        mincnt=1,
                        marginal_kws=dict(fill=False, 
                                          color='black', bins=100),
-                       cmap=plt.get_cmap('OrRd')) 
+                       cmap=plt.get_cmap('YlGnBu')) 
                        #mincnt=1,
     
     jg.ax_joint.set_xlabel(r'$\alpha_z$')
@@ -750,12 +744,12 @@ def main(pargs):
     # UMAP LL
     if pargs.figure == 'umap_LL':
         # LL
-        #fig_umap_colored(local=local)
+        fig_umap_colored(local=pargs.local)
         # DT
-        fig_umap_colored(local=local, metric='DT', outfile='fig_umap_DT.png',
-                         vmnx=(None, None))
+        #fig_umap_colored(local=pargs.local, metric='DT', outfile='fig_umap_DT.png',
+        #                 vmnx=(None, None))
         # Clouds
-        #fig_umap_colored(local=local, metric='clouds', outfile='fig_umap_clouds.png',
+        #fig_umap_colored(local=pargs.local, metric='clouds', outfile='fig_umap_clouds.png',
         #                 vmnx=(None,None))
 
     # UMAP gallery
@@ -798,7 +792,7 @@ def main(pargs):
     # 2D Stats
     if pargs.figure == '2d_stats':
         fig_2d_stats(local=pargs.local, debug=pargs.debug,
-                    stat=pargs.metric)
+                    stat=pargs.metric, cmap=pargs.cmap)
 
     # Fit a given metric
     if pargs.figure == 'fit_metric':
@@ -818,8 +812,10 @@ def parse_option():
         args: (dict) dictionary of the arguments.
     """
     parser = argparse.ArgumentParser("SSL Figures")
-    parser.add_argument("figure", type=str, help="function to execute: 'slopes, 2d_stats'")
-    parser.add_argument('--metric', type=str, help="Metric for the figure: 'DT'")
+    parser.add_argument("figure", type=str, 
+                        help="function to execute: 'slopes, 2d_stats, slopevsDT, umap_LL'")
+    parser.add_argument('--metric', type=str, help="Metric for the figure: 'DT, T10'")
+    parser.add_argument('--cmap', type=str, help="Color map")
     parser.add_argument('--distr', type=str, default='normal',
                         help='Distribution to fit [normal, lognorm]')
     parser.add_argument('--local', default=False, action='store_true', 
@@ -835,3 +831,8 @@ if __name__ == '__main__':
 
     pargs = parse_option()
     main(pargs)
+
+# UMAP colored by LL -- python py/fig_ssl_modis.py umap_LL --local
+# Slopes -- python py/fig_ssl_modis.py slopes --local
+# Slope vs DT -- python py/fig_ssl_modis.py slopevsDT --local
+# lowDT 2dstat -- python py/fig_ssl_modis.py 2d_stats --metric lowDT --local
