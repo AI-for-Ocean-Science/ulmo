@@ -44,6 +44,7 @@ metric_lbls = dict(min_slope=r'$\alpha_{\rm min}$',
                    clear_fraction='1-CC',
                    DT=r'$\Delta T$',
                    lowDT=r'$\Delta T_{\rm low}$',
+                   absDT=r'$|T_{90}| - |T_{10}|$',
                    LL='LL',
                    zonal_slope=r'$\alpha_z$',
                    merid_slope=r'$\alpha_m$',
@@ -69,6 +70,7 @@ def load_modis_tbl(tbl_file=None, local=False, cuts=None):
         modis_tbl['DT'] = modis_tbl.T90 - modis_tbl.T10
     modis_tbl['logDT'] = np.log10(modis_tbl.DT)
     modis_tbl['lowDT'] = modis_tbl.mean_temperature - modis_tbl.T10
+    modis_tbl['absDT'] = np.abs(modis_tbl.T90) - np.abs(modis_tbl.T10)
 
     # Slopes
     modis_tbl['min_slope'] = np.minimum(
