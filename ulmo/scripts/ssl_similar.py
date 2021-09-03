@@ -74,9 +74,10 @@ def build_gallery(pargs, img, data_tbl, srt,
     
 
     # Input image
-    vmin, vmax = img.min(), img.max()
+    #vmin, vmax = img.min(), img.max()
 
     def make_one(timg, idx):
+        vmin, vmax = timg.min(), timg.max()
         ax = plt.subplot(gs[idx])
         sns.heatmap(np.flipud(timg), ax=ax, cmap=cm,
                vmin=vmin, vmax=vmax, cbar=False)
