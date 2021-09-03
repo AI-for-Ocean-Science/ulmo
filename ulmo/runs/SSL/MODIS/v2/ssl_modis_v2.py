@@ -43,7 +43,7 @@ def parse_option():
     
     return args
 
-def ssl_v2_umap(debug=False, orig=False):
+def ssl_v2_umap(debug=False):
     """Run a UMAP analysis on all the MODIS L2 data
 
     Args:
@@ -56,19 +56,22 @@ def ssl_v2_umap(debug=False, orig=False):
     modis_tbl['U0'] = 0.
     modis_tbl['U1'] = 0.
 
-    # Train the UMAP
 
+    # Prep latent_files
+    latent_files = ulmo_io.list_of_bucket_files('modis-l2',
+                                                prefix='SSL/SSL_v2_2012/latents/')
+    latent_files = ['s3://modis-l2/'+item for item in latent_files]
+
+    # Train the UMAP
     # Split
     train = modis_tbl.pp_type == 1
     valid = modis_tbl.pp_type == 0
     y2010 = modis_tbl.pp_file == 's3://modis-l2/PreProc/MODIS_R2019_2010_95clear_128x128_preproc_std.h5'
     valid_tbl = modis_tbl[valid & y2010].copy()
+    nvalid = len(valid_tbl)
 
     # Latents file (subject to move)
-    if debug:
-        latents_train_file = 's3://modis-l2/SSL_MODIS_R2019_2010_latents_v2/modis_R2019_2010_latents_last_v2.h5'
-    else:
-        latents_train_file = 's3://modis-l2/SSL/SSL_v2_2012/latents/MODIS_R2019_2010_95clear_128x128_latents_std.h5'
+    latents_train_file = 's3://modis-l2/SSL/SSL_v2_2012/latents/MODIS_R2019_2010_95clear_128x128_latents_std.h5'
 
     # Load em in
     basefile = os.path.basename(latents_train_file)
@@ -77,21 +80,26 @@ def ssl_v2_umap(debug=False, orig=False):
         ulmo_io.download_file_from_s3(basefile, latents_train_file)
         print("Done")
     hf = h5py.File(basefile, 'r')
-    latents_train = hf['modis_latents_v2_train'][:]
-    latents_valid = hf['modis_latents_v2_valid'][:]
+    latents_valid = hf['valid'][:]
     print("Latents loaded")
 
     # Check
-    assert latents_valid.shape[0] == len(valid_tbl)
+    assert latents_valid.shape[0] == nvalid
 
-    print("Running UMAP..")
+    ntrain = 150000
+    train_idx = np.arange(nvalid)
+    np.random.shuffle(train_idx)
+    train_idx = train_idx[0:ntrain]
+    latents_train = latents_valid[train_idx]
+
+    print(f"Running UMAP on a {ntrain} subset of valid..")
     reducer_umap = umap.UMAP()
     latents_mapping = reducer_umap.fit(latents_train)
     print("Done..")
 
     # Loop on em all
-    latent_files = ulmo_io.list_of_bucket_files('modis-l2',
-                                                prefix='SSL/SSL_v2_2012/latents/')
+    if debug:
+        latent_files = latent_files[0:1]
 
     for latents_file in latent_files:
         basefile = os.path.basename(latents_file)
@@ -99,42 +107,47 @@ def ssl_v2_umap(debug=False, orig=False):
         # Download?
         if not os.path.isfile(basefile):
             print(f"Downloading {latents_file} (this is *much* faster than s3 access)...")
-            ulmo_io.download_file_from_s3(basefile, latents_train_file)
-            print("Done")
+            ulmo_io.download_file_from_s3(basefile, latents_file)
 
         #  Load and apply
         hf = h5py.File(basefile, 'r')
-        '''
+
+        # Train
         if 'train' in hf.keys():
+            print("Embedding the training..")
             latents_train = hf['train'][:]
             train_embedding = latents_mapping.transform(latents_train)
-        '''
 
-        # THIS LINE IS WRONG.  FIX WHEN THE REST IS FIXED
-        latents_valid = hf['train'][:]
+        # Valid
+        print("Embedding valid..")
+        latents_valid = hf['valid'][:]
         valid_embedding = latents_mapping.transform(latents_valid)
 
         # Save to table
-        embed(header='118 of ssl modis 2012')
         yidx = modis_tbl.pp_file == f's3://modis-l2/PreProc/MODIS_R2019_{year}_95clear_128x128_preproc_std.h5'
         valid_idx = valid & yidx
         modis_tbl.loc[valid_idx, 'U0'] = valid_embedding[:,0]
         modis_tbl.loc[valid_idx, 'U1'] = valid_embedding[:,1]
-
-        '''
+        
+        # Train?
         train_idx = train & yidx
-        if np.sum(train_idx) > 0:
+        if 'train' in hf.keys() and (np.sum(train_idx) > 0):
             modis_tbl.loc[train_idx, 'U0'] = train_embedding[:,0]
             modis_tbl.loc[train_idx, 'U1'] = train_embedding[:,1]
-        '''
+
 
         hf.close()
 
         # Clean up
+        print(f"Done with {basefile}.  Cleaning up")
         os.remove(basefile)
 
     # Vet
-    assert cat_utils.vet_main_table(valid_tbl, cut_prefix='modis_')
+    assert cat_utils.vet_main_table(modis_tbl, cut_prefix='modis_')
+
+    # Final write
+    if not debug:
+        ulmo_io.write_main_table(modis_tbl, tbl_file) 
 
 
 def main_train(opt_path: str):
@@ -213,8 +226,9 @@ def main_evaluate(opt_path, model_file,
     key_train, key_valid = "train", "valid"
     if debug:
         pp_files = pp_files[0:1]
+
     for ifile in pp_files:
-        print("Working on ifile")
+        print(f"Working on {ifile}")
         data_file = os.path.basename(ifile)
         if not os.path.isfile(data_file):
             ulmo_io.download_file_from_s3(data_file, 
@@ -230,23 +244,34 @@ def main_evaluate(opt_path, model_file,
         # Setup
         latents_file = data_file.replace('_preproc', '_latents')
         latents_path = os.path.join(opt.latents_folder, latents_file) 
+        latents_hf = h5py.File(latents_file, 'w')
+
+        # Train?
         if train: 
             print("Starting train evaluation")
-            latents_extraction.model_latents_extract(opt, data_file, 
-                'train', model_base, latents_file, key_train)
+            latents_numpy = latents_extraction.model_latents_extract(opt, data_file, 
+                'train', model_base, None, None)
+            latents_hf.create_dataset('train', data=latents_numpy)
             print("Extraction of Latents of train set is done.")
+
+        # Valid
         print("Starting valid evaluation")
-        latents_extraction.model_latents_extract(opt, data_file, 
-                'valid', model_base, latents_file, key_valid)
+        latents_numpy = latents_extraction.model_latents_extract(opt, data_file, 
+                'valid', model_base, None, None)
+        latents_hf.create_dataset('valid', data=latents_numpy)
         print("Extraction of Latents of valid set is done.")
+
+        # Close
+        latents_hf.close()
 
         # Push to s3
         print("Uploading to s3..")
         ulmo_io.upload_file_to_s3(latents_file, latents_path)
 
         # Remove data file
-        os.remove(data_file)
-        print(f'{data_file} removed')
+        if not debug:
+            os.remove(data_file)
+            print(f'{data_file} removed')
         
 if __name__ == "__main__":
     # get the argument of training.
@@ -269,5 +294,7 @@ if __name__ == "__main__":
     # run the umap
     if args.func_flag == 'umap':
         print("UMAP Starts.")
+        if args.debug:
+            print("In debug mode!!")
         ssl_v2_umap(debug=args.debug)
         print("UMAP Ends.")

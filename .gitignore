@@ -28,9 +28,14 @@ wheels/
 *.egg
 MANIFEST
 
+# Misc
+*.pkl
+tmp.*
+
 # Data
 *.nc
 *.h5
+*.csv
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
