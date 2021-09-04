@@ -8,12 +8,12 @@ spec:
     spec:
       containers:
       - name: container
-        image: localhost:30081/karlschwarz2021/ulmos_ssl:v0 # UPDATE
+        image: localhost:30081/profxj/ulmo_nvidia:latest # UPDATE
         imagePullPolicy: Always
         resources:
           requests:
             cpu: "1"
-            memory: "36Gi"
+            memory: "48Gi"
             ephemeral-storage: "50Gi" 
           limits:
             cpu: "2"
@@ -26,7 +26,9 @@ spec:
         command: ["/bin/bash", "-c"]
         args:
           - rm -rf /ulmo/;
-            git clone -b llc_ssl_full https://github.com/AI-for-Ocean-Science/ulmo.git;
+          - git clone -b modis_ssl_full https://github.com/AI-for-Ocean-Science/ulmo.git;
+            cd /ulmo/;
+            python setup.py develop;
             aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp s3://llc/PreProc/LLC_modis2012_curl_preproc.h5 /ulmo/ulmo/runs/SSL/experiments/datasets/llc_dataset/;
             cd /ulmo/ulmo/runs/SSL/llc_ssl/;
             python ./llc_ssl.py --opt_path ./experiments/llc_modis_2012/opts.json --func_flag train;
