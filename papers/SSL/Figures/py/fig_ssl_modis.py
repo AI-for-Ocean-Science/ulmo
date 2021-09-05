@@ -46,8 +46,8 @@ metric_lbls = dict(min_slope=r'$\alpha_{\rm min}$',
                    lowDT=r'$\Delta T_{\rm low}$',
                    absDT=r'$|T_{90}| - |T_{10}|$',
                    LL='LL',
-                   zonal_slope=r'$\alpha_z$',
-                   merid_slope=r'$\alpha_m$',
+                   zonal_slope=r'$\alpha_{\rm AS}}$',
+                   merid_slope=r'$\alpha_{\rm AT}}$',
                    )
 
 if os.getenv('SST_OOD'):
@@ -529,8 +529,8 @@ def fig_slopes(outfile='fig_slopes.png', local=False, vmax=None,
                        cmap=plt.get_cmap('YlGnBu')) 
                        #mincnt=1,
     
-    jg.ax_joint.set_xlabel(r'$\alpha_z$')
-    jg.ax_joint.set_ylabel(r'$\alpha_m$')
+    jg.ax_joint.set_xlabel(metric_lbls['zonal_slope'])
+    jg.ax_joint.set_ylabel(metric_lbls['merid_slope'])
     jg.ax_joint.plot([-5, 1.], [-5, 1.], 'k--')
     #jg.ax_joint.set_ylim(ymnx)
 
