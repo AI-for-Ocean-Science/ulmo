@@ -26,13 +26,13 @@ spec:
         command: ["/bin/bash", "-c"]
         args:
           - rm -rf /ulmo/;
-          - git clone -b modis_ssl_full https://github.com/AI-for-Ocean-Science/ulmo.git;
+            git clone -b modis_ssl_full https://github.com/AI-for-Ocean-Science/ulmo.git;
             cd /ulmo/;
             python setup.py develop;
             aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp s3://llc/PreProc/LLC_modis2012_curl_preproc.h5 /ulmo/ulmo/runs/SSL/experiments/datasets/llc_dataset/;
             cd /ulmo/ulmo/runs/SSL/llc_ssl/;
             python ./llc_ssl.py --opt_path ./experiments/llc_modis_2012/opts.json --func_flag train;
-            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp /ulmo/ulmo/runs/SSL/llc_ssl/experiments/LLC_MODIS_2012_model/ s3://llc/LLC_MODIS_2012_model_30_epochs/ --recursive;
+            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp /ulmo/ulmo/runs/SSL/llc_ssl/experiments/llc_modis_2012_model/ s3://llc/SSL/LLC_MODIS_2012_model_30_epochs/ --recursive;
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"
