@@ -34,7 +34,9 @@ def parse_option():
         args: (dict) dictionary of the arguments.
     """
     parser = argparse.ArgumentParser("argument for training.")
-    parser.add_argument("--opt_path", type=str, help="path of 'opt.json' file.")
+    parser.add_argument("--opt_path", type=str, 
+                        default='./experiments/modis_model_v2/opts_2010.json',
+                        help="Path to options file. Defaults to local + 2010")
     parser.add_argument("--func_flag", type=str, help="flag of the function to be execute: 'train' or 'evaluate' or 'umap'.")
         # JFH Should the default now be true with the new definition.
     parser.add_argument('--debug', default=False, action='store_true',
@@ -153,6 +155,14 @@ def ssl_v2_umap(debug=False):
 def main_train(opt_path: str):
     """Train the model
 
+    After running on 2012 without a validation dataset,
+    I have now switched to running on 2010.  And to confuse
+    everyone, I am going to use the valid set for training
+    and the train set for validation.  This is to have ~100,000
+    for validation and ~800,000 for training.  
+
+    Yup, that is confusing
+
     Args:
         opt_path (str): Path + filename of options file
     """
@@ -160,8 +170,10 @@ def main_train(opt_path: str):
     opt = Params(opt_path)
     opt = option_preprocess(opt)
 
-    # build data loader
+    # build data loaders -- 
+    # NOTE: For 2010 we are swapping the roles of valid and train!!
     train_loader = modis_loader(opt)
+    valid_loader = modis_loader(opt, valid=True)
 
     # build model and criterion
     model, criterion = set_model(opt, cuda_use=opt.cuda_use)
@@ -176,10 +188,29 @@ def main_train(opt_path: str):
 
         # train for one epoch
         time1 = time.time()
-        loss = train_model(train_loader, model, criterion, 
-                           optimizer, epoch, opt, cuda_use=opt.cuda_use)
+        loss, losses_step, losses_avg = train_model(
+            train_loader, model, criterion, optimizer, epoch, opt, 
+            cuda_use=opt.cuda_use)
+        #loss = train_model(train_loader, model, criterion, 
+        #                   optimizer, epoch, opt, cuda_use=opt.cuda_use)
         time2 = time.time()
         print('epoch {}, total time {:.2f}'.format(epoch, time2 - time1))
+
+        # Validate?
+        if epoch % opt.valid_freq == 0:
+            epoch_valid = epoch // opt.valid_freq
+            time1_valid = time.time()
+            loss, losses_step, losses_avg = train_model(
+                valid_loader, model, criterion, epoch_valid, opt, 
+                cuda_use=opt.cuda_use, update_model=False)
+           
+            # record valid loss
+            loss_valid.append(loss)
+            loss_step_valid += losses_step
+            loss_avg_valid += losses_avg
+        
+            time2_valid = time.time()
+            print('valid epoch {}, total time {:.2f}'.format(epoch_valid, time2_valid - time1_valid))
 
         if epoch % opt.save_freq == 0:
             # Save locally
@@ -196,6 +227,22 @@ def main_train(opt_path: str):
     # Save to s3
     s3_file = os.path.join(opt.s3_outdir, 'last.pth')
     ulmo_io.upload_file_to_s3(save_file, s3_file)
+
+    # Save the losses
+    if not os.path.isdir('./learning_curve/'):
+        os.mkdir('./learning_curve/')
+        
+    losses_file_train = f'./learning_curve/{opt.dataset}_losses_train.h5'
+    losses_file_valid = f'./learning_curve/{opt.dataset}_losses_valid.h5'
+    
+    with h5py.File(losses_file_train, 'w') as f:
+        f.create_dataset('loss_train', data=np.array(loss_train))
+        f.create_dataset('loss_step_train', data=np.array(loss_step_train))
+        f.create_dataset('loss_avg_train', data=np.array(loss_avg_train))
+    with h5py.File(losses_file_valid, 'w') as f:
+        f.create_dataset('loss_valid', data=np.array(loss_valid))
+        f.create_dataset('loss_step_valid', data=np.array(loss_step_valid))
+        f.create_dataset('loss_avg_valid', data=np.array(loss_avg_valid))
 
         
 def main_evaluate(opt_path, model_file, 

@@ -265,36 +265,39 @@ class ModisDataset(Dataset):
     
 def modis_loader(opt, valid=False):
     """
-    This is a function used to create the modis data loader.
+    This is a function used to create a MODIS data loader.
     
     Args:
         opt: (Params) options for the training process.
         
     Returns:
-        train_loader: (Dataloader) Modis Dataloader.
+        loader: (Dataloader) Modis Dataloader.
     """
     transforms_compose = transforms.Compose([RandomRotate(),
                                              JitterCrop(),
                                              GaussianNoise(),
                                              transforms.ToTensor()])
     if not valid:
-        modis_path = opt.data_folder
-        data_key = opt.data_key
+        modis_path = opt.train_folder
+        data_key = opt.train_key
+        batch_size = opt.train_batch_size
     else:
         modis_path = opt.valid_folder
         data_key = opt.valid_key
+        batch_size = opt.valid_batch_size
     modis_file = os.path.join(modis_path, os.listdir(modis_path)[0])
     modis_dataset = ModisDataset(modis_file, 
                                  transform=TwoCropTransform(transforms_compose), 
                                  data_key=data_key)
-    train_sampler = None
-    train_loader = torch.utils.data.DataLoader(
-                    modis_dataset, batch_size=opt.batch_size, shuffle=(train_sampler is None),
+    sampler = None
+    loader = torch.utils.data.DataLoader(
+                    modis_dataset, batch_size=batch_size, shuffle=(train_sampler is None),
                     num_workers=opt.num_workers, pin_memory=False, sampler=train_sampler)
     
-    return train_loader
+    return loader
 
 
+'''
 def modis_loader_v2(opt, valid=False):
     """
     This is a function used to create the modis data loader using the 
@@ -322,13 +325,18 @@ def modis_loader_v2(opt, valid=False):
     modis_file = os.path.join(modis_path, os.listdir(modis_path)[0])
     #from_s3 = (modis_path.split(':')[0] == 's3')
     #modis_dataset = ModisDataset(modis_path, transform=TwoCropTransform(transforms_compose), from_s3=from_s3)
-    modis_dataset = ModisDataset(modis_file, transform=TwoCropTransform(transforms_compose), data_key=data_key)
+    modis_dataset = ModisDataset(modis_file, 
+                                 transform=TwoCropTransform(transforms_compose), 
+                                 data_key=data_key)
     train_sampler = None
     train_loader = torch.utils.data.DataLoader(
-                    modis_dataset, batch_size=batch_size, shuffle=(train_sampler is None),
-                    num_workers=opt.num_workers, pin_memory=False, sampler=train_sampler)
+                    modis_dataset, batch_size=batch_size, 
+                    shuffle=(train_sampler is None),
+                    num_workers=opt.num_workers, pin_memory=False, 
+                    sampler=train_sampler)
     
     return train_loader
+'''
 
 def modis_loader_v2_with_blurring(opt, valid=False):
     """
@@ -390,7 +398,8 @@ def set_model(opt, cuda_use=True):
 
     return model, criterion
 
-def train_model(train_loader, model, criterion, optimizer, epoch, opt, cuda_use=True):
+def train_model(train_loader, model, criterion, optimizer, 
+                epoch, opt, cuda_use=True, update_model=True):
     """
     one epoch training.
     
@@ -399,6 +408,14 @@ def train_model(train_loader, model, criterion, optimizer, epoch, opt, cuda_use=
         process.
         model: (torch.nn.Module)
         criterion: (torch.nn.Module) loss of the training model.
+        update_mode: (bool)
+            Update the model.  Should be True unless you are running
+            on the valid dataset
+
+    Returns:
+        losses.avg: (float32) 
+        losses_step_list: (list)
+        losses_avg_list: (list)
     """
     
     model.train()
@@ -408,6 +425,8 @@ def train_model(train_loader, model, criterion, optimizer, epoch, opt, cuda_use=
     losses = AverageMeter()
 
     end = time.time()
+    losses_avg_list, losses_step_list = [], []
+
     for idx, images in enumerate(train_loader):
         data_time.update(time.time() - end)
 
@@ -436,13 +455,18 @@ def train_model(train_loader, model, criterion, optimizer, epoch, opt, cuda_use=
         losses.update(loss.item(), bsz)
 
         # SGD
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+        if update_model:
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
         # measure elapsed time
         batch_time.update(time.time() - end)
         end = time.time()
+
+        # record losses
+        losses_step_list.append(losses.val)
+        losses_avg_list.append(losses.avg)
         
         # print info
         if (idx + 1) % opt.print_freq == 0:
@@ -454,7 +478,7 @@ def train_model(train_loader, model, criterion, optimizer, epoch, opt, cuda_use=
                    data_time=data_time, loss=losses))
             sys.stdout.flush()
             
-    return losses.avg
+    return losses.avg, losses_step_list, losses_avg_list
 
 def valid_model(valid_loader, model, criterion, epoch, opt, cuda_use=True):
     """
@@ -514,6 +538,7 @@ def valid_model(valid_loader, model, criterion, epoch, opt, cuda_use=True):
 ##############################################################################################
 ### modules for learning curve plots
 
+'''
 def train_learn_curve(train_loader, model, criterion, optimizer, epoch, opt, cuda_use=True):
     """
     one epoch training.
@@ -593,73 +618,4 @@ def train_learn_curve(train_loader, model, criterion, optimizer, epoch, opt, cud
             sys.stdout.flush()
 
     return losses.avg, losses_step_list, losses_avg_list
-
-def valid_learn_curve(valid_loader, model, criterion, epoch, opt, cuda_use=True):
-    """
-    one epoch validation.
-    
-    Args:
-        valid_loader: (Dataloader) data loader for the training 
-        process.
-        model: (torch.nn.Module)
-        criterion: (torch.nn.Module) loss of the training model.
-        
-    Returns:
-        losses.avg: (float32)
-        losses_step_list: (list)
-        losses_avg_list: (list)
-    """
-    
-    batch_time = AverageMeter()
-    data_time = AverageMeter()
-    losses = AverageMeter()
-
-    end = time.time()
-    losses_avg_list, losses_step_list = [], []
-    
-    for idx, images in enumerate(valid_loader):
-        #if idx > 2:
-        #    break
-            
-        data_time.update(time.time() - end)
-
-        images = torch.cat([images[0], images[1]], dim=0)
-        if torch.cuda.is_available() and cuda_use:
-            images = images.cuda(non_blocking=True)
-            #labels = labels.cuda(non_blocking=True)
-        bsz = images.shape[0] // 2
-
-        # compute loss
-        features = model(images)
-        f1, f2 = torch.split(features, [bsz, bsz], dim=0)
-        features = torch.cat([f1.unsqueeze(1), f2.unsqueeze(1)], dim=1)
-        if opt.method == 'SupCon':
-            loss = criterion(features, labels)
-        elif opt.method == 'SimCLR':
-            loss = criterion(features)
-        else:
-            raise ValueError('contrastive method not supported: {}'.
-                             format(opt.method))
-        # update metric
-        losses.update(loss.item(), bsz)
-
-        # measure elapsed time
-        batch_time.update(time.time() - end)
-        end = time.time()
-        
-        # record losses
-        losses_step_list.append(losses.val)
-        losses_avg_list.append(losses.avg)
-        
-        # print info
-        if (idx + 1) % opt.print_freq == 0:
-            print('Valid: [{0}][{1}/{2}]\t'
-                  'BT {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                  'DT {data_time.val:.3f} ({data_time.avg:.3f})\t'
-                  'loss {loss.val:.3f} ({loss.avg:.3f})'.format(
-                   epoch, idx + 1, len(valid_loader), batch_time=batch_time,
-                   data_time=data_time, loss=losses))
-            sys.stdout.flush()
-            
-    return losses.avg, losses_step_list, losses_avg_list
-    
+'''

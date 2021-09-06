@@ -670,6 +670,7 @@ def fig_fit_metric(outroot='fig_fit_', metric=None,
 
 
         
+'''
 #########################################################
 ### function used to create the learning plots
 
@@ -735,6 +736,7 @@ def fig_train_valid_learn_curve(opt_path: str):
         f.create_dataset('loss_valid', data=np.array(loss_valid))
         f.create_dataset('loss_step_valid', data=np.array(loss_step_valid))
         f.create_dataset('loss_avg_valid', data=np.array(loss_avg_valid))
+'''
     
 #### ########################## #########################
 def main(pargs):
