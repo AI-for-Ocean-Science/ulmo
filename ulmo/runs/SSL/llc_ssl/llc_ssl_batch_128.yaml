@@ -1,0 +1,71 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: erdong-llc-modis-ssl-30-epochs
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      containers:
+      - name: container
+        image: localhost:30081/profxj/ulmo_nvidia:latest # UPDATE
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: "1"
+            memory: "48Gi"
+            ephemeral-storage: "50Gi" 
+          limits:
+            cpu: "2"
+            memory: "48Gi"
+            ephemeral-storage: "100Gi"
+            nvidia.com/gpu:  "4"  # See docs to exlude certain types
+            # https://ucsd-prp.gitlab.io/userdocs/running/gpu-pods/
+            #command: ["sh", "-c", "sleep 1000000"]
+        command: ["/bin/bash", "-c"]
+        args:
+          - rm -rf /ulmo/;
+            git clone -b modis_ssl_full https://github.com/AI-for-Ocean-Science/ulmo.git;
+            cd /ulmo/;
+            python setup.py develop;
+            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp s3://llc/PreProc/LLC_modis2012_curl_preproc.h5 /ulmo/ulmo/runs/SSL/experiments/datasets/llc_dataset/;
+            cd /ulmo/ulmo/runs/SSL/llc_ssl/;
+            python ./llc_ssl.py --opt_path ./experiments/llc_modis_2012/opts_batch_128.json --func_flag train;
+            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp /ulmo/ulmo/runs/SSL/llc_ssl/experiments/llc_modis_2012_model/ s3://llc/SSL/LLC_MODIS_2012_model_30_epochs/ --recursive;
+        env:
+          - name: "ENDPOINT_URL"
+            value: "http://rook-ceph-rgw-nautiluss3.rook"
+          - name: "S3_ENDPOINT"
+            value: "rook-ceph-rgw-nautiluss3.rook"
+          - name: "PYTHONPATH"
+            value: "/ulmo/"
+        volumeMounts:
+          - name: prp-s3-credentials
+            mountPath: "/root/.aws/credentials"
+            subPath: "credentials"
+          - name: ephemeral 
+            mountPath: "/tmp"
+          - name: "dshm"
+            mountPath: "/dev/shm"
+          - name: comet-pin-volume
+            mountPath: "/etc/comet-pin-volume"
+      nodeSelector:
+        nautilus.io/disktype: nvme
+        gpu-type: "1080Ti"  # titan-xp
+      restartPolicy: Never
+      volumes:
+        # Secrets file for nautilus s3 credentials .aws/credentials and .s3cfg
+        - name: prp-s3-credentials
+          secret:
+            secretName: prp-s3-credentials
+        # Shared memory (necessary for Python's multiprocessing.shared_memory module to work)
+        - name: dshm
+          emptyDir:
+            medium: Memory
+        # Ephemeral storage
+        - name: ephemeral
+          emptyDir: {}
+        # Comet pin volume
+        - name: comet-pin-volume
+          secret:
+            secretName: erdong-comet-secret
