@@ -19,6 +19,7 @@ from ulmo.ssl import analysis as ssl_analysis
 from ulmo.ssl.util import adjust_learning_rate
 from ulmo.ssl.util import set_optimizer, save_model
 from ulmo.ssl import latents_extraction
+from ulmo.ssl import defs as ssl_defs
 
 from ulmo.ssl.train_util import Params, option_preprocess
 from ulmo.ssl.train_util import modis_loader, set_model
@@ -170,6 +171,9 @@ def main_train(opt_path: str):
     opt = Params(opt_path)
     opt = option_preprocess(opt)
 
+    # Vet
+    assert cat_utils.vet_main_table(opt, data_model=ssl_defs.ssl_opt_dmodel)
+
     # build data loaders -- 
     # NOTE: For 2010 we are swapping the roles of valid and train!!
     train_loader = modis_loader(opt)
@@ -181,7 +185,12 @@ def main_train(opt_path: str):
     # build optimizer
     optimizer = set_optimizer(opt, model)
     
+    loss_train, loss_step_train, loss_avg_train = [], [], []
+    loss_valid, loss_step_valid, loss_avg_valid = [], [], []
+
     # training routine
+    if not os.path.isdir('./mod/'):
+        os.mkdir('./learning_curve/')
     for epoch in trange(1, opt.epochs + 1):
 
         adjust_learning_rate(opt, optimizer, epoch)
@@ -191,8 +200,13 @@ def main_train(opt_path: str):
         loss, losses_step, losses_avg = train_model(
             train_loader, model, criterion, optimizer, epoch, opt, 
             cuda_use=opt.cuda_use)
-        #loss = train_model(train_loader, model, criterion, 
-        #                   optimizer, epoch, opt, cuda_use=opt.cuda_use)
+
+        # record train loss
+        loss_train.append(loss)
+        loss_step_train += losses_step
+        loss_avg_train += losses_avg
+
+
         time2 = time.time()
         print('epoch {}, total time {:.2f}'.format(epoch, time2 - time1))
 
@@ -212,28 +226,22 @@ def main_train(opt_path: str):
             time2_valid = time.time()
             print('valid epoch {}, total time {:.2f}'.format(epoch_valid, time2_valid - time1_valid))
 
+        # Save model?
         if epoch % opt.save_freq == 0:
             # Save locally
-            save_file = 'ckpt_epoch_{epoch}.pth'.format(epoch=epoch)
+            save_file = f'{opt.dataset}/models/ckpt_epoch_{epoch}.pth'
             save_model(model, optimizer, opt, epoch, save_file)
-            # Save to s3
-            s3_file = os.path.join(
-                opt.s3_outdir, 'ckpt_epoch_{epoch}.pth'.format(epoch=epoch))
-            ulmo_io.upload_file_to_s3(save_file, s3_file)
 
     # save the last model local
     save_file = 'last.pth'
     save_model(model, optimizer, opt, opt.epochs, save_file)
-    # Save to s3
-    s3_file = os.path.join(opt.s3_outdir, 'last.pth')
-    ulmo_io.upload_file_to_s3(save_file, s3_file)
 
     # Save the losses
-    if not os.path.isdir('./learning_curve/'):
-        os.mkdir('./learning_curve/')
+    if not os.path.isdir(f'{opt.dataset}/learning_curve/'):
+        os.mkdir(f'{opt.dataset}/learning_curve/')
         
-    losses_file_train = f'./learning_curve/{opt.dataset}_losses_train.h5'
-    losses_file_valid = f'./learning_curve/{opt.dataset}_losses_valid.h5'
+    losses_file_train = f'{opt.dataset}/learning_curve/{opt.dataset}_losses_train.h5'
+    losses_file_valid = f'{opt.dataset}/learning_curve/{opt.dataset}_losses_valid.h5'
     
     with h5py.File(losses_file_train, 'w') as f:
         f.create_dataset('loss_train', data=np.array(loss_train))

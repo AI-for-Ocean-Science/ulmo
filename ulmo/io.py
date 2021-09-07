@@ -4,6 +4,7 @@ import os
 import numpy as np
 import xarray as xr
 
+import json
 import pandas
 import h5py 
 from urllib.parse import urlparse
@@ -26,6 +27,37 @@ open = functools.partial(smart_open.open,
                              {'endpoint_url': endpoint_url}})
 
 import boto3
+class Params():
+    """Class that loads hyperparameters from a json file.
+    Example:
+    ```
+    params = Params(json_path)
+    print(params.learning_rate)
+    params.learning_rate = 0.5  # change the value of learning_rate in params
+    ```
+    This module comes from:
+    https://github.com/cs230-stanford/cs230-code-examples/blob/master/pytorch/vision/utils.py
+    """
+
+    def __init__(self, json_path):
+        with open(json_path) as f:
+            params = json.load(f)
+            self.__dict__.update(params)
+
+    def save(self, json_path):
+        with open(json_path, 'w') as f:
+            json.dump(self.__dict__, f, indent=4)
+            
+    def update(self, json_path):
+        """Loads parameters from json file"""
+        with open(json_path) as f:
+            params = json.load(f)
+            self.__dict__.update(params)
+
+    @property
+    def dict(self):
+        """Gives dict-like access to Params instance by `params.dict['learning_rate']"""
+        return self.__dict__
 
 def grab_cutout(cutout:pandas.core.series.Series, 
                close=True, pp_hf=None):                

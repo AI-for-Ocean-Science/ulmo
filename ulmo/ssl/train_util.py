@@ -4,7 +4,6 @@ import numpy as np
 import math
 import time
 
-import json
 import skimage.transform
 import skimage.filters
 import h5py
@@ -20,39 +19,10 @@ from ulmo.ssl.losses import SupConLoss
 from ulmo.ssl.util import TwoCropTransform, AverageMeter
 from ulmo.ssl.util import warmup_learning_rate
 
-class Params():
-    """Class that loads hyperparameters from a json file.
-    Example:
-    ```
-    params = Params(json_path)
-    print(params.learning_rate)
-    params.learning_rate = 0.5  # change the value of learning_rate in params
-    ```
-    This module comes from:
-    https://github.com/cs230-stanford/cs230-code-examples/blob/master/pytorch/vision/utils.py
-    """
+from ulmo import io as ulmo_io
 
-    def __init__(self, json_path):
-        with open(json_path) as f:
-            params = json.load(f)
-            self.__dict__.update(params)
-
-    def save(self, json_path):
-        with open(json_path, 'w') as f:
-            json.dump(self.__dict__, f, indent=4)
-            
-    def update(self, json_path):
-        """Loads parameters from json file"""
-        with open(json_path) as f:
-            params = json.load(f)
-            self.__dict__.update(params)
-
-    @property
-    def dict(self):
-        """Gives dict-like access to Params instance by `params.dict['learning_rate']"""
-        return self.__dict__
     
-def option_preprocess(opt: Params):
+def option_preprocess(opt:ulmo_io.Params):
     """
     Args:
         opt: (Params) json used to store the training hyper-parameters
@@ -285,14 +255,17 @@ def modis_loader(opt, valid=False):
         modis_path = opt.valid_folder
         data_key = opt.valid_key
         batch_size = opt.valid_batch_size
-    modis_file = os.path.join(modis_path, os.listdir(modis_path)[0])
+    modis_file = os.path.join(modis_path, 
+                              os.listdir(modis_path)[0])
     modis_dataset = ModisDataset(modis_file, 
                                  transform=TwoCropTransform(transforms_compose), 
                                  data_key=data_key)
-    sampler = None
+    train_sampler = None                                
     loader = torch.utils.data.DataLoader(
-                    modis_dataset, batch_size=batch_size, shuffle=(train_sampler is None),
-                    num_workers=opt.num_workers, pin_memory=False, sampler=train_sampler)
+                    modis_dataset, batch_size=batch_size, 
+                    shuffle=(train_sampler is None),
+                    num_workers=opt.num_workers, 
+                    pin_memory=False, sampler=train_sampler)
     
     return loader
 
