@@ -153,7 +153,7 @@ def ssl_v2_umap(debug=False):
         ulmo_io.write_main_table(modis_tbl, tbl_file) 
 
 
-def main_train(opt_path: str):
+def main_train(opt_path: str, debug=False):
     """Train the model
 
     After running on 2012 without a validation dataset,
@@ -166,15 +166,21 @@ def main_train(opt_path: str):
 
     Args:
         opt_path (str): Path + filename of options file
+        debug (bool): 
     """
     # loading parameters json file
     opt = ulmo_io.Params(opt_path)
+    if debug:
+        opt.epochs = 2
     opt = option_preprocess(opt)
 
     # Vet
     assert cat_utils.vet_main_table(opt.__dict__, 
                                     data_model=ssl_defs.ssl_opt_dmodel)
-    import pdb; pdb.set_trace()
+
+    # Save opts                                    
+    opt.save(os.path.join(opt.model_folder, 
+                          os.path.basename(opt_path)))
 
     # build data loaders -- 
     # NOTE: For 2010 we are swapping the roles of valid and train!!
@@ -190,9 +196,6 @@ def main_train(opt_path: str):
     loss_train, loss_step_train, loss_avg_train = [], [], []
     loss_valid, loss_step_valid, loss_avg_valid = [], [], []
 
-    # training routine
-    if not os.path.isdir('./mod/'):
-        os.mkdir('./learning_curve/')
     for epoch in trange(1, opt.epochs + 1):
 
         adjust_learning_rate(opt, optimizer, epoch)
@@ -231,19 +234,22 @@ def main_train(opt_path: str):
         # Save model?
         if epoch % opt.save_freq == 0:
             # Save locally
-            save_file = f'{opt.dataset}/models/ckpt_epoch_{epoch}.pth'
+            save_file = os.path.join(opt.model_folder,
+                                     f'ckpt_epoch_{epoch}.pth')
             save_model(model, optimizer, opt, epoch, save_file)
 
     # save the last model local
-    save_file = 'last.pth'
+    save_file = os.path.join(opt.model_folder, 'last.pth')
     save_model(model, optimizer, opt, opt.epochs, save_file)
 
     # Save the losses
-    if not os.path.isdir(f'{opt.dataset}/learning_curve/'):
-        os.mkdir(f'{opt.dataset}/learning_curve/')
+    if not os.path.isdir(f'{opt.model_folder}/learning_curve/'):
+        os.mkdir(f'{opt.model_folder}/learning_curve/')
         
-    losses_file_train = f'{opt.dataset}/learning_curve/{opt.dataset}_losses_train.h5'
-    losses_file_valid = f'{opt.dataset}/learning_curve/{opt.dataset}_losses_valid.h5'
+    losses_file_train = os.path.join(opt.model_folder,'learning_curve',
+                                     f'{opt.model_name}_losses_train.h5')
+    losses_file_valid = os.path.join(opt.model_folder,'learning_curve',
+                                     f'{opt.model_name}_losses_valid.h5')
     
     with h5py.File(losses_file_train, 'w') as f:
         f.create_dataset('loss_train', data=np.array(loss_train))
@@ -337,7 +343,7 @@ if __name__ == "__main__":
     # run the 'main_train()' function.
     if args.func_flag == 'train':
         print("Training Starts.")
-        main_train(args.opt_path)
+        main_train(args.opt_path, debug=args.debug)
         print("Training Ends.")
     
     # run the "main_evaluate()" function.

@@ -248,24 +248,22 @@ def modis_loader(opt, valid=False):
                                              GaussianNoise(),
                                              transforms.ToTensor()])
     if not valid:
-        modis_path = opt.train_folder
         data_key = opt.train_key
-        batch_size = opt.train_batch_size
+        batch_size = opt.batch_size
     else:
-        modis_path = opt.valid_folder
         data_key = opt.valid_key
-        batch_size = opt.valid_batch_size
-    modis_file = os.path.join(modis_path, 
-                              os.listdir(modis_path)[0])
+        batch_size = opt.batch_size
+    modis_file = os.path.join(opt.data_folder, opt.images_file) 
+
     modis_dataset = ModisDataset(modis_file, 
                                  transform=TwoCropTransform(transforms_compose), 
                                  data_key=data_key)
-    train_sampler = None                                
+    sampler = None                                
     loader = torch.utils.data.DataLoader(
                     modis_dataset, batch_size=batch_size, 
-                    shuffle=(train_sampler is None),
+                    shuffle=(sampler is None),
                     num_workers=opt.num_workers, 
-                    pin_memory=False, sampler=train_sampler)
+                    pin_memory=False, sampler=sampler)
     
     return loader
 
@@ -355,7 +353,7 @@ def set_model(opt, cuda_use=True):
         model: (torch.nn.Module) model class set up by opt.
         criterion: (scalar) training loss.
     """
-    model = SupConResNet(name=opt.model, feat_dim=opt.feat_dim)
+    model = SupConResNet(name=opt.ssl_model, feat_dim=opt.feat_dim)
     criterion = SupConLoss(temperature=opt.temp)
 
     # enable synchronized Batch Normalization
@@ -375,6 +373,8 @@ def train_model(train_loader, model, criterion, optimizer,
                 epoch, opt, cuda_use=True, update_model=True):
     """
     one epoch training.
+
+    Also used for validation with update_model=False
     
     Args:
         train_loader: (Dataloader) data loader for the training 
@@ -384,6 +384,8 @@ def train_model(train_loader, model, criterion, optimizer,
         update_mode: (bool)
             Update the model.  Should be True unless you are running
             on the valid dataset
+        epoch: (int)
+        opt: (Params)
 
     Returns:
         losses.avg: (float32) 
@@ -416,13 +418,13 @@ def train_model(train_loader, model, criterion, optimizer,
         features = model(images)
         f1, f2 = torch.split(features, [bsz, bsz], dim=0)
         features = torch.cat([f1.unsqueeze(1), f2.unsqueeze(1)], dim=1)
-        if opt.method == 'SupCon':
+        if opt.ssl_method == 'SupCon':
             loss = criterion(features, labels)
-        elif opt.method == 'SimCLR':
+        elif opt.ssl_method == 'SimCLR':
             loss = criterion(features)
         else:
             raise ValueError('contrastive method not supported: {}'.
-                             format(opt.method))
+                             format(opt.ssl_method))
 
         # update metric
         losses.update(loss.item(), bsz)
@@ -453,6 +455,7 @@ def train_model(train_loader, model, criterion, optimizer,
             
     return losses.avg, losses_step_list, losses_avg_list
 
+'''
 def valid_model(valid_loader, model, criterion, epoch, opt, cuda_use=True):
     """
     one epoch validation.
@@ -507,6 +510,7 @@ def valid_model(valid_loader, model, criterion, epoch, opt, cuda_use=True):
             sys.stdout.flush()
             
     return losses.avg
+'''
     
 ##############################################################################################
 ### modules for learning curve plots
