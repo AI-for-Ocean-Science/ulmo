@@ -21,7 +21,7 @@ from ulmo.ssl.util import set_optimizer, save_model
 from ulmo.ssl import latents_extraction
 from ulmo.ssl import defs as ssl_defs
 
-from ulmo.ssl.train_util import Params, option_preprocess
+from ulmo.ssl.train_util import option_preprocess
 from ulmo.ssl.train_util import modis_loader, set_model
 from ulmo.ssl.train_util import train_model
 
@@ -168,11 +168,13 @@ def main_train(opt_path: str):
         opt_path (str): Path + filename of options file
     """
     # loading parameters json file
-    opt = Params(opt_path)
+    opt = ulmo_io.Params(opt_path)
     opt = option_preprocess(opt)
 
     # Vet
-    assert cat_utils.vet_main_table(opt, data_model=ssl_defs.ssl_opt_dmodel)
+    assert cat_utils.vet_main_table(opt.__dict__, 
+                                    data_model=ssl_defs.ssl_opt_dmodel)
+    import pdb; pdb.set_trace()
 
     # build data loaders -- 
     # NOTE: For 2010 we are swapping the roles of valid and train!!

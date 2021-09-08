@@ -38,16 +38,14 @@ def option_preprocess(opt:ulmo_io.Params):
     if opt.data_folder is None:
         opt.data_folder = './experimens/datasets/'
     
-    if opt.model_folder is None: 
-        opt.model_folder = f'./experiments/{opt.method}/{opt.dataset}_models'
 
     iterations = opt.lr_decay_epochs.split(',')
     opt.lr_decay_epochs = list([])
     for it in iterations:
         opt.lr_decay_epochs.append(int(it))
 
-    opt.model_name = '{}_{}_{}_lr_{}_decay_{}_bsz_{}_temp_{}_trial_{}'.\
-        format(opt.method, opt.dataset, opt.model, opt.learning_rate,
+    opt.model_name = '{}_{}_lr_{}_decay_{}_bsz_{}_temp_{}_trial_{}'.\
+        format(opt.ssl_method, opt.ssl_model, opt.learning_rate,
                opt.weight_decay, opt.batch_size, opt.temp, opt.trial)
 
     if opt.cosine:
@@ -67,9 +65,11 @@ def option_preprocess(opt:ulmo_io.Params):
         else:
             opt.warmup_to = opt.learning_rate
 
-    opt.save_folder = os.path.join(opt.model_folder, opt.model_name)
-    if not os.path.isdir(opt.save_folder):
-        os.makedirs(opt.save_folder)
+    # Save folder
+    opt.model_folder = os.path.join('models', opt.model_root,
+                                    opt.model_name)
+    if not os.path.isdir(opt.model_folder):
+        os.makedirs(opt.model_folder)
 
     return opt
     

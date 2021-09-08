@@ -72,7 +72,7 @@ def vet_main_table(table:pandas.DataFrame, cut_prefix=None,
             chk = False
         # Allow for dict
         item = table[key] if isinstance(
-            table, dict) else item = table.iloc[0][key] 
+            table, dict) else table.iloc[0][key] 
         # Check datat type
         if not isinstance(item, data_model[skey]['dtype']):
             badtype_keys.append(key)

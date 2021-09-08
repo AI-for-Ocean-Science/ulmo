@@ -10,11 +10,11 @@ from tqdm.auto import trange
 import torch
 import tqdm
 
-from ulmo.utils import HDF5Dataset, id_collate
+from ulmo.io import Params
+from ulmo.utils import id_collate
 
-from ulmo.ssl.train_util import Params, option_preprocess
+from ulmo.ssl.train_util import option_preprocess
 from ulmo.ssl.train_util import modis_loader, set_model
-from ulmo.ssl.train_util import train_model
 
 from IPython import embed
 
