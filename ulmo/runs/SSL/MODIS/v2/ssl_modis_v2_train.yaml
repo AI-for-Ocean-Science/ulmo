@@ -2,7 +2,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-ssl-modis-2012-train
+  name: xavier-ssl-modis-2010-train-debug
 spec:
   backoffLimit: 0
   template:
@@ -14,7 +14,7 @@ spec:
         resources:
           requests:
             cpu: "4"   # Should have used 4 instead of 2
-            memory: "2Gi"  # This was way too much! -- I see why Erdong used 1 Gb
+            memory: "2Gi"  # 
             ephemeral-storage: 50Gi
           limits:
             cpu: "8"
@@ -25,13 +25,13 @@ spec:
         args:
           - cd ulmo; 
             git fetch;
-            git checkout modis_ssl_full; 
+            git checkout ssl_paper; 
             git pull; 
             python setup.py develop;
             cd ulmo/runs/SSL/MODIS/v2;
-            mkdir experiments/datasets/;
-            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp s3://modis-l2/PreProc/MODIS_R2019_2012_95clear_128x128_preproc_std.h5 ./experiments/datasets/;
-            python ./ssl_modis_v2.py --opt_path ./experiments/modis_model_v2/opts_2012.json --func_flag train;
+            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp s3://modis-l2/PreProc/MODIS_R2019_2010_95clear_128x128_preproc_std.h5 ./;
+            python ./ssl_modis_v2.py --opt_path ./experiments/modis_model_v2/opts_2010.json --func_flag train --debug;
+            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp models s3://modis-l2/SSL --recursive --force;
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"
