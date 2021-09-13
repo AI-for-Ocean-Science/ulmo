@@ -1,6 +1,7 @@
 """ Analysis methods for self-supervised learning 
 """
 import numpy as np
+import pickle
 
 import pandas
 from matplotlib import pyplot as plt
@@ -14,7 +15,7 @@ from IPython import embed
 
 def latents_umap(latents:np.ndarray, train:np.ndarray, 
          valid:np.ndarray, valid_tbl:pandas.DataFrame,
-         fig_root='', debug=False):
+         fig_root='', transformer_file=None):
     """ Run a UMAP on input latent vectors.
     A subset are used to train the UMAP and then
     one applies it to the valid set.
@@ -28,17 +29,16 @@ def latents_umap(latents:np.ndarray, train:np.ndarray,
         valid (np.ndarray): indices for applying the UMAP
         valid_tbl (pandas.DataFrame): [description]
         fig_root (str, optional): [description]. Defaults to ''.
-        debug (bool, optional): [description]. Defaults to False.
-        cut_prefix ([type], optional): [description]. Defaults to None.
-
-    Returns:
-        tuple: train_embedding, valid_embedding, latents_mapping
+        transformer_file (str, optional): Write the UMAP fit to this file
     """
 
     # UMAP me
     print("Running UMAP..")
     reducer_umap = umap.UMAP()
     latents_mapping = reducer_umap.fit(latents[train])
+    if transformer_file is not None:
+        pickle.dump(latents_mapping, open(transformer_file, "wb" ) )
+        tmp = pickle.load(ulmo_io.open(transformer_file, "rb" ) )
     print("Done")
 
     # Apply to embedding
