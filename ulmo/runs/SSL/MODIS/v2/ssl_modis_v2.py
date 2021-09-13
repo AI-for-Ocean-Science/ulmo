@@ -184,10 +184,6 @@ def main_train(opt_path: str, debug=False):
     opt.save(os.path.join(opt.model_folder, 
                           os.path.basename(opt_path)))
 
-    # build data loaders -- 
-    # NOTE: For 2010 we are swapping the roles of valid and train!!
-    train_loader = modis_loader(opt)
-    valid_loader = modis_loader(opt, valid=True)
 
     # build model and criterion
     model, criterion = set_model(opt, cuda_use=opt.cuda_use)
@@ -199,6 +195,10 @@ def main_train(opt_path: str, debug=False):
     loss_valid, loss_step_valid, loss_avg_valid = [], [], []
 
     for epoch in trange(1, opt.epochs + 1):
+
+        # build data loader
+        # NOTE: For 2010 we are swapping the roles of valid and train!!
+        train_loader = modis_loader(opt)
 
         adjust_learning_rate(opt, optimizer, epoch)
 
@@ -213,12 +213,16 @@ def main_train(opt_path: str, debug=False):
         loss_step_train += losses_step
         loss_avg_train += losses_avg
 
-
         time2 = time.time()
         print('epoch {}, total time {:.2f}'.format(epoch, time2 - time1))
 
+        del train_loader
+
         # Validate?
         if epoch % opt.valid_freq == 0:
+            # Data Loader
+            valid_loader = modis_loader(opt, valid=True)
+            #
             epoch_valid = epoch // opt.valid_freq
             time1_valid = time.time()
             loss, losses_step, losses_avg = train_model(
@@ -232,6 +236,9 @@ def main_train(opt_path: str, debug=False):
         
             time2_valid = time.time()
             print('valid epoch {}, total time {:.2f}'.format(epoch_valid, time2_valid - time1_valid))
+
+            # Free up memory
+            del valid_loader
 
         # Save model?
         if (epoch % opt.save_freq) == 0:
