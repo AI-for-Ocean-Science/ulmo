@@ -108,6 +108,11 @@ def model_latents_extract(opt, modis_data_file, modis_partition,
         save_path: (string or None) path for saving the latents.
         save_key: (string or None) path for the key of the saved latents.
         loader: (torch.utils.data.DataLoader, optional) Use this DataLoader, if provided
+        save_path: (str or None) path for saving the latents.
+        save_key: (str or None) path for the key of the saved latents.
+
+    Returns:
+        np.ndarray: latents_numpy
     """
     using_gpu = torch.cuda.is_available()
     model, _ = set_model(opt, cuda_use=using_gpu)
@@ -125,9 +130,12 @@ def model_latents_extract(opt, modis_data_file, modis_partition,
         model.load_state_dict(model_dict['model'])
     print("Model loaded")
 
+    # TODO -- Get this right on the ssl_full branch-- 
+    # Create Data Loader for evaluation
+    batch_size_eval, num_workers_eval = opt.batch_size_eval, opt.num_workers_eval
     # Data
     if loader is None:
-        _, loader = build_loader(modis_data_file, modis_partition)
+        _, loader = build_loader(modis_data_file, modis_partition, batch_size_eval, num_workers_eval)
 
     print("Beginning to evaluate")
     model.eval()
@@ -135,7 +143,7 @@ def model_latents_extract(opt, modis_data_file, modis_partition,
         latents_numpy = [calc_latent(
             model, data[0], using_gpu) for data in tqdm.tqdm(
                 loader, total=len(loader), unit='batch', 
-                desc='Computing log probs')]
+                desc='Computing latents')]
     
     # Save
     if save_path is not None:
@@ -145,31 +153,3 @@ def model_latents_extract(opt, modis_data_file, modis_partition,
 
     return np.concatenate(latents_numpy)
     
-
-'''        
-if __name__ == "__main__":
-    
-    model_path = "./experiments/base_modis_model/SimCLR_modis_resnet50_lr_0.05_decay_0.0001_bsz_64_temp_0.07_trial_1_cosine_warm/" \
-             "SimCLR_modis_resnet50_lr_0.05_decay_0.0001_bsz_64_temp_0.07_trial_0_cosine_warm"
-    model_name = "last.pth"
-    
-    opt_path = './experiments/base_modis_model/opts.json'
-    opt = Params(opt_path)
-    opt = option_preprocess(opt)
-    
-    modis_dataset_path = "./experiments/modis_dataset/MODIS_2010_95clear_128x128_inpaintT_preproc_0.8valid.h5"
-    
-    with h5py.File(modis_dataset_path, 'r') as file:
-        dataset_train = file['train'][:]
-        
-    save_path = './experiments/modis_latents/'
-    if not os.path.isdir(save_path):
-        os.makedirs(save_path)
-        
-    model_path_title = os.path.join(model_path, model_name)
-    model_name = model_name.split('.')[0]
-    latents_path = os.path.join(save_path, f'modis_latents_{model_name}.h5')
-    save_key = 'modis_latents'
-    
-    model_latents_extract(opt, dataset_train, model_path_title, latents_path, save_key)
-'''        

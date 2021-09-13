@@ -62,7 +62,7 @@ def list_of_bucket_files(bucket_name:str, prefix='/', delimiter='/'):
         delimiter (str, optional): [description]. Defaults to '/'.
 
     Returns:
-        [type]: [description]
+        list: List of files matching with full s3 path
     """
     prefix = prefix[1:] if prefix.startswith(delimiter) else prefix
     bucket = s3.Bucket(bucket_name)

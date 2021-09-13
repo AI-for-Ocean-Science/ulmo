@@ -1,0 +1,16 @@
+{
+    "image_file": "/data/Projects/Oceanography/AI/OOD/SST/MODIS_L2/PreProc/MODIS_R2019_2010_95clear_128x128_preproc_std.h5",
+    "image_key": "valid",
+    "Nimages": 500000,
+    "xy_values": "U0,U1",
+    "table_file": "MODIS_2010_valid_SSLv2.parquet",
+    "metrics": [
+        ["U0", "U0"],
+        ["U1", "U1"],
+        ["LL", "LL"],
+        ["DT", "DT"],
+        ["lon", "lon"],
+        ["lat", "lat"],
+        ["avgT", "mean_temperature"]
+    ]
+}
