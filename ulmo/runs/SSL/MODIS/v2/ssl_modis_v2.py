@@ -220,7 +220,7 @@ def main_train(opt_path: str, debug=False):
             epoch_valid = epoch // opt.valid_freq
             time1_valid = time.time()
             loss, losses_step, losses_avg = train_model(
-                valid_loader, model, criterion, epoch_valid, opt, 
+                valid_loader, model, criterion, optimizer, epoch_valid, opt, 
                 cuda_use=opt.cuda_use, update_model=False)
            
             # record valid loss
