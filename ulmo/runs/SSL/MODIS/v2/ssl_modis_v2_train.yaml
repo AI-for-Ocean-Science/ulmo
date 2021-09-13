@@ -13,12 +13,12 @@ spec:
         imagePullPolicy: Always
         resources:
           requests:
-            cpu: "5"   # Using at least 4
-            memory: "8Gi"  # Using ~7
+            cpu: "4"   # Using at least 4
+            memory: "10Gi"  # Using ~7
             ephemeral-storage: 50Gi
           limits:
             cpu: "8"
-            memory: "12Gi"
+            memory: "20Gi"
             ephemeral-storage: 100Gi
             nvidia.com/gpu:  "4"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]
