@@ -232,7 +232,7 @@ def main_train(opt_path: str, debug=False):
             print('valid epoch {}, total time {:.2f}'.format(epoch_valid, time2_valid - time1_valid))
 
         # Save model?
-        if epoch % opt.save_freq == 0:
+        if (epoch % opt.save_freq) == 0:
             # Save locally
             save_file = os.path.join(opt.model_folder,
                                      f'ckpt_epoch_{epoch}.pth')

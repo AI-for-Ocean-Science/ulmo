@@ -31,7 +31,7 @@ spec:
             cd ulmo/runs/SSL/MODIS/v2;
             aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp s3://modis-l2/PreProc/MODIS_R2019_2010_95clear_128x128_preproc_std.h5 ./;
             python ./ssl_modis_v2.py --opt_path ./experiments/modis_model_v2/opts_2010.json --func_flag train --debug;
-            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp models s3://modis-l2/SSL --recursive --force;
+            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp models s3://modis-l2/SSL/models --recursive --force;
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"
