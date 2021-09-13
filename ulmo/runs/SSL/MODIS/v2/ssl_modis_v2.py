@@ -216,6 +216,7 @@ def main_train(opt_path: str, debug=False):
         time2 = time.time()
         print('epoch {}, total time {:.2f}'.format(epoch, time2 - time1))
 
+        # Free up memory
         del train_loader
 
         # Validate?
