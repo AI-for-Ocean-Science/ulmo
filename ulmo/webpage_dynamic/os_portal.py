@@ -99,6 +99,7 @@ class os_web(object):
         self.stacks_colors = ['#fde725', '#90d743', '#35b779', '#21908d', '#31688e', '#443983', '#440154'][::-1]
         self.nrow, self.ncol = 2, 5
         self.first_im_index = 0
+        self.zero_gallery = 0
 
         # TODO -- ELIMINATE THIS
         self.selected_objects = ColumnDataSource(
@@ -121,6 +122,8 @@ class os_web(object):
         doc.add_root(column(row(self.main_title_div ), 
                             row(column(self.info_div), 
                                 column(self.umap_figure, self.gallery_figure,
+                                    self.prev_set,
+                                    self.next_set, 
                                        self.geo_figure), 
                                 column(
                                     row(self.x_text, self.y_text),
@@ -129,7 +132,7 @@ class os_web(object):
                                     self.search_object, 
                                     self.data_figure, 
                                     self.selected_objects_table,
-                                    self.print_table), #, self.title_div  
+                                    self.print_table),
                             )
                                    #row(self.prev_button, self.next_button)),
                             )
@@ -198,6 +201,8 @@ class os_web(object):
         self.internal_reset = Select(title="Inactive", value="",
                                          options=[])
         self.print_table = Button(label="Print Table", button_type="default")
+        self.next_set = Button(label="Next Set", button_type="default")
+        self.prev_set = Button(label="Previous Set", button_type="default")
         # 
         select_metric_menu = []
         for key in self.metric_dict.keys():
@@ -238,10 +243,11 @@ class os_web(object):
         collage_im_width = int((umap_plot_width-buffer)/self.ncol)
         self.gallery_figures = []
         for _ in range(self.nrow*self.ncol):
-            sfig = figure(tools="box_zoom,save,reset", plot_width=collage_im_width, plot_height=collage_im_width+title_height, 
-            toolbar_location="above", output_backend='webgl', 
-            x_range=(0,self.imsize[0]), 
-            y_range=(0,self.imsize[1]))
+            sfig = figure(tools="box_zoom,save,reset", 
+                          plot_width=collage_im_width, 
+                          plot_height=collage_im_width+title_height, 
+                          toolbar_location="above", output_backend='webgl', 
+                          x_range=(0,self.imsize[0]), y_range=(0,self.imsize[1]))
             self.gallery_figures.append(sfig)
 
         self.gallery_figure = gridplot(self.gallery_figures, ncols=self.ncol)
@@ -468,10 +474,8 @@ class os_web(object):
 
         # Buttons
         self.print_table.on_click(self.print_table_callback)
-        '''
-        self.next_button.on_click(self.next_stack_index)
-        self.prev_button.on_click(self.prev_stack_index)        
-        '''
+        self.prev_set.on_click(self.prev_set_callback)
+        self.next_set.on_click(self.next_set_callback)
 
         # Non-dropdowns
         self.select_object.on_change('value', self.select_object_callback())
@@ -672,6 +676,39 @@ class os_web(object):
         df.to_csv('OS_viz.csv')
         print("Table written to: OS_viz.csv")
 
+    def prev_set_callback(self, event):
+        """Callback to previous gallery images
+
+        Args:
+            event ([type]): [description]
+        """
+        if len(self.selected_objects_source.data['index']) == 0:
+            print("Need to use the lasso first!")
+            return
+        # 
+        self.zero_gallery -= self.nrow*self.ncol
+        self.zero_gallery = max(self.zero_gallery, 0)
+        print(f"Previous set of gallery images; zero={self.zero_gallery}")
+        self.plot_gallery()
+        self.gallery_figure = gridplot(self.gallery_figures, 
+                                       ncols=self.ncol)
+
+    def next_set_callback(self, event):
+        """Callback to next gallery images
+
+        Args:
+            event ([type]): [description]
+        """
+        if len(self.selected_objects_source.data['index']) == 0:
+            print("Need to use the lasso first!")
+            return
+        # 
+        self.zero_gallery += self.nrow*self.ncol
+        print(f"Next set of gallery images; zero={self.zero_gallery}")
+        self.plot_gallery()
+        self.gallery_figure = gridplot(self.gallery_figures, 
+                                       ncols=self.ncol)
+
     def select_object_callback(self):
         if self.verbose:
             print('select object')
@@ -789,14 +826,17 @@ class os_web(object):
             self.geo_source.data = geo_dict.copy()
 
     def stacks_callback(self):
-        """ Callback method for stacks
+        """ Callback method for lasso objects
         """
         if self.verbose: 
-            print('select_stacks_callback')
+            print('select_objects_callback')
         selected_objects = self.selected_objects.data['index']
         selected_inds = np.array([int(s) for s in selected_objects])
         nof_selected = selected_inds.size
         inds_visible = selected_inds[self.stack_index:self.stack_index+self.nrow*self.ncol]
+
+        # Zero out the gallery
+        self.zero_gallery = 0
 
         xsize, ysize = self.imsize
         self.stacks_sources = []
@@ -845,8 +885,14 @@ class os_web(object):
         """ Plot the gallery of images
         """
         self.spectrum_stacks = []
-        for i in range(self.nrow*self.ncol):
-            spec_stack = self.gallery_figures[i].image(
+        ngallery  = self.nrow*self.ncol
+        nobj = len(self.selected_objects.data['index'])
+        i0 = min(self.zero_gallery, 
+                 len(self.stacks_sources)-ngallery)
+        i1 = min(self.zero_gallery+ngallery,len(self.stacks_sources))
+        print(f'i0,i1 = {i0},{i1}')
+        for kk, i in enumerate(range(i0,i1)):
+            spec_stack = self.gallery_figures[kk].image(
                 'image', 'x', 'y', 'dw', 'dh', 
                 source=self.stacks_sources[i],
                 color_mapper=self.snap_color_mapper)

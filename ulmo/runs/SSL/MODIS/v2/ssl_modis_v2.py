@@ -38,7 +38,9 @@ def parse_option():
     parser.add_argument("--opt_path", type=str, 
                         default='./experiments/modis_model_v2/opts_2010.json',
                         help="Path to options file. Defaults to local + 2010")
-    parser.add_argument("--func_flag", type=str, help="flag of the function to be execute: 'train' or 'evaluate' or 'umap'.")
+    parser.add_argument("--func_flag", 
+                        type=str, 
+                        help="flag of the function to be execute: 'train' or 'evaluate' or 'umap' or 'sub2010'.")
         # JFH Should the default now be true with the new definition.
     parser.add_argument('--debug', default=False, action='store_true',
                         help='Debug?')
@@ -335,6 +337,22 @@ def main_evaluate(opt_path, model_file,
         if not debug:
             os.remove(data_file)
             print(f'{data_file} removed')
+
+def sub_tbl_2010():
+
+    # Load table
+    tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
+    modis_tbl = ulmo_io.load_main_table(tbl_file)
+
+    # Train the UMAP
+    # Split
+    valid = modis_tbl.pp_type == 0
+    y2010 = modis_tbl.pp_file == 's3://modis-l2/PreProc/MODIS_R2019_2010_95clear_128x128_preproc_std.h5'
+    valid_tbl = modis_tbl[valid & y2010].copy()
+
+    # Write
+    ulmo_io.write_main_table(valid_tbl, 'MODIS_2010_valid_SSLv2.parquet', to_s3=False)
+    
         
 if __name__ == "__main__":
     # get the argument of training.
@@ -361,3 +379,7 @@ if __name__ == "__main__":
             print("In debug mode!!")
         ssl_v2_umap(debug=args.debug)
         print("UMAP Ends.")
+
+    # run the umap
+    if args.func_flag == 'sub2010':
+        sub_tbl_2010()
