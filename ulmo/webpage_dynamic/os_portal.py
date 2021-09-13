@@ -122,8 +122,7 @@ class os_web(object):
         doc.add_root(column(row(self.main_title_div ), 
                             row(column(self.info_div), 
                                 column(self.umap_figure, self.gallery_figure,
-                                    self.prev_set,
-                                    self.next_set, 
+                                    row(self.prev_set, self.next_set), 
                                        self.geo_figure), 
                                 column(
                                     row(self.x_text, self.y_text),
@@ -497,7 +496,7 @@ class os_web(object):
         self.select_colormap.on_click(self.select_colormap_callback)
         '''
 
-        self.umap_figure.on_event(PanEnd, self.reset_stack_index)
+        self.umap_figure.on_event(PanEnd, self.reset_gallery_index)
         self.umap_figure.on_event(PanEnd, self.select_stacks_callback())
 
         self.selected_objects_source.selected.on_change(
@@ -573,10 +572,10 @@ class os_web(object):
         self.umap_figure.on_event(Reset, self.update_umap_filter_reset())
 
 
-    def reset_stack_index(self):
+    def reset_gallery_index(self):
         """ Reset stack index
         """
-        self.stack_index = 0
+        self.gallery_index = 0
 
 
     def remove_ticks_and_labels(self, figure):
@@ -686,12 +685,10 @@ class os_web(object):
             print("Need to use the lasso first!")
             return
         # 
-        self.zero_gallery -= self.nrow*self.ncol
-        self.zero_gallery = max(self.zero_gallery, 0)
-        print(f"Previous set of gallery images; zero={self.zero_gallery}")
-        self.plot_gallery()
-        self.gallery_figure = gridplot(self.gallery_figures, 
-                                       ncols=self.ncol)
+        self.gallery_index -= self.nrow*self.ncol
+        self.gallery_index = max(self.gallery_index, 0)
+        print(f"Previous set of gallery images; zero={self.gallery_index}")
+        self.stacks_callback()
 
     def next_set_callback(self, event):
         """Callback to next gallery images
@@ -703,11 +700,11 @@ class os_web(object):
             print("Need to use the lasso first!")
             return
         # 
-        self.zero_gallery += self.nrow*self.ncol
-        print(f"Next set of gallery images; zero={self.zero_gallery}")
-        self.plot_gallery()
-        self.gallery_figure = gridplot(self.gallery_figures, 
-                                       ncols=self.ncol)
+        nobj = len(self.selected_objects.data['index'])
+        self.gallery_index += self.nrow*self.ncol
+        self.gallery_index = min(self.gallery_index, nobj-1)
+        print(f"Next set of gallery images; zero={self.gallery_index}")
+        self.stacks_callback()
 
     def select_object_callback(self):
         if self.verbose:
@@ -833,10 +830,8 @@ class os_web(object):
         selected_objects = self.selected_objects.data['index']
         selected_inds = np.array([int(s) for s in selected_objects])
         nof_selected = selected_inds.size
-        inds_visible = selected_inds[self.stack_index:self.stack_index+self.nrow*self.ncol]
-
-        # Zero out the gallery
-        self.zero_gallery = 0
+        inds_visible = selected_inds[self.gallery_index:self.gallery_index+
+                                     self.nrow*self.ncol]
 
         xsize, ysize = self.imsize
         self.stacks_sources = []
@@ -885,14 +880,8 @@ class os_web(object):
         """ Plot the gallery of images
         """
         self.spectrum_stacks = []
-        ngallery  = self.nrow*self.ncol
-        nobj = len(self.selected_objects.data['index'])
-        i0 = min(self.zero_gallery, 
-                 len(self.stacks_sources)-ngallery)
-        i1 = min(self.zero_gallery+ngallery,len(self.stacks_sources))
-        print(f'i0,i1 = {i0},{i1}')
-        for kk, i in enumerate(range(i0,i1)):
-            spec_stack = self.gallery_figures[kk].image(
+        for i in range(self.nrow*self.ncol):
+            spec_stack = self.gallery_figures[i].image(
                 'image', 'x', 'y', 'dw', 'dh', 
                 source=self.stacks_sources[i],
                 color_mapper=self.snap_color_mapper)
