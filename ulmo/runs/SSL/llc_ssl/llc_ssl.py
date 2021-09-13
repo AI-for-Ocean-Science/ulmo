@@ -39,7 +39,7 @@ def parse_option():
     return args
 
 def main_train(opt_path: str):
-    from comet_ml import Experiment
+    #from comet_ml import Experiment
     # loading parameters json file
     opt = Params(opt_path)
     opt = option_preprocess(opt)
@@ -54,12 +54,12 @@ def main_train(opt_path: str):
     optimizer = set_optimizer(opt, model)
     
     # comet
-    raise RuntimeError("The next lines were 'fixed'.  You may need to fix them back")
-    experiment = Experiment(
-            project_name="llc_modis_2012", 
-            workspace="edwkuo",
-    )
-    experiment.log_parameters(opt.dict)
+    #raise RuntimeError("The next lines were 'fixed'.  You may need to fix them back")
+    #experiment = Experiment(
+    #        project_name="llc_modis_2012", 
+    #        workspace="edwkuo",
+    #)
+    #experiment.log_parameters(opt.dict)
     
     # training routine
     for epoch in trange(1, opt.epochs + 1):
@@ -73,8 +73,8 @@ def main_train(opt_path: str):
         print('epoch {}, total time {:.2f}'.format(epoch, time2 - time1))
         
         # comet
-        experiment.log_metric('loss', loss, step=epoch)
-        experiment.log_metric('learning_rate', optimizer.param_groups[0]['lr'], step=epoch)
+        #experiment.log_metric('loss', loss, step=epoch)
+        #experiment.log_metric('learning_rate', optimizer.param_groups[0]['lr'], step=epoch)
         
         if epoch % opt.save_freq == 0:
             save_file = os.path.join(
@@ -102,11 +102,11 @@ def model_latents_extract(opt, modis_data, model_path, save_path, save_key):
     model.load_state_dict(model_dict['model'])
     modis_data = np.repeat(modis_data, 3, axis=1)
     num_samples = modis_data.shape[0]
-    #num_samples = 50 
     batch_size = opt.batch_size
     num_steps = num_samples // batch_size
     remainder = num_samples % batch_size
     latents_df = pd.DataFrame()
+    model.eval()
     with torch.no_grad():
         for i in trange(num_steps):
             image_batch = modis_data[i*batch_size: (i+1)*batch_size]
@@ -191,10 +191,9 @@ def main_evaluate(opt_path):
             raise Exception("opt.eval_datset is not right!")
 
 
-def generate_umap(debug=False, orig=False, write=True,
-                  transformer_file=None):
+def generate_umap(debug=False, orig=False):
     # Latents file (subject to move)
-    latents_file = 's3://llc/SSL/LLC_MODIS_2012_latents/last_latents.h5'
+    latents_file = 's3://llc/LLC_MODIS_2012_latents/last_latents.h5'
 
     # Load em in
     basefile = os.path.basename(latents_file)
@@ -217,17 +216,12 @@ def generate_umap(debug=False, orig=False, write=True,
     train = np.random.choice(len(valid_tbl), size=150000)
     valid = valid_tbl.pp_idx.values
 
-    # UMAP time
-    if write:
-        write_to_file='s3://llc/Tables/LLC_MODIS2012_SSL_v1.parquet'
-    else:
-        write_to_file=None
+    # Stack em
     ssl_analysis.latents_umap(
         latents, train, valid, valid_tbl, 
         fig_root='LLC_v1', 
-        transformer_file=transformer_file,
-        write_to_file=write_to_file,
-        cut_prefix='modis_', debug=False)
+        write_to_file='s3://llc/Tables/LLC_MODIS2012_SSL_v1.parquet',
+        cut_prefix='modis_', debug=True)
 
 
 if __name__ == "__main__":
@@ -250,5 +244,3 @@ if __name__ == "__main__":
     if args.func_flag == 'umap':
         print("Generating the umap")
         generate_umap()
-        #generate_umap(write=False,
-        #              transformer_file='ssl_LLC_v1_umap.pkl')
