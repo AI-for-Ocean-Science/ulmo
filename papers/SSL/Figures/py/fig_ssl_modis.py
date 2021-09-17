@@ -19,16 +19,6 @@ import pandas
 import seaborn as sns
 
 import h5py
-from tqdm.auto import trange
-import time
-
-import torch
-from ulmo.ssl.util import adjust_learning_rate
-from ulmo.ssl.util import set_optimizer
-
-from ulmo.ssl.train_util import Params, option_preprocess
-from ulmo.ssl.train_util import modis_loader_v2, set_model
-from ulmo.ssl.train_util import train_learn_curve, valid_learn_curve
 
 from ulmo import plotting
 from ulmo.utils import utils as utils
@@ -56,7 +46,8 @@ if os.getenv('SST_OOD'):
 
 
 
-def load_modis_tbl(tbl_file=None, local=False, cuts=None):
+def load_modis_tbl(tbl_file=None, local=False, cuts=None,
+                   region=None):
     if tbl_file is None:
         tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
     if local:
@@ -84,6 +75,28 @@ def load_modis_tbl(tbl_file=None, local=False, cuts=None):
         inliers = (modis_tbl.LL > 200.) & (modis_tbl.LL < 400)
         good = goodLL & inliers
     modis_tbl = modis_tbl[good].copy()
+
+    # Region?
+    if region is None:
+        pass
+    elif region == 'brazil':
+        # Brazil
+        in_brazil = ((np.abs(modis_tbl.lon.values + 57.5) < 10.)  & 
+            (np.abs(modis_tbl.lat.values + 43.0) < 10))
+        in_DT = np.abs(modis_tbl.DT - 2.05) < 0.05
+        modis_tbl = modis_tbl[in_brazil & in_DT].copy()
+    elif region == 'GS':
+        # Gulf Stream
+        in_GS = ((np.abs(modis_tbl.lon.values + 69.) < 3.)  & 
+            (np.abs(modis_tbl.lat.values - 39.0) < 1))
+        modis_tbl = modis_tbl[in_GS].copy()
+    elif region == 'Med':
+        # Mediterranean
+        in_Med = ((modis_tbl.lon > -5.) & (modis_tbl.lon < 30.) &
+            (np.abs(modis_tbl.lat.values - 36.0) < 5))
+        modis_tbl = modis_tbl[in_Med].copy()
+    else: 
+        raise IOError(f"Bad region! {region}")
 
     return modis_tbl
 
@@ -154,21 +167,9 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
         IOError: [description]
     """
     # Load table
-    modis_tbl = load_modis_tbl(local=local, cuts=cuts)
+    modis_tbl = load_modis_tbl(local=local, cuts=cuts, region=region)
     num_samples = len(modis_tbl)
 
-    # Region?
-    if region is None:
-        pass
-    elif region == 'brazil':
-            # Add in DT
-
-        # Brazil
-        in_brazil = ((np.abs(modis_tbl.lon.values + 57.5) < 10.)  & 
-            (np.abs(modis_tbl.lat.values + 43.0) < 10))
-        in_DT = np.abs(modis_tbl.DT - 2.05) < 0.05
-        modis_tbl = modis_tbl[in_brazil & in_DT].copy()
-    
 
     if debug: # take a subset
         print("DEBUGGING IS ON")
@@ -357,27 +358,11 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
 
 def fig_umap_2dhist(outfile='fig_umap_2dhist.png',
                     version=1, local=False, vmax=None, 
-                    cmap=None, cuts=None,
+                    cmap=None, cuts=None, region=None,
                     scl = 1):
 
-    if version == 1:                    
-        tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
-    else:
-        raise IOError("bad version number")
-    if local:
-        tbl_file = local_modis_file
-
     # Load
-    modis_tbl = ulmo_io.load_main_table(tbl_file)
-
-    # Cut
-    goodLL = np.isfinite(modis_tbl.LL)
-    if cuts is None:
-        good = goodLL
-    elif cuts == 'inliers':
-        inliers = (modis_tbl.LL > 200.) & (modis_tbl.LL < 400)
-        good = goodLL & inliers
-    modis_tbl = modis_tbl[good].copy()
+    modis_tbl = load_modis_tbl(local=local, cuts=cuts, region=region)
 
     # 
     xmin, xmax = -4.5, 8
@@ -668,75 +653,6 @@ def fig_fit_metric(outroot='fig_fit_', metric=None,
     print('Wrote {:s}'.format(outfile))
 
 
-
-        
-'''
-#########################################################
-### function used to create the learning plots
-
-def fig_train_valid_learn_curve(opt_path: str):
-    # loading parameters json file
-    opt = Params(opt_path)
-    opt = option_preprocess(opt)
-   
-    # build data loader
-    train_loader = modis_loader_v2(opt)
-    valid_loader = modis_loader_v2(opt, valid=True)
-
-    # build model and criterion
-    model, criterion = set_model(opt)
-
-    # build optimizer
-    optimizer = set_optimizer(opt, model)
-    
-    # build loss list
-    loss_train, loss_step_train, loss_avg_train = [], [], []
-    loss_valid, loss_step_valid, loss_avg_valid = [], [], []
-    # training routine
-    for epoch in trange(1, opt.epochs + 1):
-
-        adjust_learning_rate(opt, optimizer, epoch)
-
-        # train for one epoch
-        time1 = time.time()
-        loss, losses_step, losses_avg = train_learn_curve(train_loader, model, criterion, optimizer, epoch, opt, cuda_use=opt.cuda_use)
-        
-        # record train loss
-        loss_train.append(loss)
-        loss_step_train += losses_step
-        loss_avg_train += losses_avg
-        
-        time2 = time.time()
-        print('epoch {}, total time {:.2f}'.format(epoch, time2 - time1))
-        
-        if epoch % opt.valid_freq == 0:
-            epoch_valid = epoch // opt.valid_freq
-            time1_valid = time.time()
-            loss, losses_step, losses_avg = valid_learn_curve(valid_loader, model, criterion, epoch_valid, opt, cuda_use=opt.cuda_use)
-           
-            # record valid loss
-            loss_valid.append(loss)
-            loss_step_valid += losses_step
-            loss_avg_valid += losses_avg
-        
-            time2_valid = time.time()
-            print('valid epoch {}, total time {:.2f}'.format(epoch_valid, time2_valid - time1_valid))
-            
-    if not os.path.isdir('./learning_curve/'):
-        os.mkdir('./learning_curve/')
-        
-    losses_file_train = f'./learning_curve/{opt.dataset}_losses_train.h5'
-    losses_file_valid = f'./learning_curve/{opt.dataset}_losses_valid.h5'
-    
-    with h5py.File(losses_file_train, 'w') as f:
-        f.create_dataset('loss_train', data=np.array(loss_train))
-        f.create_dataset('loss_step_train', data=np.array(loss_step_train))
-        f.create_dataset('loss_avg_train', data=np.array(loss_avg_train))
-    with h5py.File(losses_file_valid, 'w') as f:
-        f.create_dataset('loss_valid', data=np.array(loss_valid))
-        f.create_dataset('loss_step_valid', data=np.array(loss_step_valid))
-        f.create_dataset('loss_avg_valid', data=np.array(loss_avg_valid))
-'''
     
 #### ########################## #########################
 def main(pargs):
@@ -768,9 +684,30 @@ def main(pargs):
     if pargs.figure  == 'umap_brazil':
         fig_umap_colored(outfile='fig_umap_brazil.png', 
                     region='brazil',
+                    local=pargs.local,
                     point_size=1., 
                     lbl=r'Brazil, $\Delta T \approx 2$K',
                     vmnx=(-400, 400))
+
+    # UMAP LL Gulf Stream
+    if pargs.figure  == 'umap_GS':
+        fig_umap_colored(outfile='fig_umap_GS.png', 
+                    region='GS',
+                    local=pargs.local,
+                    point_size=1., 
+                    lbl=r'Gulf Stream')#, vmnx=(-400, 400))
+
+    # UMAP LL Mediterranean
+    if pargs.figure  == 'umap_Med':
+        #fig_umap_colored(outfile='fig_umap_Med.png', 
+        #            region='Med',
+        #            local=pargs.local,
+        #            point_size=1., 
+        #            lbl=r'Mediterranean')#, vmnx=(-400, 400))
+        fig_umap_2dhist(outfile='fig_umap_2dhist_Med.png', 
+                        cmap='Reds',
+                        local=pargs.local,
+                        region='Med')
 
     # UMAP 2d Histogram
     if pargs.figure == 'umap_2dhist':
@@ -840,3 +777,7 @@ if __name__ == '__main__':
 # Slopes -- python py/fig_ssl_modis.py slopes --local
 # Slope vs DT -- python py/fig_ssl_modis.py slopevsDT --local
 # lowDT 2dstat -- python py/fig_ssl_modis.py 2d_stats --metric lowDT --local
+# UMAP of Brazil + 2K -- python py/fig_ssl_modis.py umap_brazil --local
+# UMAP of Gulf Stream -- python py/fig_ssl_modis.py umap_GS --local
+
+# UMAP of Med -- python py/fig_ssl_modis.py umap_Med --local
