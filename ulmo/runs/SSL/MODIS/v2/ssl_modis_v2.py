@@ -153,9 +153,31 @@ def ssl_v2_umap(debug=False):
     # Final write
     if not debug:
         ulmo_io.write_main_table(modis_tbl, tbl_file) 
+        
+def model_load(opt_path: str, model, model_path: str):
+    """Load Model
+    
+    Args:
+        opt_path (str): Path + filename of options file
+        model ():
+        model_path (str): 
+    """
+    using_gpu = torch.cuda.is_available()
+    if not (using_gpu and opt.cuda_use):
+        model_dict = torch.load(model_path, map_location=torch.device('cpu'))
+    else:
+        model_dict = torch.load(model_path)
 
+    if remove_module:
+        new_dict = {}
+        for key in model_dict['model'].keys():
+            new_dict[key.replace('module.','')] = model_dict['model'][key]
+        model.load_state_dict(new_dict)
+    else:
+        model.load_state_dict(model_dict['model'])
+    print("Model loaded")
 
-def main_train(opt_path: str, debug=False):
+def main_train(opt_path: str, debug=False, restore=False, save_file=None):
     """Train the model
 
     After running on 2012 without a validation dataset,
@@ -169,6 +191,8 @@ def main_train(opt_path: str, debug=False):
     Args:
         opt_path (str): Path + filename of options file
         debug (bool): 
+        restore (bool):
+        save_file (str): 
     """
     # loading parameters json file
     opt = ulmo_io.Params(opt_path)
@@ -177,14 +201,13 @@ def main_train(opt_path: str, debug=False):
     opt = option_preprocess(opt)
 
     # Vet
-    assert cat_utils.vet_main_table(opt.__dict__, 
-                                    data_model=ssl_defs.ssl_opt_dmodel)
+    #assert cat_utils.vet_main_table(opt.__dict__, 
+    #                                data_model=ssl_defs.ssl_opt_dmodel)
 
     # Save opts                                    
     opt.save(os.path.join(opt.model_folder, 
                           os.path.basename(opt_path)))
-
-
+    
     # build model and criterion
     model, criterion = set_model(opt, cuda_use=opt.cuda_use)
 
@@ -194,12 +217,17 @@ def main_train(opt_path: str, debug=False):
     loss_train, loss_step_train, loss_avg_train = [], [], []
     loss_valid, loss_step_valid, loss_avg_valid = [], [], []
 
-    for epoch in trange(1, opt.epochs + 1):
+    for epoch in trange(1, opt.epochs + 1): 
+        #if restore == True:
+        #    # build model and criterion
+        #    model, criterion = set_model(opt, cuda_use=opt.cuda_use)
+        #    model_load(opt, model, save_file)
+        #    # build optimizer
+        #    optimizer = set_optimizer(opt, model)         
 
         # build data loader
         # NOTE: For 2010 we are swapping the roles of valid and train!!
         train_loader = modis_loader(opt)
-
         adjust_learning_rate(opt, optimizer, epoch)
 
         # train for one epoch
@@ -239,7 +267,7 @@ def main_train(opt_path: str, debug=False):
             print('valid epoch {}, total time {:.2f}'.format(epoch_valid, time2_valid - time1_valid))
 
             # Free up memory
-            del valid_loader
+            del valid_loader 
 
         # Save model?
         if (epoch % opt.save_freq) == 0:
@@ -247,7 +275,7 @@ def main_train(opt_path: str, debug=False):
             save_file = os.path.join(opt.model_folder,
                                      f'ckpt_epoch_{epoch}.pth')
             save_model(model, optimizer, opt, epoch, save_file)
-
+            
     # save the last model local
     save_file = os.path.join(opt.model_folder, 'last.pth')
     save_model(model, optimizer, opt, opt.epochs, save_file)
@@ -269,7 +297,6 @@ def main_train(opt_path: str, debug=False):
         f.create_dataset('loss_valid', data=np.array(loss_valid))
         f.create_dataset('loss_step_valid', data=np.array(loss_step_valid))
         f.create_dataset('loss_avg_valid', data=np.array(loss_avg_valid))
-
         
 def main_evaluate(opt_path, model_file, 
                   preproc='_std', debug=False):
