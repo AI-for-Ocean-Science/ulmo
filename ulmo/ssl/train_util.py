@@ -3,6 +3,7 @@ import sys
 import numpy as np
 import math
 import time
+from memory_profiler import profile
 
 import skimage.transform
 import skimage.filters
@@ -20,7 +21,6 @@ from ulmo.ssl.util import TwoCropTransform, AverageMeter
 from ulmo.ssl.util import warmup_learning_rate
 
 from ulmo import io as ulmo_io
-
     
 def option_preprocess(opt:ulmo_io.Params):
     """
@@ -46,13 +46,13 @@ def option_preprocess(opt:ulmo_io.Params):
 
     opt.model_name = '{}_{}_lr_{}_decay_{}_bsz_{}_temp_{}_trial_{}'.\
         format(opt.ssl_method, opt.ssl_model, opt.learning_rate,
-               opt.weight_decay, opt.batch_size, opt.temp, opt.trial)
+               opt.weight_decay, opt.batch_size_train, opt.temp, opt.trial)
 
     if opt.cosine:
         opt.model_name = '{}_cosine'.format(opt.model_name)
 
     # warm-up for large-batch training,
-    if opt.batch_size > 256:
+    if opt.batch_size_train > 256:
         opt.warm = True
     if opt.warm:
         opt.model_name = '{}_warm'.format(opt.model_name)
@@ -232,7 +232,8 @@ class ModisDataset(Dataset):
         image_transformed = self.transform(image_transposed)
         
         return image_transformed
-    
+
+#@profile
 def modis_loader(opt, valid=False):
     """
     This is a function used to create a MODIS data loader.
@@ -250,10 +251,10 @@ def modis_loader(opt, valid=False):
                                              transforms.ToTensor()])
     if not valid:
         data_key = opt.train_key
-        batch_size = opt.batch_size
+        batch_size = opt.batch_size_train
     else:
         data_key = opt.valid_key
-        batch_size = opt.batch_size
+        batch_size = opt.batch_size_valid
     modis_file = os.path.join(opt.data_folder, opt.images_file) 
 
     modis_dataset = ModisDataset(modis_file, 
@@ -267,8 +268,6 @@ def modis_loader(opt, valid=False):
                     pin_memory=False, sampler=sampler)
     
     return loader
-
-
 
 def modis_loader_v2_with_blurring(opt, valid=False):
     """
@@ -298,11 +297,12 @@ def modis_loader_v2_with_blurring(opt, valid=False):
     modis_dataset = ModisDataset(modis_file, transform=TwoCropTransform(transforms_compose), data_key=opt.data_key)
     train_sampler = None
     train_loader = torch.utils.data.DataLoader(
-                    modis_dataset, batch_size=opt.batch_size, shuffle=(train_sampler is None),
+                    modis_dataset, batch_size=opt.batch_size_train, shuffle=(train_sampler is None),
                     num_workers=opt.num_workers, pin_memory=False, sampler=train_sampler)
     
     return train_loader
-    
+
+#@profile
 def set_model(opt, cuda_use=True): 
     """
     This is a function to set up the model.
@@ -331,6 +331,7 @@ def set_model(opt, cuda_use=True):
 
     return model, criterion
 
+#@profile
 def train_model(train_loader, model, criterion, optimizer, 
                 epoch, opt, cuda_use=True, update_model=True):
     """
@@ -366,6 +367,8 @@ def train_model(train_loader, model, criterion, optimizer,
     losses_avg_list, losses_step_list = [], []
 
     for idx, images in enumerate(train_loader):
+        if idx > 1:
+            break
         data_time.update(time.time() - end)
 
         images = torch.cat([images[0], images[1]], dim=0)
