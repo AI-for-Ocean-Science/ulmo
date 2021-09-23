@@ -3,7 +3,6 @@ import sys
 import numpy as np
 import math
 import time
-from memory_profiler import profile
 
 import skimage.transform
 import skimage.filters
@@ -367,8 +366,6 @@ def train_model(train_loader, model, criterion, optimizer,
     losses_avg_list, losses_step_list = [], []
 
     for idx, images in enumerate(train_loader):
-        if idx > 1:
-            break
         data_time.update(time.time() - end)
 
         images = torch.cat([images[0], images[1]], dim=0)
