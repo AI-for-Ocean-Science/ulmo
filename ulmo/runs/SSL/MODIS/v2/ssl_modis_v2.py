@@ -367,12 +367,10 @@ def main_evaluate(opt_path, model_file,
         # Close
         latents_hf.close()
 
-        if debug:
-            import pdb; pdb.set_trace()
-
         # Push to s3
         print("Uploading to s3..")
-        ulmo_io.upload_file_to_s3(latents_file, latents_path)
+        if not debug:
+            ulmo_io.upload_file_to_s3(latents_file, latents_path)
 
         # Remove data file
         if not debug:
