@@ -99,7 +99,8 @@ def model_latents_extract(opt, modis_data_file, modis_partition,
                           model_path, save_path, save_key,
                           remove_module=True, loader=None):
     """
-    This function is used to obtain the latents of the training data.
+    This function is used to obtain the latents of input data.
+    
     Args:
         opt: (Parameters) parameters used to create the model.
         modis_data_file: (str) path of modis_data_file.
@@ -132,10 +133,12 @@ def model_latents_extract(opt, modis_data_file, modis_partition,
 
     # TODO -- Get this right on the ssl_full branch-- 
     # Create Data Loader for evaluation
-    batch_size_eval, num_workers_eval = opt.batch_size_eval, opt.num_workers_eval
+    #batch_size_eval, num_workers_eval = opt.batch_size_eval, opt.num_workers_eval
+    batch_size_eval, num_workers_eval = opt.batch_size_valid, opt.num_workers
     # Data
     if loader is None:
-        _, loader = build_loader(modis_data_file, modis_partition, batch_size_eval, num_workers_eval)
+        _, loader = build_loader(modis_data_file, modis_partition, 
+                                 batch_size_eval, num_workers_eval)
 
     print("Beginning to evaluate")
     model.eval()

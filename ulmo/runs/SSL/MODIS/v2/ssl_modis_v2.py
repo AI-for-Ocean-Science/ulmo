@@ -177,6 +177,7 @@ def model_load(opt_path: str, model, model_path: str):
         model.load_state_dict(model_dict['model'])
     print("Model loaded")
 
+
 def main_train(opt_path: str, debug=False, restore=False, save_file=None):
     """Train the model
 
@@ -185,7 +186,7 @@ def main_train(opt_path: str, debug=False, restore=False, save_file=None):
     everyone, I am going to use the valid set for training
     and the train set for validation.  This is to have ~100,000
     for validation and ~800,000 for training.  
-
+    But note it is done in the opt_path file.
     Yup, that is confusing
 
     Args:
@@ -298,6 +299,7 @@ def main_train(opt_path: str, debug=False, restore=False, save_file=None):
         f.create_dataset('loss_step_valid', data=np.array(loss_step_valid))
         f.create_dataset('loss_avg_valid', data=np.array(loss_avg_valid))
         
+
 def main_evaluate(opt_path, model_file, 
                   preproc='_std', debug=False):
     """
@@ -308,22 +310,23 @@ def main_evaluate(opt_path, model_file,
         opt_path: (str) option file path.
         model_file: (str) s3 filename
         preproc: (str, optional)
+            Type of pre-processing
     """
-    opt = option_preprocess(Params(opt_path))
+    # Load up the options
+    opt = option_preprocess(ulmo_io.Params(opt_path))
 
+    # Grab the model
     model_base = os.path.basename(model_file)
     ulmo_io.download_file_from_s3(model_base, model_file)
     
     # Data files
-    all_pp_files = ulmo_io.list_of_bucket_files(
-        'modis-l2', 'PreProc')
+    all_pp_files = ulmo_io.list_of_bucket_files('modis-l2', 'PreProc')
     pp_files = []
     for ifile in all_pp_files:
         if preproc in ifile:
             pp_files.append(ifile)
 
     # Loop on files
-    key_train, key_valid = "train", "valid"
     if debug:
         pp_files = pp_files[0:1]
 
@@ -343,7 +346,7 @@ def main_evaluate(opt_path, model_file,
 
         # Setup
         latents_file = data_file.replace('_preproc', '_latents')
-        latents_path = os.path.join(opt.latents_folder, latents_file) 
+        latents_path = os.path.join(opt.s3_outdir, opt.latents_folder, latents_file) 
         latents_hf = h5py.File(latents_file, 'w')
 
         # Train?
@@ -363,6 +366,9 @@ def main_evaluate(opt_path, model_file,
 
         # Close
         latents_hf.close()
+
+        if debug:
+            import pdb; pdb.set_trace()
 
         # Push to s3
         print("Uploading to s3..")
@@ -403,7 +409,7 @@ if __name__ == "__main__":
     if args.func_flag == 'evaluate':
         print("Evaluation Starts.")
         main_evaluate(args.opt_path, 
-                      's3://modis-l2/SSL/SSL_v2_2012/last.pth',
+                      's3://modis-l2/SSL/models/MODIS_R2019_2010/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/last.pth',
                       debug=args.debug)
         print("Evaluation Ends.")
 
