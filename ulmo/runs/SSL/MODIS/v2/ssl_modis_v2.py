@@ -1,5 +1,7 @@
 """ Module for Ulmo analysis on VIIRS 2013"""
+from logging import debug
 import os
+from re import A
 import numpy as np
 
 import time
@@ -368,9 +370,8 @@ def main_evaluate(opt_path, model_file,
         latents_hf.close()
 
         # Push to s3
-        if not debug:
-            print("Uploading to s3..")
-            ulmo_io.upload_file_to_s3(latents_file, latents_path)
+        print("Uploading to s3..")
+        ulmo_io.upload_file_to_s3(latents_file, latents_path)
 
         # Remove data file
         if not debug:
@@ -392,33 +393,61 @@ def sub_tbl_2010():
     # Write
     ulmo_io.write_main_table(valid_tbl, 'MODIS_2010_valid_SSLv2.parquet', to_s3=False)
     
-def prep_cloud_free(clear_fraction=0.01, local=True):
+def prep_cloud_free(clear_fraction=0.01, local=True, 
+                    img_shape=(64,64), debug=False, 
+                    outfile='MODIS_SSL_cloud_free_images.h5'):
 
     # Load table
-    tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
+    #tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
+    tbl_file = os.path.join(os.getenv('SST_OOD'), 'MODIS_L2', 'Tables', 
+                            'MODIS_L2_std.parquet')
     print("Loading the table..")
     modis_tbl = ulmo_io.load_main_table(tbl_file)
 
     # Restrict to cloud free
     cloud_free = modis_tbl.clear_fraction < 0.01
     cfree_tbl = modis_tbl[cloud_free].copy()
+    ncloud_free = np.sum(cloud_free)
+
+    # Save Ulmo pp_type
+    cfree_tbl['ulmo_pp_type'] = cfree_tbl.pp_type.values.copy()
+
+    # Keep it simple and avoid 2010 train images
+    all_ulmo_valid = cfree_tbl.ulmo_pp_type == 0
+    all_ulmo_valid_idx = np.where(all_ulmo_valid)[0]
+    nulmo_valid = np.sum(all_ulmo_valid)
 
     # Choose 600,000 random for train and 150,000 for valid
-    n_train = 600000
-    n_valid = 150000
+    nSSL_train = 600000
+    nSSL_valid = 150000
 
-    indices = np.random.choice(np.arange(len(cfree_tbl)), 
-                               size=n_train+n_valid,
+    # Prepare
+    train_imgs = np.zeros((nSSL_train, img_shape[0], img_shape[1])).astype(np.float32)
+    valid_imgs = np.zeros((nSSL_valid, img_shape[0], img_shape[1])).astype(np.float32)
+
+    indices = np.random.choice(np.arange(nulmo_valid),
+                               size=nSSL_train+nSSL_valid,
                                replace=False)
-    train = indices[0:n_train]
-    valid = indices[n_train:]
+    train = indices[0:nSSL_train]
+    valid = indices[nSSL_train:]
 
-    img_tbl = cfree_tbl.iloc[indices]
+    # Set cfree pp_type (for SSL)
+    pp_types = np.ones(len(cfree_tbl)).astype(int)*-1
+    pp_types[train] = 1
+    pp_types[valid] = 0
+    cfree_tbl.pp_type = pp_types
+
+    # This needs to be a copy
+    img_tbl = cfree_tbl[all_ulmo_valid].copy()
+    train_img_pp = img_tbl.pp_type == 1
+    valid_img_pp = img_tbl.pp_type == 0
     
-    # 
+    # Loop on PreProc files
     pp_files = np.unique(img_tbl.pp_file)
+    ivalid, itrain = 0, 0
     for pp_file in pp_files:
-        idx = img_tbl.pp_file == pp_file
+        print(f"Working on: {pp_file}")
+        ipp = img_tbl.pp_file == pp_file
         # Local?
         if local:
             dpath = os.path.join(os.getenv('SST_OOD'), 'MODIS_L2', 'PreProc')
@@ -427,11 +456,47 @@ def prep_cloud_free(clear_fraction=0.01, local=True):
             embed(header='Not setup for this')
         # Open
         hf = h5py.File(ifile, 'r')
-        embed(header='429 of ssl')
+        all_ulmo_valid = hf['valid'][:]
 
+        # Valid (Ulmo)
+        if np.any(valid_img_pp & ipp):
+            # Fastest to grab em all
+            idx = np.where(valid_img_pp & ipp)[0]
+            n_new = len(idx)
+            valid_imgs[ivalid:ivalid+n_new, ...] = all_ulmo_valid[idx, 0, :, :]
+            ivalid += n_new
+
+        # Train (Ulmo)
+        if np.any(train_img_pp & ipp):
+            # Fastest to grab em all
+            idx = np.where(train_img_pp & ipp)[0]
+            n_new = len(idx)
+            train_imgs[itrain:itrain+n_new, ...] = all_ulmo_valid[idx, 0, :, :]
+            itrain += n_new
+
+        del all_ulmo_valid
+
+        hf.close()
+        # 
+        if debug:
+            break
 
     # Write
-    ulmo_io.write_main_table(cfree_tbl, 'MODIS_2010_valid_SSLv2.parquet') 
+    out_h5 = h5py.File(outfile, 'w')
+    out_h5.create_dataset('train', data=train_imgs) 
+    out_h5.create_dataset('train_indices', data=all_ulmo_valid_idx[train])  # These are the cloud free indices
+    out_h5.create_dataset('valid', data=valid_imgs) 
+    out_h5.create_dataset('valid_indices', data=all_ulmo_valid_idx[valid])  # These are the cloud free indices
+    out_h5.close()
+    print(f"Wrote: {outfile}")
+
+    # Push to s3
+    print("Uploading to s3")
+    ulmo_io.upload_file_to_s3(outfile, 's3://modis-l2/SSL/preproc/'+outfile)
+    
+    # Table
+    assert cat_utils.vet_main_table(cfree_tbl, cut_prefix='ulmo_')
+    ulmo_io.write_main_table(cfree_tbl, 's3://modis-l2/Tables/MODIS_SSL_cloud_free.parquet') 
         
 if __name__ == "__main__":
     # get the argument of training.
@@ -465,4 +530,4 @@ if __name__ == "__main__":
 
     # Prep for cloud free
     if args.func_flag == 'prep_cloud_free':
-        prep_cloud_free()
+        prep_cloud_free(debug=args.debug)
