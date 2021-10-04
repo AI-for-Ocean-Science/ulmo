@@ -368,8 +368,8 @@ def main_evaluate(opt_path, model_file,
         latents_hf.close()
 
         # Push to s3
-        print("Uploading to s3..")
         if not debug:
+            print("Uploading to s3..")
             ulmo_io.upload_file_to_s3(latents_file, latents_path)
 
         # Remove data file
@@ -392,6 +392,46 @@ def sub_tbl_2010():
     # Write
     ulmo_io.write_main_table(valid_tbl, 'MODIS_2010_valid_SSLv2.parquet', to_s3=False)
     
+def prep_cloud_free(clear_fraction=0.01, local=True):
+
+    # Load table
+    tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
+    print("Loading the table..")
+    modis_tbl = ulmo_io.load_main_table(tbl_file)
+
+    # Restrict to cloud free
+    cloud_free = modis_tbl.clear_fraction < 0.01
+    cfree_tbl = modis_tbl[cloud_free].copy()
+
+    # Choose 600,000 random for train and 150,000 for valid
+    n_train = 600000
+    n_valid = 150000
+
+    indices = np.random.choice(np.arange(len(cfree_tbl)), 
+                               size=n_train+n_valid,
+                               replace=False)
+    train = indices[0:n_train]
+    valid = indices[n_train:]
+
+    img_tbl = cfree_tbl.iloc[indices]
+    
+    # 
+    pp_files = np.unique(img_tbl.pp_file)
+    for pp_file in pp_files:
+        idx = img_tbl.pp_file == pp_file
+        # Local?
+        if local:
+            dpath = os.path.join(os.getenv('SST_OOD'), 'MODIS_L2', 'PreProc')
+            ifile = os.path.join(dpath, os.path.basename(pp_file))
+        else:
+            embed(header='Not setup for this')
+        # Open
+        hf = h5py.File(ifile, 'r')
+        embed(header='429 of ssl')
+
+
+    # Write
+    ulmo_io.write_main_table(cfree_tbl, 'MODIS_2010_valid_SSLv2.parquet') 
         
 if __name__ == "__main__":
     # get the argument of training.
@@ -422,3 +462,7 @@ if __name__ == "__main__":
     # run the umap
     if args.func_flag == 'sub2010':
         sub_tbl_2010()
+
+    # Prep for cloud free
+    if args.func_flag == 'prep_cloud_free':
+        prep_cloud_free()
