@@ -2,7 +2,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-ssl-modis-2010-eval-debug
+  name: xavier-ssl-modis-2010-eval #-debug
 spec:
   backoffLimit: 0
   template:
@@ -29,7 +29,7 @@ spec:
             git pull; 
             python setup.py develop;
             cd ulmo/runs/SSL/MODIS/v2;
-            python ./ssl_modis_v2.py --opt_path ./experiments/modis_model_v2/opts_2010.json --func_flag evaluate --debug;
+            python ./ssl_modis_v2.py --opt_path ./experiments/modis_model_v2/opts_2010.json --func_flag evaluate; # --debug;
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"

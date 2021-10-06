@@ -43,9 +43,10 @@ def parse_option():
     parser.add_argument("--func_flag", 
                         type=str, 
                         help="flag of the function to be execute: 'train' or 'evaluate' or 'umap' or 'sub2010'.")
-        # JFH Should the default now be true with the new definition.
     parser.add_argument('--debug', default=False, action='store_true',
                         help='Debug?')
+    parser.add_argument('--clobber', default=False, action='store_true',
+                        help='Clobber existing files')
     args = parser.parse_args()
     
     return args
@@ -303,7 +304,8 @@ def main_train(opt_path: str, debug=False, restore=False, save_file=None):
         
 
 def main_evaluate(opt_path, model_file, 
-                  preproc='_std', debug=False):
+                  preproc='_std', debug=False, 
+                  clobber=False):
     """
     This function is used to obtain the latents of the trained models
     for all of MODIS
@@ -313,6 +315,8 @@ def main_evaluate(opt_path, model_file,
         model_file: (str) s3 filename
         preproc: (str, optional)
             Type of pre-processing
+        clobber: (bool, optional)
+            If true, over-write any existing file
     """
     # Load up the options
     opt = option_preprocess(ulmo_io.Params(opt_path))
@@ -332,12 +336,33 @@ def main_evaluate(opt_path, model_file,
     if debug:
         pp_files = pp_files[0:1]
 
+    latents_path = os.path.join(opt.s3_outdir, opt.latents_folder)
+    # Grab existing for clobber
+    if not clobber:
+        parse_s3 = ulmo_io.urlparse(opt.s3_outdir)
+        existing_files = [os.path.basename(ifile) for ifile in ulmo_io.list_of_bucket_files('modis-l2',
+                                                      prefix=os.path.join(parse_s3.path[1:],
+                                                                        opt.latents_folder))
+                          ]
+    else:
+        existing_files = []
+
     for ifile in pp_files:
         print(f"Working on {ifile}")
         data_file = os.path.basename(ifile)
         if not os.path.isfile(data_file):
             ulmo_io.download_file_from_s3(data_file, 
             f's3://modis-l2/PreProc/{data_file}')
+
+        # Setup
+        latents_file = data_file.replace('_preproc', '_latents')
+        if latents_file in existing_files and not clobber:
+            print(f"Not clobbering {latents_file} in s3")
+            continue
+        s3_file = os.path.join(latents_path, latents_file) 
+
+        #
+        latents_hf = h5py.File(latents_file, 'w')
 
         # Read
         with h5py.File(data_file, 'r') as file:
@@ -346,10 +371,6 @@ def main_evaluate(opt_path, model_file,
             else:
                 train=False
 
-        # Setup
-        latents_file = data_file.replace('_preproc', '_latents')
-        latents_path = os.path.join(opt.s3_outdir, opt.latents_folder, latents_file) 
-        latents_hf = h5py.File(latents_file, 'w')
 
         # Train?
         if train: 
@@ -371,7 +392,7 @@ def main_evaluate(opt_path, model_file,
 
         # Push to s3
         print("Uploading to s3..")
-        ulmo_io.upload_file_to_s3(latents_file, latents_path)
+        ulmo_io.upload_file_to_s3(latents_file, s3_file)
 
         # Remove data file
         if not debug:
@@ -513,7 +534,7 @@ if __name__ == "__main__":
         print("Evaluation Starts.")
         main_evaluate(args.opt_path, 
                       's3://modis-l2/SSL/models/MODIS_R2019_2010/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/last.pth',
-                      debug=args.debug)
+                      debug=args.debug, clobber=args.clobber)
         print("Evaluation Ends.")
 
     # run the umap
