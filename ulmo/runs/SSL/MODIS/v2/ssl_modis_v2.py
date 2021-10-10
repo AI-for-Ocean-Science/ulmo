@@ -350,9 +350,6 @@ def main_evaluate(opt_path, model_file,
     for ifile in pp_files:
         print(f"Working on {ifile}")
         data_file = os.path.basename(ifile)
-        if not os.path.isfile(data_file):
-            ulmo_io.download_file_from_s3(data_file, 
-            f's3://modis-l2/PreProc/{data_file}')
 
         # Setup
         latents_file = data_file.replace('_preproc', '_latents')
@@ -360,6 +357,11 @@ def main_evaluate(opt_path, model_file,
             print(f"Not clobbering {latents_file} in s3")
             continue
         s3_file = os.path.join(latents_path, latents_file) 
+
+        # Download
+        if not os.path.isfile(data_file):
+            ulmo_io.download_file_from_s3(data_file, 
+            f's3://modis-l2/PreProc/{data_file}')
 
         #
         latents_hf = h5py.File(latents_file, 'w')
@@ -426,9 +428,8 @@ def prep_cloud_free(clear_fraction=0.01, local=True,
     modis_tbl = ulmo_io.load_main_table(tbl_file)
 
     # Restrict to cloud free
-    cloud_free = modis_tbl.clear_fraction < 0.01
+    cloud_free = modis_tbl.clear_fraction < clear_fraction
     cfree_tbl = modis_tbl[cloud_free].copy()
-    ncloud_free = np.sum(cloud_free)
 
     # Save Ulmo pp_type
     cfree_tbl['ulmo_pp_type'] = cfree_tbl.pp_type.values.copy()
@@ -467,7 +468,6 @@ def prep_cloud_free(clear_fraction=0.01, local=True,
     pp_files = np.unique(img_tbl.pp_file)
     ivalid, itrain = 0, 0
     for pp_file in pp_files:
-        print(f"Working on: {pp_file}")
         ipp = img_tbl.pp_file == pp_file
         # Local?
         if local:
@@ -476,6 +476,7 @@ def prep_cloud_free(clear_fraction=0.01, local=True,
         else:
             embed(header='Not setup for this')
         # Open
+        print(f"Working on: {ifile}")
         hf = h5py.File(ifile, 'r')
         all_ulmo_valid = hf['valid'][:]
 
@@ -484,7 +485,10 @@ def prep_cloud_free(clear_fraction=0.01, local=True,
             # Fastest to grab em all
             idx = np.where(valid_img_pp & ipp)[0]
             n_new = len(idx)
-            valid_imgs[ivalid:ivalid+n_new, ...] = all_ulmo_valid[idx, 0, :, :]
+            try:
+                valid_imgs[ivalid:ivalid+n_new, ...] = all_ulmo_valid[idx, 0, :, :]
+            except:
+                embed(header='489 of ssl')
             ivalid += n_new
 
         # Train (Ulmo)

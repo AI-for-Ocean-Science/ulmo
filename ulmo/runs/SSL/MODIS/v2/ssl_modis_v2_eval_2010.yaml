@@ -13,12 +13,12 @@ spec:
         imagePullPolicy: Always
         resources:
           requests:
-            cpu: "2"  # 2 is enough 
-            memory: "15Gi"  # Needs to be large enough to hold the latents
+            cpu: "1"  # 1 is enough 
+            memory: "15Gi"  # Needs more but hopefully the limits work..
             ephemeral-storage: 50Gi
           limits:
-            cpu: "4"
-            memory: "25Gi"
+            cpu: "2"
+            memory: "35Gi"  # Memory accumulates, not sure why.  
             ephemeral-storage: 100Gi
             nvidia.com/gpu:  "1"  # Uses 100%
         command: ["/bin/bash", "-c"]
