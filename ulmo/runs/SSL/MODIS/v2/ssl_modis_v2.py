@@ -489,9 +489,9 @@ def prep_cloud_free(clear_fraction=0.01, local=True,
 
     # Write
     out_h5 = h5py.File(outfile, 'w')
-    out_h5.create_dataset('train', data=train_imgs) 
+    out_h5.create_dataset('train', data=train_imgs.reshape((train_imgs.shape[0],1,img_shape[0], img_shape[1]))) 
     out_h5.create_dataset('train_indices', data=all_ulmo_valid_idx[train])  # These are the cloud free indices
-    out_h5.create_dataset('valid', data=valid_imgs) 
+    out_h5.create_dataset('valid', data=valid_imgs.reshape((valid_imgs.shape[0],1, img_shape[0], img_shape[1])))
     out_h5.create_dataset('valid_indices', data=all_ulmo_valid_idx[valid])  # These are the cloud free indices
     out_h5.close()
     print(f"Wrote: {outfile}")
