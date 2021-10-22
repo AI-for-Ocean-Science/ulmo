@@ -51,12 +51,12 @@ def parse_option():
     
     return args
 
-def ssl_v2_umap(debug=False):
+def ssl_v2_umap(debug=False, ntrain = 150000):
     """Run a UMAP analysis on all the MODIS L2 data
 
     Args:
-        debug (bool, optional): [description]. Defaults to False.
-        orig (bool, optional): [description]. Defaults to False.
+        ntrain (int, optional): Number of random latent vectors to use to train the UMAP model
+        debug (bool, optional): For testing and debuggin 
     """
     # Load table
     tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
@@ -67,7 +67,8 @@ def ssl_v2_umap(debug=False):
 
     # Prep latent_files
     latent_files = ulmo_io.list_of_bucket_files('modis-l2',
-                                                prefix='SSL/SSL_v2_2012/latents/')
+                                                prefix='SSL/latents/MODIS_R2019_2010/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/')
+                                                #prefix='SSL/SSL_v2_2012/latents/')
     latent_files = ['s3://modis-l2/'+item for item in latent_files]
 
     # Train the UMAP
@@ -79,7 +80,8 @@ def ssl_v2_umap(debug=False):
     nvalid = len(valid_tbl)
 
     # Latents file (subject to move)
-    latents_train_file = 's3://modis-l2/SSL/SSL_v2_2012/latents/MODIS_R2019_2010_95clear_128x128_latents_std.h5'
+    #latents_train_file = 's3://modis-l2/SSL/SSL_v2_2012/latents/MODIS_R2019_2010_95clear_128x128_latents_std.h5'
+    latents_train_file = 's3://modis-l2/SSL/latents/MODIS_R2019_2010/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/MODIS_R2019_2010_95clear_128x128_latents_std.h5'
 
     # Load em in
     basefile = os.path.basename(latents_train_file)
@@ -94,7 +96,6 @@ def ssl_v2_umap(debug=False):
     # Check
     assert latents_valid.shape[0] == nvalid
 
-    ntrain = 150000
     train_idx = np.arange(nvalid)
     np.random.shuffle(train_idx)
     train_idx = train_idx[0:ntrain]
@@ -157,30 +158,6 @@ def ssl_v2_umap(debug=False):
     if not debug:
         ulmo_io.write_main_table(modis_tbl, tbl_file) 
         
-def model_load(opt_path: str, model, model_path: str):
-    """Load Model
-    
-    Args:
-        opt_path (str): Path + filename of options file
-        model ():
-        model_path (str): 
-    """
-    using_gpu = torch.cuda.is_available()
-    if not (using_gpu and opt.cuda_use):
-        model_dict = torch.load(model_path, map_location=torch.device('cpu'))
-    else:
-        model_dict = torch.load(model_path)
-
-    if remove_module:
-        new_dict = {}
-        for key in model_dict['model'].keys():
-            new_dict[key.replace('module.','')] = model_dict['model'][key]
-        model.load_state_dict(new_dict)
-    else:
-        model.load_state_dict(model_dict['model'])
-    print("Model loaded")
-
-
 def main_train(opt_path: str, debug=False, restore=False, save_file=None):
     """Train the model
 
@@ -222,13 +199,6 @@ def main_train(opt_path: str, debug=False, restore=False, save_file=None):
     loss_valid, loss_step_valid, loss_avg_valid = [], [], []
 
     for epoch in trange(1, opt.epochs + 1): 
-        #if restore == True:
-        #    # build model and criterion
-        #    model, criterion = set_model(opt, cuda_use=opt.cuda_use)
-        #    model_load(opt, model, save_file)
-        #    # build optimizer
-        #    optimizer = set_optimizer(opt, model)         
-
         # build data loader
         # NOTE: For 2010 we are swapping the roles of valid and train!!
         train_loader = modis_loader(opt)
@@ -407,7 +377,6 @@ def sub_tbl_2010():
     tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
     modis_tbl = ulmo_io.load_main_table(tbl_file)
 
-    # Train the UMAP
     # Split
     valid = modis_tbl.pp_type == 0
     y2010 = modis_tbl.pp_file == 's3://modis-l2/PreProc/MODIS_R2019_2010_95clear_128x128_preproc_std.h5'
@@ -416,14 +385,27 @@ def sub_tbl_2010():
     # Write
     ulmo_io.write_main_table(valid_tbl, 'MODIS_2010_valid_SSLv2.parquet', to_s3=False)
     
+
 def prep_cloud_free(clear_fraction=0.01, local=True, 
                     img_shape=(64,64), debug=False, 
                     outfile='MODIS_SSL_cloud_free_images.h5'):
+    """ Generate a data file for SSL traiing on a subset of 
+    MODIS L2 that are "cloud free"  (>= 99% clear)
+
+    Args:
+        clear_fraction (float, optional): [description]. Defaults to 0.01.
+        local (bool, optional): [description]. Defaults to True.
+        img_shape (tuple, optional): [description]. Defaults to (64,64).
+        debug (bool, optional): [description]. Defaults to False.
+        outfile (str, optional): [description]. Defaults to 'MODIS_SSL_cloud_free_images.h5'.
+    """
 
     # Load table
-    #tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
-    tbl_file = os.path.join(os.getenv('SST_OOD'), 'MODIS_L2', 'Tables', 
+    if local:
+        tbl_file = os.path.join(os.getenv('SST_OOD'), 'MODIS_L2', 'Tables', 
                             'MODIS_L2_std.parquet')
+    else:
+        tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
     print("Loading the table..")
     modis_tbl = ulmo_io.load_main_table(tbl_file)
 
@@ -483,18 +465,17 @@ def prep_cloud_free(clear_fraction=0.01, local=True,
         # Valid (Ulmo)
         if np.any(valid_img_pp & ipp):
             # Fastest to grab em all
-            idx = np.where(valid_img_pp & ipp)[0]
+            iidx = np.where(valid_img_pp & ipp)[0]
+            idx = img_tbl.pp_idx.values[iidx]
             n_new = len(idx)
-            try:
-                valid_imgs[ivalid:ivalid+n_new, ...] = all_ulmo_valid[idx, 0, :, :]
-            except:
-                embed(header='489 of ssl')
+            valid_imgs[ivalid:ivalid+n_new, ...] = all_ulmo_valid[idx, 0, :, :]
             ivalid += n_new
 
         # Train (Ulmo)
         if np.any(train_img_pp & ipp):
             # Fastest to grab em all
-            idx = np.where(train_img_pp & ipp)[0]
+            iidx = np.where(train_img_pp & ipp)[0]
+            idx = img_tbl.pp_idx.values[iidx]
             n_new = len(idx)
             train_imgs[itrain:itrain+n_new, ...] = all_ulmo_valid[idx, 0, :, :]
             itrain += n_new
