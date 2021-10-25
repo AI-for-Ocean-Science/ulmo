@@ -25,33 +25,39 @@ class HDF5RGBDataset(torch.utils.data.Dataset):
     Parameters:
         file_path: Path to the HDF5 file.
         dataset_names: List of dataset names to gather. 
+        allowe_indices (np.ndarray): Set of images that can be grabbed
         
     Objects will be returned in this order.
     """
-    def __init__(self, file_path, partition):
+    def __init__(self, file_path, partition, allowed_indices=None):
         super().__init__()
         self.file_path = file_path
         self.partition = partition
         self.meta_dset = partition + '_metadata'
         # s3 is too risky and slow here
         self.h5f = h5py.File(file_path, 'r')
+        # Indices -- allows us to work on a subset of the images by indices
+        self.allowed_indices = allowed_indices
+        if self.allowed_indices is None:
+            self.allowed_indices = np.arange(self.h5f[self.partition].shape[0])
 
     def __len__(self):
-        #return 100  # Debuggin
-        return self.h5f[self.partition].shape[0]
+        return self.allowed_indices.size
+        #return self.h5f[self.partition].shape[0]
     
     def __getitem__(self, index):
-        data = self.h5f[self.partition][index]
+        # Grab it
+        data = self.h5f[self.partition][self.allowed_indices[index]]
+        # Resize
         data = np.resize(data, (1, data.shape[-1], data.shape[-1]))
         data = np.repeat(data, 3, axis=0)
-        #if self.meta_dset in self.h5f.keys():
-        #    metadata = self.h5f[self.meta_dset][index]
-        #else:
+        # Metadata
         metadata = None
         return data, metadata
 
 
-def build_loader(data_file, dataset, batch_size=1, num_workers=1):
+def build_loader(data_file, dataset, batch_size=1, num_workers=1,
+                 allowed_indices=None):
     # Generate dataset
     """
     This function is used to create the data loader for the latents
@@ -67,7 +73,7 @@ def build_loader(data_file, dataset, batch_size=1, num_workers=1):
         loader: (torch.utils.data.Dataloader) Dataloader created 
             using data_file.
     """
-    dset = HDF5RGBDataset(data_file, partition=dataset)
+    dset = HDF5RGBDataset(data_file, partition=dataset, allowed_indices=allowed_indices)
 
     # Generate DataLoader
     loader = torch.utils.data.DataLoader(
@@ -97,7 +103,8 @@ def calc_latent(model, image_tensor, using_gpu):
 
 def model_latents_extract(opt, modis_data_file, modis_partition, 
                           model_path, save_path, save_key,
-                          remove_module=True, loader=None):
+                          remove_module=True, loader=None,
+                          allowed_indices=None):
     """
     This function is used to obtain the latents of input data.
     
@@ -135,10 +142,12 @@ def model_latents_extract(opt, modis_data_file, modis_partition,
     # Create Data Loader for evaluation
     #batch_size_eval, num_workers_eval = opt.batch_size_eval, opt.num_workers_eval
     batch_size_eval, num_workers_eval = opt.batch_size_valid, opt.num_workers
+
     # Data
     if loader is None:
         _, loader = build_loader(modis_data_file, modis_partition, 
-                                 batch_size_eval, num_workers_eval)
+                                 batch_size_eval, num_workers_eval,
+                                 allowed_indices=allowed_indices)
 
     print("Beginning to evaluate")
     model.eval()

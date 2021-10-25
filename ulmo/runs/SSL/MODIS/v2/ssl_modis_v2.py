@@ -2,6 +2,7 @@
 from logging import debug
 import os
 from re import A
+from typing import IO
 import numpy as np
 
 import time
@@ -28,28 +29,6 @@ from ulmo.ssl.train_util import modis_loader, set_model
 from ulmo.ssl.train_util import train_model
 
 from IPython import embed
-
-def parse_option():
-    """
-    This is a function used to parse the arguments in the training.
-    
-    Returns:
-        args: (dict) dictionary of the arguments.
-    """
-    parser = argparse.ArgumentParser("argument for training.")
-    parser.add_argument("--opt_path", type=str, 
-                        default='./experiments/modis_model_v2/opts_2010.json',
-                        help="Path to options file. Defaults to local + 2010")
-    parser.add_argument("--func_flag", 
-                        type=str, 
-                        help="flag of the function to be execute: 'train' or 'evaluate' or 'umap' or 'sub2010'.")
-    parser.add_argument('--debug', default=False, action='store_true',
-                        help='Debug?')
-    parser.add_argument('--clobber', default=False, action='store_true',
-                        help='Clobber existing files')
-    args = parser.parse_args()
-    
-    return args
 
 def ssl_v2_umap(debug=False, ntrain = 150000):
     """Run a UMAP analysis on all the MODIS L2 data
@@ -273,7 +252,7 @@ def main_train(opt_path: str, debug=False, restore=False, save_file=None):
         f.create_dataset('loss_avg_valid', data=np.array(loss_avg_valid))
         
 
-def main_evaluate(opt_path, model_file, 
+def main_evaluate(opt_path, model_name, 
                   preproc='_std', debug=False, 
                   clobber=False):
     """
@@ -282,12 +261,24 @@ def main_evaluate(opt_path, model_file,
 
     Args:
         opt_path: (str) option file path.
-        model_file: (str) s3 filename
+        model_name: (str) model name (points to an s3 file)
         preproc: (str, optional)
             Type of pre-processing
         clobber: (bool, optional)
             If true, over-write any existing file
     """
+    if model_name == '2010':
+        model_file = 's3://modis-l2/SSL/models/MODIS_R2019_2010/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/last.pth'
+        tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
+    elif model_name == 'CF':
+        model_file = 's3://modis-l2/SSL/models/MODIS_R2019_CF/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/last.pth'
+        tbl_file = 's3://modis-l2/Tables/MODIS_SSL_cloud_free.parquet'
+    else:
+        raise IOError("Bad model name [2010, CF]")
+
+    # Load up the table
+    modis_tbl = ulmo_io.load_main_table(tbl_file)
+
     # Load up the options
     opt = option_preprocess(ulmo_io.Params(opt_path))
 
@@ -329,11 +320,11 @@ def main_evaluate(opt_path, model_file,
         s3_file = os.path.join(latents_path, latents_file) 
 
         # Download
+        s3_preproc_file = f's3://modis-l2/PreProc/{data_file}'
         if not os.path.isfile(data_file):
-            ulmo_io.download_file_from_s3(data_file, 
-            f's3://modis-l2/PreProc/{data_file}')
+            ulmo_io.download_file_from_s3(data_file, s3_preproc_file)
 
-        #
+        # Ready to write
         latents_hf = h5py.File(latents_file, 'w')
 
         # Read
@@ -343,19 +334,18 @@ def main_evaluate(opt_path, model_file,
             else:
                 train=False
 
-
         # Train?
         if train: 
             print("Starting train evaluation")
-            latents_numpy = latents_extraction.model_latents_extract(opt, data_file, 
-                'train', model_base, None, None)
+            latents_numpy = latents_extraction.model_latents_extract(
+                opt, data_file, 'train', model_base, None, None)
             latents_hf.create_dataset('train', data=latents_numpy)
             print("Extraction of Latents of train set is done.")
 
         # Valid
         print("Starting valid evaluation")
-        latents_numpy = latents_extraction.model_latents_extract(opt, data_file, 
-                'valid', model_base, None, None)
+        latents_numpy = latents_extraction.model_latents_extract(
+            opt, data_file, 'valid', model_base, None, None)
         latents_hf.create_dataset('valid', data=latents_numpy)
         print("Extraction of Latents of valid set is done.")
 
@@ -503,6 +493,30 @@ def prep_cloud_free(clear_fraction=0.01, local=True,
     # Table
     assert cat_utils.vet_main_table(cfree_tbl, cut_prefix='ulmo_')
     ulmo_io.write_main_table(cfree_tbl, 's3://modis-l2/Tables/MODIS_SSL_cloud_free.parquet') 
+
+def parse_option():
+    """
+    This is a function used to parse the arguments in the training.
+    
+    Returns:
+        args: (dict) dictionary of the arguments.
+    """
+    parser = argparse.ArgumentParser("argument for training.")
+    parser.add_argument("--opt_path", type=str, 
+                        default='./experiments/modis_model_v2/opts_2010.json',
+                        help="Path to options file. Defaults to local + 2010")
+    parser.add_argument("--func_flag", type=str, 
+                        help="flag of the function to be execute: train,evaluate,umap,sub2010.")
+    parser.add_argument("--model", type=str, 
+                        default='2010', help="Short name of the model used [2010,CF]")
+    parser.add_argument('--debug', default=False, action='store_true',
+                        help='Debug?')
+    parser.add_argument('--clobber', default=False, action='store_true',
+                        help='Clobber existing files')
+    args = parser.parse_args()
+    
+    return args
+
         
 if __name__ == "__main__":
     # get the argument of training.
@@ -517,8 +531,7 @@ if __name__ == "__main__":
     # run the "main_evaluate()" function.
     if args.func_flag == 'evaluate':
         print("Evaluation Starts.")
-        main_evaluate(args.opt_path, 
-                      's3://modis-l2/SSL/models/MODIS_R2019_2010/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/last.pth',
+        main_evaluate(args.opt_path, args.model,
                       debug=args.debug, clobber=args.clobber)
         print("Evaluation Ends.")
 
