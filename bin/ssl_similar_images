@@ -1,0 +1,15 @@
+#!/usr/bin/env python
+#
+# See top-level LICENSE file for Copyright information
+#
+# -*- coding: utf-8 -*-
+
+"""
+This script grabs similar images to the input one
+"""
+
+import ulmo.scripts.ssl_similar as ssl_similar
+
+if __name__ == '__main__':
+    args = ssl_similar.parser()
+    ssl_similar.main(args)

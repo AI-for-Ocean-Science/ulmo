@@ -33,7 +33,7 @@ def build_mask(dfield, qual, qual_thresh=2, lower_qual=True,
     ----------
     dfield : np.ndarray
         Full data image
-    qual : np.ndarray
+    qual : np.ndarray of int
         Quality image
     qual_thresh : int, optional
         Quality threshold value  
@@ -52,16 +52,19 @@ def build_mask(dfield, qual, qual_thresh=2, lower_qual=True,
         mask;  True = bad
 
     """
+    # Mask val
+    qual_maskval = 999999 if lower_qual else -999999
+
     dfield[np.isnan(dfield)] = np.nan
     if field == 'SST':
         if qual is None:
             qual = np.zeros_like(dfield).astype(int)
-        qual[np.isnan(qual)] = np.nan
+        qual[np.isnan(dfield)] = qual_maskval
     else:
         if qual is None:
             raise IOError("Need to deal with qual for color.  Just a reminder")
         # Deal with NaN
-    masks = np.logical_or(np.isnan(dfield), np.isnan(qual))
+    masks = np.logical_or(np.isnan(dfield), qual==qual_maskval)
 
     # Quality
     # TODO -- Do this right for color
@@ -77,7 +80,7 @@ def build_mask(dfield, qual, qual_thresh=2, lower_qual=True,
     #
     value_masks = np.zeros_like(masks)
     if field == 'SST':
-        value_masks = (dfield[~masks] <= temp_bounds[0]) | (dfield[~masks] > temp_bounds[1])
+        value_masks[~masks] = (dfield[~masks] <= temp_bounds[0]) | (dfield[~masks] > temp_bounds[1])
     # Union
     masks = np.logical_or(masks, qual_masks, value_masks)
 
@@ -417,7 +420,25 @@ def write_pp_fields(pp_fields:list, meta:list,
                     ex_idx:np.ndarray,
                     ppf_idx:np.ndarray,
                     valid_fraction:float,
-                    s3_file:str, local_file:str):
+                    s3_file:str, local_file:str,
+                    skip_meta=False):
+    """Write a set of pre-processed cutouts to disk
+
+    Args:
+        pp_fields (list): List of preprocessed fields
+        meta (list): List of meta measurements
+        main_tbl (pandas.DataFrame): Main table
+        ex_idx (np.ndarray): Items in table extracted
+        ppf_idx (np.ndarray): Order of items in table extracted
+        valid_fraction (float): Valid fraction (the rest is Train)
+        s3_file (str): [description]
+        local_file (str): [description]
+        skip_meta (bool, optional):
+            If True, don't fuss with meta data
+
+    Returns:
+        pandas.DataFrame: Updated main table
+    """
     
     # Recast
     pp_fields = np.stack(pp_fields)
@@ -433,15 +454,17 @@ def write_pp_fields(pp_fields:list, meta:list,
     idx_idx = ex_idx[ppf_idx]
 
     # Mu
-    main_tbl['mean_temperature'] = [imeta['mu'] for imeta in meta]
     clms = list(main_tbl.keys())
-    # Others
-    for key in ['Tmin', 'Tmax', 'T90', 'T10']:
-        if key in meta[0].keys():
-            main_tbl.loc[idx_idx, key] = [imeta[key] for imeta in meta]
-            # Add to clms
-            if key not in clms:
-                clms += [key]
+    if not skip_meta:
+        main_tbl['mean_temperature'] = [imeta['mu'] for imeta in meta]
+        clms += ['mean_temperature']
+        # Others
+        for key in ['Tmin', 'Tmax', 'T90', 'T10']:
+            if key in meta[0].keys():
+                main_tbl.loc[idx_idx, key] = [imeta[key] for imeta in meta]
+                # Add to clms
+                if key not in clms:
+                    clms += [key]
 
     # Train/validation
     n = int(valid_fraction * pp_fields.shape[0])
