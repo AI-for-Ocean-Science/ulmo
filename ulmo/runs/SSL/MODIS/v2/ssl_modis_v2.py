@@ -1,5 +1,8 @@
 """ Module for Ulmo analysis on VIIRS 2013"""
+from logging import debug
 import os
+from re import A
+from typing import IO
 import numpy as np
 
 import time
@@ -27,33 +30,12 @@ from ulmo.ssl.train_util import train_model
 
 from IPython import embed
 
-def parse_option():
-    """
-    This is a function used to parse the arguments in the training.
-    
-    Returns:
-        args: (dict) dictionary of the arguments.
-    """
-    parser = argparse.ArgumentParser("argument for training.")
-    parser.add_argument("--opt_path", type=str, 
-                        default='./experiments/modis_model_v2/opts_2010.json',
-                        help="Path to options file. Defaults to local + 2010")
-    parser.add_argument("--func_flag", 
-                        type=str, 
-                        help="flag of the function to be execute: 'train' or 'evaluate' or 'umap' or 'sub2010'.")
-        # JFH Should the default now be true with the new definition.
-    parser.add_argument('--debug', default=False, action='store_true',
-                        help='Debug?')
-    args = parser.parse_args()
-    
-    return args
-
-def ssl_v2_umap(debug=False):
+def ssl_v2_umap(debug=False, ntrain = 150000):
     """Run a UMAP analysis on all the MODIS L2 data
 
     Args:
-        debug (bool, optional): [description]. Defaults to False.
-        orig (bool, optional): [description]. Defaults to False.
+        ntrain (int, optional): Number of random latent vectors to use to train the UMAP model
+        debug (bool, optional): For testing and debuggin 
     """
     # Load table
     tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
@@ -64,7 +46,8 @@ def ssl_v2_umap(debug=False):
 
     # Prep latent_files
     latent_files = ulmo_io.list_of_bucket_files('modis-l2',
-                                                prefix='SSL/SSL_v2_2012/latents/')
+                                                prefix='SSL/latents/MODIS_R2019_2010/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/')
+                                                #prefix='SSL/SSL_v2_2012/latents/')
     latent_files = ['s3://modis-l2/'+item for item in latent_files]
 
     # Train the UMAP
@@ -76,7 +59,8 @@ def ssl_v2_umap(debug=False):
     nvalid = len(valid_tbl)
 
     # Latents file (subject to move)
-    latents_train_file = 's3://modis-l2/SSL/SSL_v2_2012/latents/MODIS_R2019_2010_95clear_128x128_latents_std.h5'
+    #latents_train_file = 's3://modis-l2/SSL/SSL_v2_2012/latents/MODIS_R2019_2010_95clear_128x128_latents_std.h5'
+    latents_train_file = 's3://modis-l2/SSL/latents/MODIS_R2019_2010/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/MODIS_R2019_2010_95clear_128x128_latents_std.h5'
 
     # Load em in
     basefile = os.path.basename(latents_train_file)
@@ -91,7 +75,6 @@ def ssl_v2_umap(debug=False):
     # Check
     assert latents_valid.shape[0] == nvalid
 
-    ntrain = 150000
     train_idx = np.arange(nvalid)
     np.random.shuffle(train_idx)
     train_idx = train_idx[0:ntrain]
@@ -154,29 +137,6 @@ def ssl_v2_umap(debug=False):
     if not debug:
         ulmo_io.write_main_table(modis_tbl, tbl_file) 
         
-def model_load(opt_path: str, model, model_path: str):
-    """Load Model
-    
-    Args:
-        opt_path (str): Path + filename of options file
-        model ():
-        model_path (str): 
-    """
-    using_gpu = torch.cuda.is_available()
-    if not (using_gpu and opt.cuda_use):
-        model_dict = torch.load(model_path, map_location=torch.device('cpu'))
-    else:
-        model_dict = torch.load(model_path)
-
-    if remove_module:
-        new_dict = {}
-        for key in model_dict['model'].keys():
-            new_dict[key.replace('module.','')] = model_dict['model'][key]
-        model.load_state_dict(new_dict)
-    else:
-        model.load_state_dict(model_dict['model'])
-    print("Model loaded")
-
 def main_train(opt_path: str, debug=False, restore=False, save_file=None):
     """Train the model
 
@@ -185,7 +145,7 @@ def main_train(opt_path: str, debug=False, restore=False, save_file=None):
     everyone, I am going to use the valid set for training
     and the train set for validation.  This is to have ~100,000
     for validation and ~800,000 for training.  
-
+    But note it is done in the opt_path file.
     Yup, that is confusing
 
     Args:
@@ -218,13 +178,6 @@ def main_train(opt_path: str, debug=False, restore=False, save_file=None):
     loss_valid, loss_step_valid, loss_avg_valid = [], [], []
 
     for epoch in trange(1, opt.epochs + 1): 
-        #if restore == True:
-        #    # build model and criterion
-        #    model, criterion = set_model(opt, cuda_use=opt.cuda_use)
-        #    model_load(opt, model, save_file)
-        #    # build optimizer
-        #    optimizer = set_optimizer(opt, model)         
-
         # build data loader
         # NOTE: For 2010 we are swapping the roles of valid and train!!
         train_loader = modis_loader(opt)
@@ -298,41 +251,81 @@ def main_train(opt_path: str, debug=False, restore=False, save_file=None):
         f.create_dataset('loss_step_valid', data=np.array(loss_step_valid))
         f.create_dataset('loss_avg_valid', data=np.array(loss_avg_valid))
         
-def main_evaluate(opt_path, model_file, 
-                  preproc='_std', debug=False):
+
+def main_evaluate(opt_path, model_name, 
+                  preproc='_std', debug=False, 
+                  clobber=False):
     """
     This function is used to obtain the latents of the trained models
     for all of MODIS
 
     Args:
         opt_path: (str) option file path.
-        model_file: (str) s3 filename
+        model_name: (str) model name (points to an s3 file)
         preproc: (str, optional)
+            Type of pre-processing
+        clobber: (bool, optional)
+            If true, over-write any existing file
     """
-    opt = option_preprocess(Params(opt_path))
+    if model_name == '2010':
+        model_file = 's3://modis-l2/SSL/models/MODIS_R2019_2010/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/last.pth'
+        tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
+    elif model_name == 'CF':
+        model_file = 's3://modis-l2/SSL/models/MODIS_R2019_CF/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/last.pth'
+        tbl_file = 's3://modis-l2/Tables/MODIS_SSL_cloud_free.parquet'
+    else:
+        raise IOError("Bad model name [2010, CF]")
 
+    # Load up the table
+    modis_tbl = ulmo_io.load_main_table(tbl_file)
+
+    # Load up the options
+    opt = option_preprocess(ulmo_io.Params(opt_path))
+
+    # Grab the model
     model_base = os.path.basename(model_file)
     ulmo_io.download_file_from_s3(model_base, model_file)
     
     # Data files
-    all_pp_files = ulmo_io.list_of_bucket_files(
-        'modis-l2', 'PreProc')
+    all_pp_files = ulmo_io.list_of_bucket_files('modis-l2', 'PreProc')
     pp_files = []
     for ifile in all_pp_files:
         if preproc in ifile:
             pp_files.append(ifile)
 
     # Loop on files
-    key_train, key_valid = "train", "valid"
     if debug:
         pp_files = pp_files[0:1]
+
+    latents_path = os.path.join(opt.s3_outdir, opt.latents_folder)
+    # Grab existing for clobber
+    if not clobber:
+        parse_s3 = ulmo_io.urlparse(opt.s3_outdir)
+        existing_files = [os.path.basename(ifile) for ifile in ulmo_io.list_of_bucket_files('modis-l2',
+                                                      prefix=os.path.join(parse_s3.path[1:],
+                                                                        opt.latents_folder))
+                          ]
+    else:
+        existing_files = []
 
     for ifile in pp_files:
         print(f"Working on {ifile}")
         data_file = os.path.basename(ifile)
+
+        # Setup
+        latents_file = data_file.replace('_preproc', '_latents')
+        if latents_file in existing_files and not clobber:
+            print(f"Not clobbering {latents_file} in s3")
+            continue
+        s3_file = os.path.join(latents_path, latents_file) 
+
+        # Download
+        s3_preproc_file = f's3://modis-l2/PreProc/{data_file}'
         if not os.path.isfile(data_file):
-            ulmo_io.download_file_from_s3(data_file, 
-            f's3://modis-l2/PreProc/{data_file}')
+            ulmo_io.download_file_from_s3(data_file, s3_preproc_file)
+
+        # Ready to write
+        latents_hf = h5py.File(latents_file, 'w')
 
         # Read
         with h5py.File(data_file, 'r') as file:
@@ -341,23 +334,18 @@ def main_evaluate(opt_path, model_file,
             else:
                 train=False
 
-        # Setup
-        latents_file = data_file.replace('_preproc', '_latents')
-        latents_path = os.path.join(opt.latents_folder, latents_file) 
-        latents_hf = h5py.File(latents_file, 'w')
-
         # Train?
         if train: 
             print("Starting train evaluation")
-            latents_numpy = latents_extraction.model_latents_extract(opt, data_file, 
-                'train', model_base, None, None)
+            latents_numpy = latents_extraction.model_latents_extract(
+                opt, data_file, 'train', model_base, None, None)
             latents_hf.create_dataset('train', data=latents_numpy)
             print("Extraction of Latents of train set is done.")
 
         # Valid
         print("Starting valid evaluation")
-        latents_numpy = latents_extraction.model_latents_extract(opt, data_file, 
-                'valid', model_base, None, None)
+        latents_numpy = latents_extraction.model_latents_extract(
+            opt, data_file, 'valid', model_base, None, None)
         latents_hf.create_dataset('valid', data=latents_numpy)
         print("Extraction of Latents of valid set is done.")
 
@@ -366,7 +354,7 @@ def main_evaluate(opt_path, model_file,
 
         # Push to s3
         print("Uploading to s3..")
-        ulmo_io.upload_file_to_s3(latents_file, latents_path)
+        ulmo_io.upload_file_to_s3(latents_file, s3_file)
 
         # Remove data file
         if not debug:
@@ -379,7 +367,6 @@ def sub_tbl_2010():
     tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
     modis_tbl = ulmo_io.load_main_table(tbl_file)
 
-    # Train the UMAP
     # Split
     valid = modis_tbl.pp_type == 0
     y2010 = modis_tbl.pp_file == 's3://modis-l2/PreProc/MODIS_R2019_2010_95clear_128x128_preproc_std.h5'
@@ -388,6 +375,148 @@ def sub_tbl_2010():
     # Write
     ulmo_io.write_main_table(valid_tbl, 'MODIS_2010_valid_SSLv2.parquet', to_s3=False)
     
+
+def prep_cloud_free(clear_fraction=0.01, local=True, 
+                    img_shape=(64,64), debug=False, 
+                    outfile='MODIS_SSL_cloud_free_images.h5'):
+    """ Generate a data file for SSL traiing on a subset of 
+    MODIS L2 that are "cloud free"  (>= 99% clear)
+
+    Args:
+        clear_fraction (float, optional): [description]. Defaults to 0.01.
+        local (bool, optional): [description]. Defaults to True.
+        img_shape (tuple, optional): [description]. Defaults to (64,64).
+        debug (bool, optional): [description]. Defaults to False.
+        outfile (str, optional): [description]. Defaults to 'MODIS_SSL_cloud_free_images.h5'.
+    """
+
+    # Load table
+    if local:
+        tbl_file = os.path.join(os.getenv('SST_OOD'), 'MODIS_L2', 'Tables', 
+                            'MODIS_L2_std.parquet')
+    else:
+        tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
+    print("Loading the table..")
+    modis_tbl = ulmo_io.load_main_table(tbl_file)
+
+    # Restrict to cloud free
+    cloud_free = modis_tbl.clear_fraction < clear_fraction
+    cfree_tbl = modis_tbl[cloud_free].copy()
+
+    # Save Ulmo pp_type
+    cfree_tbl['ulmo_pp_type'] = cfree_tbl.pp_type.values.copy()
+
+    # Keep it simple and avoid 2010 train images
+    all_ulmo_valid = cfree_tbl.ulmo_pp_type == 0
+    all_ulmo_valid_idx = np.where(all_ulmo_valid)[0]
+    nulmo_valid = np.sum(all_ulmo_valid)
+
+    # Choose 600,000 random for train and 150,000 for valid
+    nSSL_train = 600000
+    nSSL_valid = 150000
+
+    # Prepare
+    train_imgs = np.zeros((nSSL_train, img_shape[0], img_shape[1])).astype(np.float32)
+    valid_imgs = np.zeros((nSSL_valid, img_shape[0], img_shape[1])).astype(np.float32)
+
+    indices = np.random.choice(np.arange(nulmo_valid),
+                               size=nSSL_train+nSSL_valid,
+                               replace=False)
+    train = indices[0:nSSL_train]
+    valid = indices[nSSL_train:]
+
+    # Set cfree pp_type (for SSL)
+    pp_types = np.ones(len(cfree_tbl)).astype(int)*-1
+    pp_types[train] = 1
+    pp_types[valid] = 0
+    cfree_tbl.pp_type = pp_types
+
+    # This needs to be a copy
+    img_tbl = cfree_tbl[all_ulmo_valid].copy()
+    train_img_pp = img_tbl.pp_type == 1
+    valid_img_pp = img_tbl.pp_type == 0
+    
+    # Loop on PreProc files
+    pp_files = np.unique(img_tbl.pp_file)
+    ivalid, itrain = 0, 0
+    for pp_file in pp_files:
+        ipp = img_tbl.pp_file == pp_file
+        # Local?
+        if local:
+            dpath = os.path.join(os.getenv('SST_OOD'), 'MODIS_L2', 'PreProc')
+            ifile = os.path.join(dpath, os.path.basename(pp_file))
+        else:
+            embed(header='Not setup for this')
+        # Open
+        print(f"Working on: {ifile}")
+        hf = h5py.File(ifile, 'r')
+        all_ulmo_valid = hf['valid'][:]
+
+        # Valid (Ulmo)
+        if np.any(valid_img_pp & ipp):
+            # Fastest to grab em all
+            iidx = np.where(valid_img_pp & ipp)[0]
+            idx = img_tbl.pp_idx.values[iidx]
+            n_new = len(idx)
+            valid_imgs[ivalid:ivalid+n_new, ...] = all_ulmo_valid[idx, 0, :, :]
+            ivalid += n_new
+
+        # Train (Ulmo)
+        if np.any(train_img_pp & ipp):
+            # Fastest to grab em all
+            iidx = np.where(train_img_pp & ipp)[0]
+            idx = img_tbl.pp_idx.values[iidx]
+            n_new = len(idx)
+            train_imgs[itrain:itrain+n_new, ...] = all_ulmo_valid[idx, 0, :, :]
+            itrain += n_new
+
+        del all_ulmo_valid
+
+        hf.close()
+        # 
+        if debug:
+            break
+
+    # Write
+    out_h5 = h5py.File(outfile, 'w')
+    out_h5.create_dataset('train', data=train_imgs.reshape((train_imgs.shape[0],1,img_shape[0], img_shape[1]))) 
+    out_h5.create_dataset('train_indices', data=all_ulmo_valid_idx[train])  # These are the cloud free indices
+    out_h5.create_dataset('valid', data=valid_imgs.reshape((valid_imgs.shape[0],1, img_shape[0], img_shape[1])))
+    out_h5.create_dataset('valid_indices', data=all_ulmo_valid_idx[valid])  # These are the cloud free indices
+    out_h5.close()
+    print(f"Wrote: {outfile}")
+
+    # Push to s3
+    print("Uploading to s3")
+    ulmo_io.upload_file_to_s3(outfile, 's3://modis-l2/SSL/preproc/'+outfile)
+    
+    # Table
+    assert cat_utils.vet_main_table(cfree_tbl, cut_prefix='ulmo_')
+    ulmo_io.write_main_table(cfree_tbl, 's3://modis-l2/Tables/MODIS_SSL_cloud_free.parquet') 
+
+def parse_option():
+    """
+    This is a function used to parse the arguments in the training.
+    
+    Returns:
+        args: (dict) dictionary of the arguments.
+    """
+    parser = argparse.ArgumentParser("argument for training.")
+    parser.add_argument("--opt_path", type=str, 
+                        default='./experiments/modis_model_v2/opts_2010.json',
+                        help="Path to options file. Defaults to local + 2010")
+    parser.add_argument("--func_flag", type=str, 
+                        help="flag of the function to be execute: train,evaluate,umap,sub2010.")
+    parser.add_argument("--model", type=str, 
+                        default='2010', help="Short name of the model used [2010,CF]")
+    parser.add_argument('--debug', default=False, action='store_true',
+                        help='Debug?')
+    parser.add_argument('--clobber', default=False, action='store_true',
+                        help='Clobber existing files')
+    args = parser.parse_args()
+    
+    return args
+
         
 if __name__ == "__main__":
     # get the argument of training.
@@ -402,9 +531,8 @@ if __name__ == "__main__":
     # run the "main_evaluate()" function.
     if args.func_flag == 'evaluate':
         print("Evaluation Starts.")
-        main_evaluate(args.opt_path, 
-                      's3://modis-l2/SSL/SSL_v2_2012/last.pth',
-                      debug=args.debug)
+        main_evaluate(args.opt_path, args.model,
+                      debug=args.debug, clobber=args.clobber)
         print("Evaluation Ends.")
 
     # run the umap
@@ -418,3 +546,7 @@ if __name__ == "__main__":
     # run the umap
     if args.func_flag == 'sub2010':
         sub_tbl_2010()
+
+    # Prep for cloud free
+    if args.func_flag == 'prep_cloud_free':
+        prep_cloud_free(debug=args.debug)

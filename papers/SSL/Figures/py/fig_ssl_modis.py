@@ -216,10 +216,12 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
     # Set boundaries
     #xmin, xmax = modis_tbl.U0.min()-dxdy[0], modis_tbl.U0.max()+dxdy[0]
     #ymin, ymax = modis_tbl.U1.min()-dxdy[1], modis_tbl.U1.max()+dxdy[1]
+    '''
     xmin, xmax = -4.5, 7
     ymin, ymax = 4.5, 10.5
     ax0.set_xlim(xmin, xmax)
     ax0.set_ylim(ymin, ymax)
+    '''
 
     # Label
     if lbl is not None:
@@ -657,6 +659,43 @@ def fig_fit_metric(outroot='fig_fit_', metric=None,
     print(stats.kstest(modis_tbl[metric], 'lognorm'))
 
 
+def fig_learn_curve(outfile='fig_learn_curve.png'):
+    # Grab the data
+    valid_losses_file = 's3://modis-l2/SSL/models/MODIS_R2019_2010/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/learning_curve/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm_losses_valid.h5'
+    with ulmo_io.open(valid_losses_file, 'rb') as f:
+        valid_hf = h5py.File(f, 'r')
+    loss_avg_valid = valid_hf['loss_avg_valid'][:]
+    loss_step_valid = valid_hf['loss_step_valid'][:]
+    loss_valid = valid_hf['loss_valid'][:]
+    valid_hf.close()
+
+    train_losses_file = 's3://modis-l2/SSL/models/MODIS_R2019_2010/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/learning_curve/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm_losses_train.h5'
+    with ulmo_io.open(train_losses_file, 'rb') as f:
+        train_hf = h5py.File(f, 'r')
+    loss_train = train_hf['loss_train'][:]
+    train_hf.close()
+
+    # Plot
+    fig = plt.figure(figsize=(10, 10))
+    plt.clf()
+    gs = gridspec.GridSpec(1,1)
+
+    ax = plt.subplot(gs[0])
+
+    ax.plot(loss_valid, label='valid')
+    ax.plot(loss_train, c='red', label='train')
+
+    ax.legend(fontsize=15.)
+
+    # Label
+    ax.set_xlabel("Step")
+    ax.set_ylabel("Loss")
+
+    plotting.set_fontsize(ax, 17.)
+    
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
     
 #### ########################## #########################
 def main(pargs):
@@ -746,8 +785,7 @@ def main(pargs):
                        distr=pargs.distr)
     # learning_curve
     if pargs.figure == 'learning_curve':
-        opt_path = './experiments/opt.json'
-        fig_train_valid_learn_curve(opt_path)
+        fig_learn_curve()
 
 def parse_option():
     """
@@ -758,7 +796,7 @@ def parse_option():
     """
     parser = argparse.ArgumentParser("SSL Figures")
     parser.add_argument("figure", type=str, 
-                        help="function to execute: 'slopes, 2d_stats, slopevsDT, umap_LL'")
+                        help="function to execute: 'slopes, 2d_stats, slopevsDT, umap_LL, learning_curve'")
     parser.add_argument('--metric', type=str, help="Metric for the figure: 'DT, T10'")
     parser.add_argument('--cmap', type=str, help="Color map")
     parser.add_argument('--distr', type=str, default='normal',

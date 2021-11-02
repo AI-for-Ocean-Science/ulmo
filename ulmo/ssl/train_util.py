@@ -23,6 +23,8 @@ from ulmo import io as ulmo_io
     
 def option_preprocess(opt:ulmo_io.Params):
     """
+    Set up a number of preprocessing and more including
+    output folders (e.g. model_folder, latents_folder)
     Args:
         opt: (Params) json used to store the training hyper-parameters
     Returns:
@@ -69,6 +71,10 @@ def option_preprocess(opt:ulmo_io.Params):
                                     opt.model_name)
     if not os.path.isdir(opt.model_folder):
         os.makedirs(opt.model_folder)
+
+    # Latents folder
+    opt.latents_folder = os.path.join('latents', opt.model_root,
+                                    opt.model_name)
 
     return opt
     
