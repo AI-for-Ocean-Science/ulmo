@@ -652,6 +652,10 @@ def fig_fit_metric(outroot='fig_fit_', metric=None,
     plt.close()
     print('Wrote {:s}'.format(outfile))
 
+    # KS test
+    embed(header='656 of figs')
+    print(stats.kstest(modis_tbl[metric], 'lognorm'))
+
 
     
 #### ########################## #########################
@@ -781,3 +785,6 @@ if __name__ == '__main__':
 # UMAP of Gulf Stream -- python py/fig_ssl_modis.py umap_GS --local
 
 # UMAP of Med -- python py/fig_ssl_modis.py umap_Med --local
+
+# Simple stats
+# DT -- python py/fig_ssl_modis.py fit_metric --metric DT --distr lognorm --local
