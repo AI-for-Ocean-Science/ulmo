@@ -2,7 +2,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-ssl-modis-cf-eval #-debug
+  name: xavier-ssl-modis-cf-eval
 spec:
   backoffLimit: 0
   template:
@@ -18,7 +18,7 @@ spec:
             ephemeral-storage: 50Gi
           limits:
             cpu: "2"
-            memory: "35Gi"  # Memory accumulates, not sure why.  
+            memory: "35Gi"  # Memory accumulates, not sure why.  Usually have to run twice..
             ephemeral-storage: 100Gi
             nvidia.com/gpu:  "1"  # Uses 100%
         command: ["/bin/bash", "-c"]
@@ -29,7 +29,7 @@ spec:
             git pull; 
             python setup.py develop;
             cd ulmo/runs/SSL/MODIS/v2;
-            python ./ssl_modis_v2.py --opt_path ./experiments/modis_model_v2/opts_2010.json --func_flag evaluate; # --debug;
+            python ./ssl_modis_v2.py --opt_path ./experiments/modis_model_v2/opts_cloud_free.json --func_flag evaluate --model CF;
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"
