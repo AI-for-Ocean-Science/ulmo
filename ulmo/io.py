@@ -85,17 +85,24 @@ def grab_cutout(cutout:pandas.core.series.Series,
         return img, pp_hf
 
 
-def list_of_bucket_files(bucket_name:str, prefix='/', delimiter='/'):
+def list_of_bucket_files(inp:str, prefix='/', delimiter='/'):
     """Generate a list of files in the bucket
 
     Args:
-        bucket_name (str): name of bucket
+        inp (str): name of bucket or full s3 path
         prefix (str, optional): Folder(s) path. Defaults to '/'.
         delimiter (str, optional): [description]. Defaults to '/'.
 
     Returns:
-        list: List of files matching with full s3 path
+        list: List of files without s3 bucket prefix
     """
+    if inp[0:2] == 's3':
+        parsed_s3 = urlparse(inp)
+        bucket_name = parsed_s3.netloc
+        prefix = parsed_s3.path
+    else:
+        bucket_name = inp
+    # Do it        
     prefix = prefix[1:] if prefix.startswith(delimiter) else prefix
     bucket = s3.Bucket(bucket_name)
     return list(_.key for _ in bucket.objects.filter(Prefix=prefix))                                

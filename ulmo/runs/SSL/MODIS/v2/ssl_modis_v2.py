@@ -30,37 +30,52 @@ from ulmo.ssl.train_util import train_model
 
 from IPython import embed
 
-def ssl_v2_umap(debug=False, ntrain = 150000):
+
+def ssl_v2_umap(opt_path:str, debug=False, ntrain = 150000):
     """Run a UMAP analysis on all the MODIS L2 data
 
     Args:
+        model_name: (str) model name 
         ntrain (int, optional): Number of random latent vectors to use to train the UMAP model
         debug (bool, optional): For testing and debuggin 
     """
+    # Load up the options file
+    opt = option_preprocess(ulmo_io.Params(opt_path))
+    model_file = os.path.join(opt.model_folder, 'last.pth')
+
     # Load table
-    tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
-    modis_tbl = ulmo_io.load_main_table(tbl_file)
+    modis_tbl = ulmo_io.load_main_table(opt.tbl_file)
     modis_tbl['U0'] = 0.
     modis_tbl['U1'] = 0.
 
 
     # Prep latent_files
-    latent_files = ulmo_io.list_of_bucket_files('modis-l2',
-                                                prefix='SSL/latents/MODIS_R2019_2010/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/')
+    latents_path = os.path.join(opt.s3_outdir, opt.latents_folder)
+    latent_files = ulmo_io.list_of_bucket_files(latents_path)
+        #'modis-l2', 
+        #prefix='SSL/latents/MODIS_R2019_2010/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/')
                                                 #prefix='SSL/SSL_v2_2012/latents/')
     latent_files = ['s3://modis-l2/'+item for item in latent_files]
 
     # Train the UMAP
     # Split
-    train = modis_tbl.pp_type == 1
-    valid = modis_tbl.pp_type == 0
     y2010 = modis_tbl.pp_file == 's3://modis-l2/PreProc/MODIS_R2019_2010_95clear_128x128_preproc_std.h5'
-    valid_tbl = modis_tbl[valid & y2010].copy()
-    nvalid = len(valid_tbl)
 
     # Latents file (subject to move)
     #latents_train_file = 's3://modis-l2/SSL/SSL_v2_2012/latents/MODIS_R2019_2010_95clear_128x128_latents_std.h5'
-    latents_train_file = 's3://modis-l2/SSL/latents/MODIS_R2019_2010/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/MODIS_R2019_2010_95clear_128x128_latents_std.h5'
+    if opt.model_root == 'MODIS_R2019_2010':
+        latents_train_file = 's3://modis-l2/SSL/latents/MODIS_R2019_2010/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/MODIS_R2019_2010_95clear_128x128_latents_std.h5'
+        train = modis_tbl.pp_type == 1
+        valid = modis_tbl.pp_type == 0
+        cut_prefix = 'modis_'
+    elif opt.model_root == 'MODIS_R2019_CF':
+        valid = modis_tbl.ulmo_pp_type == 0
+        train = modis_tbl.ulmo_pp_type == 1
+        latents_train_file = latent_files[-10]
+        assert 'R2019_2010' in latents_train_file
+        cut_prefix = 'ulmo_'
+    else:
+        raise ValueError("Not ready for this model!!")
 
     # Load em in
     basefile = os.path.basename(latents_train_file)
@@ -69,18 +84,35 @@ def ssl_v2_umap(debug=False, ntrain = 150000):
         ulmo_io.download_file_from_s3(basefile, latents_train_file)
         print("Done")
     hf = h5py.File(basefile, 'r')
-    latents_valid = hf['valid'][:]
     print("Latents loaded")
 
-    # Check
-    assert latents_valid.shape[0] == nvalid
+    # Build up the training set for UMAP
+    if opt.model_root == 'MODIS_R2019_2010':
+        valid_tbl = modis_tbl[valid & y2010].copy()
+        nvalid = len(valid_tbl)
+        latents_valid = hf['valid'][:]
+        # Check
+        assert latents_valid.shape[0] == nvalid
 
-    train_idx = np.arange(nvalid)
-    np.random.shuffle(train_idx)
-    train_idx = train_idx[0:ntrain]
-    latents_train = latents_valid[train_idx]
-
-    print(f"Running UMAP on a {ntrain} subset of valid..")
+        # Cut down
+        train_idx = np.arange(nvalid)
+        np.random.shuffle(train_idx)
+        train_idx = train_idx[0:ntrain]
+        latents_train = latents_valid[train_idx]
+    elif opt.model_root == 'MODIS_R2019_CF':
+        latents_valid = hf['valid'][:]
+        latents_train = hf['train'][:]
+        # Grab CF
+        valid_cf_idx = modis_tbl[y2010 & valid].pp_idx.values
+        train_cf_idx = modis_tbl[y2010 & train].pp_idx.values
+        latents_valid_cf = latents_valid[valid_cf_idx,...]
+        latents_train_cf = latents_train[train_cf_idx,...]
+        # Merge
+        latents_train = np.concatenate([latents_valid_cf, latents_train_cf])
+        ntrain = latents_train.shape[0]
+    
+    # Train the UMAP
+    print(f"Running UMAP on a {ntrain} subset of {basefile}..")
     reducer_umap = umap.UMAP()
     latents_mapping = reducer_umap.fit(latents_train)
     print("Done..")
@@ -89,6 +121,7 @@ def ssl_v2_umap(debug=False, ntrain = 150000):
     if debug:
         latent_files = latent_files[0:1]
 
+    # Evaluate with the UMAP
     for latents_file in latent_files:
         basefile = os.path.basename(latents_file)
         year = int(basefile[12:16])
@@ -114,14 +147,16 @@ def ssl_v2_umap(debug=False, ntrain = 150000):
         # Save to table
         yidx = modis_tbl.pp_file == f's3://modis-l2/PreProc/MODIS_R2019_{year}_95clear_128x128_preproc_std.h5'
         valid_idx = valid & yidx
-        modis_tbl.loc[valid_idx, 'U0'] = valid_embedding[:,0]
-        modis_tbl.loc[valid_idx, 'U1'] = valid_embedding[:,1]
+        pp_idx = modis_tbl[valid_idx].pp_idx.values
+        modis_tbl.loc[valid_idx, 'U0'] = valid_embedding[pp_idx,0]
+        modis_tbl.loc[valid_idx, 'U1'] = valid_embedding[pp_idx,1]
         
         # Train?
         train_idx = train & yidx
         if 'train' in hf.keys() and (np.sum(train_idx) > 0):
-            modis_tbl.loc[train_idx, 'U0'] = train_embedding[:,0]
-            modis_tbl.loc[train_idx, 'U1'] = train_embedding[:,1]
+            pp_idx = modis_tbl[train_idx].pp_idx.values
+            modis_tbl.loc[train_idx, 'U0'] = train_embedding[pp_idx,0]
+            modis_tbl.loc[train_idx, 'U1'] = train_embedding[pp_idx,1]
 
 
         hf.close()
@@ -131,11 +166,11 @@ def ssl_v2_umap(debug=False, ntrain = 150000):
         os.remove(basefile)
 
     # Vet
-    assert cat_utils.vet_main_table(modis_tbl, cut_prefix='modis_')
+    assert cat_utils.vet_main_table(modis_tbl, cut_prefix=cut_prefix)
 
     # Final write
     if not debug:
-        ulmo_io.write_main_table(modis_tbl, tbl_file) 
+        ulmo_io.write_main_table(modis_tbl, opt.tbl_file) 
         
 def main_train(opt_path: str, debug=False, restore=False, save_file=None):
     """Train the model
@@ -261,23 +296,18 @@ def main_evaluate(opt_path, model_name,
 
     Args:
         opt_path: (str) option file path.
-        model_name: (str) model name (points to an s3 file)
+        model_name: (str) model name 
         preproc: (str, optional)
             Type of pre-processing
         clobber: (bool, optional)
             If true, over-write any existing file
     """
-    if model_name == '2010':
-        model_file = 's3://modis-l2/SSL/models/MODIS_R2019_2010/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/last.pth'
-        tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
-    elif model_name == 'CF':
-        model_file = 's3://modis-l2/SSL/models/MODIS_R2019_CF/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/last.pth'
-        tbl_file = 's3://modis-l2/Tables/MODIS_SSL_cloud_free.parquet'
-    else:
-        raise IOError("Bad model name [2010, CF]")
+    # Parse the model
+    opt = option_preprocess(ulmo_io.Params(opt_path))
+    model_file = os.path.join(opt.model_folder, 'last.pth')
 
     # Load up the table
-    modis_tbl = ulmo_io.load_main_table(tbl_file)
+    modis_tbl = ulmo_io.load_main_table(opt.tbl_file)
 
     # Load up the options
     opt = option_preprocess(ulmo_io.Params(opt_path))
@@ -540,10 +570,10 @@ if __name__ == "__main__":
         print("UMAP Starts.")
         if args.debug:
             print("In debug mode!!")
-        ssl_v2_umap(debug=args.debug)
+        ssl_v2_umap(args.opt_path, debug=args.debug)
         print("UMAP Ends.")
 
-    # run the umap
+    # 
     if args.func_flag == 'sub2010':
         sub_tbl_2010()
 

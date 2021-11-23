@@ -19,6 +19,7 @@
     "images_file": "MODIS_SSL_cloud_free_images.h5",
     "train_key": "train",
     "valid_key": "valid",
+    "tbl_file": "s3://modis-l2/Tables/MODIS_SSL_cloud_free.parquet",
     "s3_outdir": "s3://modis-l2/SSL/",
     "temp": 0.07,
     "cosine": true,
