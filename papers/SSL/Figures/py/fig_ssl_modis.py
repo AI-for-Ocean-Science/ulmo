@@ -863,3 +863,11 @@ if __name__ == '__main__':
 # UMAP of Brazil + 2K -- python py/fig_ssl_modis.py umap_brazil --local --CF
 # UMAP of Med -- python py/fig_ssl_modis.py umap_Med --local --CF
 # UMAP of Gulf Stream -- python py/fig_ssl_modis.py umap_GS --local --CF
+
+# TODO
+# 1) Run cloudy images through new model and UMAP
+# 2) Plot DT vs. U0
+# 3) Contours on everything
+# 4) Remake novmnx with 10/90%
+# 5) Spectral maps
+
