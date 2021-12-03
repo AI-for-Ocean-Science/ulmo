@@ -2,6 +2,7 @@
 import os, sys
 from typing import IO
 import numpy as np
+from numpy.lib.function_base import percentile
 import scipy
 from scipy import stats
 
@@ -43,15 +44,25 @@ metric_lbls = dict(min_slope=r'$\alpha_{\rm min}$',
 if os.getenv('SST_OOD'):
     local_modis_file = os.path.join(os.getenv('SST_OOD'),
                                     'MODIS_L2/Tables/MODIS_L2_std.parquet')
+    local_modis_CF_file = os.path.join(os.getenv('SST_OOD'),
+                                    'MODIS_L2/Tables/MODIS_SSL_cloud_free.parquet')
 
 
 
-def load_modis_tbl(tbl_file=None, local=False, cuts=None,
-                   region=None):
+def load_modis_tbl(tbl_file=None, local=False, cuts=None, CF=False,
+                   region=None, percentiles=None):
+
+    # Which file?
     if tbl_file is None:
-        tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
+        if CF:
+            tbl_file = 's3://modis-l2/Tables/MODIS_SSL_cloud_free.parquet'
+        else:
+            tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
     if local:
-        tbl_file = local_modis_file
+        if CF:
+            tbl_file = local_modis_CF_file
+        else:
+            tbl_file = local_modis_file
 
     # Load
     modis_tbl = ulmo_io.load_main_table(tbl_file)
@@ -97,6 +108,12 @@ def load_modis_tbl(tbl_file=None, local=False, cuts=None,
         modis_tbl = modis_tbl[in_Med].copy()
     else: 
         raise IOError(f"Bad region! {region}")
+
+    # Percentiles
+    if percentiles is not None:
+        LL_p = np.percentile(modis_tbl.LL, percentiles)
+        cut_p = (modis_tbl.LL < LL_p[0]) | (modis_tbl.LL > LL_p[1])
+        modis_tbl = modis_tbl[cut_p].copy()
 
     return modis_tbl
 
@@ -149,8 +166,11 @@ def fig_augmenting(outfile='fig_augmenting.png', use_s3=False):
 
 def fig_umap_colored(outfile='fig_umap_LL.png', 
                 cuts=None,
+                percentiles=None,
                 metric='LL',
+                CF=False,
                 local=False, 
+                cmap=None,
                 point_size = None, 
                 lbl=None,
                 vmnx = (-1000., None),
@@ -167,8 +187,13 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
         IOError: [description]
     """
     # Load table
-    modis_tbl = load_modis_tbl(local=local, cuts=cuts, region=region)
+    modis_tbl = load_modis_tbl(local=local, cuts=cuts, region=region, CF=CF,
+                               percentiles=percentiles)
     num_samples = len(modis_tbl)
+
+    # Inputs
+    if cmap is None:
+        cmap = 'jet'
 
 
     if debug: # take a subset
@@ -202,7 +227,7 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
         point_size = 1. / np.sqrt(num_samples)
     img = ax0.scatter(modis_tbl.U0, modis_tbl.U1,
             s=point_size, c=values,
-            cmap='jet', vmin=vmnx[0], vmax=vmnx[1])
+            cmap=cmap, vmin=vmnx[0], vmax=vmnx[1])
     cb = plt.colorbar(img, pad=0., fraction=0.030)
     cb.set_label(metric, fontsize=14.)
     #
@@ -235,8 +260,7 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
 
 
 def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
-                     version=1, local=False, 
-                     in_vmnx=None,
+                     local=False, CF=False, in_vmnx=None,
                      debug=False): 
     """ UMAP gallery
 
@@ -249,18 +273,16 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
     Raises:
         IOError: [description]
     """
-    if version == 1:                    
-        tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
-    else:
-        raise IOError("bad version number")
-    if local:
-        tbl_file = local_modis_file
     # Load
-    modis_tbl = ulmo_io.load_main_table(tbl_file)
+    modis_tbl = load_modis_tbl(local=local, CF=CF)
 
     # Cut table
-    xmin, xmax = -4.5, 7
-    ymin, ymax = 4.5, 10.5
+    if CF:
+        xmin, xmax = -5.0, 10.5
+        ymin, ymax = 4.0, 13.5
+    else:
+        xmin, xmax = -4.5, 7
+        ymin, ymax = 4.5, 10.5
     good = (modis_tbl.U0 > xmin) & (modis_tbl.U0 < xmax) & (
         modis_tbl.U1 > ymin) & (modis_tbl.U1 < ymax) & np.isfinite(modis_tbl.LL)
     modis_tbl = modis_tbl.loc[good].copy()
@@ -707,27 +729,29 @@ def main(pargs):
     # UMAP LL
     if pargs.figure == 'umap_LL':
         # LL
-        fig_umap_colored(local=pargs.local)
+        fig_umap_colored(local=pargs.local, CF=pargs.CF)
         # DT
-        #fig_umap_colored(local=pargs.local, metric='DT', outfile='fig_umap_DT.png',
-        #                 vmnx=(None, None))
+        fig_umap_colored(local=pargs.local, metric='DT', outfile='fig_umap_DT.png',
+                         vmnx=(None, None), CF=pargs.CF)
         # Clouds
         #fig_umap_colored(local=pargs.local, metric='clouds', outfile='fig_umap_clouds.png',
         #                 vmnx=(None,None))
 
     # UMAP gallery
     if pargs.figure == 'umap_gallery':
-        fig_umap_gallery(debug=pargs.debug, in_vmnx=(-5.,5.)) 
-        fig_umap_gallery(debug=pargs.debug, in_vmnx=None,
+        fig_umap_gallery(debug=pargs.debug, in_vmnx=(-5.,5.), CF=pargs.CF) 
+        fig_umap_gallery(debug=pargs.debug, in_vmnx=None, CF=pargs.CF,
                          outfile='fig_umap_gallery_novmnx.png')
-        fig_umap_gallery(debug=pargs.debug, in_vmnx=(-1.,1.), 
+        fig_umap_gallery(debug=pargs.debug, in_vmnx=(-1.,1.), CF=pargs.CF ,
                          outfile='fig_umap_gallery_vmnx1.png')
 
     # UMAP LL Brazil
     if pargs.figure  == 'umap_brazil':
         fig_umap_colored(outfile='fig_umap_brazil.png', 
-                    region='brazil',
+                    region='brazil', CF=pargs.CF,
+                    percentiles=(10,90),
                     local=pargs.local,
+                    cmap=pargs.cmap,
                     point_size=1., 
                     lbl=r'Brazil, $\Delta T \approx 2$K',
                     vmnx=(-400, 400))
@@ -735,6 +759,7 @@ def main(pargs):
     # UMAP LL Gulf Stream
     if pargs.figure  == 'umap_GS':
         fig_umap_colored(outfile='fig_umap_GS.png', 
+                    CF=pargs.CF,
                     region='GS',
                     local=pargs.local,
                     point_size=1., 
@@ -742,15 +767,17 @@ def main(pargs):
 
     # UMAP LL Mediterranean
     if pargs.figure  == 'umap_Med':
-        #fig_umap_colored(outfile='fig_umap_Med.png', 
-        #            region='Med',
-        #            local=pargs.local,
-        #            point_size=1., 
-        #            lbl=r'Mediterranean')#, vmnx=(-400, 400))
-        fig_umap_2dhist(outfile='fig_umap_2dhist_Med.png', 
-                        cmap='Reds',
-                        local=pargs.local,
-                        region='Med')
+        fig_umap_colored(outfile='fig_umap_Med.png', 
+                    CF=pargs.CF,
+                    region='Med',
+                    local=pargs.local,
+                    point_size=1., 
+                    lbl=r'Mediterranean')#, vmnx=(-400, 400))
+        #fig_umap_2dhist(outfile='fig_umap_2dhist_Med.png', 
+        #                cmap='Reds',
+        #           CF=pargs.CF,
+        #                local=pargs.local,
+        #                region='Med')
 
     # UMAP 2d Histogram
     if pargs.figure == 'umap_2dhist':
@@ -803,6 +830,8 @@ def parse_option():
                         help='Distribution to fit [normal, lognorm]')
     parser.add_argument('--local', default=False, action='store_true', 
                         help='Use local file(s)?')
+    parser.add_argument('--CF', default=False, action='store_true', 
+                        help='Cloud free?')
     parser.add_argument('--debug', default=False, action='store_true',
                         help='Debug?')
     args = parser.parse_args()
@@ -826,3 +855,11 @@ if __name__ == '__main__':
 
 # Simple stats
 # DT -- python py/fig_ssl_modis.py fit_metric --metric DT --distr lognorm --local
+
+
+# Cloud free
+# UMAP colored by LL -- python py/fig_ssl_modis.py umap_LL --local --CF
+# UMAP gallery -- python py/fig_ssl_modis.py umap_gallery --local --CF
+# UMAP of Brazil + 2K -- python py/fig_ssl_modis.py umap_brazil --local --CF
+# UMAP of Med -- python py/fig_ssl_modis.py umap_Med --local --CF
+# UMAP of Gulf Stream -- python py/fig_ssl_modis.py umap_GS --local --CF
