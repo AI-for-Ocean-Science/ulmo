@@ -30,6 +30,11 @@ from ulmo.utils import image_utils
 
 from IPython import embed
 
+# Plot ranges for the UMAP
+xrngs_CF = -5., 10.
+yrngs_CF = 4., 14.
+xrngs_95 = -4.5, 8.
+yrngs_95 = 4.5, 10.5
 
 metric_lbls = dict(min_slope=r'$\alpha_{\rm min}$',
                    clear_fraction='1-CC',
@@ -381,16 +386,22 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
     print('Wrote {:s}'.format(outfile))
 
 def fig_umap_2dhist(outfile='fig_umap_2dhist.png',
+                    CF=None,
                     version=1, local=False, vmax=None, 
                     cmap=None, cuts=None, region=None,
                     scl = 1):
 
     # Load
-    modis_tbl = load_modis_tbl(local=local, cuts=cuts, region=region)
+    modis_tbl = load_modis_tbl(local=local, cuts=cuts, CF=CF,
+                               region=region)
 
     # 
-    xmin, xmax = -4.5, 8
-    ymin, ymax = 4.5, 10.5
+    if pargs.CF:
+        xmin, xmax = xrngs_CF
+        ymin, ymax = yrngs_CF
+    else:
+        xmin, xmax = xrngs_95
+        ymin, ymax = yrngs_95
     # Histogram
     bins_U0 = np.linspace(xmin, xmax, 23*scl)
     bins_U1 = np.linspace(ymin,ymax, 24*scl)
@@ -402,7 +413,7 @@ def fig_umap_2dhist(outfile='fig_umap_2dhist.png',
     ax = plt.gca()
 
     if cmap is None:
-        cmap = "Blues"
+        cmap = "Greys"
     cm = plt.get_cmap(cmap)
     values = counts.transpose()
     lbl = 'Counts'
@@ -549,7 +560,7 @@ def fig_slopes(outfile='fig_slopes.png', local=False, vmax=None,
     print('Wrote {:s}'.format(outfile))
 
 
-def fig_2d_stats(outroot='fig_2dstats_', stat=None,
+def fig_2d_stats(outroot='fig_2dstats_', stat=None, CF=None,
                 local=False, vmax=None, nbins=40,
                 cmap=None, cuts=None, scl = 1, debug=False):
     """ 2D histograms in the UMAP space
@@ -566,7 +577,7 @@ def fig_2d_stats(outroot='fig_2dstats_', stat=None,
     """
 
     # Load table
-    modis_tbl = load_modis_tbl(local=local, cuts=cuts)
+    modis_tbl = load_modis_tbl(local=local, cuts=cuts, CF=CF)
 
     # Debug?
     if debug:
@@ -718,7 +729,42 @@ def fig_learn_curve(outfile='fig_learn_curve.png'):
     plt.savefig(outfile, dpi=300)
     plt.close()
     print('Wrote {:s}'.format(outfile))
+
+def fig_DT_vs_U0(outfile='fig_DT_vs_U0.png',
+                 local=None, CF=None, nbins=40):
+    # Grab the data
+    modis_tbl = load_modis_tbl(local=local, CF=CF)
+
+    median, x_edge, y_edge, ibins = scipy.stats.binned_statistic_2d(
+        modis_tbl.U0, modis_tbl.U1, modis_tbl['DT'],
+        statistic='median', expand_binnumbers=True, bins=[nbins,1])
+
+    xvals = []
+    for kk in range(len(x_edge)-1):
+        xvals.append(np.mean(x_edge[kk:kk+2]))
+        
+    # Plot
+    fig = plt.figure(figsize=(10, 10))
+    plt.clf()
+    gs = gridspec.GridSpec(1,1)
+
+    ax = plt.subplot(gs[0])
+
+    ax.plot(xvals, median.flatten(), 'o')
+
+    #ax.legend(fontsize=15.)
+
+    # Label
+    ax.set_xlabel("U0")
+    ax.set_ylabel("Median DT")
+
+    plotting.set_fontsize(ax, 17.)
     
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
+        
 #### ########################## #########################
 def main(pargs):
 
@@ -782,11 +828,12 @@ def main(pargs):
     # UMAP 2d Histogram
     if pargs.figure == 'umap_2dhist':
         #
-        fig_umap_2dhist(vmax=80000, local=pargs.local)
+        fig_umap_2dhist(vmax=None, local=pargs.local,
+                        CF=pargs.CF, scl=2)
         # Near norm
-        fig_umap_2dhist(outfile='fig_umap_2dhist_inliers.png',
-                        local=pargs.local, cmap='Greens', 
-                        cuts='inliers')
+        #fig_umap_2dhist(outfile='fig_umap_2dhist_inliers.png',
+        #                local=pargs.local, cmap='Greens', 
+        #                cuts='inliers')
 
     # LL vs DT
     if pargs.figure == 'LLvsDT':
@@ -803,7 +850,8 @@ def main(pargs):
     # 2D Stats
     if pargs.figure == '2d_stats':
         fig_2d_stats(local=pargs.local, debug=pargs.debug,
-                    stat=pargs.metric, cmap=pargs.cmap)
+                    stat=pargs.metric, cmap=pargs.cmap,
+                    CF=pargs.CF)
 
     # Fit a given metric
     if pargs.figure == 'fit_metric':
@@ -813,6 +861,11 @@ def main(pargs):
     # learning_curve
     if pargs.figure == 'learning_curve':
         fig_learn_curve()
+
+    # DT vs. U0
+    if pargs.figure == 'DT_vs_U0':
+        fig_DT_vs_U0(local=pargs.local, CF=pargs.CF)
+
 
 def parse_option():
     """
@@ -857,17 +910,23 @@ if __name__ == '__main__':
 # DT -- python py/fig_ssl_modis.py fit_metric --metric DT --distr lognorm --local
 
 
+# ###########################################################
 # Cloud free
 # UMAP colored by LL -- python py/fig_ssl_modis.py umap_LL --local --CF
 # UMAP gallery -- python py/fig_ssl_modis.py umap_gallery --local --CF
 # UMAP of Brazil + 2K -- python py/fig_ssl_modis.py umap_brazil --local --CF
 # UMAP of Med -- python py/fig_ssl_modis.py umap_Med --local --CF
 # UMAP of Gulf Stream -- python py/fig_ssl_modis.py umap_GS --local --CF
+# slope 2dstat -- python py/fig_ssl_modis.py 2d_stats --local --CF
+
+# 2dhist + contours -- python py/fig_ssl_modis.py umap_2dhist --local --CF
+# DT vs. U0 -- python py/fig_ssl_modis.py DT_vs_U0 --local --CF
 
 # TODO
 # 1) Run cloudy images through new model and UMAP
 # 2) Plot DT vs. U0
-# 3) Contours on everything
+# 3) Contours on everything?
 # 4) Remake novmnx with 10/90%
-# 5) Spectral maps
+    # 5) Spectral maps
+# 6) Tracking
 
