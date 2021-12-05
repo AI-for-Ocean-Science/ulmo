@@ -924,7 +924,7 @@ if __name__ == '__main__':
 
 # TODO
 # 1) Run cloudy images through new model and UMAP
-# 2) Plot DT vs. U0
+    # 2) Plot DT vs. U0
 # 3) Contours on everything?
 # 4) Remake novmnx with 10/90%
     # 5) Spectral maps
