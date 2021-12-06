@@ -929,4 +929,6 @@ if __name__ == '__main__':
 # 4) Remake novmnx with 10/90%
     # 5) Spectral maps
 # 6) Tracking
+# 7) UMAP on DT=2K subset.
+# 8) Focus on the arc?
 
