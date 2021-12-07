@@ -53,74 +53,10 @@ if os.getenv('SST_OOD'):
                                     'MODIS_L2/Tables/MODIS_SSL_cloud_free.parquet')
 
 
+# Local
+sys.path.append(os.path.abspath("../Analysis/py"))
+import ssl_paper_analy
 
-def load_modis_tbl(tbl_file=None, local=False, cuts=None, CF=False,
-                   region=None, percentiles=None):
-
-    # Which file?
-    if tbl_file is None:
-        if CF:
-            tbl_file = 's3://modis-l2/Tables/MODIS_SSL_cloud_free.parquet'
-        else:
-            tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
-    if local:
-        if CF:
-            tbl_file = local_modis_CF_file
-        else:
-            tbl_file = local_modis_file
-
-    # Load
-    modis_tbl = ulmo_io.load_main_table(tbl_file)
-
-    # DT
-    if 'DT' not in modis_tbl.keys():
-        modis_tbl['DT'] = modis_tbl.T90 - modis_tbl.T10
-    modis_tbl['logDT'] = np.log10(modis_tbl.DT)
-    modis_tbl['lowDT'] = modis_tbl.mean_temperature - modis_tbl.T10
-    modis_tbl['absDT'] = np.abs(modis_tbl.T90) - np.abs(modis_tbl.T10)
-
-    # Slopes
-    modis_tbl['min_slope'] = np.minimum(
-        modis_tbl.zonal_slope, modis_tbl.merid_slope)
-
-    # Cut
-    goodLL = np.isfinite(modis_tbl.LL)
-    if cuts is None:
-        good = goodLL
-    elif cuts == 'inliers':
-        inliers = (modis_tbl.LL > 200.) & (modis_tbl.LL < 400)
-        good = goodLL & inliers
-    modis_tbl = modis_tbl[good].copy()
-
-    # Region?
-    if region is None:
-        pass
-    elif region == 'brazil':
-        # Brazil
-        in_brazil = ((np.abs(modis_tbl.lon.values + 57.5) < 10.)  & 
-            (np.abs(modis_tbl.lat.values + 43.0) < 10))
-        in_DT = np.abs(modis_tbl.DT - 2.05) < 0.05
-        modis_tbl = modis_tbl[in_brazil & in_DT].copy()
-    elif region == 'GS':
-        # Gulf Stream
-        in_GS = ((np.abs(modis_tbl.lon.values + 69.) < 3.)  & 
-            (np.abs(modis_tbl.lat.values - 39.0) < 1))
-        modis_tbl = modis_tbl[in_GS].copy()
-    elif region == 'Med':
-        # Mediterranean
-        in_Med = ((modis_tbl.lon > -5.) & (modis_tbl.lon < 30.) &
-            (np.abs(modis_tbl.lat.values - 36.0) < 5))
-        modis_tbl = modis_tbl[in_Med].copy()
-    else: 
-        raise IOError(f"Bad region! {region}")
-
-    # Percentiles
-    if percentiles is not None:
-        LL_p = np.percentile(modis_tbl.LL, percentiles)
-        cut_p = (modis_tbl.LL < LL_p[0]) | (modis_tbl.LL > LL_p[1])
-        modis_tbl = modis_tbl[cut_p].copy()
-
-    return modis_tbl
 
 def fig_augmenting(outfile='fig_augmenting.png', use_s3=False):
 
@@ -192,7 +128,7 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
         IOError: [description]
     """
     # Load table
-    modis_tbl = load_modis_tbl(local=local, cuts=cuts, region=region, CF=CF,
+    modis_tbl = ssl_paper_anly.load_modis_tbl(local=local, cuts=cuts, region=region, CF=CF,
                                percentiles=percentiles)
     num_samples = len(modis_tbl)
 
@@ -279,7 +215,7 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
         IOError: [description]
     """
     # Load
-    modis_tbl = load_modis_tbl(local=local, CF=CF)
+    modis_tbl = ssl_paper_anly.load_modis_tbl(local=local, CF=CF)
 
     # Cut table
     if CF:
@@ -392,7 +328,7 @@ def fig_umap_2dhist(outfile='fig_umap_2dhist.png',
                     scl = 1):
 
     # Load
-    modis_tbl = load_modis_tbl(local=local, cuts=cuts, CF=CF,
+    modis_tbl = ssl_paper_anly.load_modis_tbl(local=local, cuts=cuts, CF=CF,
                                region=region)
 
     # 
@@ -452,7 +388,7 @@ def fig_LLvsDT(outfile='fig_LLvsDT.png', local=False, vmax=None,
     """
 
     # Load table
-    modis_tbl = load_modis_tbl(local=local, cuts=cuts)
+    modis_tbl = ssl_paper_anly.load_modis_tbl(local=local, cuts=cuts)
 
     # Debug?
     if debug:
@@ -492,7 +428,7 @@ def fig_slopevsDT(outfile='fig_slopevsDT.png', local=False, vmax=None,
     """
 
     # Load table
-    modis_tbl = load_modis_tbl(local=local, cuts=cuts)
+    modis_tbl = ssl_paper_anly.load_modis_tbl(local=local, cuts=cuts)
 
     # Debug?
     if debug:
@@ -520,7 +456,7 @@ def fig_slopes(outfile='fig_slopes.png', local=False, vmax=None,
                     cmap=None, cuts=None, scl = 1, debug=False):
 
     # Load table
-    modis_tbl = load_modis_tbl(local=local, cuts=cuts)
+    modis_tbl = ssl_paper_anly.load_modis_tbl(local=local, cuts=cuts)
 
     # Debug?
     if debug:
@@ -577,7 +513,7 @@ def fig_2d_stats(outroot='fig_2dstats_', stat=None, CF=None,
     """
 
     # Load table
-    modis_tbl = load_modis_tbl(local=local, cuts=cuts, CF=CF)
+    modis_tbl = ssl_paper_anly.load_modis_tbl(local=local, cuts=cuts, CF=CF)
 
     # Debug?
     if debug:
@@ -627,7 +563,7 @@ def fig_fit_metric(outroot='fig_fit_', metric=None,
                    cmap=None, cuts=None, debug=False):
 
     # Load table
-    modis_tbl = load_modis_tbl(local=local, cuts=cuts)
+    modis_tbl = ssl_paper_anly.load_modis_tbl(local=local, cuts=cuts)
 
     # Debug?
     if debug:
@@ -733,7 +669,7 @@ def fig_learn_curve(outfile='fig_learn_curve.png'):
 def fig_DT_vs_U0(outfile='fig_DT_vs_U0.png',
                  local=None, CF=None, nbins=40):
     # Grab the data
-    modis_tbl = load_modis_tbl(local=local, CF=CF)
+    modis_tbl = ssl_paper_anly.load_modis_tbl(local=local, CF=CF)
 
     median, x_edge, y_edge, ibins = scipy.stats.binned_statistic_2d(
         modis_tbl.U0, modis_tbl.U1, modis_tbl['DT'],
