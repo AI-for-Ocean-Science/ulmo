@@ -2,9 +2,9 @@
 import os, sys
 from typing import IO
 import numpy as np
-from numpy.lib.function_base import percentile
 import scipy
 from scipy import stats
+from urllib.parse import urlparse
 
 import argparse
 
@@ -33,8 +33,18 @@ from IPython import embed
 # Plot ranges for the UMAP
 xrngs_CF = -5., 10.
 yrngs_CF = 4., 14.
+xrngs_CF_DT1 = -0.5, 10.
+yrngs_CF_DT1 = -1.5, 8.
+xrngs_CF_DT2 = 0., 11.5
+yrngs_CF_DT2 = -1., 8.
 xrngs_95 = -4.5, 8.
 yrngs_95 = 4.5, 10.5
+
+# U3
+xrngs_CF_U3 = -4.5, 7.5
+yrngs_CF_U3 = 6.0, 13.
+xrngs_CF_U3_12 = yrngs_CF_U3
+yrngs_CF_U3_12 = 5.5, 13.5
 
 metric_lbls = dict(min_slope=r'$\alpha_{\rm min}$',
                    clear_fraction='1-CC',
@@ -46,16 +56,47 @@ metric_lbls = dict(min_slope=r'$\alpha_{\rm min}$',
                    merid_slope=r'$\alpha_{\rm AT}}$',
                    )
 
-if os.getenv('SST_OOD'):
-    local_modis_file = os.path.join(os.getenv('SST_OOD'),
-                                    'MODIS_L2/Tables/MODIS_L2_std.parquet')
-    local_modis_CF_file = os.path.join(os.getenv('SST_OOD'),
-                                    'MODIS_L2/Tables/MODIS_SSL_cloud_free.parquet')
-
 
 # Local
 sys.path.append(os.path.abspath("../Analysis/py"))
 import ssl_paper_analy
+
+def update_outfile(outfile, table, umap_dim=2,
+                   umap_comp=None):
+    # Table
+    if table is None or table == 'std':
+        pass
+    elif table == 'CF':
+        outfile = outfile.replace('.png', '_CF.png')
+    elif table == 'CF_DT1':
+        outfile = outfile.replace('.png', '_CF_DT1.png')
+    elif table == 'CF_DT1_DT2':
+        outfile = outfile.replace('.png', '_CF_DT1_DT2.png')
+    elif table == 'CF_DT2':
+        outfile = outfile.replace('.png', '_CF_DT2.png')
+
+    # Ndim
+    if umap_dim == 2:
+        pass
+    elif umap_dim == 3:
+        outfile = outfile.replace('.png', '_U3.png')
+
+    # Comps
+    if umap_comp is not None:
+        if umap_comp != '0,1':
+            outfile = outfile.replace('.png', f'_{umap_comp[0]}{umap_comp[-1]}.png')
+    # Return
+    return outfile
+    
+def gen_umap_keys(umap_dim, umap_comp):
+    if umap_dim == 2:
+        if 'T1' in umap_comp:
+            umap_keys = ('UT1_'+umap_comp[0], 'UT1_'+umap_comp[-1])
+        else:
+            umap_keys = ('U'+umap_comp[0], 'U'+umap_comp[-1])
+    elif umap_dim == 3:
+        umap_keys = ('U3_'+umap_comp[0], 'U3_'+umap_comp[-1])
+    return umap_keys
 
 
 def fig_augmenting(outfile='fig_augmenting.png', use_s3=False):
@@ -109,13 +150,15 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
                 cuts=None,
                 percentiles=None,
                 metric='LL',
-                CF=False,
+                table=None,
                 local=False, 
                 cmap=None,
                 point_size = None, 
                 lbl=None,
                 vmnx = (-1000., None),
                 region=None,
+                umap_comp='0,1',
+                umap_dim=2,
                 debug=False): 
     """ UMAP colored by LL or something else
 
@@ -128,9 +171,13 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
         IOError: [description]
     """
     # Load table
-    modis_tbl = ssl_paper_anly.load_modis_tbl(local=local, cuts=cuts, region=region, CF=CF,
+    modis_tbl = ssl_paper_analy.load_modis_tbl(local=local, cuts=cuts, 
+                                              region=region, table=table,
                                percentiles=percentiles)
     num_samples = len(modis_tbl)
+    outfile = update_outfile(outfile, table, umap_dim,
+                             umap_comp=umap_comp)
+    umap_keys = gen_umap_keys(umap_dim, umap_comp)
 
     # Inputs
     if cmap is None:
@@ -166,22 +213,20 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
 
     if point_size is None:
         point_size = 1. / np.sqrt(num_samples)
-    img = ax0.scatter(modis_tbl.U0, modis_tbl.U1,
+    img = ax0.scatter(modis_tbl[umap_keys[0]], modis_tbl[umap_keys[1]],
             s=point_size, c=values,
             cmap=cmap, vmin=vmnx[0], vmax=vmnx[1])
     cb = plt.colorbar(img, pad=0., fraction=0.030)
     cb.set_label(metric, fontsize=14.)
     #
-    ax0.set_xlabel(r'$U_0$')
-    ax0.set_ylabel(r'$U_1$')
+    ax0.set_xlabel(r'$'+umap_keys[0]+'$')
+    ax0.set_ylabel(r'$'+umap_keys[1]+'$')
     #ax0.set_aspect('equal')#, 'datalim')
 
     fsz = 17.
     plotting.set_fontsize(ax0, fsz)
 
     # Set boundaries
-    #xmin, xmax = modis_tbl.U0.min()-dxdy[0], modis_tbl.U0.max()+dxdy[0]
-    #ymin, ymax = modis_tbl.U1.min()-dxdy[1], modis_tbl.U1.max()+dxdy[1]
     '''
     xmin, xmax = -4.5, 7
     ymin, ymax = 4.5, 10.5
@@ -201,7 +246,9 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
 
 
 def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
-                     local=False, CF=False, in_vmnx=None,
+                     local=False, table='std', in_vmnx=None,
+                     umap_comp='0,1',
+                     umap_dim=2,
                      debug=False): 
     """ UMAP gallery
 
@@ -215,19 +262,58 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
         IOError: [description]
     """
     # Load
-    modis_tbl = ssl_paper_anly.load_modis_tbl(local=local, CF=CF)
+    modis_tbl = ssl_paper_analy.load_modis_tbl(local=local, table=table)
+
+    umap_keys = gen_umap_keys(umap_dim, umap_comp)
+    outfile = update_outfile(outfile, table, umap_dim,
+                             umap_comp=umap_comp)
 
     # Cut table
-    if CF:
-        xmin, xmax = -5.0, 10.5
-        ymin, ymax = 4.0, 13.5
+    dxv = 0.5
+    dyv = 0.25
+    if table == 'CF' and umap_dim==2:
+        xmin, xmax = xrngs_CF
+        ymin, ymax = yrngs_CF
+    elif table == 'CF_DT2' and umap_dim==2:
+        xmin, xmax = xrngs_CF_DT2
+        ymin, ymax = yrngs_CF_DT2
+    elif table == 'CF_DT1' and umap_dim==2:
+        xmin, xmax = xrngs_CF_DT1
+        ymin, ymax = yrngs_CF_DT1
+        dxv = 0.25
+    elif table == 'CF_DT1_DT2' and umap_dim==2:
+        xmin, xmax = xrngs_CF_DT1
+        ymin, ymax = yrngs_CF_DT1
+        dxv = 0.5
+        dyv = 0.5
+    elif table == 'CF' and umap_dim==3 and umap_comp=='0,1':
+        xmin, xmax = xrngs_CF_U3
+        ymin, ymax = yrngs_CF_U3
+    elif table == 'CF' and umap_dim==3 and umap_comp=='1,2':
+        xmin, xmax = xrngs_CF_U3_12
+        ymin, ymax = yrngs_CF_U3_12
+        dxv = 0.25
+        # Add more!
+        dyv *= 0.66
+        dxv *= 0.66
     else:
         xmin, xmax = -4.5, 7
         ymin, ymax = 4.5, 10.5
-    good = (modis_tbl.U0 > xmin) & (modis_tbl.U0 < xmax) & (
-        modis_tbl.U1 > ymin) & (modis_tbl.U1 < ymax) & np.isfinite(modis_tbl.LL)
+
+    # cut
+    good = (modis_tbl[umap_keys[0]] > xmin) & (
+        modis_tbl[umap_keys[0]] < xmax) & (
+        modis_tbl[umap_keys[1]] > ymin) & (
+            modis_tbl[umap_keys[1]] < ymax) & np.isfinite(modis_tbl.LL)
+
+    # Hack for now
+    if table == 'CF_DT1_DT2':
+        gd = (modis_tbl.UT1_0 != 0.) & (modis_tbl.T90-modis_tbl.T10 > 2.)
+        good = good & gd
+
     modis_tbl = modis_tbl.loc[good].copy()
     num_samples = len(modis_tbl)
+    print(f"We have {num_samples} making the cuts.")
 
     if debug: # take a subset
         print("DEBUGGING IS ON")
@@ -244,8 +330,8 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
     plt.clf()
     ax = plt.gca()
 
-    ax.set_xlabel(r'$U_0$')
-    ax.set_ylabel(r'$U_1$')
+    ax.set_xlabel(r'$'+umap_keys[0]+'$')
+    ax.set_ylabel(r'$'+umap_keys[1]+'$')
 
     # Gallery
     #dxdy=(0.3, 0.3)
@@ -254,15 +340,13 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
     ax.set_xlim(xmin, xmax)
     ax.set_ylim(ymin, ymax)
 
-    print('x,y', xmin, xmax, ymin, ymax)
+    print('x,y', xmin, xmax, ymin, ymax, dxv, dyv)
 
     
     # ###################
     # Gallery time
 
     # Grid
-    dxv = 0.5
-    dyv = 0.25
     xval = np.arange(xmin, xmax+dxv, dxv)
     yval = np.arange(ymin, ymax+dyv, dyv)
 
@@ -274,8 +358,9 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
         nmax = 1000000000
     for x in xval[:-1]:
         for y in yval[:-1]:
-            pts = np.where((modis_tbl.U0 >= x) & (modis_tbl.U0 < x+dxv) & (
-                modis_tbl.U1 >= y) & (modis_tbl.U1 < y+dxv)
+            pts = np.where((modis_tbl[umap_keys[0]] >= x) & (
+                modis_tbl[umap_keys[0]] < x+dxv) & (
+                modis_tbl[umap_keys[1]] >= y) & (modis_tbl[umap_keys[1]] < y+dxv)
                            & np.isfinite(modis_tbl.LL))[0]
             if len(pts) == 0:
                 continue
@@ -290,18 +375,30 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
                     [x, y, 0.9*dxv, 0.9*dyv], 
                     transform=ax.transData)
             try:
-                cutout_img = image_utils.grab_image(cutout, close=True)
+                if local:
+                    parsed_s3 = urlparse(cutout.pp_file)
+                    local_file = os.path.join(os.getenv('SST_OOD'),
+                                              'MODIS_L2',
+                                              parsed_s3.path[1:])
+                    cutout_img = image_utils.grab_image(
+                        cutout, close=True, local_file=local_file)
+                else:
+                    cutout_img = image_utils.grab_image(cutout, close=True)
             except:
                 embed(header='198 of plotting')                                                    
             # Limits
-            if in_vmnx is not None:
+            if in_vmnx[0] == -999:
+                DT = cutout.T90 - cutout.T10
+                vmnx = (-1*DT, DT)
+            elif in_vmnx is not None:
                 vmnx = in_vmnx
             else:
                 imin, imax = cutout_img.min(), cutout_img.max()
                 amax = max(np.abs(imin), np.abs(imax))
                 vmnx = (-1*amax, amax)
             # Plot
-            _ = sns.heatmap(np.flipud(cutout_img), xticklabels=[], 
+            _ = sns.heatmap(np.flipud(cutout_img), 
+                            xticklabels=[], 
                      vmin=vmnx[0], vmax=vmnx[1],
                      yticklabels=[], cmap=cm, cbar=False,
                      ax=axins)
@@ -322,17 +419,17 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
     print('Wrote {:s}'.format(outfile))
 
 def fig_umap_2dhist(outfile='fig_umap_2dhist.png',
-                    CF=None,
+                    table=None,
                     version=1, local=False, vmax=None, 
                     cmap=None, cuts=None, region=None,
                     scl = 1):
 
     # Load
-    modis_tbl = ssl_paper_anly.load_modis_tbl(local=local, cuts=cuts, CF=CF,
+    modis_tbl = ssl_paper_analy.load_modis_tbl(local=local, cuts=cuts, table=table,
                                region=region)
 
     # 
-    if pargs.CF:
+    if pargs.table == 'CF':
         xmin, xmax = xrngs_CF
         ymin, ymax = yrngs_CF
     else:
@@ -388,7 +485,7 @@ def fig_LLvsDT(outfile='fig_LLvsDT.png', local=False, vmax=None,
     """
 
     # Load table
-    modis_tbl = ssl_paper_anly.load_modis_tbl(local=local, cuts=cuts)
+    modis_tbl = ssl_paper_analy.load_modis_tbl(local=local, cuts=cuts)
 
     # Debug?
     if debug:
@@ -428,7 +525,7 @@ def fig_slopevsDT(outfile='fig_slopevsDT.png', local=False, vmax=None,
     """
 
     # Load table
-    modis_tbl = ssl_paper_anly.load_modis_tbl(local=local, cuts=cuts)
+    modis_tbl = ssl_paper_analy.load_modis_tbl(local=local, cuts=cuts)
 
     # Debug?
     if debug:
@@ -456,7 +553,7 @@ def fig_slopes(outfile='fig_slopes.png', local=False, vmax=None,
                     cmap=None, cuts=None, scl = 1, debug=False):
 
     # Load table
-    modis_tbl = ssl_paper_anly.load_modis_tbl(local=local, cuts=cuts)
+    modis_tbl = ssl_paper_analy.load_modis_tbl(local=local, cuts=cuts)
 
     # Debug?
     if debug:
@@ -496,7 +593,7 @@ def fig_slopes(outfile='fig_slopes.png', local=False, vmax=None,
     print('Wrote {:s}'.format(outfile))
 
 
-def fig_2d_stats(outroot='fig_2dstats_', stat=None, CF=None,
+def fig_2d_stats(outroot='fig_2dstats_', stat=None, table=None,
                 local=False, vmax=None, nbins=40,
                 cmap=None, cuts=None, scl = 1, debug=False):
     """ 2D histograms in the UMAP space
@@ -513,7 +610,7 @@ def fig_2d_stats(outroot='fig_2dstats_', stat=None, CF=None,
     """
 
     # Load table
-    modis_tbl = ssl_paper_anly.load_modis_tbl(local=local, cuts=cuts, CF=CF)
+    modis_tbl = ssl_paper_analy.load_modis_tbl(local=local, cuts=cuts, table=table)
 
     # Debug?
     if debug:
@@ -525,6 +622,9 @@ def fig_2d_stats(outroot='fig_2dstats_', stat=None, CF=None,
     if cmap is None:
         cmap = 'hot'
     outfile = outroot+stat+'.png'
+
+    # Decorate
+    outfile = update_outfile(outfile, table)
 
     # Do it
     median_slope, x_edge, y_edge, ibins = scipy.stats.binned_statistic_2d(
@@ -563,7 +663,7 @@ def fig_fit_metric(outroot='fig_fit_', metric=None,
                    cmap=None, cuts=None, debug=False):
 
     # Load table
-    modis_tbl = ssl_paper_anly.load_modis_tbl(local=local, cuts=cuts)
+    modis_tbl = ssl_paper_analy.load_modis_tbl(local=local, cuts=cuts)
 
     # Debug?
     if debug:
@@ -667,9 +767,9 @@ def fig_learn_curve(outfile='fig_learn_curve.png'):
     print('Wrote {:s}'.format(outfile))
 
 def fig_DT_vs_U0(outfile='fig_DT_vs_U0.png',
-                 local=None, CF=None, nbins=40):
+                 local=None, table=None, nbins=40):
     # Grab the data
-    modis_tbl = ssl_paper_anly.load_modis_tbl(local=local, CF=CF)
+    modis_tbl = ssl_paper_analy.load_modis_tbl(local=local, table=table)
 
     median, x_edge, y_edge, ibins = scipy.stats.binned_statistic_2d(
         modis_tbl.U0, modis_tbl.U1, modis_tbl['DT'],
@@ -711,26 +811,41 @@ def main(pargs):
     # UMAP LL
     if pargs.figure == 'umap_LL':
         # LL
-        fig_umap_colored(local=pargs.local, CF=pargs.CF)
+        fig_umap_colored(local=pargs.local, table=pargs.table,
+                         umap_dim=pargs.umap_dim,
+                         umap_comp=pargs.umap_comp)
         # DT
-        fig_umap_colored(local=pargs.local, metric='DT', outfile='fig_umap_DT.png',
-                         vmnx=(None, None), CF=pargs.CF)
+        #fig_umap_colored(local=pargs.local, metric='DT', outfile='fig_umap_DT.png',
+        #                 vmnx=(None, None), table=pargs.table,
+        #                 umap_dim=pargs.umap_dim,
+        #                 umap_comp=pargs.umap_comp)
         # Clouds
         #fig_umap_colored(local=pargs.local, metric='clouds', outfile='fig_umap_clouds.png',
         #                 vmnx=(None,None))
 
     # UMAP gallery
     if pargs.figure == 'umap_gallery':
-        fig_umap_gallery(debug=pargs.debug, in_vmnx=(-5.,5.), CF=pargs.CF) 
-        fig_umap_gallery(debug=pargs.debug, in_vmnx=None, CF=pargs.CF,
-                         outfile='fig_umap_gallery_novmnx.png')
-        fig_umap_gallery(debug=pargs.debug, in_vmnx=(-1.,1.), CF=pargs.CF ,
-                         outfile='fig_umap_gallery_vmnx1.png')
+        #fig_umap_gallery(debug=pargs.debug, in_vmnx=(-5.,5.), table=pargs.table) 
+        #fig_umap_gallery(debug=pargs.debug, in_vmnx=None, table=pargs.table,
+        #                 outfile='fig_umap_gallery_novmnx.png')
+        if pargs.vmnx is not None:
+            vmnx = [int(ivmnx) for ivmnx in pargs.vmnx.split(',')]
+        else:
+            vmnx = [-1,1]
+        if pargs.outfile is not None:
+            outfile = pargs.outfile
+        else:
+            outfile = 'fig_umap_gallery.png'
+        fig_umap_gallery(debug=pargs.debug, in_vmnx=vmnx, 
+                         table=pargs.table ,
+            local=pargs.local, outfile=outfile,
+            umap_dim=pargs.umap_dim,
+            umap_comp=pargs.umap_comp)
 
     # UMAP LL Brazil
     if pargs.figure  == 'umap_brazil':
         fig_umap_colored(outfile='fig_umap_brazil.png', 
-                    region='brazil', CF=pargs.CF,
+                    region='brazil', table=pargs.table,
                     percentiles=(10,90),
                     local=pargs.local,
                     cmap=pargs.cmap,
@@ -741,7 +856,7 @@ def main(pargs):
     # UMAP LL Gulf Stream
     if pargs.figure  == 'umap_GS':
         fig_umap_colored(outfile='fig_umap_GS.png', 
-                    CF=pargs.CF,
+                    table=pargs.table,
                     region='GS',
                     local=pargs.local,
                     point_size=1., 
@@ -750,14 +865,14 @@ def main(pargs):
     # UMAP LL Mediterranean
     if pargs.figure  == 'umap_Med':
         fig_umap_colored(outfile='fig_umap_Med.png', 
-                    CF=pargs.CF,
+                    table=pargs.table,
                     region='Med',
                     local=pargs.local,
                     point_size=1., 
                     lbl=r'Mediterranean')#, vmnx=(-400, 400))
         #fig_umap_2dhist(outfile='fig_umap_2dhist_Med.png', 
         #                cmap='Reds',
-        #           CF=pargs.CF,
+        #           table=pargs.table,
         #                local=pargs.local,
         #                region='Med')
 
@@ -765,7 +880,7 @@ def main(pargs):
     if pargs.figure == 'umap_2dhist':
         #
         fig_umap_2dhist(vmax=None, local=pargs.local,
-                        CF=pargs.CF, scl=2)
+                        table=pargs.table, scl=2)
         # Near norm
         #fig_umap_2dhist(outfile='fig_umap_2dhist_inliers.png',
         #                local=pargs.local, cmap='Greens', 
@@ -787,7 +902,7 @@ def main(pargs):
     if pargs.figure == '2d_stats':
         fig_2d_stats(local=pargs.local, debug=pargs.debug,
                     stat=pargs.metric, cmap=pargs.cmap,
-                    CF=pargs.CF)
+                    table=pargs.table)
 
     # Fit a given metric
     if pargs.figure == 'fit_metric':
@@ -800,7 +915,7 @@ def main(pargs):
 
     # DT vs. U0
     if pargs.figure == 'DT_vs_U0':
-        fig_DT_vs_U0(local=pargs.local, CF=pargs.CF)
+        fig_DT_vs_U0(local=pargs.local, table=pargs.table)
 
 
 def parse_option():
@@ -815,12 +930,16 @@ def parse_option():
                         help="function to execute: 'slopes, 2d_stats, slopevsDT, umap_LL, learning_curve'")
     parser.add_argument('--metric', type=str, help="Metric for the figure: 'DT, T10'")
     parser.add_argument('--cmap', type=str, help="Color map")
+    parser.add_argument('--umap_dim', type=int, default=2, help="UMAP embedding dimensions")
+    parser.add_argument('--umap_comp', type=str, default='0,1', help="UMAP embedding dimensions")
+    parser.add_argument('--vmnx', default='0,1', type=str, help="Color bar scale")
+    parser.add_argument('--outfile', type=str, help="Outfile")
     parser.add_argument('--distr', type=str, default='normal',
                         help='Distribution to fit [normal, lognorm]')
     parser.add_argument('--local', default=False, action='store_true', 
                         help='Use local file(s)?')
-    parser.add_argument('--CF', default=False, action='store_true', 
-                        help='Cloud free?')
+    parser.add_argument('--table', type=str, default='std', 
+                        help='Table to load: [std, CF, CF_DT2')
     parser.add_argument('--debug', default=False, action='store_true',
                         help='Debug?')
     args = parser.parse_args()
@@ -848,15 +967,39 @@ if __name__ == '__main__':
 
 # ###########################################################
 # Cloud free
-# UMAP colored by LL -- python py/fig_ssl_modis.py umap_LL --local --CF
-# UMAP gallery -- python py/fig_ssl_modis.py umap_gallery --local --CF
-# UMAP of Brazil + 2K -- python py/fig_ssl_modis.py umap_brazil --local --CF
-# UMAP of Med -- python py/fig_ssl_modis.py umap_Med --local --CF
-# UMAP of Gulf Stream -- python py/fig_ssl_modis.py umap_GS --local --CF
-# slope 2dstat -- python py/fig_ssl_modis.py 2d_stats --local --CF
+# UMAP colored by LL -- python py/fig_ssl_modis.py umap_LL --local --table CF
+# UMAP gallery -- python py/fig_ssl_modis.py umap_gallery --local --table CF
+# UMAP of Brazil + 2K -- python py/fig_ssl_modis.py umap_brazil --local --table CF
+# UMAP of Med -- python py/fig_ssl_modis.py umap_Med --local --table CF
+# UMAP of Gulf Stream -- python py/fig_ssl_modis.py umap_GS --local --table CF
+# slope 2dstat -- python py/fig_ssl_modis.py 2d_stats --local --table CF
 
-# 2dhist + contours -- python py/fig_ssl_modis.py umap_2dhist --local --CF
-# DT vs. U0 -- python py/fig_ssl_modis.py DT_vs_U0 --local --CF
+# 2dhist + contours -- python py/fig_ssl_modis.py umap_2dhist --local --table CF
+# DT vs. U0 -- python py/fig_ssl_modis.py DT_vs_U0 --local --table CF
+
+# ################
+# UMAP ndim=3
+
+# UMAP colored -- python py/fig_ssl_modis.py umap_LL --local --table CF --umap_dim 3
+# UMAP colored 1,2 -- python py/fig_ssl_modis.py umap_LL --local --table CF --umap_dim 3 --umap_comp 1,2
+
+# UMAP gallery 0,1 -- python py/fig_ssl_modis.py umap_gallery --local --table CF --umap_dim 3 
+# UMAP gallery 1,2 -- python py/fig_ssl_modis.py umap_gallery --local --table CF --umap_dim 3 --umap_comp 1,2
+
+# ###########################################################
+# DT2
+
+# UMAP colored by LL -- python py/fig_ssl_modis.py umap_LL --local --table CF_DT2
+# UMAP gallery -- python py/fig_ssl_modis.py umap_gallery --local --table CF_DT2
+# slope 2dstat -- python py/fig_ssl_modis.py 2d_stats --local --table CF_DT2
+
+# ###########################################################
+# DT1
+# UMAP colored by LL -- python py/fig_ssl_modis.py umap_LL --local --table CF_DT1
+# UMAP gallery -- python py/fig_ssl_modis.py umap_gallery --local --table CF_DT1
+# slope 2dstat -- python py/fig_ssl_modis.py 2d_stats --local --table CF_DT1
+
+# UMAP gallery DT>2 -- python py/fig_ssl_modis.py umap_gallery --local --table CF_DT1_DT2 --umap_comp 0,DT1,1 --vmnx=-2,2 --outfile fig_gallery_vmnx2.png
 
 # TODO
 # 1) Run cloudy images through new model and UMAP

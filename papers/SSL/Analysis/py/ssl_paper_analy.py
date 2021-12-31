@@ -3,6 +3,7 @@
 from pkg_resources import resource_filename
 import os
 import numpy as np
+import pickle
 
 import h5py
 import umap
@@ -18,22 +19,30 @@ if os.getenv('SST_OOD'):
                                     'MODIS_L2/Tables/MODIS_L2_std.parquet')
     local_modis_CF_file = os.path.join(os.getenv('SST_OOD'),
                                     'MODIS_L2/Tables/MODIS_SSL_cloud_free.parquet')
+    local_modis_CF_DT2_file = os.path.join(os.getenv('SST_OOD'),
+                                    'MODIS_L2/Tables/MODIS_SSL_cloud_free_DT2.parquet')
 
-
-def load_modis_tbl(tbl_file=None, local=False, cuts=None, CF=False,
+def load_modis_tbl(table=None, local=False, cuts=None, 
                    region=None, percentiles=None):
 
     # Which file?
-    if tbl_file is None:
-        if CF:
-            tbl_file = 's3://modis-l2/Tables/MODIS_SSL_cloud_free.parquet'
-        else:
-            tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
+    if table is None:
+        table = 'std' # Might change this to CF
+    if table == 'std':
+        basename = 'MODIS_L2_std.parquet'
+    elif table == 'CF':
+        basename = 'MODIS_SSL_cloud_free.parquet'
+    elif table == 'CF_DT1':
+        basename = 'MODIS_SSL_cloud_free_DT1.parquet'
+    elif table == 'CF_DT2':
+        basename = 'MODIS_SSL_cloud_free_DT2.parquet'
+    elif table == 'CF_DT1_DT2':
+        basename = 'UT1_2003.parquet'
+
     if local:
-        if CF:
-            tbl_file = local_modis_CF_file
-        else:
-            tbl_file = local_modis_file
+        tbl_file = os.path.join(os.getenv('SST_OOD'), 'MODIS_L2', 'Tables', basename)
+    else:
+        tbl_file = 's3://modis-l2/Tables/'+basename
 
     # Load
     modis_tbl = ulmo_io.load_main_table(tbl_file)
@@ -89,11 +98,15 @@ def load_modis_tbl(tbl_file=None, local=False, cuts=None, CF=False,
     return modis_tbl
 
 
-def umap_subset(opt_path:str, outfile:str, DT_cut=None, local=True, CF=True, debug=False):
+def umap_subset(opt_path:str, outfile:str, DT_cut=None, 
+                umap_savefile:str=None,
+                local=True, CF=True, debug=False):
+
     opt = option_preprocess(ulmo_io.Params(opt_path))
 
     # Load main table
-    modis_tbl = load_modis_tbl(local=local, CF=CF)
+    modis_tbl = load_modis_tbl(local=local, 
+                               table='CF' if CF else 'std')
     modis_tbl['U0'] = 0.
     modis_tbl['U1'] = 0.
 
@@ -112,7 +125,6 @@ def umap_subset(opt_path:str, outfile:str, DT_cut=None, local=True, CF=True, deb
         cut_prefix = 'ulmo_'
     else:
         raise IOError("Need to deal with this")
-
 
     # Prep latent_files
     latents_path = os.path.join(opt.s3_outdir, opt.latents_folder)
@@ -176,6 +188,10 @@ def umap_subset(opt_path:str, outfile:str, DT_cut=None, local=True, CF=True, deb
     latents_mapping = reducer_umap.fit(all_latents)
     print("Done..")
 
+    # Save?
+    if umap_savefile is not None:
+        pickle.dump(latents_mapping, open(umap_savefile, "wb" ) )
+
     # Evaluate
     embedding = latents_mapping.transform(all_latents)
 
@@ -194,12 +210,3 @@ def umap_subset(opt_path:str, outfile:str, DT_cut=None, local=True, CF=True, deb
     assert cat_utils.vet_main_table(modis_tbl, cut_prefix=cut_prefix)
     # Write new table
     ulmo_io.write_main_table(modis_tbl, outfile, to_s3=False)
-
-
-# 
-opt_path = os.path.join(resource_filename('ulmo', 'runs'),
-                        'SSL', 'MODIS', 'v2', 
-                        'experiments', 'modis_model_v2', 'opts_cloud_free.json')
-outfile = os.path.join(os.getenv('SST_OOD'),
-                                    'MODIS_L2/Tables/MODIS_SSL_cloud_free_DT2.parquet')
-umap_subset(opt_path, outfile, DT_cut=(2., 0.2), debug=False) # 180,000 images

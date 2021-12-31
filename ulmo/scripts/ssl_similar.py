@@ -16,7 +16,7 @@ def parser(options=None):
     parser = argparse.ArgumentParser(description='Grab Similar SSL Images')
     parser.add_argument("pp_file", type=str, help="Pre-process file; can be s3")
     parser.add_argument("--pp_idx", default=None, type=int, help="Pre-process identifier")
-    parser.add_argument("model", type=str, help="Name of SSL model [LLC]")
+    parser.add_argument("opt_path", type=str, help="Name of parameter file for SSL model")
     parser.add_argument("dataset", type=str, help="Name of dataset [LLC]")
     parser.add_argument("--img_path", default=None, type=str, help="Path of the target image")
     parser.add_argument("--num_imgs", default=5, type=int, help="Number of images to be searched")
@@ -44,6 +44,7 @@ def load_umap(pargs):
 
 def build_gallery(pargs, img, data_tbl, srt, 
                   outfile='similar_images.png', n_new=5):
+
     from matplotlib import pyplot as plt
     import matplotlib.gridspec as gridspec
     import seaborn as sns
@@ -155,6 +156,7 @@ def main(pargs):
         img = np.expand_dims(img, axis=0)
         print(f"Target Image is loaded and pre-processd!")
         
+    # Build the SSL model
     model_base = os.path.basename(model_file)
     if not os.path.isfile(model_base):
         ulmo_io.download_file_from_s3(model_base, model_file)
@@ -193,3 +195,4 @@ if __name__ == "__main__":
 
 # Eddy
 # noise = 480574
+

@@ -4,6 +4,7 @@ import os
 from re import A
 from typing import IO
 import numpy as np
+import pickle
 
 import time
 import h5py
@@ -31,13 +32,18 @@ from ulmo.ssl.train_util import train_model
 from IPython import embed
 
 
-def ssl_v2_umap(opt_path:str, debug=False, ntrain = 150000):
+def ssl_v2_umap(opt_path:str, debug=False, ntrain = 150000,
+                umap_file:str=None, ukeys:str=None,
+                outfile:str=None, ndim:int=2):
     """Run a UMAP analysis on all the MODIS L2 data
+
+    Either 2 or 3 dimensions
 
     Args:
         model_name: (str) model name 
         ntrain (int, optional): Number of random latent vectors to use to train the UMAP model
         debug (bool, optional): For testing and debuggin 
+        ndim (int, optional): Number of dimensions for the embedding
     """
     # Load up the options file
     opt = option_preprocess(ulmo_io.Params(opt_path))
@@ -45,8 +51,17 @@ def ssl_v2_umap(opt_path:str, debug=False, ntrain = 150000):
 
     # Load table
     modis_tbl = ulmo_io.load_main_table(opt.tbl_file)
-    modis_tbl['U0'] = 0.
-    modis_tbl['U1'] = 0.
+    if ndim == 2:
+        if ukeys is None:
+            ukeys = ('U0', 'U1')
+        for key in ukeys:
+            modis_tbl[key] = 0.
+    elif ndim == 3:
+        modis_tbl['U3_0'] = 0.
+        modis_tbl['U3_1'] = 0.
+        modis_tbl['U3_2'] = 0.
+    else:
+        raise IOError(f"Not ready for ndim={ndim}")
 
 
     # Prep latent_files
@@ -112,10 +127,13 @@ def ssl_v2_umap(opt_path:str, debug=False, ntrain = 150000):
         ntrain = latents_train.shape[0]
     
     # Train the UMAP
-    print(f"Running UMAP on a {ntrain} subset of {basefile}..")
-    reducer_umap = umap.UMAP()
-    latents_mapping = reducer_umap.fit(latents_train)
-    print("Done..")
+    if umap_file is not None:
+        latents_mapping = pickle.load(ulmo_io.open(umap_file, "rb")) 
+    else:
+        print(f"Running UMAP on a {ntrain} subset of {basefile}..")
+        reducer_umap = umap.UMAP(n_components=ndim)
+        latents_mapping = reducer_umap.fit(latents_train)
+        print("Done..")
 
     # Loop on em all
     if debug:
@@ -148,15 +166,25 @@ def ssl_v2_umap(opt_path:str, debug=False, ntrain = 150000):
         yidx = modis_tbl.pp_file == f's3://modis-l2/PreProc/MODIS_R2019_{year}_95clear_128x128_preproc_std.h5'
         valid_idx = valid & yidx
         pp_idx = modis_tbl[valid_idx].pp_idx.values
-        modis_tbl.loc[valid_idx, 'U0'] = valid_embedding[pp_idx,0]
-        modis_tbl.loc[valid_idx, 'U1'] = valid_embedding[pp_idx,1]
+        if ndim == 2:
+            modis_tbl.loc[valid_idx, ukeys[0]] = valid_embedding[pp_idx,0]
+            modis_tbl.loc[valid_idx, ukeys[1]] = valid_embedding[pp_idx,1]
+        elif ndim == 3:
+            modis_tbl.loc[valid_idx, 'U3_0'] = valid_embedding[pp_idx,0]
+            modis_tbl.loc[valid_idx, 'U3_1'] = valid_embedding[pp_idx,1]
+            modis_tbl.loc[valid_idx, 'U3_2'] = valid_embedding[pp_idx,2]
         
         # Train?
         train_idx = train & yidx
         if 'train' in hf.keys() and (np.sum(train_idx) > 0):
             pp_idx = modis_tbl[train_idx].pp_idx.values
-            modis_tbl.loc[train_idx, 'U0'] = train_embedding[pp_idx,0]
-            modis_tbl.loc[train_idx, 'U1'] = train_embedding[pp_idx,1]
+            if ndim == 2:
+                modis_tbl.loc[train_idx, ukeys[0]] = train_embedding[pp_idx,0]
+                modis_tbl.loc[train_idx, ukeys[1]] = train_embedding[pp_idx,1]
+            elif ndim == 3:
+                modis_tbl.loc[train_idx, 'U3_0'] = train_embedding[pp_idx,0]
+                modis_tbl.loc[train_idx, 'U3_1'] = train_embedding[pp_idx,1]
+                modis_tbl.loc[train_idx, 'U3_2'] = train_embedding[pp_idx,2]
 
 
         hf.close()
@@ -170,7 +198,11 @@ def ssl_v2_umap(opt_path:str, debug=False, ntrain = 150000):
 
     # Final write
     if not debug:
-        ulmo_io.write_main_table(modis_tbl, opt.tbl_file) 
+        if outfile is None:
+            outfile = opt.tbl_file
+        ulmo_io.write_main_table(modis_tbl, outfile)
+    else:
+        embed(header='205 of ssl')
         
 def main_train(opt_path: str, debug=False, restore=False, save_file=None):
     """Train the model
@@ -536,13 +568,17 @@ def parse_option():
                         default='./experiments/modis_model_v2/opts_2010.json',
                         help="Path to options file. Defaults to local + 2010")
     parser.add_argument("--func_flag", type=str, 
-                        help="flag of the function to be execute: train,evaluate,umap,sub2010.")
+                        help="flag of the function to be execute: train,evaluate,umap,umap_ndim3,sub2010.")
     parser.add_argument("--model", type=str, 
                         default='2010', help="Short name of the model used [2010,CF]")
     parser.add_argument('--debug', default=False, action='store_true',
                         help='Debug?')
     parser.add_argument('--clobber', default=False, action='store_true',
                         help='Clobber existing files')
+    parser.add_argument("--outfile", type=str, 
+                        help="Path to output file")
+    parser.add_argument("--umap_file", type=str, 
+                        help="Path to UMAP pickle file for analysis")
     args = parser.parse_args()
     
     return args
@@ -566,11 +602,21 @@ if __name__ == "__main__":
         print("Evaluation Ends.")
 
     # run the umap
-    if args.func_flag == 'umap':
+    if args.func_flag[0:4] == 'umap':
         print("UMAP Starts.")
         if args.debug:
             print("In debug mode!!")
-        ssl_v2_umap(args.opt_path, debug=args.debug)
+        if args.func_flag == 'umap_ndim3':
+            ndim = 3
+        else:
+            ndim = 2
+        if args.func_flag == 'umap_DT1':
+            ukeys = ('UT1_0', 'UT1_1')
+        else:
+            ukeys = None
+        ssl_v2_umap(args.opt_path, debug=args.debug, ndim=ndim,
+                    umap_file=args.umap_file, outfile=args.outfile,
+                    ukeys=ukeys)
         print("UMAP Ends.")
 
     # 
@@ -580,3 +626,7 @@ if __name__ == "__main__":
     # Prep for cloud free
     if args.func_flag == 'prep_cloud_free':
         prep_cloud_free(debug=args.debug)
+
+
+# python ssl_modis_v2.py --opt_path ./experiments/modis_model_v2/opts_cloud_free.json --func_flag umap_ndim3
+# python ssl_modis_v2.py --opt_path ./experiments/modis_model_v2/opts_cloud_free.json --umap_file /tank/xavier/Oceanography/AI/OOD/SST/MODIS_L2/UMAP/MODIS_SSL_cloud_free_DT1_UMAP.pkl  --debug --func_flag umap_DT1
