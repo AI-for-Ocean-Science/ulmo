@@ -18,6 +18,7 @@ import umap
 
 from ulmo import io as ulmo_io
 from ulmo.utils import catalog as cat_utils
+from ulmo.scripts import collect_images
 
 from ulmo.ssl import analysis as ssl_analysis
 from ulmo.ssl.util import adjust_learning_rate
@@ -556,6 +557,17 @@ def prep_cloud_free(clear_fraction=0.01, local=True,
     assert cat_utils.vet_main_table(cfree_tbl, cut_prefix='ulmo_')
     ulmo_io.write_main_table(cfree_tbl, 's3://modis-l2/Tables/MODIS_SSL_cloud_free.parquet') 
 
+def run_collect_images(pargs):
+    if pargs.table_file is None:
+        raise IOError("You must specify --table_file !")
+    if pargs.outfile is None:
+        raise IOError("You must specify --outfile !")
+    # Use the defaults
+    pargs.image_path = None
+    pargs.nimages = None
+    # Run it
+    collect_images.main(pargs)
+
 def parse_option():
     """
     This is a function used to parse the arguments in the training.
@@ -568,7 +580,7 @@ def parse_option():
                         default='./experiments/modis_model_v2/opts_2010.json',
                         help="Path to options file. Defaults to local + 2010")
     parser.add_argument("--func_flag", type=str, 
-                        help="flag of the function to be execute: train,evaluate,umap,umap_ndim3,sub2010.")
+                        help="flag of the function to be execute: train,evaluate,umap,umap_ndim3,sub2010,collect")
     parser.add_argument("--model", type=str, 
                         default='2010', help="Short name of the model used [2010,CF]")
     parser.add_argument('--debug', default=False, action='store_true',
@@ -579,6 +591,8 @@ def parse_option():
                         help="Path to output file")
     parser.add_argument("--umap_file", type=str, 
                         help="Path to UMAP pickle file for analysis")
+    parser.add_argument("--table_file", type=str, 
+                        help="Path to Table file")
     args = parser.parse_args()
     
     return args
@@ -627,6 +641,13 @@ if __name__ == "__main__":
     if args.func_flag == 'prep_cloud_free':
         prep_cloud_free(debug=args.debug)
 
+    # Prep for cloud free
+    if args.func_flag == 'collect':
+        run_collect_images(args)
+
 
 # python ssl_modis_v2.py --opt_path ./experiments/modis_model_v2/opts_cloud_free.json --func_flag umap_ndim3
 # python ssl_modis_v2.py --opt_path ./experiments/modis_model_v2/opts_cloud_free.json --umap_file /tank/xavier/Oceanography/AI/OOD/SST/MODIS_L2/UMAP/MODIS_SSL_cloud_free_DT1_UMAP.pkl  --debug --func_flag umap_DT1
+
+# Collect images
+# python ssl_modis_v2.py --func_flag collect --table_file=/tank/xavier/Oceanography/AI/OOD/SST/MODIS_L2/Tables/MODIS_SSL_cloud_free_DT1.parquet --outfile DT1_images.h5

@@ -997,7 +997,7 @@ if __name__ == '__main__':
 # DT1
 # UMAP colored by LL -- python py/fig_ssl_modis.py umap_LL --local --table CF_DT1
 # UMAP gallery -- python py/fig_ssl_modis.py umap_gallery --local --table CF_DT1
-# slope 2dstat -- python py/fig_ssl_modis.py 2d_stats --local --table CF_DT1
+# slope 2dstat -- python py/fig_ssl_modis.py 2d_stats --local --table CF_DT1 --cmap jet
 
 # UMAP gallery DT>2 -- python py/fig_ssl_modis.py umap_gallery --local --table CF_DT1_DT2 --umap_comp 0,DT1,1 --vmnx=-2,2 --outfile fig_gallery_vmnx2.png
 
