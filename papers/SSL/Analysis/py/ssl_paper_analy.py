@@ -32,8 +32,12 @@ def load_modis_tbl(table=None, local=False, cuts=None,
         basename = 'MODIS_L2_std.parquet'
     elif table == 'CF':
         basename = 'MODIS_SSL_cloud_free.parquet'
+    elif table == 'CF_DT0':
+        basename = 'MODIS_SSL_cloud_free_DT0.parquet'
     elif table == 'CF_DT1':
         basename = 'MODIS_SSL_cloud_free_DT1.parquet'
+    elif table == 'CF_DT15':
+        basename = 'MODIS_SSL_cloud_free_DT15.parquet'
     elif table == 'CF_DT2':
         basename = 'MODIS_SSL_cloud_free_DT2.parquet'
     elif table == 'CF_DT1_DT2':
@@ -99,6 +103,7 @@ def load_modis_tbl(table=None, local=False, cuts=None,
 
 
 def umap_subset(opt_path:str, outfile:str, DT_cut=None, 
+                ntrain=200000, remove=True,
                 umap_savefile:str=None,
                 local=True, CF=True, debug=False):
 
@@ -107,16 +112,20 @@ def umap_subset(opt_path:str, outfile:str, DT_cut=None,
     # Load main table
     modis_tbl = load_modis_tbl(local=local, 
                                table='CF' if CF else 'std')
-    modis_tbl['U0'] = 0.
-    modis_tbl['U1'] = 0.
+    modis_tbl['US0'] = 0.
+    modis_tbl['US1'] = 0.
 
     # Cut down
     if DT_cut is not None:
-        keep = np.abs(modis_tbl.DT - DT_cut[0]) < DT_cut[1]
+        if DT_cut[1] < 0: # Lower limit?
+            keep = modis_tbl.DT > DT_cut[0]
+        else:
+            keep = np.abs(modis_tbl.DT - DT_cut[0]) < DT_cut[1]
     else:
         raise IOError("Need at least one cut!")
 
     modis_tbl = modis_tbl[keep].copy()
+    print(f"After the cuts, we have {len(modis_tbl)} cutouts to work on.")
 
     # 
     if CF:
@@ -175,32 +184,38 @@ def umap_subset(opt_path:str, outfile:str, DT_cut=None,
 
         hf.close()
         # Clean up
-        if not debug:
+        if not debug and remove:
             print(f"Done with {basefile}.  Cleaning up")
             os.remove(basefile)
 
     # Concatenate
     all_latents = np.concatenate(all_latents, axis=0)
+    nlatents = all_latents.shape[0]
 
     # UMAP me
-    print(f"Running UMAP on all the files")
+    ntrain = min(ntrain, nlatents)
+    print(f"Training UMAP on {ntrain} of the files")
+    random = np.random.choice(np.arange(nlatents), size=ntrain, 
+                              replace=False)
     reducer_umap = umap.UMAP()
-    latents_mapping = reducer_umap.fit(all_latents)
+    latents_mapping = reducer_umap.fit(all_latents[random,...])
     print("Done..")
 
     # Save?
     if umap_savefile is not None:
         pickle.dump(latents_mapping, open(umap_savefile, "wb" ) )
+        print(f"Saved UMAP to {umap_savefile}")
 
-    # Evaluate
+    # Evaluate all of the latents
+    print("Embedding all of the latents..")
     embedding = latents_mapping.transform(all_latents)
 
     # Save
     srt = np.argsort(sv_idx)
     gd_idx = np.zeros(len(modis_tbl), dtype=bool)
     gd_idx[sv_idx] = True
-    modis_tbl.loc[gd_idx, 'U0'] = embedding[srt,0]
-    modis_tbl.loc[gd_idx, 'U1'] = embedding[srt,1]
+    modis_tbl.loc[gd_idx, 'US0'] = embedding[srt,0]
+    modis_tbl.loc[gd_idx, 'US1'] = embedding[srt,1]
 
     # Remove DT
     modis_tbl.drop(columns=['DT', 'logDT', 'lowDT', 'absDT', 'min_slope'], 

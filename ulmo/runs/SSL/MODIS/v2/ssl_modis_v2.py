@@ -342,9 +342,6 @@ def main_evaluate(opt_path, model_name,
     # Load up the table
     modis_tbl = ulmo_io.load_main_table(opt.tbl_file)
 
-    # Load up the options
-    opt = option_preprocess(ulmo_io.Params(opt_path))
-
     # Grab the model
     model_base = os.path.basename(model_file)
     ulmo_io.download_file_from_s3(model_base, model_file)

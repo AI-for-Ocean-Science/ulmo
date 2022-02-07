@@ -33,8 +33,12 @@ from IPython import embed
 # Plot ranges for the UMAP
 xrngs_CF = -5., 10.
 yrngs_CF = 4., 14.
+xrngs_CF_DT0 = -0.5, 8.5
+yrngs_CF_DT0 = 3, 12.
 xrngs_CF_DT1 = -0.5, 10.
 yrngs_CF_DT1 = -1.5, 8.
+xrngs_CF_DT15 = 0., 10.
+yrngs_CF_DT15 = -1., 7.
 xrngs_CF_DT2 = 0., 11.5
 yrngs_CF_DT2 = -1., 8.
 xrngs_95 = -4.5, 8.
@@ -68,8 +72,12 @@ def update_outfile(outfile, table, umap_dim=2,
         pass
     elif table == 'CF':
         outfile = outfile.replace('.png', '_CF.png')
+    elif table == 'CF_DT0':
+        outfile = outfile.replace('.png', '_CF_DT0.png')
     elif table == 'CF_DT1':
         outfile = outfile.replace('.png', '_CF_DT1.png')
+    elif table == 'CF_DT15':
+        outfile = outfile.replace('.png', '_CF_DT15.png')
     elif table == 'CF_DT1_DT2':
         outfile = outfile.replace('.png', '_CF_DT1_DT2.png')
     elif table == 'CF_DT2':
@@ -93,7 +101,8 @@ def gen_umap_keys(umap_dim, umap_comp):
         if 'T1' in umap_comp:
             umap_keys = ('UT1_'+umap_comp[0], 'UT1_'+umap_comp[-1])
         else:
-            umap_keys = ('U'+umap_comp[0], 'U'+umap_comp[-1])
+            ps = umap_comp.split(',')
+            umap_keys = ('U'+ps[0], 'U'+ps[-1])
     elif umap_dim == 3:
         umap_keys = ('U3_'+umap_comp[0], 'U3_'+umap_comp[-1])
     return umap_keys
@@ -277,10 +286,19 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
     elif table == 'CF_DT2' and umap_dim==2:
         xmin, xmax = xrngs_CF_DT2
         ymin, ymax = yrngs_CF_DT2
+    elif table == 'CF_DT0' and umap_dim==2:
+        xmin, xmax = xrngs_CF_DT0
+        ymin, ymax = yrngs_CF_DT0
+        dyv = 0.5
     elif table == 'CF_DT1' and umap_dim==2:
         xmin, xmax = xrngs_CF_DT1
         ymin, ymax = yrngs_CF_DT1
         dxv = 0.25
+    elif table == 'CF_DT15' and umap_dim==2:
+        xmin, xmax = xrngs_CF_DT15
+        ymin, ymax = yrngs_CF_DT15
+        dxv = 0.5 * 0.8
+        dyv = dxv * 8./10
     elif table == 'CF_DT1_DT2' and umap_dim==2:
         xmin, xmax = xrngs_CF_DT1
         ymin, ymax = yrngs_CF_DT1
@@ -814,8 +832,14 @@ def main(pargs):
         fig_umap_colored(local=pargs.local, table=pargs.table,
                          umap_dim=pargs.umap_dim,
                          umap_comp=pargs.umap_comp)
-        # DT
-        #fig_umap_colored(local=pargs.local, metric='DT', outfile='fig_umap_DT.png',
+
+    # UMAP_DT 
+    if pargs.figure == 'umap_DT':
+        fig_umap_colored(local=pargs.local, table=pargs.table,
+                         metric='DT', outfile='fig_umap_DT.png',
+                         vmnx=(None,None),
+                         umap_dim=pargs.umap_dim,
+                         umap_comp=pargs.umap_comp)
         #                 vmnx=(None, None), table=pargs.table,
         #                 umap_dim=pargs.umap_dim,
         #                 umap_comp=pargs.umap_comp)
@@ -932,7 +956,7 @@ def parse_option():
     parser.add_argument('--cmap', type=str, help="Color map")
     parser.add_argument('--umap_dim', type=int, default=2, help="UMAP embedding dimensions")
     parser.add_argument('--umap_comp', type=str, default='0,1', help="UMAP embedding dimensions")
-    parser.add_argument('--vmnx', default='0,1', type=str, help="Color bar scale")
+    parser.add_argument('--vmnx', default='-1,1', type=str, help="Color bar scale")
     parser.add_argument('--outfile', type=str, help="Outfile")
     parser.add_argument('--distr', type=str, default='normal',
                         help='Distribution to fit [normal, lognorm]')
@@ -994,12 +1018,23 @@ if __name__ == '__main__':
 # slope 2dstat -- python py/fig_ssl_modis.py 2d_stats --local --table CF_DT2
 
 # ###########################################################
+# DT15
+# UMAP colored by DT -- python py/fig_ssl_modis.py umap_DT --local --table CF_DT15 --umap_comp S0,S1
+# UMAP gallery -- python py/fig_ssl_modis.py umap_gallery --local --table CF_DT15 --umap_comp S0,S1 --vmnx=-2,2
+
+# ###########################################################
 # DT1
 # UMAP colored by LL -- python py/fig_ssl_modis.py umap_LL --local --table CF_DT1
 # UMAP gallery -- python py/fig_ssl_modis.py umap_gallery --local --table CF_DT1
 # slope 2dstat -- python py/fig_ssl_modis.py 2d_stats --local --table CF_DT1 --cmap jet
 
 # UMAP gallery DT>2 -- python py/fig_ssl_modis.py umap_gallery --local --table CF_DT1_DT2 --umap_comp 0,DT1,1 --vmnx=-2,2 --outfile fig_gallery_vmnx2.png
+
+# ###########################################################
+# DT0
+
+# UMAP colored by LL -- python py/fig_ssl_modis.py umap_LL --local --table CF_DT0 --umap_comp S0,S1
+# UMAP gallery -- python py/fig_ssl_modis.py umap_gallery --local --table CF_DT0 --umap_comp S0,S1 --vmnx=-1,1
 
 # TODO
 # 1) Run cloudy images through new model and UMAP
