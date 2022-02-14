@@ -202,10 +202,12 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
         modis_tbl = modis_tbl.loc[idx].copy()
 
     # Metric
+    lmetric = metric
     if metric == 'LL':
         values = modis_tbl.LL 
     elif metric == 'DT':
         values = np.log10(modis_tbl.DT.values)
+        lmetric = r'$\log \, \Delta T$'
     elif metric == 'clouds':
         values = modis_tbl.clear_fraction
     else:
@@ -226,7 +228,7 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
             s=point_size, c=values,
             cmap=cmap, vmin=vmnx[0], vmax=vmnx[1])
     cb = plt.colorbar(img, pad=0., fraction=0.030)
-    cb.set_label(metric, fontsize=14.)
+    cb.set_label(lmetric, fontsize=14.)
     #
     ax0.set_xlabel(r'$'+umap_keys[0]+'$')
     ax0.set_ylabel(r'$'+umap_keys[1]+'$')
@@ -992,6 +994,7 @@ if __name__ == '__main__':
 # ###########################################################
 # Cloud free
 # UMAP colored by LL -- python py/fig_ssl_modis.py umap_LL --local --table CF
+# UMAP colored by DT -- python py/fig_ssl_modis.py umap_DT --local --table CF
 # UMAP gallery -- python py/fig_ssl_modis.py umap_gallery --local --table CF
 # UMAP of Brazil + 2K -- python py/fig_ssl_modis.py umap_brazil --local --table CF
 # UMAP of Med -- python py/fig_ssl_modis.py umap_Med --local --table CF
