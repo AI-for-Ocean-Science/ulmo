@@ -7,8 +7,12 @@ import time
 ### Example: fn = r"C:\Users\Ben\Desktop\Prochaska Group\SSH Data\SSH_Data_Files\ssh_grids_v1812_1992100212.nc"
 fn = "YOUR FILE PATH HERE"
 
-# This is a function that takes in the file path, coordinates, and a plot size and returns a countoured Plate Caree map of a region specified by the coordinates and plot size.
-def SSH_Map_Section(filepath,latx,lony,sqrsizeKm):
+'''
+The function takes in a file path for data, coordinates, and a size for a pixel grid and returns a countoured Plate Caree map of a
+region specified by the coordinates and plot size.
+'''
+
+def SSH_Map_Section(filepath,latx,lony,pixels):
 
     ds = xr.open_dataset(filepath)
 
@@ -22,11 +26,12 @@ def SSH_Map_Section(filepath,latx,lony,sqrsizeKm):
     fig = plt.figure(figsize=(8, 12))
     ax = plt.axes(projection=ccrs.PlateCarree())
    
+    sqrsizeKm = int(pixels * 18.5) # The data is on a 1/6° grid which is about 18.5
     LatLonDeg = (sqrsizeKm / 110.574) / 2 # This is what will be used to set th eextent of the plot. The "/ 2" is because it adds/subtracts the "radius" from the center point
-    coordinate = str("({0}°N,{1}°E)").format(latx,lony) # for formatting the center point to be put into the plot title
+    coordinate = str("{0}°N,{1}°E").format(latx,lony) # for formatting the center point to be put into the plot title
     squaresize = str("{0}x{1}Km").format(sqrsizeKm,sqrsizeKm) # for formatting the plot size to be put into the plot title
 
-    ax.set_title("{0} SSH plot centered at {1}".format(squaresize,coordinate))
+    ax.set_title("{0} pixel grid ({1}) SSH plot centered at {2}".format(pixels,squaresize,coordinate))
     ax.set_global()
     ax.coastlines(linewidth=0.5)
     gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True, linewidth=2, color='gray', alpha=0.5, linestyle='--')
@@ -42,7 +47,7 @@ def SSH_Map_Section(filepath,latx,lony,sqrsizeKm):
 
 TimerStart = time.perf_counter()
 
-### Example SSH_Map_Section(fn,40,-50,5000)
+### Example SSH_Map_Section(fn,40,-50,128)
 SSH_Map_Section(fn,,,)    
 
 TimerStop = time.perf_counter() 
