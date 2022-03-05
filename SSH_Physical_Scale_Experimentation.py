@@ -10,37 +10,53 @@ fn = "YOUR FILE PATH HERE"
 '''
 The function takes in a file path for data, coordinates, and a size for a pixel grid and returns a countoured Plate Caree map of a
 region specified by the coordinates and plot size.
+
+Code doesn't work well at very large scales, at high latitiudes, and at low longitudes
 '''
 
-def SSH_Map_Section(filepath,latx,lony,pixels):
 
-    ds = xr.open_dataset(filepath)
+def SSH_Map_Section(filepath,lat,lon,pixels):
 
-    SSH = ds['SLA'].mean(dim="Time").transpose() # Averages time to make the data 2D. Also transposed the axis because for some reason in the raw data they're flipped
+    sqrsizeKm = int(pixels * 18.5) # The data is on a 1/6° grid which is about 18.5 km
+    LatLonDeg = (sqrsizeKm / 111) / 2 # This is what will be used to set th eextent of the plot. The "/ 2" is because it adds/subtracts the "radius" from the center point
+
+    # Ceating the bounds to slice the data and set the extent of the plot    
+    # Converts °W to °E. Cartopy can use either but the data only takes °E
+    if lon < 0:
+        lony = lon+360
+    else: lony = lon
     
-    # Setting the x and y bounds for the plot
-    lat = ds.variables['Latitude'][:]
-    lon = ds.variables['Longitude'][:]
+    minlon = abs(int(lony - LatLonDeg))
+    maxlon = abs(int(lony + LatLonDeg))
+    
+    minlat = int(lat - LatLonDeg)
+    maxlat = int(lat + LatLonDeg)
+    
+    # Opening data and slicing spatialy to remove data outside desired bounds
+    ds = xr.open_dataset(filepath).sel(Longitude=slice(minlon, maxlon),Latitude=slice(minlat, maxlat))
+  
+    # Averages time to make the data 2D. Also transposed the axis because for some reason in the raw data they're flipped
+    ds = ds['SLA'].mean(dim="Time").transpose()
 
-    # Setting up the plot
-    fig = plt.figure(figsize=(8, 12))
+
+    # Initializing the plot
+    fig = plt.figure(figsize=(8, 8))
     ax = plt.axes(projection=ccrs.PlateCarree())
    
-    sqrsizeKm = int(pixels * 18.5) # The data is on a 1/6° grid which is about 18.5
-    LatLonDeg = (sqrsizeKm / 110.574) / 2 # This is what will be used to set th eextent of the plot. The "/ 2" is because it adds/subtracts the "radius" from the center point
-    coordinate = str("{0}°N,{1}°E").format(latx,lony) # for formatting the center point to be put into the plot title
+    # Formatting the title to include information about the plot
+    coordinate = str("{0}°N,{1}°E").format(lat,lon) # for formatting the center point to be put into the plot title
     squaresize = str("{0}x{1}Km").format(sqrsizeKm,sqrsizeKm) # for formatting the plot size to be put into the plot title
-
-    ax.set_title("{0} pixel grid ({1}) SSH plot centered at {2}".format(pixels,squaresize,coordinate))
-    ax.set_global()
+    ax.set_title("{0} pixel grid ({1}) SSH plot centered at {2}".format(pixels,squaresize,coordinate), size=17)
+    
+    # Setting up the plot
     ax.coastlines(linewidth=0.5)
     gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True, linewidth=2, color='gray', alpha=0.5, linestyle='--')
     gl.right_labels = False
-    ax.set_extent([lony - LatLonDeg, lony + LatLonDeg, latx + LatLonDeg, latx - LatLonDeg], ccrs.PlateCarree()) # left lon bound, right lon bound, top lat bound, bottom lat bound
+    ax.set_extent([minlon, maxlon, minlat, maxlat], ccrs.PlateCarree()) # left lon bound, right lon bound, top lat bound, bottom lat bound
 
    # Making the Color Bar
     cax = fig.add_axes([ax.get_position().x1+0.01,ax.get_position().y0,0.02,ax.get_position().height])
-    CF = ax.contourf(lon, lat, SSH, transform=ccrs.PlateCarree()) # need this one for contour color
+    CF = ax.pcolormesh(ds.Longitude, ds.Latitude, ds, transform=ccrs.PlateCarree()) # need this one for contour color
     cbar = plt.colorbar(CF,cax=cax)
     cbar.set_label('SSH (m)', rotation=270)
 
