@@ -3,18 +3,19 @@
 import os
 import numpy as np
 
-from ulmo.viirs import io as viirs_io 
+from ulmo.viirs import io as viirs_io
 from ulmo.preproc import utils as pp_utils
 from ulmo.preproc import extract
 
 from IPython import embed
 
-def extract_file(filename:str, 
-                 field_size=(192,192),
+
+def extract_file(filename: str,
+                 field_size=(192, 192),
                  nadir_offset=0,
-                 CC_max=0.05, 
+                 CC_max=0.05,
                  qual_thresh=5,
-                 temp_bounds = (-3, 34),
+                 temp_bounds=(-3, 34),
                  nrepeat=1,
                  sub_grid_step=2,
                  lower_qual=False,
@@ -41,34 +42,49 @@ def extract_file(filename:str,
         debug (bool, optional): [description]. Defaults to False.
 
     Returns:
-        tuple: raw_SST, inpainted_mask, metadata
+        tuple: raw_ssh, inpainted_mask, metadata
     """
 
-
     # Load the image
-    sst, qual, latitude, longitude = viirs_io.load_nc(filename, verbose=True)
-    if sst is None:
+    ssh, latitude, longitude = viirs_io.load_nc(filename, verbose=True)
+    if ssh is None:
         return
 
     # Generate the masks
-    masks = pp_utils.build_mask(sst, qual, 
-                                qual_thresh=qual_thresh,
-                                temp_bounds=temp_bounds, 
-                                lower_qual=lower_qual)
+
+    masks = np.ones_like(ssh)
+    print("oneslike:", masks)
+    bad = np.isnan(ssh)
+    print("is nan bad:", bad)
+    masks[bad]  # = 0
+    print('masks:', masks)
+
+    masks = masks != 0
+    print("!= 0:", masks)
+
+    #masks = np.concatenate(masks,masks)
+    # print(masks)
+
+    # masks = pp_utils.build_mask(ssh, qual,
+    #                            qual_thresh=qual_thresh,
+    #                            temp_bounds=temp_bounds,
+    #                            lower_qual=lower_qual)
+
+    #embed(header='line 76 of extract.py')
 
     # Restrict to near nadir
-    nadir_pix = sst.shape[1] // 2
+    nadir_pix = ssh.shape[1] // 2
     if nadir_offset > 0:
         lb = nadir_pix - nadir_offset
         ub = nadir_pix + nadir_offset
-        sst = sst[:, lb:ub]
+        ssh = ssh[:, lb:ub]
         masks = masks[:, lb:ub].astype(np.uint8)
     else:
         lb = 0
 
     # Random clear rows, cols
     rows, cols, clear_fracs = extract.clear_grid(
-        masks, field_size[0], 'center', 
+        masks, field_size[0], 'center',
         CC_max=CC_max, nsgrid_draw=nrepeat,
         sub_grid_step=sub_grid_step)
     if rows is None:
@@ -79,23 +95,29 @@ def extract_file(filename:str,
     metadata = []
     for r, c, clear_frac in zip(rows, cols, clear_fracs):
         # Inpaint?
-        field = sst[r:r+field_size[0], c:c+field_size[1]]
+        field = ssh[r:r+field_size[0], c:c+field_size[1]]
         mask = masks[r:r+field_size[0], c:c+field_size[1]]
         if inpaint:
-            inpainted, _ = pp_utils.preproc_field(field, mask, only_inpaint=True)
+            inpainted, _ = pp_utils.preproc_field(
+                field, mask, only_inpaint=True)
         if inpainted is None:
             continue
         # Null out the non inpainted (to preseve memory when compressed)
         inpainted[~mask] = np.nan
-        # Append SST raw + inpainted
+        # Append ssh raw + inpainted
         fields.append(field.astype(np.float32))
         inpainted_masks.append(inpainted)
         # meta
         row, col = r, c + lb
         lat = latitude[row + field_size[0] // 2, col + field_size[1] // 2]
         lon = longitude[row + field_size[0] // 2, col + field_size[1] // 2]
-        metadata.append([filename, str(row), str(col), str(lat), str(lon), str(clear_frac)])
+        metadata.append([filename, str(row), str(
+            col), str(lat), str(lon), str(clear_frac)])
 
-    del sst, masks
+    del ssh, masks
 
     return np.stack(fields), np.stack(inpainted_masks), np.stack(metadata)
+
+
+fn = "https://opendap.jpl.nasa.gov/opendap/SeaSurfaceTopography/merged_alt/L4/cdr_grid/ssh_grids_v1812_1992100212.nc"
+print(extract_file(fn))
