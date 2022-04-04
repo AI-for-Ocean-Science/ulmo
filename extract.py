@@ -47,30 +47,14 @@ def extract_file(filename: str,
 
     # Load the image
     ssh, latitude, longitude = viirs_io.load_nc(filename, verbose=True)
+    
     if ssh is None:
         return
 
-    # Generate the masks
+    # Generate the dummy masks
+    ones = np.ones_like(ssh)    
+    masks = ones == 0
 
-    masks = np.ones_like(ssh)
-    print("oneslike:", masks)
-    bad = np.isnan(ssh)
-    print("is nan bad:", bad)
-    masks[bad]  # = 0
-    print('masks:', masks)
-
-    masks = masks != 0
-    print("!= 0:", masks)
-
-    #masks = np.concatenate(masks,masks)
-    # print(masks)
-
-    # masks = pp_utils.build_mask(ssh, qual,
-    #                            qual_thresh=qual_thresh,
-    #                            temp_bounds=temp_bounds,
-    #                            lower_qual=lower_qual)
-
-    #embed(header='line 76 of extract.py')
 
     # Restrict to near nadir
     nadir_pix = ssh.shape[1] // 2
@@ -87,9 +71,11 @@ def extract_file(filename: str,
         masks, field_size[0], 'center',
         CC_max=CC_max, nsgrid_draw=nrepeat,
         sub_grid_step=sub_grid_step)
+    
     if rows is None:
         return None
 
+    
     # Extract
     fields, inpainted_masks = [], []
     metadata = []
@@ -109,15 +95,16 @@ def extract_file(filename: str,
         inpainted_masks.append(inpainted)
         # meta
         row, col = r, c + lb
-        lat = latitude[row + field_size[0] // 2, col + field_size[1] // 2]
-        lon = longitude[row + field_size[0] // 2, col + field_size[1] // 2]
+        lat = latitude[col + field_size[0] // 2]#, col + field_size[1] // 2]
+        lon = longitude[row + field_size[0] // 2]#, col + field_size[1] // 2]
         metadata.append([filename, str(row), str(
             col), str(lat), str(lon), str(clear_frac)])
 
     del ssh, masks
 
-    return np.stack(fields), np.stack(inpainted_masks), np.stack(metadata)
+    return np.stack(fields), np.stack(metadata)#, np.stack(inpainted_masks)
 
 
-fn = "https://opendap.jpl.nasa.gov/opendap/SeaSurfaceTopography/merged_alt/L4/cdr_grid/ssh_grids_v1812_1992100212.nc"
-print(extract_file(fn))
+
+
+
