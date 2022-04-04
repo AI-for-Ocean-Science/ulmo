@@ -25,68 +25,13 @@ from tqdm import tqdm
 
 from IPython import embed
 
-tbl_file_2013 = 's3://viirs/Tables/VIIRS_2013_std.parquet'
-s3_bucket = 's3://viirs'
+tbl_file = 's3://ssh/Tables/SSH_std.parquet'
+s3_bucket = 's3://ssh'
 
-def viirs_get_data_into_s3(year=2013, day1=1):
-    """Use wget to download data into s3
-
-    Args:
-        year (int, optional): year to download. Defaults to 2013.
-        day1 (int, optional): day to start with (in case you restart). Defaults to 1.
-    """
-    # Check that the PODAAC password exists
-    assert os.getenv('PO_DAAC') is not None
-    # Loop on days
-
-    pushed_files = []
-    nc_files = None
-
-    # push to s3
-    def push_to_s3(nc_files, sday, year):
-        for nc_file in nc_files:
-            s3_file = os.path.join(s3_bucket, 'data', str(year),
-                                   sday, nc_file)
-            ulmo_io.upload_file_to_s3(nc_file, s3_file)
-            # Remove
-            os.remove(nc_file)
-    
-    #for ss in range(365):
-    ndays = 366
-    for ss in range(day1-1, ndays):
-        iday = ss + 1
-        print("Working on day: {}".format(iday))
-        sday = str(iday).zfill(3)
-        # Popen
-        pw = subprocess.Popen([
-            'wget', '--no-check-certificate', '--user=profx', 
-            '--password={}'.format(os.getenv('PO_DAAC')), 
-            '-r', '-nc', '-np',  '-nH', '-nd', '-A', 
-            '{}*.nc'.format(str(year)),
-            #'*.nc', 
-            'https://podaac-tools.jpl.nasa.gov/drive/files/allData/ghrsst/data/GDS2/L2P/VIIRS_NPP/OSPO/v2.61/{}/{}/'.format(
-                year,sday)])
-        if ss == 0:
-            pass
-        else:
-            if len(nc_files) > 0:
-                push_to_s3(nc_files, pvday, year)
-        # Wait now
-        pw.wait()
-        # Files
-        nc_files = glob.glob('{}*.nc'.format(year))
-        nc_files.sort()
-        pvday = sday
-    # Last batch
-    print("Pushing last batch")
-    if len(nc_files) > 0:
-        push_to_s3(nc_files, pvday, year)
-
-
-def viirs_extract_2013(debug=False, n_cores=20, 
+def ssh_extract(debug=False, n_cores=20, 
                        nsub_files=5000,
                        ndebug_files=0):
-    """Extract "cloud free" images for 2013
+    """Extract *all* of the SSH data
 
     Args:
         debug (bool, optional): [description]. Defaults to False.
@@ -98,9 +43,8 @@ def viirs_extract_2013(debug=False, n_cores=20,
     # 20 cores took 3hrs
 
     if debug:
-        tbl_file = 's3://viirs/Tables/VIIRS_2013_tst.parquet'
-    else:
-        tbl_file = tbl_file_2013
+        embed(header='46 of ssh run')
+        #tbl_file = 's3://viirs/Tables/VIIRS_2013_tst.parquet'
     # Pre-processing (and extraction) settings
     pdict = pp_io.load_options('viirs_std')
     
