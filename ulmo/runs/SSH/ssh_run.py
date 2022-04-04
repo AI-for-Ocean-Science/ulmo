@@ -13,7 +13,7 @@ from sklearn.utils import shuffle
 from ulmo import io as ulmo_io
 from ulmo.preproc import io as pp_io 
 from ulmo.preproc import utils as pp_utils
-from ulmo.viirs import extract as viirs_extract
+from ulmo.ssh import extract as ssh_extract
 from ulmo.modis import utils as modis_utils
 from ulmo.analysis import evaluate as ulmo_evaluate 
 from ulmo.utils import catalog as cat_utils
@@ -50,12 +50,11 @@ def ssh_extract(debug=False, n_cores=20,
     
     # 2013 
     print("Grabbing the file list")
-    all_viirs_files = ulmo_io.list_of_bucket_files('viirs')
+    all_ssh_files = ulmo_io.list_of_bucket_files('ssh')
     files = []
-    bucket = 's3://viirs/'
-    for ifile in all_viirs_files:
-        if 'data/2013' in ifile:
-            files.append(bucket+ifile)
+    for ifile in all_ssh_files:
+        if 'SSH_Data_Files' in ifile:
+            files.append(s3_bucket+ifile)
 
     # Output
     if debug:
@@ -64,11 +63,11 @@ def ssh_extract(debug=False, n_cores=20,
                                                     pdict['field_size'],
                                                     pdict['field_size']))
     else:                                                
-        save_path = ('VIIRS_2013'
-                 '_{}clear_{}x{}_inpaint.h5'.format(pdict['clear_threshold'],
+        save_path = ('SSH'
+                 '_{}clear_{}x{}.h5'.format(pdict['clear_threshold'],
                                                     pdict['field_size'],
                                                     pdict['field_size']))
-    s3_filename = 's3://viirs/Extractions/{}'.format(save_path)
+    s3_filename = 's3://ssh/Extractions/{}'.format(save_path)
 
     if debug:
         # Grab 100 random
@@ -77,7 +76,7 @@ def ssh_extract(debug=False, n_cores=20,
         #files = files[:100]
 
     # Setup for preproc
-    map_fn = partial(viirs_extract.extract_file,
+    map_fn = partial(ssh_extract.extract_file,
                      field_size=(pdict['field_size'], pdict['field_size']),
                      CC_max=1.-pdict['clear_threshold'] / 100.,
                      nadir_offset=pdict['nadir_offset'],
