@@ -1,12 +1,11 @@
 """ Module for Ulmo analysis on VIIRS 2013"""
 import os
-import glob
 import numpy as np
-import subprocess 
 
 import pandas
 import h5py
-from skimage.restoration import inpaint 
+
+import argparse
 
 from sklearn.utils import shuffle
 
@@ -20,7 +19,6 @@ from ulmo.utils import catalog as cat_utils
 
 from functools import partial
 from concurrent.futures import ProcessPoolExecutor
-import subprocess
 from tqdm import tqdm
 
 from IPython import embed
@@ -28,7 +26,7 @@ from IPython import embed
 tbl_file = 's3://ssh/Tables/SSH_std.parquet'
 s3_bucket = 's3://ssh'
 
-def ssh_extract(debug=False, n_cores=20, 
+def ssh_extraction(pargs, n_cores=20, 
                        nsub_files=5000,
                        ndebug_files=0):
     """Extract *all* of the SSH data
@@ -42,11 +40,14 @@ def ssh_extract(debug=False, n_cores=20,
     # 10 cores took 6hrs
     # 20 cores took 3hrs
 
-    if debug:
-        embed(header='46 of ssh run')
-        #tbl_file = 's3://viirs/Tables/VIIRS_2013_tst.parquet'
+    if pargs.debug:
+        tbl_file = 's3://ssh/Tables/SSH_tst.parquet'
+
+    # TODO -- BP to figure out what goes on here
+    #  and modify the JSON file
     # Pre-processing (and extraction) settings
-    pdict = pp_io.load_options('viirs_std')
+    pdict = pp_io.load_options('ssh_std')
+    embed(header='51 of ssh_run')
     
     # 2013 
     print("Grabbing the file list")
@@ -57,19 +58,21 @@ def ssh_extract(debug=False, n_cores=20,
             files.append(s3_bucket+ifile)
 
     # Output
-    if debug:
-        save_path = ('VIIRS_2013'
-                 '_{}clear_{}x{}_tst_inpaint.h5'.format(pdict['clear_threshold'],
-                                                    pdict['field_size'],
-                                                    pdict['field_size']))
+    if pargs.debug:
+        save_path = ('SSH'
+                 '_{}clear_{}x{}_tst.h5'.format(
+                     pdict['clear_threshold'], 
+                     pdict['field_size'], 
+                     pdict['field_size']))
     else:                                                
         save_path = ('SSH'
-                 '_{}clear_{}x{}.h5'.format(pdict['clear_threshold'],
-                                                    pdict['field_size'],
-                                                    pdict['field_size']))
+                 '_{}clear_{}x{}.h5'.format(
+                     pdict['clear_threshold'], 
+                     pdict['field_size'], 
+                     pdict['field_size']))
     s3_filename = 's3://ssh/Extractions/{}'.format(save_path)
 
-    if debug:
+    if pargs.debug:
         # Grab 100 random
         files = shuffle(files, random_state=1234)
         files = files[:ndebug_files]  # 10%
@@ -141,23 +144,23 @@ def ssh_extract(debug=False, n_cores=20,
     f_h5.close() 
 
     # Table time
-    viirs_table = pandas.DataFrame()
-    viirs_table['filename'] = [item[0] for item in metadata]
-    viirs_table['row'] = [int(item[1]) for item in metadata]
-    viirs_table['col'] = [int(item[2]) for item in metadata]
-    viirs_table['lat'] = [float(item[3]) for item in metadata]
-    viirs_table['lon'] = [float(item[4]) for item in metadata]
-    viirs_table['clear_fraction'] = [float(item[5]) for item in metadata]
-    viirs_table['field_size'] = pdict['field_size']
-    basefiles = [os.path.basename(ifile) for ifile in viirs_table.filename.values]
-    viirs_table['datetime'] = modis_utils.times_from_filenames(basefiles, ioff=-1, toff=0)
-    viirs_table['ex_filename'] = s3_filename
+    ssh_table = pandas.DataFrame()
+    ssh_table['filename'] = [item[0] for item in metadata]
+    ssh_table['row'] = [int(item[1]) for item in metadata]
+    ssh_table['col'] = [int(item[2]) for item in metadata]
+    ssh_table['lat'] = [float(item[3]) for item in metadata]
+    ssh_table['lon'] = [float(item[4]) for item in metadata]
+    ssh_table['clear_fraction'] = [float(item[5]) for item in metadata]
+    ssh_table['field_size'] = pdict['field_size']
+    basefiles = [os.path.basename(ifile) for ifile in ssh_table.filename.values]
+    ssh_table['datetime'] = modis_utils.times_from_filenames(basefiles, ioff=-1, toff=0)
+    ssh_table['ex_filename'] = s3_filename
 
     # Vet
-    assert cat_utils.vet_main_table(viirs_table)
+    assert cat_utils.vet_main_table(ssh_table)
 
     # Final write
-    ulmo_io.write_main_table(viirs_table, tbl_file)
+    ulmo_io.write_main_table(ssh_table, tbl_file)
     
     # Push to s3
     print("Pushing to s3")
@@ -259,20 +262,32 @@ def main(flg):
     #    modis_day_evaluate()
 
 
-# Command line execution
-if __name__ == '__main__':
-    import sys
+def parse_option():
+    """
+    This is a function used to parse the arguments in the training.
+    
+    Returns:
+        args: (dict) dictionary of the arguments.
+    """
+    parser = argparse.ArgumentParser("Running SSH")
+    parser.add_argument("step", type=str, help="Step of the run")
+    #parser.add_argument("--func_flag", type=str, help="flag of the function to be execute: 'train' or 'evaluate' or 'umap'.")
+        # JFH Should the default now be true with the new definition.
+    parser.add_argument('--debug', default=False, action='store_true',
+                        help='Debug?')
+    args = parser.parse_args()
+    
+    return args
 
-    if len(sys.argv) == 1:
-        flg = 0
-        #flg += 2 ** 0  # 1 -- VIIRS 2013 download
-        #flg += 2 ** 1  # Extract test
-        #flg += 2 ** 2  # Extract for reals
-        flg += 2 ** 3  # Pre-proc test
-        flg += 2 ** 4  # Pre-proc for reals [16]
-        flg += 2 ** 5  # Eval test [32]
-        flg += 2 ** 6  # Eval for reals [64]
-    else:
-        flg = sys.argv[1]
+if __name__ == "__main__":
 
-    main(flg)
+    # get the arguments
+    pargs = parse_option()
+
+    if pargs.step == 'extract':
+        ssh_extraction(pargs)
+
+# Run it
+
+# Extract
+# python ssh_run.py extract --debug
