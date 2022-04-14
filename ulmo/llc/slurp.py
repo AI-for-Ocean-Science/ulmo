@@ -61,5 +61,5 @@ def write_xr(xr_d, outfile, strip_coord=True, encode=True):
         encoding = None
 
     # Write
-    xr_ds.to_netcdf(outfile, encoding=encoding)
+    xr_ds.to_netcdf(outfile, encoding=encoding, engine='netcdf4')
 
