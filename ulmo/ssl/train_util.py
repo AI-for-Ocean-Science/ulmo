@@ -21,7 +21,8 @@ from ulmo.ssl.util import TwoCropTransform, AverageMeter
 from ulmo.ssl.util import warmup_learning_rate
 
 class Params():
-    """Class that loads hyperparameters from a json file.
+    """
+    Class that loads hyperparameters from a json file.
     Example:
     ```
     params = Params(json_path)
@@ -269,6 +270,7 @@ def modis_loader(opt, valid=False):
     
     Args:
         opt: (Params) options for the training process.
+        valid: (Bool) flag used to decide if to use the validation set.
         
     Returns:
         train_loader: (Dataloader) Modis Dataloader.
@@ -284,14 +286,16 @@ def modis_loader(opt, valid=False):
         modis_path = opt.valid_folder
         data_key = opt.valid_key
     modis_file = os.path.join(modis_path, os.listdir(modis_path)[0])
-    print(data_key)
-    modis_dataset = ModisDataset(modis_file, transform=TwoCropTransform(transforms_compose), data_key=data_key)
+    modis_dataset = ModisDataset(modis_file, 
+                                 transform=TwoCropTransform(transforms_compose), 
+                                 data_key=data_key)
     train_sampler = None
     train_loader = torch.utils.data.DataLoader(
                     modis_dataset, batch_size=opt.batch_size, shuffle=(train_sampler is None),
                     num_workers=opt.num_workers, pin_memory=False, sampler=train_sampler)
     
     return train_loader
+
 
 def modis_loader_v2(opt, valid=False):
     """
@@ -300,6 +304,7 @@ def modis_loader_v2(opt, valid=False):
     
     Args:
         opt: (Params) options for the training process.
+        valid: (Bool) flag used to decide if to use the validation set.
         
     Returns:
         train_loader: (Dataloader) Modis Dataloader.
@@ -323,8 +328,8 @@ def modis_loader_v2(opt, valid=False):
     modis_dataset = ModisDataset(modis_file, transform=TwoCropTransform(transforms_compose), data_key=data_key)
     train_sampler = None
     train_loader = torch.utils.data.DataLoader(
-                    modis_dataset, batch_size=batch_size, shuffle=(train_sampler is None),
-                    num_workers=opt.num_workers, pin_memory=False, sampler=train_sampler)
+                   modis_dataset, batch_size=batch_size, shuffle=(train_sampler is None),
+                   num_workers=opt.num_workers, pin_memory=False, sampler=train_sampler)
     
     return train_loader
 
@@ -335,10 +340,12 @@ def modis_loader_v2_with_blurring(opt, valid=False):
     
     Args:
         opt: (Params) options for the training process.
+        valid: (Bool) flag used to decide if to use the validation set.
         
     Returns:
         train_loader: (Dataloader) Modis Dataloader.
     """
+    raise IOError("Modify the loader instead!!")
     transforms_compose = transforms.Compose([RandomRotate(),
                                              RandomJitterCrop(),
                                              GaussianBlurring(),
@@ -365,11 +372,11 @@ def set_model(opt, cuda_use=True):
     
     Args:
         opt: (Params) options for the training process.
-        cude_use: (boolean) flag for the cude usage.
+        cude_use: (Bool) flag for the cude usage.
         
     Returns:
         model: (torch.nn.Module) model class set up by opt.
-        criterion: (scalar) training loss.
+        criterion: (torch.Tensor) training loss.
     """
     model = SupConResNet(name=opt.model, feat_dim=opt.feat_dim)
     criterion = SupConLoss(temperature=opt.temp)
@@ -392,10 +399,9 @@ def train_model(train_loader, model, criterion, optimizer, epoch, opt, cuda_use=
     one epoch training.
     
     Args:
-        train_loader: (Dataloader) data loader for the training 
-        process.
+        train_loader: (Dataloader) data loader for the training process.
         model: (torch.nn.Module)
-        criterion: (torch.nn.Module) loss of the training model.
+        criterion: (torch.Tensor) loss of the training model.
     """
     
     model.train()
@@ -458,10 +464,9 @@ def valid_model(valid_loader, model, criterion, epoch, opt, cuda_use=True):
     one epoch validation.
     
     Args:
-        valid_loader: (Dataloader) data loader for the training 
-        process.
-        model: (torch.nn.Module)
-        criterion: (torch.nn.Module) loss of the training model.
+        valid_loader: (Dataloader) data loader for the training process.
+        model: (torch.nn.Module) SSL model.
+        criterion: (torch.Tensor) loss of the training model.
     """
     
     batch_time = AverageMeter()
