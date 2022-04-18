@@ -3,7 +3,7 @@
 import os
 import numpy as np
 
-from ulmo.viirs import io as viirs_io
+from ulmo.ssh import io as ssh_io
 from ulmo.preproc import utils as pp_utils
 from ulmo.preproc import extract
 
@@ -46,7 +46,7 @@ def extract_file(filename: str,
     """
 
     # Load the image
-    ssh, latitude, longitude = viirs_io.load_nc(filename, verbose=True)
+    ssh, latitude, longitude = ssh_io.load_nc(filename, verbose=True)
     
     if ssh is None:
         return
