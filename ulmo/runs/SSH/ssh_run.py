@@ -28,7 +28,7 @@ s3_bucket = 's3://ssh'
 
 def ssh_extraction(pargs, n_cores=20, 
                        nsub_files=5000,
-                       ndebug_files=0):
+                       ndebug_files=10):
     """Extract *all* of the SSH data
 
     Args:
