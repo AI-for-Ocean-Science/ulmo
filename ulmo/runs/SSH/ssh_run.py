@@ -47,7 +47,7 @@ def ssh_extraction(pargs, n_cores=20,
     #  and modify the JSON file
     # Pre-processing (and extraction) settings
     pdict = pp_io.load_options('ssh_std')
-    embed(header='51 of ssh_run')
+    #embed(header='51 of ssh_run')
     
     # 2013 
     print("Grabbing the file list")
@@ -77,7 +77,9 @@ def ssh_extraction(pargs, n_cores=20,
         files = shuffle(files, random_state=1234)
         files = files[:ndebug_files]  # 10%
         #files = files[:100]
-
+        
+    embed(header='81 of ssh_run')
+    
     # Setup for preproc
     map_fn = partial(ssh_extract.extract_file,
                      field_size=(pdict['field_size'], pdict['field_size']),
