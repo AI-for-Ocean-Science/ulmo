@@ -55,7 +55,7 @@ def ssh_extraction(pargs, n_cores=20,
     files = []
     for ifile in all_ssh_files:
         if 'SSH_Data_Files' in ifile:
-            files.append(s3_bucket+ifile)
+            files.append(s3_bucket+'/'+ifile)
 
     # Output
     if pargs.debug:
