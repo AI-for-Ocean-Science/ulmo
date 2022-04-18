@@ -26,12 +26,12 @@ def load_nc(filename, verbose=True):
         #inp = ulmo_io.load_to_bytes(filename)
         with ulmo_io.open(filename, 'rb') as f:
             ds = xarray.open_dataset(filename_or_obj=f,
-                engine='netcdf4')
+                engine='h5netcdf')
                 #mask_and_scale=True)
     else:
         inp = filename
         ds = xarray.open_dataset(filename_or_obj=inp,
-            engine='netcdf4')
+            engine='h5netcdf')
             #mask_and_scale=True)
     #print(ds)
     try:
