@@ -105,7 +105,7 @@ def ssh_extraction(pargs, n_cores=20,
         print('Files: {}:{} of {}'.format(i0, i1, len(files)))
         sub_files = files[i0:i1]
         
-        embed(header='108 of ssh_run')
+    embed(header='108 of ssh_run')
         
         with ProcessPoolExecutor(max_workers=n_cores) as executor:
             chunksize = len(sub_files) // n_cores if len(sub_files) // n_cores > 0 else 1
@@ -121,7 +121,7 @@ def ssh_extraction(pargs, n_cores=20,
         else:
             metadata = np.concatenate([metadata]+[item[2] for item in answers], axis=0)
         del answers
-        embed(header='122 of ssh_run')
+    embed(header='122 of ssh_run')
         # Write
         if kk == 0:
             f_h5.create_dataset('fields', data=fields, 
