@@ -119,7 +119,7 @@ def ssh_extraction(pargs, n_cores=20,
         else:
             metadata = np.concatenate([metadata]+[item[2] for item in answers], axis=0)
         del answers
-
+        embed(header='122 of ssh_run')
         # Write
         if kk == 0:
             f_h5.create_dataset('fields', data=fields, 
@@ -158,8 +158,6 @@ def ssh_extraction(pargs, n_cores=20,
     ssh_table['datetime'] = modis_utils.times_from_filenames(basefiles, ioff=-1, toff=0)
     ssh_table['ex_filename'] = s3_filename
 
-    embed(header='161 of ssh_run')
-    
     # Vet
     assert cat_utils.vet_main_table(ssh_table)
 
