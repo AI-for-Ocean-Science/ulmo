@@ -138,7 +138,7 @@ def ssh_extraction(pargs, n_cores=20,
             f_h5['fields'][-fields.shape[0]:] = fields
             f_h5['inpainted_masks'][-fields.shape[0]:] = inpainted_masks
     
-
+    embed(header='141 of ssh_run')
     # Metadata
     columns = ['filename', 'row', 'column', 'latitude', 'longitude', 
                'clear_fraction']
@@ -146,7 +146,7 @@ def ssh_extraction(pargs, n_cores=20,
     dset.attrs['columns'] = columns
     # Close
     f_h5.close() 
-
+    embed(header='149 of ssh_run')
     # Table time
     ssh_table = pandas.DataFrame()
     ssh_table['filename'] = [item[0] for item in metadata]
