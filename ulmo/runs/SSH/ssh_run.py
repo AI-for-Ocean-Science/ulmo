@@ -104,7 +104,9 @@ def ssh_extraction(pargs, n_cores=20,
         i1 = min((kk+1)*nsub_files, len(files))
         print('Files: {}:{} of {}'.format(i0, i1, len(files)))
         sub_files = files[i0:i1]
-
+        
+        embed(header='108 of ssh_run')
+        
         with ProcessPoolExecutor(max_workers=n_cores) as executor:
             chunksize = len(sub_files) // n_cores if len(sub_files) // n_cores > 0 else 1
             answers = list(tqdm(executor.map(map_fn, sub_files,
