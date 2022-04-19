@@ -3,7 +3,7 @@ import os
 import numpy as np
 
 import pandas
-import h5netcdf.legacyapi as h5py
+import h5py
 
 import argparse
 
