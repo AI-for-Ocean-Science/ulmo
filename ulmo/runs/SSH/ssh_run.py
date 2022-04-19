@@ -78,7 +78,7 @@ def ssh_extraction(pargs, n_cores=20,
         files = files[:ndebug_files]  # 10%
         #files = files[:100]
         
-    embed(header='81 of ssh_run')
+    #embed(header='81 of ssh_run')
     
     # Setup for preproc
     map_fn = partial(ssh_extract.extract_file,
@@ -158,6 +158,8 @@ def ssh_extraction(pargs, n_cores=20,
     ssh_table['datetime'] = modis_utils.times_from_filenames(basefiles, ioff=-1, toff=0)
     ssh_table['ex_filename'] = s3_filename
 
+    embed(header='161 of ssh_run')
+    
     # Vet
     assert cat_utils.vet_main_table(ssh_table)
 
