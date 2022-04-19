@@ -51,7 +51,7 @@ def ssh_extraction(pargs, n_cores=20,
     
     # 2013 
     print("Grabbing the file list")
-    all_ssh_files = ulmo_io.list_of_bucket_files('ssh')
+    all_ssh_files = os.listdir("/home/jovyan/sshdata_mini") #ulmo_io.list_of_bucket_files('ssh')
     files = []
     for ifile in all_ssh_files:
         if 'SSH_Data_Files' in ifile:
