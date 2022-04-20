@@ -22,14 +22,14 @@ def load_nc(filename, verbose=True):
     if filename[0:5] == 's3://':
         #inp = ulmo_io.load_to_bytes(filename)
         with ulmo_io.open(filename, 'rb') as f:
-            ds = xarray.open_dataset(filename_or_obj=f)#,
-                #engine='h5netcdf')
-                #mask_and_scale=True)
+            ds = xarray.open_dataset(filename_or_obj=f,
+                engine='netcdf4',
+                mask_and_scale=True)
     else:
         inp = filename
-        ds = xarray.open_dataset(filename_or_obj=inp)#,
-            #engine='h5netcdf')
-            #mask_and_scale=True)
+        ds = xarray.open_dataset(filename_or_obj=inp,
+            engine='netcdf4',
+            mask_and_scale=True)
     #print(ds)
     try:
         # Fails if data is corrupt
