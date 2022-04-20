@@ -3,18 +3,19 @@
 import os
 import numpy as np
 
-from ulmo.viirs import io as viirs_io 
+from ulmo.ssh import io as ssh_io
 from ulmo.preproc import utils as pp_utils
 from ulmo.preproc import extract
 
 from IPython import embed
 
-def extract_file(filename:str, 
-                 field_size=(192,192),
+
+def extract_file(filename: str,
+                 field_size=(192, 192),
                  nadir_offset=0,
-                 CC_max=0.05, 
+                 CC_max=0.05,
                  qual_thresh=5,
-                 temp_bounds = (-3, 34),
+                 temp_bounds=(-3, 34),
                  nrepeat=1,
                  sub_grid_step=2,
                  lower_qual=False,
@@ -44,8 +45,8 @@ def extract_file(filename:str,
         tuple: raw_ssh, inpainted_mask, metadata
     """
 
-
     # Load the image
+
     ssh, latitude, longitude = viirs_io.load_nc(filename, verbose=True)
     if ssh is None:
         return
@@ -62,6 +63,16 @@ def extract_file(filename:str,
 
 
 
+    ssh, latitude, longitude = ssh_io.load_nc(filename, verbose=True)
+    
+    if ssh is None:
+        return
+
+    # Generate the dummy masks
+    ones = np.ones_like(ssh)    
+    masks = ones == 0
+
+
 
     # Restrict to near nadir
     nadir_pix = ssh.shape[1] // 2
@@ -75,12 +86,14 @@ def extract_file(filename:str,
 
     # Random clear rows, cols
     rows, cols, clear_fracs = extract.clear_grid(
-        masks, field_size[0], 'center', 
+        masks, field_size[0], 'center',
         CC_max=CC_max, nsgrid_draw=nrepeat,
         sub_grid_step=sub_grid_step)
+    
     if rows is None:
         return None
 
+    
     # Extract
     fields, inpainted_masks = [], []
     metadata = []
@@ -89,7 +102,8 @@ def extract_file(filename:str,
         field = ssh[r:r+field_size[0], c:c+field_size[1]]
         mask = masks[r:r+field_size[0], c:c+field_size[1]]
         if inpaint:
-            inpainted, _ = pp_utils.preproc_field(field, mask, only_inpaint=True)
+            inpainted, _ = pp_utils.preproc_field(
+                field, mask, only_inpaint=True)
         if inpainted is None:
             continue
         # Null out the non inpainted (to preseve memory when compressed)
@@ -99,18 +113,28 @@ def extract_file(filename:str,
         inpainted_masks.append(inpainted)
         # meta
         row, col = r, c + lb
-        lat = latitude[row + field_size[0] // 2, col + field_size[1] // 2]
-        lon = longitude[row + field_size[0] // 2, col + field_size[1] // 2]
-        metadata.append([filename, str(row), str(col), str(lat), str(lon), str(clear_frac)])
+        lat = latitude[col + field_size[0] // 2]#, col + field_size[1] // 2]
+        lon = longitude[row + field_size[0] // 2]#, col + field_size[1] // 2]
+        metadata.append([filename, str(row), str(
+            col), str(lat), str(lon), str(clear_frac)])
+
+    del ssh, masks
+
+    return np.stack(fields), np.stack(metadata)#, np.stack(inpainted_masks)
+
+
+
+
 
     del ssh, masks
 
     return np.stack(fields), np.stack(inpainted_masks), np.stack(metadata)
 
 
-fn = "https://opendap.jpl.nasa.gov/opendap/SeaSurfaceTopography/merged_alt/L4/cdr_grid/ssh_grids_v1812_1992100212.nc"
+#fn = "https://opendap.jpl.nasa.gov/opendap/SeaSurfaceTopography/merged_alt/L4/cdr_grid/ssh_grids_v1812_1992100212.nc"
 
 
 
-extract_file(fn)
+#extract_file(fn)
+
 
