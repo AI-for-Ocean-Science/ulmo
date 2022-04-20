@@ -121,7 +121,7 @@ def ssh_extraction(pargs, n_cores=20,
         else:
             metadata = np.concatenate([metadata]+[item[2] for item in answers], axis=0)
         del answers
-            embed(header='124 of ssh_run')
+        embed(header='124 of ssh_run')
         # Write
         if kk == 0:
             f_h5.create_dataset('fields', data=fields, 
