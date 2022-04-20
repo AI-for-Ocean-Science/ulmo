@@ -120,7 +120,7 @@ def extract_file(filename: str,
 
     del ssh, masks
 
-    return np.stack(fields), np.stack(metadata)#, np.stack(inpainted_masks)
+    return np.stack(fields), np.stack(inpainted_masks), np.stack(metadata)
 
 
 #fn = "https://opendap.jpl.nasa.gov/opendap/SeaSurfaceTopography/merged_alt/L4/cdr_grid/ssh_grids_v1812_1992100212.nc"
