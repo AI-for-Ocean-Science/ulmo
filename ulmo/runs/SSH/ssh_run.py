@@ -111,7 +111,7 @@ def ssh_extraction(pargs, n_cores=20,
             chunksize = len(sub_files) // n_cores if len(sub_files) // n_cores > 0 else 1
             answers = list(tqdm(executor.map(map_fn, sub_files,
                                              chunksize=chunksize), total=len(sub_files)))
-
+        embed(header='114 of ssh_run')
         # Trim None's
         answers = [f for f in answers if f is not None]
         fields = np.concatenate([item[0] for item in answers])
