@@ -47,7 +47,7 @@ def extract_file(filename: str,
 
     # Load the image
 
-    ssh, latitude, longitude = viirs_io.load_nc(filename, verbose=True)
+    ssh, latitude, longitude = ssh_io.load_nc(filename, verbose=True)
     if ssh is None:
         return
 
@@ -121,14 +121,6 @@ def extract_file(filename: str,
     del ssh, masks
 
     return np.stack(fields), np.stack(metadata)#, np.stack(inpainted_masks)
-
-
-
-
-
-    del ssh, masks
-
-    return np.stack(fields), np.stack(inpainted_masks), np.stack(metadata)
 
 
 #fn = "https://opendap.jpl.nasa.gov/opendap/SeaSurfaceTopography/merged_alt/L4/cdr_grid/ssh_grids_v1812_1992100212.nc"
