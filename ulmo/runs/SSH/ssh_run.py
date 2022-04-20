@@ -1,7 +1,7 @@
 """ Module for Ulmo analysis on VIIRS 2013"""
 import os
 import numpy as np
-
+import glob
 import pandas
 import h5py
 
@@ -51,7 +51,7 @@ def ssh_extraction(pargs, n_cores=20,
     
     # 2013 
     print("Grabbing the file list")
-    all_ssh_files = os.listdir("/home/jovyan/sshdata_mini") #ulmo_io.list_of_bucket_files('ssh')
+    all_ssh_files = glob.glob("/home/jovyan/sshdata_mini/ssh*.nc") #ulmo_io.list_of_bucket_files('ssh')
     files = all_ssh_files #[]
     #for ifile in all_ssh_files:
     #    if 'SSH_Data_Files' in ifile:
