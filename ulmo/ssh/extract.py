@@ -19,7 +19,7 @@ def extract_file(filename: str,
                  nrepeat=1,
                  sub_grid_step=2,
                  lower_qual=False,
-                 inpaint=True, debug=False):
+                 inpaint=False, debug=False):
     """Method to extract a single file.
     Usually used in parallel
 
@@ -38,7 +38,7 @@ def extract_file(filename: str,
         nrepeat (int, optional): [description]. Defaults to 1.
         sub_grid_step (int, optional):  Sets how finely to sample the image.
             Larger means more finely
-        inpaint (bool, optional): [description]. Defaults to True.
+        inpaint (bool, optional): [description]. Defaults to False.
         debug (bool, optional): [description]. Defaults to False.
 
     Returns:

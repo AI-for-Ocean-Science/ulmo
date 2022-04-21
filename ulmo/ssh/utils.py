@@ -28,7 +28,7 @@ def times_from_filenames(filenames:list):#, ioff=10, toff=1):
                                 int(ifile[20:22]), # Month
                                 int(ifile[22:24]), # Day
                                 int(ifile[24:26]))#, # Hour
-                                #int(float(ifile[:]))) # Minut
+                                #int(float(ifile[:]))) # Minut # These is no minute in the filename for ssh data
     
                 for ifile in filenames]
     # Return
