@@ -1,7 +1,7 @@
 import os
 import datetime
 
-def times_from_filenames(filenames:list, ioff=10, toff=1):
+def times_from_filenames(filenames:list):#, ioff=10, toff=1):
     """ Generate list of datetimes from
     list of filenames
     
@@ -18,11 +18,27 @@ def times_from_filenames(filenames:list, ioff=10, toff=1):
         list:  List of datetimes
     """
     # Dates
-    dtimes = [datetime.datetime(int(ifile[1+ioff:5+ioff]), # Year
-                                int(ifile[5+ioff:7+ioff]), # Month
-                                int(ifile[7 + ioff:9+ioff]), # Day
-                                int(ifile[9+ioff+toff:11+ioff+toff]), # Hour
-                                int(ifile[11+ioff+toff:13+ioff+toff])) # Minut
+    #dtimes = [datetime.datetime(int(float(ifile[1+ioff:5+ioff])), # Year
+    #                            int(float(ifile[5+ioff:7+ioff])), # Month
+    #                            int(float(ifile[7 + ioff:9+ioff])), # Day
+    #                            int(float(ifile[9+ioff+toff:11+ioff+toff])), # Hour
+    #                            int(float(ifile[11+ioff+toff:13+ioff+toff]))) # Minut
+    
+    dtimes = [datetime.datetime(int(ifile[16:20]), # Year
+                                int(ifile[20:22]), # Month
+                                int(ifile[22:24]), # Day
+                                int(ifile[24:26]))#, # Hour
+                                #int(float(ifile[:]))) # Minut
+    
                 for ifile in filenames]
     # Return
     return dtimes
+
+
+fn = ['ssh_grids_v1812_1992100212','ssh_grids_v1812_1992100212','ssh_grids_v1812_1992100212']
+test = times_from_filenames(fn)
+print(test)
+
+
+#ssh_grids_v1812_1992100212
+#year:1992, month:10, day:02, hour:12(always)
