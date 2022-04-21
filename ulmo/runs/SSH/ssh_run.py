@@ -13,7 +13,7 @@ from ulmo import io as ulmo_io
 from ulmo.preproc import io as pp_io 
 from ulmo.preproc import utils as pp_utils
 from ulmo.ssh import extract as ssh_extract
-from ulmo.modis import utils as modis_utils
+from ulmo.ssh import utils as ssh_utils
 from ulmo.analysis import evaluate as ulmo_evaluate 
 from ulmo.utils import catalog as cat_utils
 
@@ -157,7 +157,7 @@ def ssh_extraction(pargs, n_cores=20,
     ssh_table['clear_fraction'] = [float(item[5]) for item in metadata]
     ssh_table['field_size'] = pdict['field_size']
     basefiles = [os.path.basename(ifile) for ifile in ssh_table.filename.values]
-    ssh_table['datetime'] = modis_utils.times_from_filenames(basefiles, ioff=-1, toff=0)
+    ssh_table['datetime'] = ssh_utils.times_from_filenames(basefiles, ioff=-1, toff=0)
     ssh_table['ex_filename'] = s3_filename
 
     # Vet
