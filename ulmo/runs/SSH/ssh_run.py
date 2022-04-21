@@ -157,7 +157,7 @@ def ssh_extraction(pargs, n_cores=20,
     ssh_table['clear_fraction'] = [float(item[5]) for item in metadata]
     ssh_table['field_size'] = pdict['field_size']
     basefiles = [os.path.basename(ifile) for ifile in ssh_table.filename.values]
-    ssh_table['datetime'] = ssh_utils.times_from_filenames(basefiles, ioff=-1, toff=0)
+    ssh_table['datetime'] = ssh_utils.times_from_filenames(basefiles)#, ioff=-1, toff=0)
     ssh_table['ex_filename'] = s3_filename
 
     # Vet

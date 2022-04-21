@@ -35,9 +35,9 @@ def times_from_filenames(filenames:list):#, ioff=10, toff=1):
     return dtimes
 
 
-fn = ['ssh_grids_v1812_1992100212','ssh_grids_v1812_1992100212','ssh_grids_v1812_1992100212']
-test = times_from_filenames(fn)
-print(test)
+#fn = ['ssh_grids_v1812_1992100212','ssh_grids_v1812_1992100212','ssh_grids_v1812_1992100212']
+#test = times_from_filenames(fn)
+#print(test)
 
 
 #ssh_grids_v1812_1992100212
