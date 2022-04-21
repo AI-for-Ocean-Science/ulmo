@@ -44,7 +44,8 @@ def ssh_extraction(pargs, n_cores=20,
         tbl_file = 's3://ssh/Tables/SSH_tst.parquet'
 
     # TODO -- BP to figure out what goes on here
-    #  and modify the JSON file
+    #  and modify the JSON file.  Look down below at the
+    #  call to extract_file()
     # Pre-processing (and extraction) settings
     pdict = pp_io.load_options('ssh_std')
     embed(header='51 of ssh_run')
@@ -80,7 +81,8 @@ def ssh_extraction(pargs, n_cores=20,
 
     # Setup for preproc
     map_fn = partial(ssh_extract.extract_file,
-                     field_size=(pdict['field_size'], pdict['field_size']),
+                     field_size=(pdict['field_size'], 
+                                 pdict['field_size']),
                      CC_max=1.-pdict['clear_threshold'] / 100.,
                      nadir_offset=pdict['nadir_offset'],
                      temp_bounds=tuple(pdict['temp_bounds']),
