@@ -1,7 +1,7 @@
 """ Module for Ulmo analysis on VIIRS 2013"""
 import os
 import numpy as np
-
+import glob
 import pandas
 import h5py
 
@@ -13,7 +13,7 @@ from ulmo import io as ulmo_io
 from ulmo.preproc import io as pp_io 
 from ulmo.preproc import utils as pp_utils
 from ulmo.ssh import extract as ssh_extract
-from ulmo.modis import utils as modis_utils
+from ulmo.ssh import utils as ssh_utils
 from ulmo.analysis import evaluate as ulmo_evaluate 
 from ulmo.utils import catalog as cat_utils
 
@@ -28,7 +28,7 @@ s3_bucket = 's3://ssh'
 
 def ssh_extraction(pargs, n_cores=20, 
                        nsub_files=5000,
-                       ndebug_files=0):
+                       ndebug_files=10):
     """Extract *all* of the SSH data
 
     Args:
@@ -48,15 +48,15 @@ def ssh_extraction(pargs, n_cores=20,
     #  call to extract_file()
     # Pre-processing (and extraction) settings
     pdict = pp_io.load_options('ssh_std')
-    embed(header='51 of ssh_run')
+    #embed(header='51 of ssh_run')
     
     # 2013 
     print("Grabbing the file list")
-    all_ssh_files = ulmo_io.list_of_bucket_files('ssh')
-    files = []
-    for ifile in all_ssh_files:
-        if 'SSH_Data_Files' in ifile:
-            files.append(s3_bucket+ifile)
+    all_ssh_files = glob.glob("/home/jovyan/sshdata_mini/ssh*.nc") #ulmo_io.list_of_bucket_files('ssh')
+    files = all_ssh_files #[]
+    #for ifile in all_ssh_files:
+    #    if 'SSH_Data_Files' in ifile:
+    #        files.append(s3_bucket+'/'+ifile)
 
     # Output
     if pargs.debug:
@@ -78,7 +78,9 @@ def ssh_extraction(pargs, n_cores=20,
         files = shuffle(files, random_state=1234)
         files = files[:ndebug_files]  # 10%
         #files = files[:100]
-
+        
+    #embed(header='81 of ssh_run')
+    
     # Setup for preproc
     map_fn = partial(ssh_extract.extract_file,
                      field_size=(pdict['field_size'], 
@@ -104,12 +106,14 @@ def ssh_extraction(pargs, n_cores=20,
         i1 = min((kk+1)*nsub_files, len(files))
         print('Files: {}:{} of {}'.format(i0, i1, len(files)))
         sub_files = files[i0:i1]
-
+        
+        #embed(header='108 of ssh_run')
+        
         with ProcessPoolExecutor(max_workers=n_cores) as executor:
             chunksize = len(sub_files) // n_cores if len(sub_files) // n_cores > 0 else 1
             answers = list(tqdm(executor.map(map_fn, sub_files,
                                              chunksize=chunksize), total=len(sub_files)))
-
+        #embed(header='114 of ssh_run')
         # Trim None's
         answers = [f for f in answers if f is not None]
         fields = np.concatenate([item[0] for item in answers])
@@ -119,7 +123,7 @@ def ssh_extraction(pargs, n_cores=20,
         else:
             metadata = np.concatenate([metadata]+[item[2] for item in answers], axis=0)
         del answers
-
+        #embed(header='124 of ssh_run')
         # Write
         if kk == 0:
             f_h5.create_dataset('fields', data=fields, 
@@ -136,7 +140,7 @@ def ssh_extraction(pargs, n_cores=20,
             f_h5['fields'][-fields.shape[0]:] = fields
             f_h5['inpainted_masks'][-fields.shape[0]:] = inpainted_masks
     
-
+    #embed(header='141 of ssh_run')
     # Metadata
     columns = ['filename', 'row', 'column', 'latitude', 'longitude', 
                'clear_fraction']
@@ -144,7 +148,7 @@ def ssh_extraction(pargs, n_cores=20,
     dset.attrs['columns'] = columns
     # Close
     f_h5.close() 
-
+    #embed(header='149 of ssh_run')
     # Table time
     ssh_table = pandas.DataFrame()
     ssh_table['filename'] = [item[0] for item in metadata]
@@ -155,7 +159,7 @@ def ssh_extraction(pargs, n_cores=20,
     ssh_table['clear_fraction'] = [float(item[5]) for item in metadata]
     ssh_table['field_size'] = pdict['field_size']
     basefiles = [os.path.basename(ifile) for ifile in ssh_table.filename.values]
-    ssh_table['datetime'] = modis_utils.times_from_filenames(basefiles, ioff=-1, toff=0)
+    ssh_table['datetime'] = ssh_utils.times_from_filenames(basefiles)#, ioff=-1, toff=0)
     ssh_table['ex_filename'] = s3_filename
 
     # Vet

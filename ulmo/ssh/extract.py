@@ -3,7 +3,7 @@
 import os
 import numpy as np
 
-from ulmo.viirs import io as viirs_io
+from ulmo.ssh import io as ssh_io
 from ulmo.preproc import utils as pp_utils
 from ulmo.preproc import extract
 
@@ -19,7 +19,7 @@ def extract_file(filename: str,
                  nrepeat=1,
                  sub_grid_step=2,
                  lower_qual=False,
-                 inpaint=True, debug=False):
+                 inpaint=False, debug=False):
     """Method to extract a single file.
     Usually used in parallel
 
@@ -38,7 +38,7 @@ def extract_file(filename: str,
         nrepeat (int, optional): [description]. Defaults to 1.
         sub_grid_step (int, optional):  Sets how finely to sample the image.
             Larger means more finely
-        inpaint (bool, optional): [description]. Defaults to True.
+        inpaint (bool, optional): [description]. Defaults to False.
         debug (bool, optional): [description]. Defaults to False.
 
     Returns:
@@ -46,7 +46,24 @@ def extract_file(filename: str,
     """
 
     # Load the image
-    ssh, latitude, longitude = viirs_io.load_nc(filename, verbose=True)
+
+    ssh, latitude, longitude = ssh_io.load_nc(filename, verbose=True)
+    if ssh is None:
+        return
+
+    # Generate the masks
+    #masks = pp_utils.build_mask(ssh, qual, 
+    #                            qual_thresh=qual_thresh,
+    #                            temp_bounds=temp_bounds, 
+    #                            lower_qual=lower_qual)
+    masks = np.ones_like(ssh)
+    bad = np.isnan(ssh)
+    masks[bad] = 0
+
+
+
+
+    ssh, latitude, longitude = ssh_io.load_nc(filename, verbose=True)
     
     if ssh is None:
         return
@@ -54,6 +71,7 @@ def extract_file(filename: str,
     # Generate the dummy masks
     ones = np.ones_like(ssh)    
     masks = ones == 0
+
 
 
     # Restrict to near nadir
@@ -102,9 +120,11 @@ def extract_file(filename: str,
 
     del ssh, masks
 
-    return np.stack(fields), np.stack(metadata)#, np.stack(inpainted_masks)
+    return np.stack(fields), np.stack(inpainted_masks), np.stack(metadata)
 
 
-
+#fn = "https://opendap.jpl.nasa.gov/opendap/SeaSurfaceTopography/merged_alt/L4/cdr_grid/ssh_grids_v1812_1992100212.nc"
+#test = extract_file(fn)
+#print(test[1])
 
 

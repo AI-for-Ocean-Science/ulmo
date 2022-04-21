@@ -1,5 +1,5 @@
 {
-    "field_size": 192,
+    "field_size": 32,
     "nadir_offset": 0,
     "sub_grid_step": 2,
     "nrepeat": 1,
