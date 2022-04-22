@@ -129,9 +129,9 @@ def ssh_extraction(pargs, n_cores=20,
             f_h5.create_dataset('fields', data=fields, 
                                 compression="gzip", chunks=True,
                                 maxshape=(None, fields.shape[1], fields.shape[2]))
-            f_h5.create_dataset('inpainted_masks', data=inpainted_masks,
-                                compression="gzip", chunks=True,
-                                maxshape=(None, inpainted_masks.shape[0], inpainted_masks.shape[0]))
+            #f_h5.create_dataset('inpainted_masks', data=inpainted_masks,
+            #                    compression="gzip", chunks=True,
+            #                    maxshape=(None, inpainted_masks.shape[0], inpainted_masks.shape[0]))
         else:
             # Resize
             for key in ['fields', 'inpainted_masks']:
