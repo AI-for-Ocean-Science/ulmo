@@ -52,7 +52,7 @@ def ssh_extraction(pargs, n_cores=20,
     
     # 2013 
     print("Grabbing the file list")
-    all_ssh_files = glob.glob("/home/jovyan/sshdata_full/ssh*.nc") #ulmo_io.list_of_bucket_files('ssh')
+    all_ssh_files = glob.glob("/home/jovyan/sshdata_mini/ssh*.nc") #ulmo_io.list_of_bucket_files('ssh')
     files = all_ssh_files #[]
     #for ifile in all_ssh_files:
     #    if 'SSH_Data_Files' in ifile:
@@ -90,7 +90,7 @@ def ssh_extraction(pargs, n_cores=20,
                      temp_bounds=tuple(pdict['temp_bounds']),
                      nrepeat=pdict['nrepeat'],
                      sub_grid_step=pdict['sub_grid_step'],
-                     inpaint=True)
+                     inpaint=False)
 
     # Local file for writing
     f_h5 = h5py.File(save_path, 'w')
@@ -192,7 +192,7 @@ def viirs_2013_preproc(debug=False, n_cores=20):
     viirs_tbl = pp_utils.preproc_tbl(viirs_tbl, 1., 
                                      's3://viirs',
                                      preproc_root='viirs_std',
-                                     inpainted_mask=True,
+                                     inpainted_mask=False,
                                      use_mask=True,
                                      nsub_fields=10000,
                                      n_cores=n_cores)
