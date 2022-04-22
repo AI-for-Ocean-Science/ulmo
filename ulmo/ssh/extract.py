@@ -104,7 +104,7 @@ def extract_file(filename: str,
         if inpaint:
             inpainted, _ = pp_utils.preproc_field(
                 field, mask, only_inpaint=True)
-        if inpainted is None:
+        if inpaint is None:
             continue
         # Null out the non inpainted (to preseve memory when compressed)
         inpainted[~mask] = np.nan
