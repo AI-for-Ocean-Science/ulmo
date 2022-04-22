@@ -19,7 +19,7 @@ def extract_file(filename: str,
                  nrepeat=1,
                  sub_grid_step=2,
                  lower_qual=False,
-                 inpaint=True, debug=False):
+                 inpaint=False, debug=False):
     """Method to extract a single file.
     Usually used in parallel
 
@@ -38,7 +38,7 @@ def extract_file(filename: str,
         nrepeat (int, optional): [description]. Defaults to 1.
         sub_grid_step (int, optional):  Sets how finely to sample the image.
             Larger means more finely
-        inpaint (bool, optional): [description]. Defaults to True.
+        inpaint (bool, optional): [description]. Defaults to False.
         debug (bool, optional): [description]. Defaults to False.
 
     Returns:
@@ -92,7 +92,8 @@ def extract_file(filename: str,
     
     if rows is None:
         return None
-
+    
+    inpainted = []
     
     # Extract
     fields, inpainted_masks = [], []
@@ -104,10 +105,10 @@ def extract_file(filename: str,
         if inpaint:
             inpainted, _ = pp_utils.preproc_field(
                 field, mask, only_inpaint=True)
-        if inpainted is None:
+        if inpainted is []:
             continue
         # Null out the non inpainted (to preseve memory when compressed)
-        inpainted[~mask] = np.nan
+        inpainted = np.nan # og line:inpainted[~mask] = np.nan
         # Append ssh raw + inpainted
         fields.append(field.astype(np.float32))
         inpainted_masks.append(inpainted)
