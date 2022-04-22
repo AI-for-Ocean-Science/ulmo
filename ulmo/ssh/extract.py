@@ -107,7 +107,7 @@ def extract_file(filename: str,
         if inpaint is False:
             continue
         # Null out the non inpainted (to preseve memory when compressed)
-        inpainted[~mask] = np.nan
+        inpainted = np.nan #inpainted[~mask] = np.nan
         # Append ssh raw + inpainted
         fields.append(field.astype(np.float32))
         inpainted_masks.append(inpainted)
@@ -123,8 +123,8 @@ def extract_file(filename: str,
     return np.stack(fields), np.stack(inpainted_masks), np.stack(metadata)
 
 
-#fn = "https://opendap.jpl.nasa.gov/opendap/SeaSurfaceTopography/merged_alt/L4/cdr_grid/ssh_grids_v1812_1992100212.nc"
-#test = extract_file(fn)
-#print(test[1])
+fn = "https://opendap.jpl.nasa.gov/opendap/SeaSurfaceTopography/merged_alt/L4/cdr_grid/ssh_grids_v1812_1992100212.nc"
+test = extract_file(fn)
+print(test[1])
 
 
