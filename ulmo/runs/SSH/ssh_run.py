@@ -181,31 +181,31 @@ def ssh_extraction(pargs, n_cores=15,
     #    s3_filename])
 
 
-def viirs_2013_preproc(debug=False, n_cores=20):
+def ssh_preproc(debug=False, n_cores=20):
     """Pre-process the files
 
     Args:
         n_cores (int, optional): Number of cores to use
     """
     if debug:
-        tbl_file = 's3://viirs/Tables/VIIRS_2013_tst.parquet'
-    else:
-        tbl_file = tbl_file_2013
-    viirs_tbl = ulmo_io.load_main_table(tbl_file)
-    viirs_tbl = pp_utils.preproc_tbl(viirs_tbl, 1., 
-                                     's3://viirs',
-                                     preproc_root='viirs_std',
+        tbl_file = 's3://ssh/Tables/SSH_tst.parquet'
+        #pass:
+        #tbl_file = tbl_file_2013
+    ssh_tbl = ulmo_io.load_main_table(tbl_file)
+    ssh_tbl = pp_utils.preproc_tbl(ssh_tbl, 1., 
+                                     's3://ssh',
+                                     preproc_root='ssh_std',
                                      inpainted_mask=False,
                                      use_mask=True,
                                      nsub_fields=10000,
                                      n_cores=n_cores)
     # Vet
-    assert cat_utils.vet_main_table(viirs_tbl)
+    assert cat_utils.vet_main_table(ssh_tbl)
 
     # Final write
-    ulmo_io.write_main_table(viirs_tbl, tbl_file)
+    ulmo_io.write_main_table(ssh_tbl, tbl_file)
 
-def viirs_2013_evaluate(debug=False, model='modis-l2-std'):
+def ssh_evaluate(debug=False, model='modis-l2-std'):
     """Evaluate the VIIRS 2013 data using Ulmo
 
     Args:
@@ -214,20 +214,20 @@ def viirs_2013_evaluate(debug=False, model='modis-l2-std'):
     """
 
     if debug:
-        tbl_file = 's3://viirs/Tables/VIIRS_2013_tst.parquet'
-    else:
-        tbl_file = tbl_file_2013
+        tbl_file = 's3://ssh/Tables/SSH_tst.parquet'
+    #else:
+    #    tbl_file = tbl_file_2013
 
     # Load Ulmo
-    viirs_tbl = ulmo_io.load_main_table(tbl_file)
+    ssh_tbl = ulmo_io.load_main_table(tbl_file)
 
     # Evaluate
     print("Starting evaluating..")
-    viirs_tbl = ulmo_evaluate.eval_from_main(viirs_tbl, model=model)
+    ssh_tbl = ulmo_evaluate.eval_from_main(ssh_tbl, model=model)
 
     # Write 
-    assert cat_utils.vet_main_table(viirs_tbl)
-    ulmo_io.write_main_table(viirs_tbl, tbl_file)
+    assert cat_utils.vet_main_table(ssh_tbl)
+    ulmo_io.write_main_table(ssh_tbl, tbl_file)
     print("Done evaluating..")
 
 
@@ -251,19 +251,19 @@ def main(flg):
 
     # VIIRS preproc test
     if flg & (2**3):
-        viirs_2013_preproc(debug=True, n_cores=10)
+        ssh_preproc(debug=True, n_cores=10)
 
     # VIIRS preproc for reals
     if flg & (2**4):
-        viirs_2013_preproc(n_cores=20)
+        ssh_preproc(n_cores=20)
 
     # VIIRS eval test
     if flg & (2**5): # 32
-        viirs_2013_evaluate(debug=True)
+        ssh_evaluate(debug=True)
 
     # VIIRS eval 
     if flg & (2**6): # 64
-        viirs_2013_evaluate()
+        ssh_evaluate()
 
 
     # MODIS pre-proc
