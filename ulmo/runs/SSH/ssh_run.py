@@ -27,7 +27,7 @@ tbl_file = 's3://ssh/Tables/SSH_std.parquet'
 s3_bucket = 's3://ssh'
 
 def ssh_extraction(pargs, n_cores=15, 
-                       nsub_files=5000,
+                       nsub_files=300,
                        ndebug_files=10):
     """Extract *all* of the SSH data
 
