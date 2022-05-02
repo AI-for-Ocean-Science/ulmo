@@ -51,27 +51,9 @@ def extract_file(filename: str,
     if ssh is None:
         return
 
-    # Generate the masks
-    #masks = pp_utils.build_mask(ssh, qual, 
-    #                            qual_thresh=qual_thresh,
-    #                            temp_bounds=temp_bounds, 
-    #                            lower_qual=lower_qual)
-    masks = np.ones_like(ssh)
-    bad = np.isnan(ssh)
-    masks[bad] = 0
-
-
-
-
-    ssh, latitude, longitude = ssh_io.load_nc(filename, verbose=True)
-    
-    if ssh is None:
-        return
-
     # Generate the dummy masks
     ones = np.ones_like(ssh)    
     masks = ones == 0
-
 
 
     # Restrict to near nadir
