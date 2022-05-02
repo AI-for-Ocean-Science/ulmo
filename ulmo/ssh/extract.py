@@ -87,13 +87,14 @@ def extract_file(filename: str,
         if inpaint:
             inpainted, _ = pp_utils.preproc_field(
                 field, mask, only_inpaint=True)
-        if inpainted is []:
-            continue
+        #if inpainted is []:
+        #    continue
+
         # Null out the non inpainted (to preseve memory when compressed)
-        inpainted = np.nan # og line:inpainted[~mask] = np.nan
+        #inpainted = np.nan # og line:inpainted[~mask] = np.nan
         # Append ssh raw + inpainted
         fields.append(field.astype(np.float32))
-        inpainted_masks.append(inpainted)
+        inpainted_masks.append(mask)
         # meta
         row, col = r, c + lb
         lat = latitude[col + field_size[0] // 2]#, col + field_size[1] // 2]

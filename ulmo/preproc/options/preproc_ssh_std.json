@@ -8,12 +8,13 @@
         34
     ],
     "clear_threshold": 95,
-    "downscale": true,
+    "downscale": false,
     "dscale_size": [
         3,
         3
     ],
     "inpaint": false,
     "median": false,
+    "de_mean": false,
     "only_inpaint": false
 }
