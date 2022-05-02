@@ -26,7 +26,7 @@ from IPython import embed
 tbl_file = 's3://ssh/Tables/SSH_std.parquet'
 s3_bucket = 's3://ssh'
 
-def ssh_extraction(pargs, n_cores=20, 
+def ssh_extraction(pargs, n_cores=15, 
                        nsub_files=5000,
                        ndebug_files=10):
     """Extract *all* of the SSH data
@@ -52,8 +52,11 @@ def ssh_extraction(pargs, n_cores=20,
     
     # 2013 
     print("Grabbing the file list")
-    all_ssh_files = glob.glob("/home/jovyan/sshdata_full/ssh*.nc") #ulmo_io.list_of_bucket_files('ssh')
-    files = all_ssh_files #[]
+    path_files = os.path.join(os.getenv('SSH_DATA'), 'ssh*.nc')
+    files = glob.glob(path_files)
+
+    #ulmo_io.list_of_bucket_files('ssh')
+    #all_ssh_files = glob.glob("/home/jovyan/sshdata_full/ssh*.nc") #ulmo_io.list_of_bucket_files('ssh')
     #for ifile in all_ssh_files:
     #    if 'SSH_Data_Files' in ifile:
     #        files.append(s3_bucket+'/'+ifile)
