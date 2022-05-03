@@ -2,14 +2,14 @@
     "AE": {
         "image_shape": [
             1,
-            64,
-            64
+            32,
+            32
         ],
-        "latent_dim": 512
+        "latent_dim": 128
     },
     "flow": {
         "context_dim": null,
-        "dim": 512,
+        "dim": 128,
         "dropout": 0.2,
         "encoder": null,
         "hidden_units": 256,
