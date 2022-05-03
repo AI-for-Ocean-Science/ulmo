@@ -206,7 +206,7 @@ def ssh_preproc(debug=False, n_cores=20):
     ulmo_io.write_main_table(ssh_tbl, tbl_file)
 
 def ssh_evaluate(debug=False, model='modis-l2-std'):
-    """Evaluate the VIIRS 2013 data using Ulmo
+    """Evaluate the ssh data using Ulmo
 
     Args:
         debug (bool, optional): [description]. Defaults to False.
