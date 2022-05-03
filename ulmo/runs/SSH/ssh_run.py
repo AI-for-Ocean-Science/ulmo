@@ -23,7 +23,7 @@ from tqdm import tqdm
 
 from IPython import embed
 
-tbl_file = 's3://ssh/Tables/SSH_std.parquet'
+std_tbl_file = 's3://ssh/Tables/SSH_std.parquet'
 s3_bucket = 's3://ssh'
 
 def ssh_extraction(pargs, n_cores=15, 
@@ -42,6 +42,8 @@ def ssh_extraction(pargs, n_cores=15,
 
     if pargs.debug:
         tbl_file = 's3://ssh/Tables/SSH_tst.parquet'
+    else:
+        tbl_file = std_tbl_file
 
     # TODO -- BP to figure out what goes on here
     #  and modify the JSON file.  Look down below at the
@@ -179,7 +181,7 @@ def ssh_extraction(pargs, n_cores=15,
     #    s3_filename])
 
 
-def ssh_preproc(debug=False, n_cores=20, valid_fraction=0.95):
+def ssh_preproc(pargs, n_cores=20, valid_fraction=0.95):
     """Pre-process the files
 
     Args:
@@ -187,10 +189,11 @@ def ssh_preproc(debug=False, n_cores=20, valid_fraction=0.95):
         valid_fraction (float, optional): 
             1-valid_fraction is the % of the (random) images used for training
     """
-    if debug:
+    if pargs.debug:
         tbl_file = 's3://ssh/Tables/SSH_tst.parquet'
         valid_fraction = 0.5
-
+    else:
+        tbl_file = std_tbl_file
 
     # Load Table
     ssh_tbl = ulmo_io.load_main_table(tbl_file)
