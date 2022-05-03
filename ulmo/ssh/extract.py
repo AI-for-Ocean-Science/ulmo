@@ -51,10 +51,10 @@ def extract_file(filename: str,
     if ssh is None:
         return
 
-    # Generate the dummy masks
-    ones = np.ones_like(ssh)    
-    masks = ones == 0
-
+    # Generate the mask
+    masks = np.zeros_like(ssh, dtype=bool)    
+    land = np.isnan(ssh)
+    masks[land] = True
 
     # Restrict to near nadir
     nadir_pix = ssh.shape[1] // 2

@@ -82,8 +82,6 @@ def ssh_extraction(pargs, n_cores=15,
         files = files[:ndebug_files]  # 10%
         #files = files[:100]
         
-    #embed(header='81 of ssh_run')
-    
     # Setup for preproc
     map_fn = partial(ssh_extract.extract_file,
                      field_size=(pdict['field_size'], 
@@ -137,11 +135,11 @@ def ssh_extraction(pargs, n_cores=15,
             #                    maxshape=(None, inpainted_masks.shape[0], inpainted_masks.shape[0]))
         else:
             # Resize
-            for key in ['fields', 'inpainted_masks']:
+            for key in ['fields']:#, 'inpainted_masks']:
                 f_h5[key].resize((f_h5[key].shape[0] + fields.shape[0]), axis=0)
             # Fill
             f_h5['fields'][-fields.shape[0]:] = fields
-            f_h5['inpainted_masks'][-fields.shape[0]:] = inpainted_masks
+            #f_h5['inpainted_masks'][-fields.shape[0]:] = inpainted_masks
     
     #embed(header='141 of ssh_run')
     # Metadata
@@ -181,22 +179,29 @@ def ssh_extraction(pargs, n_cores=15,
     #    s3_filename])
 
 
-def ssh_preproc(debug=False, n_cores=20):
+def ssh_preproc(debug=False, n_cores=20, valid_fraction=0.95):
     """Pre-process the files
 
     Args:
         n_cores (int, optional): Number of cores to use
+        valid_fraction (float, optional): 
+            1-valid_fraction is the % of the (random) images used for training
     """
     if debug:
         tbl_file = 's3://ssh/Tables/SSH_tst.parquet'
-        #pass:
-        #tbl_file = tbl_file_2013
+        valid_fraction = 0.5
+
+
+    # Load Table
     ssh_tbl = ulmo_io.load_main_table(tbl_file)
-    ssh_tbl = pp_utils.preproc_tbl(ssh_tbl, 1., 
+
+    # Do it!
+    ssh_tbl = pp_utils.preproc_tbl(ssh_tbl, 
+                                   valid_fraction,
                                      's3://ssh',
                                      preproc_root='ssh_std',
                                      inpainted_mask=False,
-                                     use_mask=True,
+                                     use_mask=False,
                                      nsub_fields=10000,
                                      n_cores=n_cores)
     # Vet
@@ -231,46 +236,6 @@ def ssh_evaluate(debug=False, model='modis-l2-std'):
     print("Done evaluating..")
 
 
-def main(flg):
-    if flg== 'all':
-        flg= np.sum(np.array([2 ** ii for ii in range(25)]))
-    else:
-        flg= int(flg)
-
-    # VIIRS download
-    if flg & (2**0):
-        viirs_get_data_into_s3(debug=False)
-
-    # VIIRS extract test
-    if flg & (2**1):
-        viirs_extract_2013(debug=True, n_cores=10, nsub_files=2000, ndebug_files=5000)
-
-    # VIIRS extract
-    if flg & (2**2):
-        viirs_extract_2013(n_cores=20, nsub_files=5000)
-
-    # VIIRS preproc test
-    if flg & (2**3):
-        ssh_preproc(debug=True, n_cores=10)
-
-    # VIIRS preproc for reals
-    if flg & (2**4):
-        ssh_preproc(n_cores=20)
-
-    # VIIRS eval test
-    if flg & (2**5): # 32
-        ssh_evaluate(debug=True)
-
-    # VIIRS eval 
-    if flg & (2**6): # 64
-        ssh_evaluate()
-
-
-    # MODIS pre-proc
-    #if flg & (2**2):
-    #    modis_day_evaluate()
-
-
 def parse_option():
     """
     This is a function used to parse the arguments in the training.
@@ -296,7 +261,13 @@ if __name__ == "__main__":
     if pargs.step == 'extract':
         ssh_extraction(pargs)
 
-# Run it
+    if pargs.step == 'preproc':
+        ssh_preproc(pargs)
+
 
 # Extract
 # python ssh_run.py extract --debug
+# python ssh_run.py extract 
+
+# Pre-process
+# python ssh_run.py preproc --debug

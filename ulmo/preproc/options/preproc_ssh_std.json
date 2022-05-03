@@ -7,7 +7,7 @@
         -3,
         34
     ],
-    "clear_threshold": 95,
+    "clear_threshold": 100,
     "downscale": false,
     "dscale_size": [
         3,
