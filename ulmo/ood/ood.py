@@ -670,7 +670,7 @@ class ProbabilisticAutoencoder:
 
         """
         pal, cm = load_palette()
-        
+        embed(header='673 of ood.py')
         with h5py.File(self.filepath['data'], 'r') as f:
             fields = f['valid']
             n = fields.shape[0]
