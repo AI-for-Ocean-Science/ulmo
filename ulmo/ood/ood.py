@@ -660,7 +660,7 @@ class ProbabilisticAutoencoder:
 
 
 
-    def plot_reconstructions(self, save_figure=False):
+    def plot_reconstructions(self, save_figure=False, skipmeta=False):
         """
         Generate a grid of plots of reconstructed images
 
@@ -670,14 +670,17 @@ class ProbabilisticAutoencoder:
 
         """
         pal, cm = load_palette()
-        embed(header='673 of ood.py')
+        #embed(header='673 of ood.py')
         with h5py.File(self.filepath['data'], 'r') as f:
             fields = f['valid']
             n = fields.shape[0]
             idx = sorted(np.random.choice(n, replace=False, size=16))
             fields = fields[idx]
             recons = self.reconstruct(fields)
-            df = self.load_meta('valid_metadata')
+            if not skipmeta:
+                df = self.load_meta('valid_metadata')
+            else: 
+                df = None
 
         fig, axes = grid_plot(nrows=4, ncols=4)
 
@@ -692,7 +695,7 @@ class ProbabilisticAutoencoder:
                 t = ax.text(0.12, 0.89, f'({row}, {col})', color='k', size=12, transform=ax.transAxes)
                 t.set_path_effects([PathEffects.withStroke(linewidth=3, foreground='w')])
             else:
-                ax.set_title(f'Image {i}\n{logL_title}')
+                ax.set_title(f'Image {i}\n')
             sns.heatmap(x, ax=ax, xticklabels=[], yticklabels=[], cmap=cm, vmin=-2, vmax=2)
             sns.heatmap(rx, ax=r_ax, xticklabels=[], yticklabels=[], cmap=cm, vmin=-2, vmax=2)
         if save_figure:
