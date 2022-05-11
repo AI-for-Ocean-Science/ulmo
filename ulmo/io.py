@@ -25,8 +25,6 @@ open = functools.partial(smart_open.open,
                          transport_params={'resource_kwargs': 
                              {'endpoint_url': endpoint_url}})
 
-import boto3
-
 def grab_cutout(cutout:pandas.core.series.Series, 
                close=True, pp_hf=None):                
     """Grab the pre-processed image of a cutout

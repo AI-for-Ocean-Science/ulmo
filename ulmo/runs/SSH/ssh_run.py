@@ -251,7 +251,8 @@ def ssh_cut_train(pargs, nvalid_train=600000,
         dset.attrs['columns'] = clms
     print(f"Wrote: {train_file}...")
 
-def ssh_evaluate(debug=False, model='modis-l2-std'):
+
+def ssh_evaluate(pargs, model='ssh-std'):
     """Evaluate the ssh data using Ulmo
 
     Args:
@@ -259,10 +260,10 @@ def ssh_evaluate(debug=False, model='modis-l2-std'):
         model (str, optional): [description]. Defaults to 'modis-l2-std'.
     """
 
-    if debug:
+    if pargs.debug:
         tbl_file = 's3://ssh/Tables/SSH_tst.parquet'
-    #else:
-    #    tbl_file = tbl_file_2013
+    else:
+        tbl_file = std_tbl_file
 
     # Load Ulmo
     ssh_tbl = ulmo_io.load_main_table(tbl_file)
@@ -308,6 +309,9 @@ if __name__ == "__main__":
     if pargs.step == 'cut_for_training':
         ssh_cut_train(pargs)
 
+    if pargs.step == 'evaluate':
+        ssh_evaluate(pargs)
+
 # Extract
 # python ssh_run.py extract --debug
 # python ssh_run.py extract 
@@ -317,3 +321,6 @@ if __name__ == "__main__":
 
 # Cut for training
 # python ssh_run.py cut_for_training
+
+# Evaluate
+# python ssh_run.py evaluate --debug
