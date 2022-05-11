@@ -213,6 +213,44 @@ def ssh_preproc(pargs, n_cores=20, valid_fraction=0.95):
     # Final write
     ulmo_io.write_main_table(ssh_tbl, tbl_file)
 
+def ssh_cut_train(pargs, nvalid_train=600000, 
+                  train_file='PreProc/SSH_100clear_32x32_train.h5',
+                  preproc_file='PreProc/SSH_100clear_32x32.h5'):
+    # Open
+    f = h5py.File(preproc_file, 'r')
+
+    # Grab the train images
+    print("Loading training data")
+    train = f['train'][...]
+    train_meta = f['train_metadata'][...]
+    clms = f['train_metadata'].attrs['columns']
+
+    # Grab a random subset of valid
+    print("Loading valid data")
+    nvalid = f['valid'].shape[0]
+    valid = f['valid'][...]
+    # Cut
+    idx = sorted(np.random.choice(nvalid, replace=False, size=nvalid_train))
+    print("Valid train")
+    valid_train = valid[idx]
+    print("Starting Valid train meta")
+    valid_meta = f['valid_metadata'][...]
+    valid_train_meta = valid_meta[idx]
+
+    # Write
+    print(f"Writing: {train_file}...")
+    with h5py.File(train_file, 'w') as f:
+        # Validation
+        f.create_dataset('valid', data=valid_train.astype(np.float32))
+        # Metadata
+        dset = f.create_dataset('valid_metadata', data=valid_train_meta)
+        dset.attrs['columns'] = clms
+        # Train
+        f.create_dataset('train', data=train.astype(np.float32))
+        dset = f.create_dataset('train_metadata', data=train_meta)
+        dset.attrs['columns'] = clms
+    print(f"Wrote: {train_file}...")
+
 def ssh_evaluate(debug=False, model='modis-l2-std'):
     """Evaluate the ssh data using Ulmo
 
@@ -267,6 +305,8 @@ if __name__ == "__main__":
     if pargs.step == 'preproc':
         ssh_preproc(pargs)
 
+    if pargs.step == 'cut_for_training':
+        ssh_cut_train(pargs)
 
 # Extract
 # python ssh_run.py extract --debug
@@ -274,3 +314,6 @@ if __name__ == "__main__":
 
 # Pre-process
 # python ssh_run.py preproc --debug
+
+# Cut for training
+# python ssh_run.py cut_for_training
