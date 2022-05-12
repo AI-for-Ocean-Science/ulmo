@@ -104,7 +104,8 @@ def calc_okubo_weiss(U:np.ndarray, V:np.ndarray):
     return W
 
 def calc_F_s(U:np.ndarray, V:np.ndarray,
-             Theta:np.ndarray, Salt:np.ndarray):
+             Theta:np.ndarray, Salt:np.ndarray,
+             ref_rho=1.):
     """Calculate Frontogenesis forcing term
 
     Args:
@@ -122,7 +123,17 @@ def calc_F_s(U:np.ndarray, V:np.ndarray,
     dUdy = np.gradient(U, axis=0)
     dVdy = np.gradient(V, axis=0)
 
+    # Buoyancy
     rho = density.rho(Salt, Theta, np.zeros_like(Salt))
+    dbdx = -1*np.gradient(rho/ref_rho, axis=1)
+    dbdy = -1*np.gradient(rho/ref_rho, axis=0)
+
+    # Terms
+    F_s_x = -1 * (dUdx*dbdx + dVdx*dbdy) * dbdx 
+    F_s_y = -1 * (dUdy*dbdx + dVdy*dbdy) * dbdy 
+
+    # Finish
+    F_s = F_s_x + F_s_y
 
     # Return
     return F_s

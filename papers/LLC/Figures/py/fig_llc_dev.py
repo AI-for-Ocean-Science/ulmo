@@ -468,6 +468,7 @@ def fig_brazil_kin_imgs(outroot='fig_brazil_',
                 U = R_dict['U'][idx[ss]]
                 V = R_dict['V'][idx[ss]]
                 SST = R_dict['Theta'][idx[ss]]
+                Salt = R_dict['Salt'][idx[ss]]
                 # Axis
                 row = ss//grid_size + row_off
                 col = coff + ss % grid_size
@@ -497,9 +498,10 @@ def fig_brazil_kin_imgs(outroot='fig_brazil_',
                     sns.heatmap(np.flipud(strain), ax=ax, cmap='Blues',
                         cbar=False, vmin=0., vmax=0.1)
                 elif metric == 'F_s':  
-                    strain = kinematics.calc_lateral_strain_rate(U.data, V.data)
-                    sns.heatmap(np.flipud(strain), ax=ax, cmap='Blues',
-                        cbar=False, vmin=0., vmax=0.1)
+                    F_s = kinematics.calc_F_s(U.data, V.data, 
+                                                 SST.data, Salt.data)
+                    sns.heatmap(np.flipud(F_s), ax=ax, cmap='seismic',
+                        cbar=False, vmin=-0.003, vmax=0.003)
                 else: 
                     raise IOError("Bad choice")
                 ax.get_xaxis().set_ticks([])
@@ -770,7 +772,6 @@ def main(flg_fig):
 
     # Brazil velocity
     if flg_fig & (2 ** 4):
-        #fig_brazil_save()
         fig_brazil_kin_imgs(use_files=True)
 
     # Brazil kinematic distributions
@@ -798,10 +799,10 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 1  # Outlier distribution (2012 matched)
         #flg_fig += 2 ** 2  # Brazil
         #flg_fig += 2 ** 3  # Spatial LL metrics
-        #flg_fig += 2 ** 4  # Brazil kinematic images
+        flg_fig += 2 ** 4  # Brazil kinematic images
         #flg_fig += 2 ** 5  # Brazil kinematic distributions
         #flg_fig += 2 ** 6  # UMAP SSL gallery
-        flg_fig += 2 ** 7  # Generate Brazil cutouts of ocean model data
+        #flg_fig += 2 ** 7  # Generate Brazil cutouts of ocean model data
     else:
         flg_fig = sys.argv[1]
 
