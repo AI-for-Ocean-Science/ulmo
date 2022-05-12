@@ -21,9 +21,10 @@ endpoint_url = (os.getenv('ENDPOINT_URL')
                     'http://rook-ceph-rgw-nautiluss3.rook')
 
 s3 = boto3.resource('s3', endpoint_url=endpoint_url)
+client = boto3.client('s3', endpoint_url=endpoint_url)
+tparams = {'client': client}
 open = functools.partial(smart_open.open, 
-                         transport_params={'resource_kwargs': 
-                             {'endpoint_url': endpoint_url}})
+                         transport_params=tparams)
 
 import boto3
 
