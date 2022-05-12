@@ -11,7 +11,6 @@ import pandas
 from ulmo import io as ulmo_io
 from IPython import embed
 
-
 def test_pandas_s3():
     """ Test we can write to s3 """
     df = pandas.DataFrame()
