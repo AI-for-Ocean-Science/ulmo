@@ -72,7 +72,6 @@ def load_ssh(flavor='std', datadir=None, local=False):
 def load_pae_model(datadir:str, filepath:str):    
     # Load JSON
     json_file = os.path.join(datadir , 'model.json') 
-    embed(header='75 of models/io')
     with ulmo_io.open(json_file, 'rt') as fh:
         model_dict = json.load(fh)
     
