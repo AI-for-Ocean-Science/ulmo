@@ -1,6 +1,8 @@
 """ Routines related to kinemaic measures of LLC data """
 import numpy as np
 
+from gsw import density
+
 def calc_div(U:np.ndarray, V:np.ndarray):
     """Calculate the divergence
 
@@ -100,6 +102,30 @@ def calc_okubo_weiss(U:np.ndarray, V:np.ndarray):
     W = s_n**2 + s_s**2 - w**2
     # Return
     return W
+
+def calc_F_s(U:np.ndarray, V:np.ndarray,
+             Theta:np.ndarray, Salt:np.ndarray):
+    """Calculate Frontogenesis forcing term
+
+    Args:
+        U (np.ndarray): U velocity field
+        V (np.ndarray): V velocity field
+        SST (np.ndarray): SST field
+        Salt (np.ndarray): Salt field
+
+    Returns:
+        np.ndarray: F_s field
+    """
+    dUdx = np.gradient(U, axis=1)
+    dVdx = np.gradient(V, axis=1)
+    #
+    dUdy = np.gradient(U, axis=0)
+    dVdy = np.gradient(V, axis=0)
+
+    rho = density.rho(Salt, Theta, np.zeros_like(Salt))
+
+    # Return
+    return F_s
 
 def cutout_vel_stat(item:tuple):
     """
