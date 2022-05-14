@@ -360,7 +360,5 @@ if __name__ == "__main__":
 # Train flow
 # python ssh_run.py train_flow
 
-# Plot probs
-
 # Evaluate
 # python ssh_run.py evaluate --debug
