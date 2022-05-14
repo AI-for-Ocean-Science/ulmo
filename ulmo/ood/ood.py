@@ -704,6 +704,12 @@ class ProbabilisticAutoencoder:
         plt.show()
     
     def plot_log_probs(self, sample_size=10000, save_figure=False):
+        """Plot log probs
+
+        Args:
+            sample_size (int, optional): _description_. Defaults to 10000.
+            save_figure (bool, optional): _description_. Defaults to False.
+        """
         if not self.up_to_date_log_probs:
             self._compute_log_probs()
         
