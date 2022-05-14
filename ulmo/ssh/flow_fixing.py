@@ -5,14 +5,11 @@ import shutil
 from ulmo.models import DCAE, ConditionalFlow
 from ulmo.ood import ood
 
-dpath = '/home/jovyan/ulmo/ulmo/ssh/'
-print(dpath)
-datadir= os.path.join(dpath, 'ssh_train_output')
-print(datadir)
+#dpath = '/home/jovyan/ulmo/ulmo/ssh/'
+dpath = '/home/jovyan/Oceanography/SSH/Training/'
+datadir= os.path.join(dpath, 'SSH_std')
 model_file = os.path.join(resource_filename('ulmo', 'ssh'), 'ssh_pae_model_std.json')
-print(model_file)
-preproc_file = os.path.join(dpath, 'SSH_100clear_32x32_train.h5')
-print(preproc_file)
+preproc_file = os.path.join(dpath, 'PreProc', 'SSH_100clear_32x32_train.h5')
 
 # Do it
 pae = ood.ProbabilisticAutoencoder.from_json(model_file, 
