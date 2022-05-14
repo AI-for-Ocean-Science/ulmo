@@ -600,7 +600,9 @@ class ProbabilisticAutoencoder:
         print("Calculating latents..")
         with torch.no_grad():
             pre_latents = [self.autoencoder.encode(data[0].to(self.device)).detach().cpu().numpy()
-                     for data in loader]
+                     for data in tqdm(loader, total=len(loader),
+                                      unit='batch',
+                                      desc=f'Computing {dset} latents!')]
 
         # Sscaling
         print("Scaling..")
