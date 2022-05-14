@@ -703,12 +703,14 @@ class ProbabilisticAutoencoder:
             plt.savefig(os.path.join(self.logdir, fig_name), bbox_inches='tight')
         plt.show()
     
-    def plot_log_probs(self, sample_size=10000, save_figure=False):
+    def plot_log_probs(self, sample_size=10000, save_figure=False,
+                       fig_name=None):
         """Plot log probs
 
         Args:
             sample_size (int, optional): _description_. Defaults to 10000.
             save_figure (bool, optional): _description_. Defaults to False.
+            fig_name (str, optional): Filename for the figure
         """
         if not self.up_to_date_log_probs:
             self._compute_log_probs()
@@ -725,7 +727,8 @@ class ProbabilisticAutoencoder:
         plt.xlabel('Log Likelihood')
         plt.ylabel('Probability Density')
         if save_figure:
-            fig_name = 'log_probs_' + self.stem + '.png'
+            if fig_name is None:
+                fig_name = 'log_probs_' + self.stem + '.png'
             plt.savefig(os.path.join(self.logdir, fig_name), bbox_inches='tight')
         plt.show()
 

@@ -4,6 +4,7 @@ import numpy as np
 import glob
 import pandas
 import h5py
+from pkg_resources import resource_filename
 
 import argparse
 
@@ -16,6 +17,7 @@ from ulmo.ssh import extract as ssh_extract
 from ulmo.ssh import utils as ssh_utils
 from ulmo.analysis import evaluate as ulmo_evaluate 
 from ulmo.utils import catalog as cat_utils
+from ulmo.ood import ood
 
 from functools import partial
 from concurrent.futures import ProcessPoolExecutor
@@ -251,6 +253,26 @@ def ssh_cut_train(pargs, nvalid_train=600000,
         dset.attrs['columns'] = clms
     print(f"Wrote: {train_file}...")
 
+def ssh_train_flow(pargs, model='ssh-std'):
+    """To be run on Nautilus Jupyter-Hub
+
+    Args:
+        pargs (_type_): _description_
+        model (str, optional): _description_. Defaults to 'ssh-std'.
+    """
+    #dpath = '/home/jovyan/ulmo/ulmo/ssh/'
+    dpath = '/home/jovyan/Oceanography/SSH/Training/'
+    datadir= os.path.join(dpath, 'SSH_std')
+    model_file = os.path.join(resource_filename('ulmo', 'ssh'), 'ssh_pae_model_std.json')
+    preproc_file = os.path.join(dpath, 'PreProc', 'SSH_100clear_32x32_train.h5')
+
+    # Do it
+    pae = ood.ProbabilisticAutoencoder.from_json(model_file, 
+                                                filepath=preproc_file,
+                                                datadir=datadir, logdir=datadir)
+    pae.load_autoencoder()
+
+    pae.train_flow(n_epochs=10, batch_size=64, lr=2.5e-4, summary_interval=50, eval_interval=2500)
 
 def ssh_evaluate(pargs, model='ssh-std'):
     """Evaluate the ssh data using Ulmo
@@ -309,6 +331,9 @@ if __name__ == "__main__":
     if pargs.step == 'cut_for_training':
         ssh_cut_train(pargs)
 
+    if pargs.step == 'train_flow':
+        ssh_train_flow(pargs)
+
     if pargs.step == 'evaluate':
         ssh_evaluate(pargs)
 
@@ -321,6 +346,11 @@ if __name__ == "__main__":
 
 # Cut for training
 # python ssh_run.py cut_for_training
+
+# Train flow
+# python ssh_run.py train_flow
+
+# Plot probs
 
 # Evaluate
 # python ssh_run.py evaluate --debug
