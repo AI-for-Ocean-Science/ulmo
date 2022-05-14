@@ -277,6 +277,13 @@ def ssh_train_flow(pargs, model='ssh-std'):
                    summary_interval=50, 
                    eval_interval=2500)  # 2000 may be better
 
+    # Set to local stuff..
+    pae.filepath['latents'] = 'SSH_std/SSH_100clear_32x32_train_latents.h5'
+    pae.filepath['log_probs'] = 'SSH_std/SSH_100clear_32x32_train_log_probs.h5'
+
+    # Plot
+    pae.plot_log_probs(save_figure=True, logdir='SSH_std')
+
 def ssh_evaluate(pargs, model='ssh-std'):
     """Evaluate the ssh data using Ulmo
 
