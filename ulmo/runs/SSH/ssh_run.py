@@ -260,19 +260,22 @@ def ssh_train_flow(pargs, model='ssh-std'):
         pargs (_type_): _description_
         model (str, optional): _description_. Defaults to 'ssh-std'.
     """
-    #dpath = '/home/jovyan/ulmo/ulmo/ssh/'
     dpath = '/home/jovyan/Oceanography/SSH/Training/'
     datadir= os.path.join(dpath, 'SSH_std')
-    model_file = os.path.join(resource_filename('ulmo', 'ssh'), 'ssh_pae_model_std.json')
-    preproc_file = os.path.join(dpath, 'PreProc', 'SSH_100clear_32x32_train.h5')
-
-    # Do it
+    model_file = os.path.join(resource_filename('ulmo', 'ssh'), 
+                              'ssh_pae_model_std.json')
+    preproc_file = os.path.join(dpath, 'PreProc', 
+                                'SSH_100clear_32x32_train.h5')
+    # Instantiate
     pae = ood.ProbabilisticAutoencoder.from_json(model_file, 
                                                 filepath=preproc_file,
                                                 datadir=datadir, logdir=datadir)
+    # Load                                    
     pae.load_autoencoder()
-
-    pae.train_flow(n_epochs=10, batch_size=64, lr=2.5e-4, summary_interval=50, eval_interval=2500)
+    # Train
+    pae.train_flow(n_epochs=10, batch_size=64, lr=2.5e-4, 
+                   summary_interval=50, 
+                   eval_interval=2500)  # 2000 may be better
 
 def ssh_evaluate(pargs, model='ssh-std'):
     """Evaluate the ssh data using Ulmo
