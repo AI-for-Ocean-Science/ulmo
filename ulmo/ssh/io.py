@@ -4,6 +4,7 @@ import xarray
 
 from ulmo import io as ulmo_io
 
+
 def load_nc(filename, verbose=True):
     """
     Load a VIIRS .nc file

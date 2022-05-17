@@ -602,7 +602,7 @@ class ProbabilisticAutoencoder:
             pre_latents = [self.autoencoder.encode(data[0].to(self.device)).detach().cpu().numpy()
                      for data in tqdm(loader, total=len(loader),
                                       unit='batch',
-                                      desc=f'Computing {dset} latents!')]
+                                      desc=f'Computing latents!')]
 
         # Sscaling
         print("Scaling..")
