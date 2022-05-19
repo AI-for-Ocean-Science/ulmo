@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 def SSH_Map(fn,field_size):
 
-    fields,meta = extract_file(fn, sub_grid_step=2, field_size=(field_size, field_size))
+    fields, mask, meta = extract_file(fn, sub_grid_step=2, field_size=(field_size, field_size))
 
     lons = [float(item[4]) for item in meta]
     lats = [float(item[3]) for item in meta]
@@ -31,8 +31,8 @@ def SSH_Map(fn,field_size):
     
 #print_metadata()
 
-#fn = "https://opendap.jpl.nasa.gov/opendap/SeaSurfaceTopography/merged_alt/L4/cdr_grid/ssh_grids_v1812_1992100212.nc"
+fn = "https://opendap.jpl.nasa.gov/opendap/SeaSurfaceTopography/merged_alt/L4/cdr_grid/ssh_grids_v1812_1992100212.nc"
 
-#SSH_Map(fn, 64)
+SSH_Map(fn, 32)
 
 
