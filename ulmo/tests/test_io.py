@@ -13,7 +13,6 @@ from ulmo.utils import image_utils
 from ulmo.tests import tst_utils
 from IPython import embed
 
-
 def test_pandas_s3():
     """ Test we can write to s3 """
     df = pandas.DataFrame()
