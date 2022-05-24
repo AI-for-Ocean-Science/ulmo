@@ -33,7 +33,7 @@ def SSH_Map_Section(filepath,lat,lon,pixels):
     maxlat = int(lat + LatLonDeg)
     
     # Opening data and slicing spatialy to remove data outside desired bounds
-    ds = xr.open_dataset(filepath).sel(Longitude=slice(minlon, maxlon),Latitude=slice(minlat, maxlat))
+    ds = xr.open_dataset(filepath).sel(Longitude=slice(minlon, maxlon),Latitude=slice(minlat, maxlat), engine='netcdf4')
   
     # Averages time to make the data 2D. Also transposed the axis because for some reason in the raw data they're flipped
     ds = ds['SLA'].mean(dim="Time").transpose()
@@ -64,7 +64,7 @@ def SSH_Map_Section(filepath,lat,lon,pixels):
 TimerStart = time.perf_counter()
 
 ### Example SSH_Map_Section(fn,40,-50,128)
-SSH_Map_Section(fn,,,)    
+SSH_Map_Section(fn,40,-50,128)    
 
 TimerStop = time.perf_counter() 
 RunTime = TimerStop - TimerStart
