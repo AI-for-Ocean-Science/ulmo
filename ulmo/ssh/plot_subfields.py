@@ -12,9 +12,12 @@ import matplotlib.pyplot as plt
 def SSH_Map(fn,field_size):
 
     fields, mask, meta = extract_file(fn, sub_grid_step=2, field_size=(field_size, field_size))
+    
 
     lons = [float(item[4]) for item in meta]
     lats = [float(item[3]) for item in meta]
+    
+    print(len(lats))
     
     # Fixing the coordinates so it displays all the points
     for i in range(len(lons)):

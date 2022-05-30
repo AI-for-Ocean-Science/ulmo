@@ -9,20 +9,29 @@ from pkg_resources import resource_filename
 from matplotlib.colors import LinearSegmentedColormap
 import cartopy.crs as ccrs
 import xarray as xr
+from IPython import embed
 #from ulmo.plotting import show_image
 
 TimerStart = time.perf_counter()
 
+opendapp = 'https://opendap.jpl.nasa.gov/opendap/SeaSurfaceTopography/merged_alt/L4/cdr_grid/ssh_grids_v1812_1992100212.nc'
+
 dp_path = r"C:\Users\btpri\OneDrive\Desktop\SSH_std.parquet"
-dp = pd.read_parquet(dp_path)
-#print(dp.iloc[0])
+dp = pd.read_parquet(dp_path) # origional table data from parquet
+valid_p = np.where(dp.pp_type == 0)
+valid_p = dp.iloc[valid_p] # sliced origional data to only be the validation set of data
+ex_p = np.where((dp.LL < -100) & (dp.pp_type == 0))
+ex_p = dp.iloc[ex_p] # sliced origional data to only be the extremes of the validation set
+ex_idx = np.sort(list(ex_p.pp_idx)) # A list that is the index values for the extreme values
+
 
 dh_path = r"C:\Users\btpri\OneDrive\Desktop\SSH_100clear_32x32.h5"
-dh = h5py.File(dh_path, 'r')
+dh = h5py.File(dh_path, 'r') # origonal data images
 #print(list(dh.keys()))
-valid = (dh['valid'])
+valid_h5 = (dh['valid']) # sliced origional data to only be the validation set of data
+ex_valid = valid_h5[ex_idx] # sliced origional data to only be the extremes of the validation set
 
-opendapp = 'https://opendap.jpl.nasa.gov/opendap/SeaSurfaceTopography/merged_alt/L4/cdr_grid/ssh_grids_v1812_1992100212.nc'
+
 
 def plot_data(filepath):
     ds = xr.open_dataset(filepath)#.sel(Longitude=slice(minlon, maxlon),Latitude=slice(minlat, maxlat))
@@ -99,7 +108,6 @@ def SSH_cutout(filepath ,lat,lon,pixels):
     CF = ax.pcolormesh(ds.Longitude, ds.Latitude, ds, transform=ccrs.PlateCarree()) # need this one for contour color
     cbar = plt.colorbar(CF,cax=cax)
     cbar.set_label('SSH (m)', rotation=270)
-
 
 # These two functions are copied from plotting.py to get around dependency issues
 def load_palette(pfile=None):
@@ -201,22 +209,28 @@ def shorten_parquet(num, ds, stats=False):
         return ds
 
 # Plots subfiles and distinguishes extremes
-def extreme_subfields(ds, points, tolerance):
+def extreme_subfields(points, tolerance):
     
     ''' Plots subfield positions and distinguishes the extremes. Takes data, 
     the amount of points to plot and a tolerance level based on the LL histogram.'''
     
-    ds = shorten_parquet(points, ds)
+
+    #ds = shorten_parquet(points, valid_p)
+    #embed(header='line 1')
+    ex_p = np.where((dp.LL < -tolerance) & (dp.pp_type == 0))
+    #embed(header='line 2')
+    ex_p = dp.iloc[ex_p] # sliced origional data to only be the extremes of the validation set
+    #embed(header='line 3')
+    #ex_p = shorten_parquet(points, ex_p)
     
-    lats = ds.lat    
-    lons = ds.lon
+    #embed(header='line 4') 
+    
+    lats = dp.lat    
+    lons = dp.lon
 
-    extremes = np.where(ds.LL < tolerance)
-    extremes = ds.iloc[extremes]
-
-    exlats = extremes.lat
-    exlons = extremes.lon
-
+    exlats = ex_p.lat
+    exlons = ex_p.lon
+    #embed(header='line 5')
     # Fixing the coordinates so it displays all the points
     for i in range(len(lons)):
         if lons.iloc[i] >= 180:
@@ -239,23 +253,40 @@ def extreme_subfields(ds, points, tolerance):
     ax.set_global()
     ax.coastlines(linewidth=0.5)
     ax.plot(lons, lats, '.', markersize = 1)
-    
-    #for i, shade in enumerate(ex_LL):
-    #    ax.plot(exlons, exlats, '.', markersize = 2, color = shade, label="LL < {}".format(tolerance))
     ax.plot(exlons, exlats, '.', markersize = 1, color = 'r', label="LL < {}".format(tolerance))
     ax.legend()
 
+'''
+shorty = shorten_parquet(1000, valid_p)
+ex_valid_p = np.where((shorty.LL < -100) & (shorty.pp_type == 0))
+ex_valid_p = shorty.iloc[ex_valid_p]
+
+ex_pp_idx = np.sort(list(ex_valid_p.pp_idx))
+
+valid = dh['valid']
+#valid
+ex_valid = valid[ex_pp_idx]
+#ex_valid
+'''
+
 ###### For some reason the plots only work correctly if done one at a time. ###########
-plot_data(opendapp)
+#print(shorten_parquet(dp,10000,True))
+
+#ds = ex_p.sample(100)
+#print(ds)
+
+
+
+#plot_data(opendapp)
 
 #SSH_cutout(opendapp,40,-50,32)
 
-#extreme_subfields(dp,10000,-100)
+#extreme_subfields(1000,-100)
 
 #LL_hist(logy=(True))
 
-#valid = shorten_h5(valid,100)
-#show_image(valid[0][0])
+
+show_image(ex_valid[0][0])
 
 
 TimerStop = time.perf_counter() 
