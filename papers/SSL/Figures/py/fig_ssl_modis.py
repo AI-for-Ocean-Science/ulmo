@@ -491,7 +491,8 @@ def fig_umap_2dhist(outfile='fig_umap_2dhist.png',
 
 
 def fig_LLvsDT(outfile='fig_LLvsDT.png', local=False, vmax=None, 
-                    cmap=None, cuts=None, scl = 1, debug=False):
+                umap_dim=2,
+                table=None, cmap=None, cuts=None, scl = 1, debug=False):
     """ Bivariate of LL vs. DT
 
     Args:
@@ -505,14 +506,16 @@ def fig_LLvsDT(outfile='fig_LLvsDT.png', local=False, vmax=None,
     """
 
     # Load table
-    modis_tbl = ssl_paper_analy.load_modis_tbl(local=local, cuts=cuts)
+    modis_tbl = ssl_paper_analy.load_modis_tbl(local=local, cuts=cuts,
+                                               table=table)
+    outfile = update_outfile(outfile, table, umap_dim)
 
     # Debug?
     if debug:
         modis_tbl = modis_tbl.loc[np.arange(1000000)].copy()
 
     # Plot
-    fig = plt.figure(figsize=(12, 12))
+    fig = plt.figure()#figsize=(9, 12))
     plt.clf()
 
     ymnx = [-5000., 1000.]
@@ -520,12 +523,18 @@ def fig_LLvsDT(outfile='fig_LLvsDT.png', local=False, vmax=None,
     jg = sns.jointplot(data=modis_tbl, x='DT', y='LL', kind='hex',
                        bins='log', gridsize=250, xscale='log',
                        cmap=plt.get_cmap('autumn'), mincnt=1,
-                       marginal_kws=dict(fill=False, color='black', bins=100)) 
+                       marginal_kws=dict(fill=False, color='black', 
+                                         bins=100)) 
+    # Axes                                 
     jg.ax_joint.set_xlabel(r'$\Delta T$')
     jg.ax_joint.set_ylim(ymnx)
+    jg.fig.set_figwidth(8.)
+    jg.fig.set_figheight(7.)
 
-    plotting.set_fontsize(jg.ax_joint, 15.)
-    plt.savefig(outfile, dpi=300)
+    plotting.set_fontsize(jg.ax_joint, 16.)
+
+    # Save
+    plt.savefig(outfile, dpi=300, bbox_inches="tight")
     plt.close()
     print('Wrote {:s}'.format(outfile))
 
@@ -914,7 +923,8 @@ def main(pargs):
 
     # LL vs DT
     if pargs.figure == 'LLvsDT':
-        fig_LLvsDT(local=pargs.local, debug=pargs.debug)
+        fig_LLvsDT(local=pargs.local, debug=pargs.debug,
+                   table=pargs.table)
     
     # slopts
     if pargs.figure == 'slopes':
@@ -1003,6 +1013,8 @@ if __name__ == '__main__':
 
 # 2dhist + contours -- python py/fig_ssl_modis.py umap_2dhist --local --table CF
 # DT vs. U0 -- python py/fig_ssl_modis.py DT_vs_U0 --local --table CF
+
+# LL vs DT -- python py/fig_ssl_modis.py LLvsDT --local --table CF
 
 # ################
 # UMAP ndim=3
