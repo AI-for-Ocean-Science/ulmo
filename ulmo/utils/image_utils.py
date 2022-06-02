@@ -167,7 +167,7 @@ def evals_to_healpix(eval_tbl, nside, log=False, mask=True,
 
 
 def grab_image(cutout:pandas.core.series.Series, 
-               close=True, pp_hf=None, local_file=None):                
+               close=True, pp_hf=None, local_file=None):
     """Grab a cutout image
 
     Args:

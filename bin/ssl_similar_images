@@ -6,10 +6,11 @@
 
 """
 This script grabs similar images to the input one
+  Uses CF MODIS for now
 """
 
 import ulmo.scripts.ssl_similar as ssl_similar
 
 if __name__ == '__main__':
     args = ssl_similar.parser()
-    ssl_similar.main(args)
+    ssl_similar.main_umap(args)

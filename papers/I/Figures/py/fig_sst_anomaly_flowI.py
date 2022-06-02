@@ -40,6 +40,8 @@ extract_path = defs.extract_path
 model_path = defs.model_path
 eval_path = defs.eval_path
 
+
+
 def fig_db_by_month(outfile):
 
     # Load db

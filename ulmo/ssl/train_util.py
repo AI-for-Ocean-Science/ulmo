@@ -4,7 +4,6 @@ import numpy as np
 import math
 import time
 
-import json
 import skimage.transform
 import skimage.filters
 import h5py
@@ -20,41 +19,12 @@ from ulmo.ssl.losses import SupConLoss
 from ulmo.ssl.util import TwoCropTransform, AverageMeter
 from ulmo.ssl.util import warmup_learning_rate
 
-class Params():
-    """
-    Class that loads hyperparameters from a json file.
-    Example:
-    ```
-    params = Params(json_path)
-    print(params.learning_rate)
-    params.learning_rate = 0.5  # change the value of learning_rate in params
-    ```
-    This module comes from:
-    https://github.com/cs230-stanford/cs230-code-examples/blob/master/pytorch/vision/utils.py
-    """
-
-    def __init__(self, json_path):
-        with open(json_path) as f:
-            params = json.load(f)
-            self.__dict__.update(params)
-
-    def save(self, json_path):
-        with open(json_path, 'w') as f:
-            json.dump(self.__dict__, f, indent=4)
-            
-    def update(self, json_path):
-        """Loads parameters from json file"""
-        with open(json_path) as f:
-            params = json.load(f)
-            self.__dict__.update(params)
-
-    @property
-    def dict(self):
-        """Gives dict-like access to Params instance by `params.dict['learning_rate']"""
-        return self.__dict__
+from ulmo import io as ulmo_io
     
-def option_preprocess(opt: Params):
+def option_preprocess(opt:ulmo_io.Params):
     """
+    Set up a number of preprocessing and more including
+    output folders (e.g. model_folder, latents_folder)
     Args:
         opt: (Params) json used to store the training hyper-parameters
     Returns:
@@ -69,23 +39,21 @@ def option_preprocess(opt: Params):
     if opt.data_folder is None:
         opt.data_folder = './experimens/datasets/'
     
-    if opt.model_folder is None: 
-        opt.model_folder = f'./experiments/{opt.method}/{opt.dataset}_models'
 
     iterations = opt.lr_decay_epochs.split(',')
     opt.lr_decay_epochs = list([])
     for it in iterations:
         opt.lr_decay_epochs.append(int(it))
 
-    opt.model_name = '{}_{}_{}_lr_{}_decay_{}_bsz_{}_temp_{}_trial_{}'.\
-        format(opt.method, opt.dataset, opt.model, opt.learning_rate,
-               opt.weight_decay, opt.batch_size, opt.temp, opt.trial)
+    opt.model_name = '{}_{}_lr_{}_decay_{}_bsz_{}_temp_{}_trial_{}'.\
+        format(opt.ssl_method, opt.ssl_model, opt.learning_rate,
+               opt.weight_decay, opt.batch_size_train, opt.temp, opt.trial)
 
     if opt.cosine:
         opt.model_name = '{}_cosine'.format(opt.model_name)
 
     # warm-up for large-batch training,
-    if opt.batch_size > 256:
+    if opt.batch_size_train > 256:
         opt.warm = True
     if opt.warm:
         opt.model_name = '{}_warm'.format(opt.model_name)
@@ -98,9 +66,15 @@ def option_preprocess(opt: Params):
         else:
             opt.warmup_to = opt.learning_rate
 
-    opt.save_folder = os.path.join(opt.model_folder, opt.model_name)
-    if not os.path.isdir(opt.save_folder):
-        os.makedirs(opt.save_folder)
+    # Save folder
+    opt.model_folder = os.path.join('models', opt.model_root,
+                                    opt.model_name)
+    if not os.path.isdir(opt.model_folder):
+        os.makedirs(opt.model_folder)
+
+    # Latents folder
+    opt.latents_folder = os.path.join('latents', opt.model_root,
+                                    opt.model_name)
 
     return opt
     
@@ -263,75 +237,42 @@ class ModisDataset(Dataset):
         image_transformed = self.transform(image_transposed)
         
         return image_transformed
-    
+
+#@profile
 def modis_loader(opt, valid=False):
     """
-    This is a function used to create the modis data loader.
+    This is a function used to create a MODIS data loader.
     
     Args:
         opt: (Params) options for the training process.
         valid: (Bool) flag used to decide if to use the validation set.
         
     Returns:
-        train_loader: (Dataloader) Modis Dataloader.
+        loader: (Dataloader) Modis Dataloader.
     """
     transforms_compose = transforms.Compose([RandomRotate(),
                                              JitterCrop(),
                                              GaussianNoise(),
                                              transforms.ToTensor()])
     if not valid:
-        modis_path = opt.data_folder
-        data_key = opt.data_key
+        data_key = opt.train_key
+        batch_size = opt.batch_size_train
     else:
-        modis_path = opt.valid_folder
         data_key = opt.valid_key
-    modis_file = os.path.join(modis_path, os.listdir(modis_path)[0])
+        batch_size = opt.batch_size_valid
+    modis_file = os.path.join(opt.data_folder, opt.images_file) 
+
     modis_dataset = ModisDataset(modis_file, 
                                  transform=TwoCropTransform(transforms_compose), 
                                  data_key=data_key)
-    train_sampler = None
-    train_loader = torch.utils.data.DataLoader(
-                    modis_dataset, batch_size=opt.batch_size, shuffle=(train_sampler is None),
-                    num_workers=opt.num_workers, pin_memory=False, sampler=train_sampler)
+    sampler = None                                
+    loader = torch.utils.data.DataLoader(
+                    modis_dataset, batch_size=batch_size, 
+                    shuffle=(sampler is None),
+                    num_workers=opt.num_workers, 
+                    pin_memory=False, sampler=sampler)
     
-    return train_loader
-
-
-def modis_loader_v2(opt, valid=False):
-    """
-    This is a function used to create the modis data loader using the 
-    RandomJitterCrop augmentation.
-    
-    Args:
-        opt: (Params) options for the training process.
-        valid: (Bool) flag used to decide if to use the validation set.
-        
-    Returns:
-        train_loader: (Dataloader) Modis Dataloader.
-    """
-    
-    transforms_compose = transforms.Compose([RandomRotate(),
-                                             RandomJitterCrop(),
-                                             GaussianNoise(instrument_noise=(0, 0.05)),
-                                             transforms.ToTensor()])
-    if not valid:
-        modis_path = opt.data_folder
-        data_key = opt.data_key
-        batch_size = opt.batch_size
-    else:
-        modis_path = opt.valid_folder
-        data_key = opt.valid_key
-        batch_size = opt.valid_batch_size
-    modis_file = os.path.join(modis_path, os.listdir(modis_path)[0])
-    #from_s3 = (modis_path.split(':')[0] == 's3')
-    #modis_dataset = ModisDataset(modis_path, transform=TwoCropTransform(transforms_compose), from_s3=from_s3)
-    modis_dataset = ModisDataset(modis_file, transform=TwoCropTransform(transforms_compose), data_key=data_key)
-    train_sampler = None
-    train_loader = torch.utils.data.DataLoader(
-                   modis_dataset, batch_size=batch_size, shuffle=(train_sampler is None),
-                   num_workers=opt.num_workers, pin_memory=False, sampler=train_sampler)
-    
-    return train_loader
+    return loader
 
 def modis_loader_v2_with_blurring(opt, valid=False):
     """
@@ -361,11 +302,12 @@ def modis_loader_v2_with_blurring(opt, valid=False):
     modis_dataset = ModisDataset(modis_file, transform=TwoCropTransform(transforms_compose), data_key=opt.data_key)
     train_sampler = None
     train_loader = torch.utils.data.DataLoader(
-                    modis_dataset, batch_size=opt.batch_size, shuffle=(train_sampler is None),
+                    modis_dataset, batch_size=opt.batch_size_train, shuffle=(train_sampler is None),
                     num_workers=opt.num_workers, pin_memory=False, sampler=train_sampler)
     
     return train_loader
-    
+
+#@profile
 def set_model(opt, cuda_use=True): 
     """
     This is a function to set up the model.
@@ -378,7 +320,7 @@ def set_model(opt, cuda_use=True):
         model: (torch.nn.Module) model class set up by opt.
         criterion: (torch.Tensor) training loss.
     """
-    model = SupConResNet(name=opt.model, feat_dim=opt.feat_dim)
+    model = SupConResNet(name=opt.ssl_model, feat_dim=opt.feat_dim)
     criterion = SupConLoss(temperature=opt.temp)
 
     # enable synchronized Batch Normalization
@@ -394,13 +336,29 @@ def set_model(opt, cuda_use=True):
 
     return model, criterion
 
-def train_model(train_loader, model, criterion, optimizer, epoch, opt, cuda_use=True):
+#@profile
+def train_model(train_loader, model, criterion, optimizer, 
+                epoch, opt, cuda_use=True, update_model=True):
     """
     one epoch training.
+
+    Also used for validation with update_model=False
     
     Args:
         train_loader: (Dataloader) data loader for the training process.
         model: (torch.nn.Module)
+        criterion: (torch.nn.Module) loss of the training model.
+        optimizer (can be None):
+        epoch: (int)
+        opt: (Params)
+        update_mode: (bool)
+            Update the model.  Should be True unless you are running
+            on the valid dataset
+
+    Returns:
+        losses.avg: (float32) 
+        losses_step_list: (list)
+        losses_avg_list: (list)
         criterion: (torch.Tensor) loss of the training model.
     """
     
@@ -411,6 +369,8 @@ def train_model(train_loader, model, criterion, optimizer, epoch, opt, cuda_use=
     losses = AverageMeter()
 
     end = time.time()
+    losses_avg_list, losses_step_list = [], []
+
     for idx, images in enumerate(train_loader):
         data_time.update(time.time() - end)
 
@@ -427,25 +387,30 @@ def train_model(train_loader, model, criterion, optimizer, epoch, opt, cuda_use=
         features = model(images)
         f1, f2 = torch.split(features, [bsz, bsz], dim=0)
         features = torch.cat([f1.unsqueeze(1), f2.unsqueeze(1)], dim=1)
-        if opt.method == 'SupCon':
+        if opt.ssl_method == 'SupCon':
             loss = criterion(features, labels)
-        elif opt.method == 'SimCLR':
+        elif opt.ssl_method == 'SimCLR':
             loss = criterion(features)
         else:
             raise ValueError('contrastive method not supported: {}'.
-                             format(opt.method))
+                             format(opt.ssl_method))
 
         # update metric
         losses.update(loss.item(), bsz)
 
         # SGD
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+        if update_model:
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
         # measure elapsed time
         batch_time.update(time.time() - end)
         end = time.time()
+
+        # record losses
+        losses_step_list.append(losses.val)
+        losses_avg_list.append(losses.avg)
         
         # print info
         if (idx + 1) % opt.print_freq == 0:
@@ -456,9 +421,10 @@ def train_model(train_loader, model, criterion, optimizer, epoch, opt, cuda_use=
                    epoch, idx + 1, len(train_loader), batch_time=batch_time,
                    data_time=data_time, loss=losses))
             sys.stdout.flush()
+            
+    return losses.avg, losses_step_list, losses_avg_list
 
-    return losses.avg
-
+'''
 def valid_model(valid_loader, model, criterion, epoch, opt, cuda_use=True):
     """
     one epoch validation.
@@ -510,5 +476,91 @@ def valid_model(valid_loader, model, criterion, epoch, opt, cuda_use=True):
                    epoch, idx + 1, len(valid_loader), batch_time=batch_time,
                    data_time=data_time, loss=losses))
             sys.stdout.flush()
+            
     return losses.avg
+'''
     
+##############################################################################################
+### modules for learning curve plots
+
+'''
+def train_learn_curve(train_loader, model, criterion, optimizer, epoch, opt, cuda_use=True):
+    """
+    one epoch training.
+    
+    Args:
+        train_loader: (Dataloader) data loader for the training 
+        process.
+        model: (torch.nn.Module)
+        criterion: (torch.nn.Module) loss of the training model.
+    
+    Returns:
+        losses.avg: (float32) 
+        losses_step_list: (list)
+        losses_avg_list: (list)
+    """
+    
+    model.train()
+
+    batch_time = AverageMeter()
+    data_time = AverageMeter()
+    losses = AverageMeter()
+
+    end = time.time()
+    losses_avg_list, losses_step_list = [], []
+    
+    for idx, images in enumerate(train_loader):
+        #if idx > 2:
+        #    break
+        
+        data_time.update(time.time() - end)
+
+        images = torch.cat([images[0], images[1]], dim=0)
+        if torch.cuda.is_available() and cuda_use:
+            images = images.cuda(non_blocking=True)
+            #labels = labels.cuda(non_blocking=True)
+        bsz = images.shape[0] // 2
+
+        # warm-up learning rate
+        warmup_learning_rate(opt, epoch, idx, len(train_loader), optimizer)
+
+        # compute loss
+        features = model(images)
+        f1, f2 = torch.split(features, [bsz, bsz], dim=0)
+        features = torch.cat([f1.unsqueeze(1), f2.unsqueeze(1)], dim=1)
+        if opt.method == 'SupCon':
+            loss = criterion(features, labels)
+        elif opt.method == 'SimCLR':
+            loss = criterion(features)
+        else:
+            raise ValueError('contrastive method not supported: {}'.
+                             format(opt.method))
+
+        # update metric
+        losses.update(loss.item(), bsz)
+
+        # SGD
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        # measure elapsed time
+        batch_time.update(time.time() - end)
+        end = time.time()
+        
+        # record losses
+        losses_step_list.append(losses.val)
+        losses_avg_list.append(losses.avg)
+       
+        # print info
+        if (idx + 1) % opt.print_freq == 0:
+            print('Train: [{0}][{1}/{2}]\t'
+                  'BT {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                  'DT {data_time.val:.3f} ({data_time.avg:.3f})\t'
+                  'loss {loss.val:.3f} ({loss.avg:.3f})'.format(
+                   epoch, idx + 1, len(train_loader), batch_time=batch_time,
+                   data_time=data_time, loss=losses))
+            sys.stdout.flush()
+
+    return losses.avg, losses_step_list, losses_avg_list
+'''

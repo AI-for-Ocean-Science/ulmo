@@ -1,8 +1,8 @@
-# Script to perform VIIRS 2013 extractions 
+# Script to train an SSL model on the cloud free MODIS data
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-ssl-modis-2010-train-debug
+  name: xavier-ssl-modis-cf-train
 spec:
   backoffLimit: 0
   template:
@@ -18,10 +18,11 @@ spec:
             ephemeral-storage: 50Gi
           limits:
             cpu: "8"
-            memory: "20Gi"
+            memory: "10Gi"
             ephemeral-storage: 100Gi
             nvidia.com/gpu:  "4"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]
+            #command: ["sh", "-c", "sleep infinity"]
         args:
           - cd ulmo; 
             git fetch;
@@ -29,8 +30,8 @@ spec:
             git pull; 
             python setup.py develop;
             cd ulmo/runs/SSL/MODIS/v2;
-            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp s3://modis-l2/PreProc/MODIS_R2019_2010_95clear_128x128_preproc_std.h5 ./;
-            python ./ssl_modis_v2.py --opt_path ./experiments/modis_model_v2/opts_2010.json --func_flag train --debug;
+            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp s3://modis-l2/SSL/preproc/MODIS_SSL_cloud_free_images.h5 ./;
+            python ./ssl_modis_v2.py --opt_path ./experiments/modis_model_v2/opts_cloud_free.json --func_flag train;
             aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp models s3://modis-l2/SSL/models --recursive --force;
         env:
           - name: "ENDPOINT_URL"
