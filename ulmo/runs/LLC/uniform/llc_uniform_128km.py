@@ -59,9 +59,11 @@ def u_extract_128(tbl_file:str, debug=False, debug_local=False,
     # Giddy up (will take a bit of memory!)
     llc_table = ulmo_io.load_main_table(tbl_file)
 
-    #if debug:
-    #    # Cut down
-    #    llc_table = llc_table.iloc[100000+np.arange(100)]
+    if debug:
+        # Cut down to first day
+        uni_date = np.unique(llc_table.datetime)
+        gd_date = llc_table.datetime == uni_date[0]
+        llc_table = llc_table[gd_date]
 
     if debug:
         root_file = 'LLC_uniform128_test_preproc.h5'
@@ -90,8 +92,10 @@ def u_extract_128(tbl_file:str, debug=False, debug_local=False,
     print("You should probably remove the PreProc/ folder")
     
 
-def u_evaluate(clobber_local=False):
+def u_evaluate_128(clobber_local=False, debug=False):
     
+    if debug:
+        tbl_file = tst_file
     # Load
     llc_table = ulmo_io.load_main_table(tbl_file)
 

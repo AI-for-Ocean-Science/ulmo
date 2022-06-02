@@ -210,11 +210,7 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         del answers, fields, items, sst
         ds.close()
 
-    # Reorder llc_table (probably no change)
-    #llc_table = llc_table.iloc[img_idx].copy()
-    #llc_table.reset_index(drop=True, inplace=True)
-
-    # Warning -- This is not tested for LLC!
+    # Write
     pp_utils.write_pp_fields(pp_fields, meta, llc_table, 
                             sub_idx, img_idx,
                              valid_fraction,
