@@ -74,7 +74,8 @@ def coords(resol, field_size, CC_max=1e-4, outfile=None,
 
     # Cut on latitutde?
     if max_lat is not None:
-        gd_lat = np.abs(llc_table.lat < max_lat)
+        print(f"Restricting to |latitude| < {max_lat}")
+        gd_lat = np.abs(llc_table.lat) < max_lat
         llc_table = llc_table[gd_lat].copy()
     
     # Write
