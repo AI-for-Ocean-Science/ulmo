@@ -108,17 +108,24 @@ def grab_image(args):
 
 
 def grab_velocity(cutout:pandas.core.series.Series, ds=None,
-                  add_SST=False):                
+                  add_SST=False, add_Salt:bool=False, local=False):                
     """Grab velocity
 
     Args:
         cutout (pandas.core.series.Series): cutout image
         ds (xarray.DataSet, optional): Dataset. Defaults to None.
+        local (bool, optional): Grab files from local?
         add_SST (bool, optional): Include SST too?. Defaults to False.
+        add_Salt (bool, optional): Include Salt too?. Defaults to False.
 
     Returns:
-        list: U, V cutputs and SST too if add_SST=True
+        list: U, V cutputs 
+            and SST too if add_SST=True
+            and Salt too if add_SST=True
     """
+    if local:
+        raise NotImplementedError("Not ready for this yet")
+    # Open
     with ulmo_io.open(cutout.filename, 'rb') as f:
         ds = xr.open_dataset(f)
     # U field
@@ -128,9 +135,16 @@ def grab_velocity(cutout:pandas.core.series.Series, ds=None,
     V_cutout = ds.V[cutout.row:cutout.row+cutout.field_size, 
                 cutout.col:cutout.col+cutout.field_size]
     output = [U_cutout, V_cutout]
+
     # Add SST?
     if add_SST:
         output.append(ds.Theta[cutout.row:cutout.row+cutout.field_size, 
                 cutout.col:cutout.col+cutout.field_size])
+
+    # Add Salt?
+    if add_Salt:
+        output.append(ds.Salt[cutout.row:cutout.row+cutout.field_size, 
+                cutout.col:cutout.col+cutout.field_size])
+
     # Return
     return output
