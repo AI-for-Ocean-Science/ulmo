@@ -9,7 +9,7 @@ import h5py
 from skimage.restoration import inpaint as sk_inpaint
 from scipy.ndimage import median_filter
 from scipy import special
-from skimage.transform import downscale_local_mean
+from skimage.transform import downscale_local_mean, resize_local_mean
 from skimage import filters
 from sklearn.utils import shuffle
 
@@ -88,6 +88,17 @@ def build_mask(dfield, qual, qual_thresh=2, lower_qual=True,
     return masks
 
 def prep_table_for_preproc(tbl, preproc_root, field_size=None):
+    """Prep the table for pre-processing
+    e.g. add a few columns
+
+    Args:
+        tbl (pandas.DataFrame): _description_
+        preproc_root (_type_): _description_
+        field_size (tuple, optional): Field size. Defaults to None.
+
+    Returns:
+        _type_: _description_
+    """
     # Prep Table
     for key in ['filename', 'pp_file']:
         if key not in tbl.keys():
@@ -136,6 +147,10 @@ def preproc_image(item:tuple, pdict:dict, use_mask=False,
         field, idx = item
         mask = None
 
+    # Junk field?  (e.g. LLC)
+    if field is None:
+        return None
+
     # Run
     pp_field, meta = preproc_field(field, mask, **pdict)
 
@@ -151,6 +166,8 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
                   downscale=True, dscale_size=(2,2), sigmoid=False, scale=None,
                   expon=None, only_inpaint=False, gradient=False,
                   min_mean=None, de_mean=True,
+                  field_size=None,
+                  fixed_km=None,
                   noise=None,
                   log_scale=False, **kwargs):
     """
@@ -193,6 +210,8 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
         If True, subtract the mean
     min_mean : float, optional
         If provided, require the image has a mean exceeding this value
+    fixed_km : float, optional
+        If provided the input image is smaller than desired, so cut it down!
     **kwargs : catches extraction keywords
 
     Returns
@@ -223,11 +242,17 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
     meta_dict['T10'] = field.flatten()[srt[i10]]
     meta_dict['T90'] = field.flatten()[srt[i90]]
 
+    # Resize? 
+
     # Add noise?
     if noise is not None:
         field += np.random.normal(loc=0., 
                                   scale=noise, 
                                   size=field.shape)
+    # Resize?
+    if fixed_km is not None:
+        field = resize_local_mean(field, (field_size, field_size))
+
     # Median
     if median:
         field = median_filter(field, size=med_size)

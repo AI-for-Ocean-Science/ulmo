@@ -49,11 +49,27 @@ def u_init_128(tbl_file:str, debug=False, resol=0.5, plot=False):
     print("All done with init")
 
 
-def u_extract(debug_local=False):
+def u_extract_128(tbl_file:str, debug=False, debug_local=False,
+              root_file=None, dlocal=False, preproc_root='llc_128'):
+
+    if debug:
+        tbl_file = tst_file
+        debug_local = True
 
     # Giddy up (will take a bit of memory!)
     llc_table = ulmo_io.load_main_table(tbl_file)
-    root_file = 'LLC_uniform_test_preproc.h5'
+
+    #if debug:
+    #    # Cut down
+    #    llc_table = llc_table.iloc[100000+np.arange(100)]
+
+    if debug:
+        root_file = 'LLC_uniform128_test_preproc.h5'
+    else:
+        if root_file is None:
+            root_file = 'LLC_uniform128_preproc.h5'
+
+    # Setup
     pp_local_file = 'PreProc/'+root_file
     pp_s3_file = 's3://llc/PreProc/'+root_file
     if not os.path.isdir('PreProc'):
@@ -63,11 +79,15 @@ def u_extract(debug_local=False):
     if debug_local:
         pp_s3_file = None  
     extract.preproc_for_analysis(llc_table, 
-                                             pp_local_file,
-                                             s3_file=pp_s3_file,
-                                             dlocal=False)
+                                 pp_local_file,
+                                 fixed_km=128.,
+                                 preproc_root=preproc_root,
+                                 s3_file=pp_s3_file,
+                                 debug=debug,
+                                 dlocal=dlocal)
     # Final write
     ulmo_io.write_main_table(llc_table, tbl_file)
+    print("You should probably remove the PreProc/ folder")
     
 
 def u_evaluate(clobber_local=False):
@@ -99,12 +119,14 @@ def main(flg):
 
     # Generate the LLC Table
     if flg & (2**0):
+        # Debug
         #u_init_128('tmp', debug=True, plot=True)
         # Real deal
         u_init_128(full_file)
 
     if flg & (2**1):
-        u_extract()
+        u_extract_128('', debug=True, dlocal=True)
+        #u_extract_128(full_file)
 
     if flg & (2**2):
         u_evaluate()
@@ -118,8 +140,8 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg = 0
-        flg += 2 ** 0  # 1 -- Setup Table
-        #flg += 2 ** 1  # 2 -- Extract
+        #flg += 2 ** 0  # 1 -- Setup Table
+        flg += 2 ** 1  # 2 -- Extract
         #flg += 2 ** 2  # 4 -- Evaluate
         #flg += 2 ** 3  # 8 -- Velocities
     else:

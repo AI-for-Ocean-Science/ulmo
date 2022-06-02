@@ -107,6 +107,7 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
                          local_file:str,
                          preproc_root='llc_std', 
                          field_size=(64,64), 
+                         fixed_km=None,
                          n_cores=10,
                          valid_fraction=1., 
                          dlocal=False,
@@ -118,7 +119,8 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         llc_table (pandas.DataFrame): cutout table
         local_file (str): path to PreProc file
         preproc_root (str, optional): Preprocessing steps. Defaults to 'llc_std'.
-        field_size (tuple, optional): Defines cutout size. Defaults to (64,64).
+        field_size (tuple, optional): Defines cutout shape. Defaults to (64,64).
+        fixed_km (float, optional): Require cutout to be this size in km
         n_cores (int, optional): Number of cores for parallel processing. Defaults to 10.
         valid_fraction (float, optional): [description]. Defaults to 1..
         dlocal (bool, optional): Data files are local? Defaults to False.
@@ -128,6 +130,12 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         IOError: [description]
 
     """
+    # Load coords?
+    if fixed_km is not None:
+        coords_ds = llc_io.load_coords()
+        R_earth = 6371. # km
+        circum = 2 * np.pi* R_earth
+        km_deg = circum / 360.
     
     # Preprocess options
     pdict = pp_io.load_options(preproc_root)
@@ -146,10 +154,10 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
     # Prep LLC Table
     llc_table = pp_utils.prep_table_for_preproc(llc_table, 
                                                 preproc_root,
-                                                field_size=field_size[0])
+                                                field_size=field_size)
     # Loop
     if debug:
-        uni_date = uni_date[0:5]
+        uni_date = uni_date[0:1]
     for udate in uni_date:
         # Parse filename
         filename = llc_io.grab_llc_datafile(udate, local=dlocal)
@@ -168,12 +176,21 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         # Load up the cutouts
         fields = []
         for r, c in zip(coord_tbl.row, coord_tbl.col):
-            fields.append(sst[r:r+field_size[0], c:c+field_size[1]])
+            if fixed_km is None:
+                dr = field_size[0]
+                dc = field_size[1]
+            else:
+                dlat_km = (coords_ds.lat.data[r+1,c]-coords_ds.lat.data[r,c]) * km_deg
+                dr = int(np.round(fixed_km / dlat_km))
+                dc = dr
+            #
+            if (r+dr >= sst.shape[0]) or (c+dc > sst.shape[1]):
+                fields.append(None)
+            else:
+                fields.append(sst[r:r+dr, c:c+dc])
         print("Cutouts loaded for {}".format(filename))
 
         # Multi-process time
-        #sub_idx = np.arange(idx, idx+len(fields)).tolist()
-        #idx += len(fields)
         # 
         items = [item for item in zip(fields,sub_idx)]
 
