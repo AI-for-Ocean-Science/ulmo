@@ -32,22 +32,6 @@ from IPython import embed
 s3_bucket = 's3://viirs'
 
 
-def parse_option():
-    """
-    This is a function used to parse the arguments in the training.
-
-    Returns:
-        args: (dict) dictionary of the arguments.
-    """
-    parser = argparse.ArgumentParser("VIIRS")
-    parser.add_argument("--task", type=str,
-                        help="task to execute: 'download', 'extract', 'preproc', 'eval'.")
-    parser.add_argument("--year", type=int, help="Year to work on")
-    parser.add_argument("--n_cores", type=int, help="Number of CPU to use")
-    parser.add_argument("--day", type=int, default=1, help="Day to start extraction from")
-    args = parser.parse_args()
-
-    return args
 
 
 def viirs_get_data_into_s3(year=2014, day1=1, 
@@ -285,6 +269,63 @@ def viirs_evaluate(year=2014, debug=False, model='modis-l2-std'):
     ulmo_io.write_main_table(viirs_tbl, tbl_file)
     print("Done evaluating..")
 
+def viirs_concat_tables(clear_frac=None, debug=False):
+    """Put together all the VIIRS tables
+
+    Args:
+        clear_frac (float, optional): _description_. Defaults to None.
+        debug (bool, optional): _description_. Defaults to False.
+    """
+    if debug:
+        years = 2012 + np.arange(2)
+    else:
+        years = 2012 + np.arange(9)
+
+    if clear_frac is None:
+        clear_frac = 0.95
+    else:
+        embed(header='218 -- did not code this up')
+
+    first = True
+    # Loop
+    for year in years:
+        # Load table
+        tbl_file = f's3://viirs/Tables/VIIRS_{year}_std.parquet'
+        viirs_tbl = ulmo_io.load_main_table(tbl_file)
+        # 
+        if first:
+            all_tbl = viirs_tbl
+            first = False
+        else:
+            all_tbl = pandas.concat([all_tbl, viirs_tbl])
+
+    # Write
+    if debug:
+        outfile = f'all_debug.parquet'
+    else:
+        outfile = f's3://viirs/Tables/VIIRS_all_{int(100*clear_frac)}clear_std.parquet'
+    assert cat_utils.vet_main_table(all_tbl)
+    ulmo_io.write_main_table(all_tbl, outfile, to_s3=(not debug))
+
+def parse_option():
+    """
+    This is a function used to parse the arguments in the training.
+
+    Returns:
+        args: (dict) dictionary of the arguments.
+    """
+    parser = argparse.ArgumentParser("VIIRS")
+    parser.add_argument("--task", type=str, required=True,
+                        help="task to execute: 'download', 'extract', 'preproc', 'eval'.")
+    parser.add_argument("--year", type=int, help="Year to work on")
+    parser.add_argument("--n_cores", type=int, help="Number of CPU to use")
+    parser.add_argument("--day", type=int, default=1, help="Day to start extraction from")
+    parser.add_argument("--cc", type=float, help="Clear fraction, e.g. 0.99")
+    parser.add_argument('--debug', default=False, action='store_true',
+                    help="Debug?")
+    args = parser.parse_args()
+
+    return args
 
 if __name__ == "__main__":
     # get the argument of training.
@@ -309,5 +350,11 @@ if __name__ == "__main__":
         print("Evaluation Starts.")
         viirs_evaluate(year=pargs.year)
         print("Evaluation Ends.")
+    elif pargs.task == 'concat':
+        viirs_concat_tables(debug=pargs.debug, clear_frac=pargs.cc)
     else:
         raise IOError("Bad choice")
+
+
+# Concatanate all of the tables
+# python viirs_ulmo.py --task concat
