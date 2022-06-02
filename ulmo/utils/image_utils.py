@@ -177,7 +177,7 @@ def grab_image(cutout:pandas.core.series.Series,
         local_file (str, optional): Use this file, if provided
 
     Returns:
-        [type]: [description]
+        np.ndarray or tuple: image or (image, hdf pointer)
     """
     if local_file is not None:
         pp_hf = h5py.File(local_file, 'r')
