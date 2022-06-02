@@ -1,6 +1,8 @@
 """ Code related to fronto genesis calculations"""
 import numpy as np
 
+from matplotlib import pyplot as plt
+
 from ulmo.llc import io as llc_io
 from ulmo import io as ulmo_io
 from ulmo.llc import kinematics
@@ -82,7 +84,74 @@ def brazil_pdfs(outfile='F_S_pdfs.npz', debug=False):
              R2_F_s=np.stack(R2_F_s))
     print(f"Wrote: {outfile}")
 
+def explore_F_S_thresh(outfile='F_S_thresh.png', debug=False):
+    # Load
+    fs_dict = np.load('F_S_pdfs.npz')
+
+    R1_F_s = fs_dict['R1_F_s']
+    N_R1 = R1_F_s.shape[0]
+    R2_F_s = fs_dict['R2_F_s']
+
+    # F_s_thresh
+    mnmx = [2e-5, 1e-2]
+    F_S_threshes = 10**np.linspace(np.log10(mnmx[0]),
+                                 np.log10(mnmx[1]), 20)
+                                
+    # Prep
+    nlim = [1, 3, 10, 30]
+    lss = [':', '--', '-', '-.']
+    lim_dict = {}
+    for ilim in nlim:
+        lim_dict[f'R1_{ilim}'] = []
+        lim_dict[f'R2_{ilim}'] = []
+
+    # Loop
+    for F_S_thresh in F_S_threshes:
+        # R1
+        gd_R1 = R1_F_s > F_S_thresh
+        ngd_R1 = np.sum(gd_R1, axis=(1,2))
+        # R2
+        gd_R2 = R2_F_s > F_S_thresh
+        ngd_R2 = np.sum(gd_R2, axis=(1,2))
+
+        # Loop
+        for ilim in nlim:
+            # R1
+            nR1 = np.sum(ngd_R1 >= ilim)
+            lim_dict[f'R1_{ilim}'].append(nR1) 
+            # R2
+            nR2 = np.sum(ngd_R2 >= ilim)
+            lim_dict[f'R2_{ilim}'].append(nR2) 
+
+    # Plot me
+    
+    plt.clf()
+    ax = plt.gca()
+    for kk, ilim in enumerate(nlim):
+        # R1
+        ax.plot(F_S_threshes, np.array(lim_dict[f'R1_{ilim}'])/N_R1,
+                label=f'R1_{ilim}', ls=lss[kk], color='blue')
+        # R2
+        if ilim == nlim[0]:
+            R2_lbl = f'R2_{ilim}'
+        else:
+            R2_lbl = None
+        ax.plot(F_S_threshes, np.array(lim_dict[f'R2_{ilim}'])/N_R1,
+                label=R2_lbl, ls=lss[kk], color='red')
+    # 
+    ax.set_xscale('log')
+    ax.legend(fontsize=15.)
+    ax.set_xlabel("F_S Threshold")
+    ax.set_ylabel("Fraction of Images")
+
+    #
+    plt.savefig(outfile, dpi=200)
+    print(f"Wrote: {outfile}")
+    #plt.show()
+
+
 # Command line execution
 if __name__ == '__main__':
     #grab_brazil_cutouts()
-    brazil_pdfs()#debug=True)
+    #brazil_pdfs()#debug=True)
+    explore_F_S_thresh()
