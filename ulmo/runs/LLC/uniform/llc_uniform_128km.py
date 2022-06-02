@@ -16,7 +16,8 @@ tst_file = 's3://llc/Tables/test_uniform128_r0.5_test.parquet'
 full_file = 's3://llc/Tables/test_uniform128_r0.5.parquet'
 
 
-def u_init_128(tbl_file:str, debug=False, resol=0.5, plot=False):
+def u_init_128(tbl_file:str, debug=False, resol=0.5, plot=False,
+               max_lat=None):
     """ Get the show started by sampling uniformly
     in space and and time
 
@@ -25,12 +26,14 @@ def u_init_128(tbl_file:str, debug=False, resol=0.5, plot=False):
         debug (bool, optional): _description_. Defaults to True.
         resol (float, optional): _description_. Defaults to 0.5.
         plot (bool, optional): Plot the spatial distribution?
+        max_lat (float, optional): Restrict on latitude
     """
 
     if debug:
         tbl_file = tst_file
 
-    llc_table = uniform.coords(resol=resol, 
+    # Begin 
+    llc_table = uniform.coords(resol=resol, max_lat=max_lat,
                                field_size=(64,64), outfile=tbl_file)
     # Plot
     if plot:
@@ -126,7 +129,7 @@ def main(flg):
         # Debug
         #u_init_128('tmp', debug=True, plot=True)
         # Real deal
-        u_init_128(full_file)
+        u_init_128(full_file, max_lat=57.)
 
     if flg & (2**1):
         u_extract_128('', debug=True, dlocal=True)
@@ -144,8 +147,8 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg = 0
-        #flg += 2 ** 0  # 1 -- Setup Table
-        flg += 2 ** 1  # 2 -- Extract
+        flg += 2 ** 0  # 1 -- Setup Table
+        #flg += 2 ** 1  # 2 -- Extract
         #flg += 2 ** 2  # 4 -- Evaluate
         #flg += 2 ** 3  # 8 -- Velocities
     else:

@@ -18,12 +18,14 @@ from astropy.coordinates import SkyCoord, match_coordinates_sky
 from IPython import embed
 
 
-def coords(resol, field_size, CC_max=1e-4, outfile=None, localCC=True):
+def coords(resol, field_size, CC_max=1e-4, outfile=None, 
+           max_lat=None, localCC=True):
     """
     Use healpix to setup a uniform extraction grid
 
     Args:
         resol (float): Typical separation on the healpix grid
+        max_lat (float): Restrict to latitudes lower than this
         field_size (tuple): Cutout size in pixels
         outfile (str, optional): If provided, write the table to this outfile.
             Defaults to None.
@@ -69,10 +71,16 @@ def coords(resol, field_size, CC_max=1e-4, outfile=None, localCC=True):
 
     llc_table['row'] = good_CC_idx[0][idx[good_sep]] - field_size[0]//2 # Lower left corner
     llc_table['col'] = good_CC_idx[1][idx[good_sep]] - field_size[0]//2 # Lower left corner
+
+    # Cut on latitutde?
+    if max_lat is not None:
+        gd_lat = np.abs(llc_table.lat < max_lat)
+        llc_table = llc_table[gd_lat].copy()
     
     # Write
     if outfile is not None:
         ulmo_io.write_main_table(llc_table, outfile)
+
     # Return
     return llc_table
 
