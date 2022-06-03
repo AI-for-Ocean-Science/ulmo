@@ -249,6 +249,17 @@ def viirs_preproc(year=2014, debug=False, n_cores=20):
 
 def viirs_prep_for_ulmo_training(year=2013, debug=False,
                                  local=True, cc=0.03):
+    """Generate a new PreProc file for training
+
+    Args:
+        year (int, optional): Year to pull from.  Should be 2013. Defaults to 2013.
+        debug (bool, optional): _description_. Defaults to False.
+        local (bool, optional): _description_. Defaults to True.
+        cc (float, optional): Cloud cover fraction to cut on. Defaults to 0.03.
+
+    Raises:
+        NotImplemented: _description_
+    """
     # Load up
     tbl_file = f's3://viirs/Tables/VIIRS_{year}_std.parquet'
     viirs_tbl = ulmo_io.load_main_table(tbl_file)
@@ -302,12 +313,14 @@ def viirs_prep_for_ulmo_training(year=2013, debug=False,
         # Final write
         ulmo_io.write_main_table(train_tbl, out_file)
 
-def viirs_train_ulmo(skip_auto=False):
+def viirs_train_ulmo(skip_auto=False, dpath = './'):
     # Download PreProc
     preproc_file = os.path.join(dpath, 'PreProc', 
-                                'SSH_100clear_32x32_train.h5')
+                                'VIIRS_2013_95clear_192x192_preproc_viirs_std_train.h5')
+    if not os.path.isfile(preproc_file):
+        ulmo_io.download_file_from_s3(preproc_file,
+            's3://viirs/PreProc/VIIRS_2013_95clear_192x192_preproc_viirs_std_train.h5')
     # Setup model
-    dpath = './'
     datadir= os.path.join(dpath, 'VIIRS_std')
     model_file = os.path.join(
         resource_filename('ulmo', 'models'), 'options',
@@ -316,16 +329,17 @@ def viirs_train_ulmo(skip_auto=False):
     pae = ood.ProbabilisticAutoencoder.from_json(model_file, 
                                                 filepath=preproc_file,
                                                 datadir=datadir, logdir=datadir)
-
     # Train AutoEncoder
     if skip_auto:
         pae.load_autoencoder()
     else:
+        print("Training the AE...")
         pae.train_autoencoder(n_epochs=10, batch_size=256, 
                           lr=2.5e-3, summary_interval=50, 
                           eval_interval=1000)
 
     # Train Flow
+    print("Training the FLOW...")
     pae.train_flow(n_epochs=10, batch_size=64, lr=2.5e-4, 
                    summary_interval=50, 
                    eval_interval=2500)  # 2000 may be better
@@ -440,7 +454,11 @@ if __name__ == "__main__":
         print("PreProc Ends.")
     elif pargs.task == 'prep':
         print("Prepping starts.")
-        viirs_prep_for_ulmo_training(year=pargs.year, debug=True)
+        viirs_prep_for_ulmo_training(year=pargs.year, debug=pargs.debug)
+        print("Prepping ends.")
+    elif pargs.task == 'train':
+        print("Prepping starts.")
+        viirs_prep_for_ulmo_training(debug=True)
         print("Prepping ends.")
     elif pargs.task == 'eval':
         print("Evaluation Starts.")

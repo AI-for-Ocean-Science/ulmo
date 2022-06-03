@@ -227,12 +227,12 @@ def download_file_from_s3(local_file:str, s3_uri:str,
     """ Grab an s3 file
 
     Args:
-        local_file (str): [description]
-        s3_uri (str): [description]
+        local_file (str): Path+filename for new file on local machine
+        s3_uri (str): s3 path+filename
         clobber_local (bool, optional): [description]. Defaults to True.
     """
     parsed_s3 = urlparse(s3_uri)
-    # Download preproc file for speed
+    # Download
     if not os.path.isfile(local_file) or clobber_local:
         print("Downloading from s3: {}".format(local_file))
         s3.Bucket(parsed_s3.netloc).download_file(
