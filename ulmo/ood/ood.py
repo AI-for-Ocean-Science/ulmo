@@ -600,7 +600,9 @@ class ProbabilisticAutoencoder:
         print("Calculating latents..")
         with torch.no_grad():
             pre_latents = [self.autoencoder.encode(data[0].to(self.device)).detach().cpu().numpy()
-                     for data in loader]
+                     for data in tqdm(loader, total=len(loader),
+                                      unit='batch',
+                                      desc=f'Computing latents!')]
 
         # Sscaling
         print("Scaling..")
@@ -660,7 +662,7 @@ class ProbabilisticAutoencoder:
 
 
 
-    def plot_reconstructions(self, save_figure=False):
+    def plot_reconstructions(self, save_figure=False, skipmeta=False):
         """
         Generate a grid of plots of reconstructed images
 
@@ -670,14 +672,17 @@ class ProbabilisticAutoencoder:
 
         """
         pal, cm = load_palette()
-        
+        #embed(header='673 of ood.py')
         with h5py.File(self.filepath['data'], 'r') as f:
             fields = f['valid']
             n = fields.shape[0]
             idx = sorted(np.random.choice(n, replace=False, size=16))
             fields = fields[idx]
             recons = self.reconstruct(fields)
-            df = self.load_meta('valid_metadata')
+            if not skipmeta:
+                df = self.load_meta('valid_metadata')
+            else: 
+                df = None
 
         fig, axes = grid_plot(nrows=4, ncols=4)
 
@@ -692,7 +697,7 @@ class ProbabilisticAutoencoder:
                 t = ax.text(0.12, 0.89, f'({row}, {col})', color='k', size=12, transform=ax.transAxes)
                 t.set_path_effects([PathEffects.withStroke(linewidth=3, foreground='w')])
             else:
-                ax.set_title(f'Image {i}\n{logL_title}')
+                ax.set_title(f'Image {i}\n')
             sns.heatmap(x, ax=ax, xticklabels=[], yticklabels=[], cmap=cm, vmin=-2, vmax=2)
             sns.heatmap(rx, ax=r_ax, xticklabels=[], yticklabels=[], cmap=cm, vmin=-2, vmax=2)
         if save_figure:
@@ -700,12 +705,22 @@ class ProbabilisticAutoencoder:
             plt.savefig(os.path.join(self.logdir, fig_name), bbox_inches='tight')
         plt.show()
     
-    def plot_log_probs(self, sample_size=10000, save_figure=False):
+    def plot_log_probs(self, sample_size=10000, save_figure=False,
+                       logdir=None):
+        """Plot log probs
+
+        Args:
+            sample_size (int, optional): _description_. Defaults to 10000.
+            save_figure (bool, optional): _description_. Defaults to False.
+            logdir (str, optional): Output directory for the figure
+        """
         if not self.up_to_date_log_probs:
             self._compute_log_probs()
         
+        # Load up
         with h5py.File(self.filepath['log_probs'], 'r') as f:
             logL = f['valid'][:].flatten()
+        # Plot
         if len(logL) > sample_size:
             logL = sklearn.utils.shuffle(logL)[:sample_size]
         low_logL = np.quantile(logL, 0.05)
@@ -717,7 +732,9 @@ class ProbabilisticAutoencoder:
         plt.ylabel('Probability Density')
         if save_figure:
             fig_name = 'log_probs_' + self.stem + '.png'
-            plt.savefig(os.path.join(self.logdir, fig_name), bbox_inches='tight')
+            if logdir is None:
+                logdir = self.logdir 
+            plt.savefig(os.path.join(logdir, fig_name), bbox_inches='tight')
         plt.show()
 
     def plot_grid(self, kind, save_metadata=False, save_figure=False,
@@ -789,7 +806,8 @@ class ProbabilisticAutoencoder:
             ax.axis('equal')
             grad_ax.axis('equal')
             if meta is not None:
-                file, row, col = df.iloc[i][['filename', 'row', 'column']]
+                #file, row, col = df.iloc[i][['filename', 'row', 'column']]
+                file, row, col = df.iloc[i][['filename', 'row', 'col']]
                 ax.set_title(f'{file}\n{logL_title}')
                 t = ax.text(0.12, 0.89, f'({row}, {col})', color='k', size=12, transform=ax.transAxes)
                 t.set_path_effects([PathEffects.withStroke(linewidth=3, foreground='w')])

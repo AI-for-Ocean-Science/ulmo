@@ -4,8 +4,12 @@ import os
 import json
 import pickle
 
+from torch import embedding
+
 from ulmo.ood import ood
 from ulmo import io as ulmo_io
+
+from IPython import embed
 
 
 def load_modis_l2(flavor='std', datadir=None, local=False):
@@ -38,7 +42,34 @@ def load_modis_l2(flavor='std', datadir=None, local=False):
                 datadir = os.path.join('s3://modis-l2', 'Models',
                                        'R2019_2010_128x128_std')
         filepath = 'PreProc/MODIS_R2019_2010_95clear_128x128_preproc_std.h5'
-    
+
+    # Finish
+    return load_pae_model(datadir, filepath)
+
+def load_ssh(flavor='std', datadir=None, local=False):
+    """Load up an SSH model 
+
+    Args:
+        flavor (str, optional): Type of model trained. Defaults to 'std'.
+        datadir (str, optional): Path to data for the model. Defaults to None.
+        local (bool, optional): If True, use local storage. Defaults to False.
+
+    Returns:
+        ulmo.ood.ProbablisticAutoencoder: the PAE
+    """
+    #
+    if flavor == 'std':
+        if datadir is None:
+            datadir = os.path.join('s3://ssh', 'Models', 'SSH_std')
+        filepath = 'PreProc/SSH_100clear_32x32_train.h5'
+    else:
+        raise IOError(f"Bad flavor! {flavor}")
+
+    # Finish
+    return load_pae_model(datadir, filepath)
+
+
+def load_pae_model(datadir:str, filepath:str):    
     # Load JSON
     json_file = os.path.join(datadir , 'model.json') 
     with ulmo_io.open(json_file, 'rt') as fh:
