@@ -315,6 +315,8 @@ def viirs_prep_for_ulmo_training(year=2013, debug=False,
 
 def viirs_train_ulmo(skip_auto=False, dpath = './'):
     # Download PreProc
+    if not os.path.isdir(os.path.join(dpath,'PreProc')):
+        os.mkdir(os.path.join(dpath, 'PreProc'))
     preproc_file = os.path.join(dpath, 'PreProc', 
                                 'VIIRS_2013_95clear_192x192_preproc_viirs_std_train.h5')
     if not os.path.isfile(preproc_file):
@@ -458,7 +460,7 @@ if __name__ == "__main__":
         print("Prepping ends.")
     elif pargs.task == 'train':
         print("Prepping starts.")
-        viirs_prep_for_ulmo_training(debug=True)
+        viirs_train_ulmo()
         print("Prepping ends.")
     elif pargs.task == 'eval':
         print("Evaluation Starts.")
