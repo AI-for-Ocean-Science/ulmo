@@ -276,8 +276,8 @@ def viirs_prep_for_ulmo_training(year=2013, debug=False,
         raise NotImplemented("Download the file!")
 
     # Table
-    new_pp_file = pp_file.replace('std', f'std_train_{icf}')
-    new_s3_file = s3_pp_file.replace('std', f'std_train_{icf}')
+    new_pp_file = pp_file.replace('std', f'std_train').replace('95clear', f'{icf}clear')
+    new_s3_file = s3_pp_file.replace('std', f'std_train').replace('95clear', f'{icf}clear')
     assert np.unique(viirs_tbl.pp_type)[0] == 0
 
     # Cut on clear fraction?
@@ -313,22 +313,31 @@ def viirs_prep_for_ulmo_training(year=2013, debug=False,
         # Final write
         ulmo_io.write_main_table(train_tbl, out_file)
 
-def viirs_train_ulmo(skip_auto=False, dpath = './'):
+def viirs_train_ulmo(skip_auto=False, clearf=98., dpath = './'):
+    """Train an Ulmo model on VIIRS
+
+    Args:
+        skip_auto (bool, optional): _description_. Defaults to False.
+        clearf (_type_, optional): _description_. Defaults to 98.
+        dpath (str, optional): _description_. Defaults to './'.
+    """
+    icf = int(clearf)
+    model_dir = f'VIIRS_std_{icf}'
+    datadir= os.path.join(dpath, model_dir)
     # Setup
     if not os.path.isdir(os.path.join(dpath,'PreProc')):
         os.mkdir(os.path.join(dpath, 'PreProc'))
-    if not os.path.isdir(os.path.join(dpath, 'VIIRS_std')):
-        os.mkdir(os.path.join(dpath, 'VIIRS_std'))
+    if not os.path.isdir(datadir):
+        os.mkdir(datadir)
 
     # Download PreProc
     preproc_file = os.path.join(dpath, 'PreProc', 
-                                'VIIRS_2013_95clear_192x192_preproc_viirs_std_train.h5')
+                                f'VIIRS_2013_{icf}clear_192x192_preproc_viirs_std_train.h5')
     if not os.path.isfile(preproc_file):
         ulmo_io.download_file_from_s3(preproc_file,
-            's3://viirs/PreProc/VIIRS_2013_95clear_192x192_preproc_viirs_std_train.h5')
+            f's3://viirs/PreProc/VIIRS_2013_{icf}clear_192x192_preproc_viirs_std_train.h5')
 
     # Setup model
-    datadir= os.path.join(dpath, 'VIIRS_std')
     model_file = os.path.join(
         resource_filename('ulmo', 'models'), 'options',
                               'viirs_pae_model_std.json')
@@ -466,7 +475,7 @@ if __name__ == "__main__":
         print("Prepping ends.")
     elif pargs.task == 'train':
         print("Training starts.")
-        viirs_train_ulmo()
+        viirs_train_ulmo(clearf=pargs.cf)
         print("Training ends.")
     elif pargs.task == 'eval':
         print("Evaluation Starts.")
@@ -482,4 +491,7 @@ if __name__ == "__main__":
 # python viirs_ulmo.py --task concat
 
 # Prep for Training
+# python viirs_ulmo.py --task prep --year 2013 --cf 98   # This gives 150,000 training and validation cutouts
+
+# Train
 # python viirs_ulmo.py --task prep --year 2013 --cf 98   # This gives 150,000 training and validation cutouts

@@ -44,7 +44,7 @@ spec:
             cd ../tmp; 
             mkdir foo; 
             cd foo; 
-            python -u /ulmo/ulmo/runs/VIIRS/viirs_ulmo.py --task train --cc 98;
+            python -u /ulmo/ulmo/runs/VIIRS/viirs_ulmo.py --task train --cf 98;
             cd ..;
             aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp VIIRS_std_98 s3://viirs/Models/VIIRS_std_98 --recursive --force;
         env:
