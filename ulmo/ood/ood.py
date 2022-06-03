@@ -349,7 +349,10 @@ class ProbabilisticAutoencoder:
                                           desc='Computing valid latents')]
                     valid = self.scaler.transform(np.concatenate(z))
                     f.create_dataset('valid', data=valid); del valid
-            
+            # Flush
+            h5py.File.flush() 
+
+            # Scaler
             scaler_path = os.path.join(self.logdir, self.stem + '_scaler.pkl')
             with open(scaler_path, 'wb') as f:
                 pickle.dump(self.scaler, f)
