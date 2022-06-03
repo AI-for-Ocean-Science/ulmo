@@ -27,11 +27,11 @@ spec:
         resources:
           requests:
             cpu: "1"
-            memory: "32Gi"
+            memory: "12Gi"  # 10Gb is enough for AE
             ephemeral-storage: 50Gi
           limits:
             cpu: "2"
-            memory: "32Gi"
+            memory: "24Gi"
             ephemeral-storage: 100Gi
             nvidia.com/gpu:  "1"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]
@@ -40,6 +40,7 @@ spec:
             git fetch;
             git checkout LLC_paper; 
             git pull; 
+            pip install -U scikit-image;
             python setup.py develop;
             cd ../tmp; 
             mkdir foo; 
