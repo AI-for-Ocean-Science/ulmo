@@ -248,14 +248,13 @@ def viirs_preproc(year=2014, debug=False, n_cores=20):
     ulmo_io.write_main_table(viirs_tbl, tbl_file)
 
 def viirs_prep_for_ulmo_training(year=2013, debug=False,
-                                 local=True):
+                                 local=True, cc=0.03):
     # Load up
     tbl_file = f's3://viirs/Tables/VIIRS_{year}_std.parquet'
     viirs_tbl = ulmo_io.load_main_table(tbl_file)
     out_file = f's3://viirs/Tables/VIIRS_{year}_std_train.parquet'
 
     # Download PreProc image
-    embed(header='273 of viirs_ulmo')
     s3_pp_file = viirs_tbl.pp_file.values[0]
     if local:
         pp_file_base = os.path.basename(s3_pp_file)
@@ -267,14 +266,18 @@ def viirs_prep_for_ulmo_training(year=2013, debug=False,
     # Table
     new_pp_file = pp_file.replace('std', 'std_train')
     new_s3_file = s3_pp_file.replace('std', 'std_train')
-    train_tbl = viirs_tbl.copy()
-    assert np.unique(train_tbl.pp_type)[0] == 0
+    assert np.unique(viirs_tbl.pp_type)[0] == 0
 
     # Cut on clear fraction?
+    print(f"Cutting on clear fractoin = {cc}")
+    cc_cut = viirs_tbl.clear_fraction < cc
+    train_tbl = viirs_tbl[cc_cut].copy()
+    train_tbl.reset_index(inplace=True)
+    train_tbl.drop('index', axis=1, inplace=True)
 
-    embed(header='299 of v ulmo')
 
     # Load up images
+    print("Loading images...")
     f = h5py.File(pp_file, 'r')
     all_imgs = f['valid'][:]
     cut_imgs = [all_imgs[idx] for idx in train_tbl.pp_idx]
@@ -283,13 +286,21 @@ def viirs_prep_for_ulmo_training(year=2013, debug=False,
     idx = np.arange(len(train_tbl))
     train_frac = 150000/len(train_tbl)
     valid_frac = 1. - train_frac
+
+    del all_imgs
+
     # Write
-    pp_utils.write_pp_fields(cut_imgs,
+    train_tbl = pp_utils.write_pp_fields(cut_imgs,
                              None, train_tbl, 
                              idx, idx, 
+                             skip_meta=True,
                              valid_fraction=valid_frac,
                              s3_file=new_s3_file,
                              local_file=new_pp_file)
+    assert cat_utils.vet_main_table(train_tbl)
+    if not debug:
+        # Final write
+        ulmo_io.write_main_table(train_tbl, out_file)
 
 def viirs_train_ulmo(skip_auto=False):
     # Download PreProc
@@ -443,3 +454,6 @@ if __name__ == "__main__":
 
 # Concatanate all of the tables
 # python viirs_ulmo.py --task concat
+
+# Prep for Training
+# python viirs_ulmo.py --task prep --year 2013
