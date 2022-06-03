@@ -212,7 +212,7 @@ class ProbabilisticAutoencoder:
         
     def _train_module(self, module, n_epochs, batch_size, lr,
                      summary_interval=50, eval_interval=500,
-                     show_plots=True):
+                     show_plots=True, force_save=False):
         """
         Train one of the sub-systems, either autoencoder or flow
 
@@ -287,7 +287,10 @@ class ProbabilisticAutoencoder:
                         epoch_pbar.set_description(f"Validation Loss: {valid_loss:.3f}")
                         valid_losses.append((global_step, valid_loss))
                         model.train()
-            save = input("Training stopped. Save model (y/n)?").strip().lower() == 'y'
+            if not force_save:
+                save = input("Training stopped. Save model (y/n)?").strip().lower() == 'y'
+            else:
+                save = True
             if save:
                 save_model()
                 print("Model saved.")

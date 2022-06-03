@@ -248,22 +248,23 @@ def viirs_preproc(year=2014, debug=False, n_cores=20):
     ulmo_io.write_main_table(viirs_tbl, tbl_file)
 
 def viirs_prep_for_ulmo_training(year=2013, debug=False,
-                                 local=True, cc=0.03):
+                                 local=True, clearf=98.):
     """Generate a new PreProc file for training
 
     Args:
         year (int, optional): Year to pull from.  Should be 2013. Defaults to 2013.
         debug (bool, optional): _description_. Defaults to False.
         local (bool, optional): _description_. Defaults to True.
-        cc (float, optional): Cloud cover fraction to cut on. Defaults to 0.03.
+        clearf (float, optional): Clear cover fraction to cut on. Defaults to 98.
 
     Raises:
         NotImplemented: _description_
     """
     # Load up
+    icf = int(clearf)
     tbl_file = f's3://viirs/Tables/VIIRS_{year}_std.parquet'
     viirs_tbl = ulmo_io.load_main_table(tbl_file)
-    out_file = f's3://viirs/Tables/VIIRS_{year}_std_train.parquet'
+    out_file = f's3://viirs/Tables/VIIRS_{year}_std_train_{icf}.parquet'
 
     # Download PreProc image
     s3_pp_file = viirs_tbl.pp_file.values[0]
@@ -275,23 +276,22 @@ def viirs_prep_for_ulmo_training(year=2013, debug=False,
         raise NotImplemented("Download the file!")
 
     # Table
-    new_pp_file = pp_file.replace('std', 'std_train')
-    new_s3_file = s3_pp_file.replace('std', 'std_train')
+    new_pp_file = pp_file.replace('std', f'std_train_{icf}')
+    new_s3_file = s3_pp_file.replace('std', f'std_train_{icf}')
     assert np.unique(viirs_tbl.pp_type)[0] == 0
 
     # Cut on clear fraction?
-    print(f"Cutting on clear fractoin = {cc}")
-    cc_cut = viirs_tbl.clear_fraction < cc
+    print(f"Cutting on clear fraction = {clearf}")
+    cc_cut = viirs_tbl.clear_fraction < (1-clearf/100.)
     train_tbl = viirs_tbl[cc_cut].copy()
     train_tbl.reset_index(inplace=True)
     train_tbl.drop('index', axis=1, inplace=True)
-
 
     # Load up images
     print("Loading images...")
     f = h5py.File(pp_file, 'r')
     all_imgs = f['valid'][:]
-    cut_imgs = [all_imgs[idx] for idx in train_tbl.pp_idx]
+    cut_imgs = [all_imgs[idx,0,...] for idx in train_tbl.pp_idx]
 
     # Get ready
     idx = np.arange(len(train_tbl))
@@ -344,13 +344,13 @@ def viirs_train_ulmo(skip_auto=False, dpath = './'):
         print("Training the AE...")
         pae.train_autoencoder(n_epochs=10, batch_size=256, 
                           lr=2.5e-3, summary_interval=50, 
-                          eval_interval=1000)
+                          eval_interval=300, force_save=True) # There are 585 batches
 
     # Train Flow
     print("Training the FLOW...")
     pae.train_flow(n_epochs=10, batch_size=64, lr=2.5e-4, 
                    summary_interval=50, 
-                   eval_interval=2500)  # 2000 may be better
+                   eval_interval=1000)  
 
     # Set to local stuff..
     if skip_auto:
@@ -434,7 +434,7 @@ def parse_option():
     parser.add_argument("--year", type=int, help="Year to work on")
     parser.add_argument("--n_cores", type=int, help="Number of CPU to use")
     parser.add_argument("--day", type=int, default=1, help="Day to start extraction from")
-    parser.add_argument("--cc", type=float, help="Clear fraction, e.g. 0.99")
+    parser.add_argument("--cf", type=float, help="Clear fraction, e.g. 0.99")
     parser.add_argument('--debug', default=False, action='store_true',
                     help="Debug?")
     args = parser.parse_args()
@@ -462,18 +462,18 @@ if __name__ == "__main__":
         print("PreProc Ends.")
     elif pargs.task == 'prep':
         print("Prepping starts.")
-        viirs_prep_for_ulmo_training(year=pargs.year, debug=pargs.debug)
+        viirs_prep_for_ulmo_training(year=pargs.year, clearf=pargs.cf, debug=pargs.debug)
         print("Prepping ends.")
     elif pargs.task == 'train':
-        print("Prepping starts.")
+        print("Training starts.")
         viirs_train_ulmo()
-        print("Prepping ends.")
+        print("Training ends.")
     elif pargs.task == 'eval':
         print("Evaluation Starts.")
         viirs_evaluate(year=pargs.year)
         print("Evaluation Ends.")
     elif pargs.task == 'concat':
-        viirs_concat_tables(debug=pargs.debug, clear_frac=pargs.cc)
+        viirs_concat_tables(debug=pargs.debug, clear_frac=pargs.cf)
     else:
         raise IOError("Bad choice")
 
@@ -482,4 +482,4 @@ if __name__ == "__main__":
 # python viirs_ulmo.py --task concat
 
 # Prep for Training
-# python viirs_ulmo.py --task prep --year 2013
+# python viirs_ulmo.py --task prep --year 2013 --cf 98   # This gives 150,000 training and validation cutouts
