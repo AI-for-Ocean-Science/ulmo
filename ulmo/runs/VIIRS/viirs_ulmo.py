@@ -3,12 +3,11 @@ import os
 import glob
 import numpy as np
 import subprocess
+from pkg_resources import resource_filename
 
 import pandas
 import h5py
-from skimage.restoration import inpaint
 
-from sklearn.utils import shuffle
 
 from ulmo import io as ulmo_io
 from ulmo.preproc import io as pp_io
@@ -17,6 +16,7 @@ from ulmo.viirs import extract as viirs_ext
 from ulmo.modis import utils as modis_utils
 from ulmo.analysis import evaluate as ulmo_evaluate
 from ulmo.utils import catalog as cat_utils
+from ulmo.ood import ood
 
 import argparse
 
@@ -247,6 +247,87 @@ def viirs_preproc(year=2014, debug=False, n_cores=20):
     # Final write
     ulmo_io.write_main_table(viirs_tbl, tbl_file)
 
+def viirs_prep_for_ulmo_training(year=2013, debug=False,
+                                 local=True):
+    # Load up
+    tbl_file = f's3://viirs/Tables/VIIRS_{year}_std.parquet'
+    viirs_tbl = ulmo_io.load_main_table(tbl_file)
+    out_file = f's3://viirs/Tables/VIIRS_{year}_std_train.parquet'
+
+    # Download PreProc image
+    embed(header='273 of viirs_ulmo')
+    s3_pp_file = viirs_tbl.pp_file.values[0]
+    if local:
+        pp_file_base = os.path.basename(s3_pp_file)
+        pp_file = os.path.join(
+            os.getenv('SST_OOD'), 'VIIRS', 'PreProc', pp_file_base)
+    else:
+        raise NotImplemented("Download the file!")
+
+    # Table
+    new_pp_file = pp_file.replace('std', 'std_train')
+    new_s3_file = s3_pp_file.replace('std', 'std_train')
+    train_tbl = viirs_tbl.copy()
+    assert np.unique(train_tbl.pp_type)[0] == 0
+
+    # Cut on clear fraction?
+
+    embed(header='299 of v ulmo')
+
+    # Load up images
+    f = h5py.File(pp_file, 'r')
+    all_imgs = f['valid'][:]
+    cut_imgs = [all_imgs[idx] for idx in train_tbl.pp_idx]
+
+    # Get ready
+    idx = np.arange(len(train_tbl))
+    train_frac = 150000/len(train_tbl)
+    valid_frac = 1. - train_frac
+    # Write
+    pp_utils.write_pp_fields(cut_imgs,
+                             None, train_tbl, 
+                             idx, idx, 
+                             valid_fraction=valid_frac,
+                             s3_file=new_s3_file,
+                             local_file=new_pp_file)
+
+def viirs_train_ulmo(skip_auto=False):
+    # Download PreProc
+    preproc_file = os.path.join(dpath, 'PreProc', 
+                                'SSH_100clear_32x32_train.h5')
+    # Setup model
+    dpath = './'
+    datadir= os.path.join(dpath, 'VIIRS_std')
+    model_file = os.path.join(
+        resource_filename('ulmo', 'models'), 'options',
+                              'viirs_pae_model_std.json')
+    # Instantiate
+    pae = ood.ProbabilisticAutoencoder.from_json(model_file, 
+                                                filepath=preproc_file,
+                                                datadir=datadir, logdir=datadir)
+
+    # Train AutoEncoder
+    if skip_auto:
+        pae.load_autoencoder()
+    else:
+        pae.train_autoencoder(n_epochs=10, batch_size=256, 
+                          lr=2.5e-3, summary_interval=50, 
+                          eval_interval=1000)
+
+    # Train Flow
+    pae.train_flow(n_epochs=10, batch_size=64, lr=2.5e-4, 
+                   summary_interval=50, 
+                   eval_interval=2500)  # 2000 may be better
+
+    # Set to local stuff..
+    if skip_auto:
+        pae.filepath['latents'] = 'SSH_std/SSH_100clear_32x32_train_latents.h5'
+        pae.filepath['log_probs'] = 'SSH_std/SSH_100clear_32x32_train_log_probs.h5'
+
+    # Plot
+    pae.plot_log_probs(save_figure=True, logdir=datadir)
+                        
+
 
 def viirs_evaluate(year=2014, debug=False, model='modis-l2-std'):
     """Evaluate the VIIRS data using Ulmo
@@ -346,6 +427,10 @@ if __name__ == "__main__":
         viirs_preproc(year=pargs.year,
                       n_cores=pargs.n_cores)
         print("PreProc Ends.")
+    elif pargs.task == 'prep':
+        print("Prepping starts.")
+        viirs_prep_for_ulmo_training(year=pargs.year, debug=True)
+        print("Prepping ends.")
     elif pargs.task == 'eval':
         print("Evaluation Starts.")
         viirs_evaluate(year=pargs.year)

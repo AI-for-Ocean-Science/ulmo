@@ -320,7 +320,8 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
     return pp_field, meta_dict
 
 
-def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float, 
+def preproc_tbl(data_tbl:pandas.DataFrame, 
+                valid_fraction:float, 
                 s3_bucket:str,
                 preproc_root='standard',
                 debug=False, 
@@ -330,6 +331,26 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
                 use_mask=True,
                 inpainted_mask=False,
                 n_cores=10):
+    """ Pre-process a Table of extracted files
+
+    Args:
+        data_tbl (pandas.DataFrame): _description_
+        valid_fraction (float): 
+            Fraction of data to use for training
+            The remainder is for testing
+        s3_bucket (str): _description_
+        preproc_root (str, optional): _description_. Defaults to 'standard'.
+        debug (bool, optional): _description_. Defaults to False.
+        extract_folder (str, optional): _description_. Defaults to 'Extract'.
+        preproc_folder (str, optional): _description_. Defaults to 'PreProc'.
+        nsub_fields (int, optional): _description_. Defaults to 10000.
+        use_mask (bool, optional): _description_. Defaults to True.
+        inpainted_mask (bool, optional): _description_. Defaults to False.
+        n_cores (int, optional): _description_. Defaults to 10.
+
+    Returns:
+        _type_: _description_
+    """
 
     # Preprocess options
     pdict = pp_io.load_options(preproc_root)
@@ -385,10 +406,11 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
             print('Fields: {}:{} of {}'.format(i0, i1, nimages))
             fields = f['fields'][i0:i1]
             shape =fields.shape
-            if inpainted_mask:
-                masks = f['inpainted_masks'][i0:i1]
-            else:
-                masks = f['masks'][i0:i1].astype(np.uint8)
+            if use_mask:
+                if inpainted_mask:
+                    masks = f['inpainted_masks'][i0:i1]
+                else:
+                    masks = f['masks'][i0:i1].astype(np.uint8)
             sub_idx = np.arange(i0, i1).tolist()
 
             # Convert to lists
@@ -397,10 +419,13 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
             fields = [field.reshape(shape[1:]) for field in fields]
 
             # These may be inpainted_masks
-            masks = np.vsplit(masks, shape[0])
-            masks = [mask.reshape(shape[1:]) for mask in masks]
+            if use_mask:
+                masks = np.vsplit(masks, shape[0])
+                masks = [mask.reshape(shape[1:]) for mask in masks]
 
-            items = [item for item in zip(fields,masks,sub_idx)]
+                items = [item for item in zip(fields,masks,sub_idx)]
+            else:
+                items = [item for item in zip(fields,sub_idx)]
 
             print('Process time')
             # Do it
@@ -417,7 +442,9 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
             img_idx += [item[1] for item in answers]
             meta += [item[2] for item in answers]
 
-            del answers, fields, masks, items
+            del answers, fields, items
+            if use_mask:
+                del masks
             f.close()
 
         # Remove local_file
@@ -481,7 +508,7 @@ def write_pp_fields(pp_fields:list, meta:list,
     # Mu
     clms = list(main_tbl.keys())
     if not skip_meta:
-        main_tbl.loc[idx_idx, 'mean_temperature'] = [imeta['mu'] for imeta in meta]
+        main_tbl.loc[idx_idx, 'mean_temperature'] = [float(imeta['mu']) for imeta in meta]
         clms += ['mean_temperature']
         # Others
         for key in ['Tmin', 'Tmax', 'T90', 'T10']:
