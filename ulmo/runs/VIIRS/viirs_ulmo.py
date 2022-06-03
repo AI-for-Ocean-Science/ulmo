@@ -368,7 +368,7 @@ def viirs_train_ulmo(skip_auto=False, clearf=98., dpath = './'):
         pae.filepath['log_probs'] = 'SSH_std/SSH_100clear_32x32_train_log_probs.h5'
 
     # Plot
-    pae.plot_log_probs(save_figure=True, logdir=datadir)
+    #pae.plot_log_probs(save_figure=True, logdir=datadir)
 
     # Model file
     shutil.copyfile(model_file, os.path.join(datadir, 'model.json'))
@@ -385,6 +385,10 @@ def viirs_evaluate(year=2014, debug=False, model='modis-l2-std'):
     tbl_file = f's3://viirs/Tables/VIIRS_{year}_std.parquet'
     viirs_tbl = ulmo_io.load_main_table(tbl_file)
 
+    # MODIS LL
+    if model != 'modis-l2-std' and 'LL' in viirs_tbl.keys():
+        viirs_tbl['MODIS_LL'] = viirs_tbl.LL.values
+
     if debug:
         viirs_tbl = viirs_tbl.iloc[np.arange(100)]
 
@@ -395,7 +399,7 @@ def viirs_evaluate(year=2014, debug=False, model='modis-l2-std'):
                                              debug=debug)
 
     # Write
-    assert cat_utils.vet_main_table(viirs_tbl)
+    assert cat_utils.vet_main_table(viirs_tbl, cut_prefix='MODIS')
     if not debug:
         ulmo_io.write_main_table(viirs_tbl, tbl_file)
     print("Done evaluating..")
