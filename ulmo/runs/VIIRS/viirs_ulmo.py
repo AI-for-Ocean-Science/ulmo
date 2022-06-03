@@ -314,20 +314,26 @@ def viirs_prep_for_ulmo_training(year=2013, debug=False,
         ulmo_io.write_main_table(train_tbl, out_file)
 
 def viirs_train_ulmo(skip_auto=False, dpath = './'):
-    # Download PreProc
+    # Setup
     if not os.path.isdir(os.path.join(dpath,'PreProc')):
         os.mkdir(os.path.join(dpath, 'PreProc'))
+    if not os.path.isdir(os.path.join(dpath, 'VIIRS_std')):
+        os.mkdir(os.path.join(dpath, 'VIIRS_std'))
+
+    # Download PreProc
     preproc_file = os.path.join(dpath, 'PreProc', 
                                 'VIIRS_2013_95clear_192x192_preproc_viirs_std_train.h5')
     if not os.path.isfile(preproc_file):
         ulmo_io.download_file_from_s3(preproc_file,
             's3://viirs/PreProc/VIIRS_2013_95clear_192x192_preproc_viirs_std_train.h5')
+
     # Setup model
     datadir= os.path.join(dpath, 'VIIRS_std')
     model_file = os.path.join(
         resource_filename('ulmo', 'models'), 'options',
                               'viirs_pae_model_std.json')
     # Instantiate
+    print("Starting the model")
     pae = ood.ProbabilisticAutoencoder.from_json(model_file, 
                                                 filepath=preproc_file,
                                                 datadir=datadir, logdir=datadir)
