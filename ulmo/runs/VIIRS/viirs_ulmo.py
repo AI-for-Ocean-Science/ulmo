@@ -1,6 +1,7 @@
 """ Module for Ulmo analysis on VIIRS"""
 import os
 import glob
+import shutil
 import numpy as np
 import subprocess
 from pkg_resources import resource_filename
@@ -368,7 +369,9 @@ def viirs_train_ulmo(skip_auto=False, clearf=98., dpath = './'):
 
     # Plot
     pae.plot_log_probs(save_figure=True, logdir=datadir)
-                        
+
+    # Model file
+    shutil.copyfile(model_file, os.path.join(datadir, 'model.json'))
 
 
 def viirs_evaluate(year=2014, debug=False, model='modis-l2-std'):
@@ -382,14 +385,19 @@ def viirs_evaluate(year=2014, debug=False, model='modis-l2-std'):
     tbl_file = f's3://viirs/Tables/VIIRS_{year}_std.parquet'
     viirs_tbl = ulmo_io.load_main_table(tbl_file)
 
+    if debug:
+        viirs_tbl = viirs_tbl.iloc[np.arange(100)]
+
     # Evaluate
     print("Starting evaluating..")
     viirs_tbl = ulmo_evaluate.eval_from_main(viirs_tbl, 
-                                             model=model)
+                                             model=model,
+                                             debug=debug)
 
     # Write
     assert cat_utils.vet_main_table(viirs_tbl)
-    ulmo_io.write_main_table(viirs_tbl, tbl_file)
+    if not debug:
+        ulmo_io.write_main_table(viirs_tbl, tbl_file)
     print("Done evaluating..")
 
 def viirs_concat_tables(clear_frac=None, debug=False):
@@ -444,6 +452,7 @@ def parse_option():
     parser.add_argument("--n_cores", type=int, help="Number of CPU to use")
     parser.add_argument("--day", type=int, default=1, help="Day to start extraction from")
     parser.add_argument("--cf", type=float, help="Clear fraction, e.g. 0.99")
+    parser.add_argument("--model", type=str, help="Name of Ulmo model [viirs-test]")
     parser.add_argument('--debug', default=False, action='store_true',
                     help="Debug?")
     args = parser.parse_args()
@@ -479,7 +488,7 @@ if __name__ == "__main__":
         print("Training ends.")
     elif pargs.task == 'eval':
         print("Evaluation Starts.")
-        viirs_evaluate(year=pargs.year)
+        viirs_evaluate(year=pargs.year, debug=pargs.debug, model=pargs.model)
         print("Evaluation Ends.")
     elif pargs.task == 'concat':
         viirs_concat_tables(debug=pargs.debug, clear_frac=pargs.cf)
@@ -495,3 +504,6 @@ if __name__ == "__main__":
 
 # Train
 # python viirs_ulmo.py --task prep --year 2013 --cf 98   # This gives 150,000 training and validation cutouts
+
+# Evaluate (Test)
+# python viirs_ulmo.py --task eval --year 2013 --debug --model viirs-test
