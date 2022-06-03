@@ -218,7 +218,7 @@ class ProbabilisticAutoencoder:
 
         Parameters
         ----------
-        module
+        module : str
         n_epochs
         batch_size
         lr
@@ -308,6 +308,9 @@ class ProbabilisticAutoencoder:
                 plt.xlabel('Global Step')
                 plt.ylabel('Loss')
                 plt.legend()
+                plt.savefig(os.path.join(
+                    self.datadir, f'{module}_loss.png'), 
+                            dpi=150)
                 plt.show()
     
     def train_autoencoder(self, **kwargs):
