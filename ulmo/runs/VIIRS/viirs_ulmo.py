@@ -386,7 +386,8 @@ def viirs_evaluate(year=2014, debug=False, model='modis-l2-std'):
     viirs_tbl = ulmo_io.load_main_table(tbl_file)
 
     # MODIS LL
-    if model != 'modis-l2-std' and 'LL' in viirs_tbl.keys():
+    if model != 'modis-l2-std' and 'LL' in viirs_tbl.keys() \
+        and 'MODIS_LL' not in viirs_tbl.keys():
         viirs_tbl['MODIS_LL'] = viirs_tbl.LL.values
 
     # Evaluate
