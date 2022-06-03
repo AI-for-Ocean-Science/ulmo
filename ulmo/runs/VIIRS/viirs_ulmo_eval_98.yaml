@@ -26,12 +26,12 @@ spec:
         imagePullPolicy: Always
         resources:
           requests:
-            cpu: "1"
-            memory: "2Gi"  # 10Gb is enough for AE
+            cpu: "2"
+            memory: "12Gi"  # Need at least 10
             ephemeral-storage: 50Gi
           limits:
-            cpu: "2"
-            memory: "8Gi"
+            cpu: "4"
+            memory: "24Gi"
             ephemeral-storage: 100Gi
             nvidia.com/gpu:  "1"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]
@@ -41,11 +41,12 @@ spec:
             git checkout LLC_paper; 
             git pull; 
             pip install -U scikit-image;
+            pip install -U smart-open[s3];
             python setup.py develop;
             cd ../tmp; 
             mkdir foo; 
             cd foo; 
-            python -u --task eval --year 2013 --model viirs-test;
+            python -u /ulmo/ulmo/runs/VIIRS/viirs_ulmo.py --task eval --year 2013 --model viirs-test;
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"
