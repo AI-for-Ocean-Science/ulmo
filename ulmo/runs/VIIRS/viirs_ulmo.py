@@ -399,9 +399,11 @@ def viirs_evaluate(year=2014, debug=False, model='modis-l2-std'):
                                              debug=debug)
 
     # Write
-    assert cat_utils.vet_main_table(viirs_tbl, cut_prefix='MODIS')
+    assert cat_utils.vet_main_table(viirs_tbl, cut_prefix='MODIS_')
     if not debug:
         ulmo_io.write_main_table(viirs_tbl, tbl_file)
+    else:
+        embed(header='406 of v ulmo')
     print("Done evaluating..")
 
 def viirs_concat_tables(clear_frac=None, debug=False):
