@@ -393,6 +393,9 @@ def viirs_evaluate(year=2014, debug=False, model='modis-l2-std'):
         viirs_tbl = viirs_tbl.iloc[np.arange(100)]
 
     # Evaluate
+    if debug:
+        embed(header='397 of v ulmo')
+
     print("Starting evaluating..")
     viirs_tbl = ulmo_evaluate.eval_from_main(viirs_tbl, 
                                              model=model,
