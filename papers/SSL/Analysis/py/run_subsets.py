@@ -1,4 +1,4 @@
-""" Run SSL Analysis specific to the paper """
+""" Run UMAP on subsets of the data (DT) """
 import os
 from pkg_resources import resource_filename
 

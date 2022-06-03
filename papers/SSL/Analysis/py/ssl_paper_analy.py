@@ -7,6 +7,7 @@ import pickle
 
 import h5py
 import umap
+import pandas
 
 from ulmo import io as ulmo_io
 from ulmo.ssl.train_util import option_preprocess
@@ -22,8 +23,27 @@ if os.getenv('SST_OOD'):
     local_modis_CF_DT2_file = os.path.join(os.getenv('SST_OOD'),
                                     'MODIS_L2/Tables/MODIS_SSL_cloud_free_DT2.parquet')
 
-def load_modis_tbl(table=None, local=False, cuts=None, 
-                   region=None, percentiles=None):
+def load_modis_tbl(table:str=None, 
+                   local=False, cuts:str=None, 
+                   region:str=None, percentiles:list=None):
+    """Load up the MODIS table and (usually) cut it down
+
+    Args:
+        table (str, optional): Code for the table name. Defaults to None.
+            std, CF, CF_DT0, ...
+        local (bool, optional): Load file on local harddrive?. Defaults to False.
+        cuts (str, optional): Named cuts. Defaults to None.
+            inliers: Restrict to LL = [200,400]
+        region (str, optional): Cut on geographic region. Defaults to None.
+            Brazil, GS, Med
+        percentiles (list, optional): Cut on percentiles of LL. Defaults to None.
+
+    Raises:
+        IOError: _description_
+
+    Returns:
+        pandas.Dataframe: MODIS table
+    """
 
     # Which file?
     if table is None:
@@ -106,6 +126,24 @@ def umap_subset(opt_path:str, outfile:str, DT_cut=None,
                 ntrain=200000, remove=True,
                 umap_savefile:str=None,
                 local=True, CF=True, debug=False):
+    """Run UMAP on a subset of the data
+    First 2 dimensions are written to the table
+
+    Args:
+        opt_path (str): _description_
+        outfile (str): _description_
+        DT_cut (_type_, optional): _description_. Defaults to None.
+        ntrain (int, optional): _description_. Defaults to 200000.
+        remove (bool, optional): _description_. Defaults to True.
+        umap_savefile (str, optional): _description_. Defaults to None.
+        local (bool, optional): _description_. Defaults to True.
+        CF (bool, optional): Use cloud free set? Defaults to True.
+        debug (bool, optional): _description_. Defaults to False.
+
+    Raises:
+        IOError: _description_
+        IOError: _description_
+    """
 
     opt = option_preprocess(ulmo_io.Params(opt_path))
 
