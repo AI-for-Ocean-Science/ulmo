@@ -27,7 +27,7 @@ spec:
         resources:
           requests:
             cpu: "2"
-            memory: "12Gi"  # Need at least 10
+            memory: "16Gi"  # Need at least 15.5
             ephemeral-storage: 50Gi
           limits:
             cpu: "4"

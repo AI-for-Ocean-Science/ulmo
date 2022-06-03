@@ -4,6 +4,7 @@ import io, json
 import h5py
 import pickle
 import sklearn
+import time
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -349,8 +350,9 @@ class ProbabilisticAutoencoder:
                                           desc='Computing valid latents')]
                     valid = self.scaler.transform(np.concatenate(z))
                     f.create_dataset('valid', data=valid); del valid
-            # Flush
-            h5py.File.flush() 
+            # Sleep to let file flush
+            print("Sleeping for 30 to flush latents file...")
+            time.sleep(30)
 
             # Scaler
             scaler_path = os.path.join(self.logdir, self.stem + '_scaler.pkl')

@@ -27,7 +27,7 @@ spec:
         resources:
           requests:
             cpu: "2"
-            memory: "12Gi"  # 10Gb is enough for AE
+            memory: "13Gi"  # 12Gb is enough for AE
             ephemeral-storage: 50Gi
           limits:
             cpu: "4"
