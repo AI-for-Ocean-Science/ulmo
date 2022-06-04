@@ -31,7 +31,7 @@ spec:
             ephemeral-storage: 50Gi
           limits:
             cpu: "8"
-            memory: "10Gi"
+            memory: "15Gi"
             ephemeral-storage: 100Gi
             nvidia.com/gpu:  "4"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]

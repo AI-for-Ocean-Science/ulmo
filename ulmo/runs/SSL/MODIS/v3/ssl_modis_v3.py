@@ -440,7 +440,7 @@ def sub_tbl_2010():
 def prep_cloud_free(clear_fraction=0.04, local=True, 
                     img_shape=(64,64), debug=False, 
                     outfile='MODIS_SSL_96clear_images.h5',
-                    tbl_file='s3://modis-l2/Tables/MODIS_SSL_96clear.parquet'): 
+                    new_tbl_file='s3://modis-l2/Tables/MODIS_SSL_96clear.parquet'): 
     """ Generate a data file for SSL traiing on a subset of 
     MODIS L2 that are "cloud free"  (>= 96% clear)
 
@@ -556,7 +556,7 @@ def prep_cloud_free(clear_fraction=0.04, local=True,
     # Table
     assert cat_utils.vet_main_table(
         cfree_tbl, cut_prefix='ulmo_')
-    ulmo_io.write_main_table(cfree_tbl, tbl_file)
+    ulmo_io.write_main_table(cfree_tbl, new_tbl_file)
 
 def run_collect_images(pargs):
     if pargs.table_file is None:
@@ -655,7 +655,7 @@ if __name__ == "__main__":
 
 # Re-run with 96% cloud free -- June 2022
 
-# Training images -- on profx
+# Training images -- on profx (DONE) 2022-06-04
 # python ssl_modis_v3.py --func_flag prep_cloud_free --cf 96 --outfile MODIS_SSL_96clear_images.h5
 
 # TRAIN :: Run in cloud
