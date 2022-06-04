@@ -655,8 +655,8 @@ if __name__ == "__main__":
 
 # Re-run with 96% cloud free -- June 2022
 
-# Training images
-# python ssl_modis_v2.py --func_flag prep_cloud_free --cf 96 --outfile MODIS_SSL_96clear_images.h5
+# Training images -- on profx
+# python ssl_modis_v3.py --func_flag prep_cloud_free --cf 96 --outfile MODIS_SSL_96clear_images.h5
 
 # TRAIN :: Run in cloud
 #  python ./ssl_modis_v3.py --opt_path opts_96clear_ssl.json --func_flag train;
