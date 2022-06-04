@@ -12,7 +12,8 @@
         3,
         1
     ],
-    "fixed_km": 128.0,
+    "noise": 0.039,
+    "fixed_km": 144.0,
     "median": false,
     "only_inpaint": false
 }

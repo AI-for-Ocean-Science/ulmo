@@ -173,14 +173,15 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
     """
     Preprocess an input field image with a series of steps:
         1. Inpainting
-        2. Add noise
-        3. Median
-        4. Downscale
-        5. Sigmoid
-        6. Scale
-        7. Remove mean
-        8. Sobel
-        9. Log
+        2. Resize based on fixed_km (LLC)
+        3. Add noise
+        4. Median
+        5. Downscale
+        6. Sigmoid
+        7. Scale
+        8. Remove mean
+        9. Sobel
+        10. Log
 
     Parameters
     ----------
@@ -242,16 +243,15 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
     meta_dict['T10'] = field.flatten()[srt[i10]]
     meta_dict['T90'] = field.flatten()[srt[i90]]
 
-    # Resize? 
+    # Resize?
+    if fixed_km is not None:
+        field = resize_local_mean(field, (field_size, field_size))
 
     # Add noise?
     if noise is not None:
         field += np.random.normal(loc=0., 
                                   scale=noise, 
                                   size=field.shape)
-    # Resize?
-    if fixed_km is not None:
-        field = resize_local_mean(field, (field_size, field_size))
 
     # Median
     if median:

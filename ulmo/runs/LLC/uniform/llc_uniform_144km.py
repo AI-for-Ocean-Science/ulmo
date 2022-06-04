@@ -1,4 +1,6 @@
-""" Module to run all analysis related to fixed 128km Uniform sampling of LLC """
+""" Module to run all analysis related to fixed 144km Uniform sampling of LLC 
+ 144km is equivalent to 64 pixels at VIIRS sampling binned by 3
+"""
 import os
 import numpy as np
 
@@ -12,11 +14,11 @@ from ulmo.preproc import plotting as pp_plotting
 
 from IPython import embed
 
-tst_file = 's3://llc/Tables/test_uniform128_r0.5_test.parquet'
-full_file = 's3://llc/Tables/test_uniform128_r0.5.parquet'
+tst_file = 's3://llc/Tables/test_uniform144_r0.5_test.parquet'
+full_file = 's3://llc/Tables/LLC_uniform144_r0.5.parquet'
 
 
-def u_init_128(tbl_file:str, debug=False, resol=0.5, plot=False,
+def u_init_144(tbl_file:str, debug=False, resol=0.5, plot=False,
                max_lat=None):
     """ Get the show started by sampling uniformly
     in space and and time
@@ -52,8 +54,21 @@ def u_init_128(tbl_file:str, debug=False, resol=0.5, plot=False,
     print("All done with init")
 
 
-def u_extract_128(tbl_file:str, debug=False, debug_local=False,
-              root_file=None, dlocal=False, preproc_root='llc_128'):
+def u_extract_144(tbl_file:str, debug=False, 
+                  debug_local=False, 
+                  root_file=None, dlocal=False, 
+                  preproc_root='llc_144'):
+    """Extract 144km cutouts and resize to 64x64
+    Add noise too!
+
+    Args:
+        tbl_file (str): _description_
+        debug (bool, optional): _description_. Defaults to False.
+        debug_local (bool, optional): _description_. Defaults to False.
+        root_file (_type_, optional): _description_. Defaults to None.
+        dlocal (bool, optional): _description_. Defaults to False.
+        preproc_root (str, optional): _description_. Defaults to 'llc_144'.
+    """
 
     if debug:
         tbl_file = tst_file
@@ -69,10 +84,10 @@ def u_extract_128(tbl_file:str, debug=False, debug_local=False,
         llc_table = llc_table[gd_date]
 
     if debug:
-        root_file = 'LLC_uniform128_test_preproc.h5'
+        root_file = 'LLC_uniform144_test_preproc.h5'
     else:
         if root_file is None:
-            root_file = 'LLC_uniform128_preproc.h5'
+            root_file = 'LLC_uniform144_preproc.h5'
 
     # Setup
     pp_local_file = 'PreProc/'+root_file
@@ -85,7 +100,7 @@ def u_extract_128(tbl_file:str, debug=False, debug_local=False,
         pp_s3_file = None  
     extract.preproc_for_analysis(llc_table, 
                                  pp_local_file,
-                                 fixed_km=128.,
+                                 fixed_km=144.,
                                  preproc_root=preproc_root,
                                  s3_file=pp_s3_file,
                                  debug=debug,
@@ -95,7 +110,7 @@ def u_extract_128(tbl_file:str, debug=False, debug_local=False,
     print("You should probably remove the PreProc/ folder")
     
 
-def u_evaluate_128(clobber_local=False, debug=False):
+def u_evaluate_144(clobber_local=False, debug=False):
     
     if debug:
         tbl_file = tst_file
@@ -127,13 +142,13 @@ def main(flg):
     # Generate the LLC Table
     if flg & (2**0):
         # Debug
-        #u_init_128('tmp', debug=True, plot=True)
+        #u_init_144('tmp', debug=True, plot=True)
         # Real deal
-        u_init_128(full_file, max_lat=57.)
+        u_init_144(full_file, max_lat=57.)
 
     if flg & (2**1):
-        u_extract_128('', debug=True, dlocal=True)
-        #u_extract_128(full_file)
+        u_extract_144('', debug=True, dlocal=True)
+        #u_extract_144(full_file)
 
     if flg & (2**2):
         u_evaluate()
