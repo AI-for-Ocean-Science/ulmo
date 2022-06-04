@@ -360,7 +360,8 @@ def viirs_train_ulmo(skip_auto=False, clearf=98., dpath = './'):
     print("Training the FLOW...")
     pae.train_flow(n_epochs=10, batch_size=64, lr=2.5e-4, 
                    summary_interval=50, 
-                   eval_interval=1000)  
+                   eval_interval=1000,
+                   force_save=True)  
 
     # Set to local stuff..
     if skip_auto:
