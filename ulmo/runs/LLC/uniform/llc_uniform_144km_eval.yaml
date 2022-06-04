@@ -1,8 +1,8 @@
-# Script to perform VIIRS 2013 extractions 
+# Script to evaluate LLC with VIIRS 98 Ulmo 
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-viirs-eval-98
+  name: xavier-llc-uniform-eval-viirs-98
 spec:
   backoffLimit: 0
   template:
@@ -46,18 +46,11 @@ spec:
             cd ../tmp; 
             mkdir foo; 
             cd foo; 
-            python -u /ulmo/ulmo/runs/VIIRS/viirs_ulmo.py --task eval --year 2012 --model viirs-98;
-            python -u /ulmo/ulmo/runs/VIIRS/viirs_ulmo.py --task eval --year 2013 --model viirs-98;
-            python -u /ulmo/ulmo/runs/VIIRS/viirs_ulmo.py --task eval --year 2014 --model viirs-98;
-            python -u /ulmo/ulmo/runs/VIIRS/viirs_ulmo.py --task eval --year 2015 --model viirs-98;
-            python -u /ulmo/ulmo/runs/VIIRS/viirs_ulmo.py --task eval --year 2016 --model viirs-98;
-            python -u /ulmo/ulmo/runs/VIIRS/viirs_ulmo.py --task eval --year 2017 --model viirs-98;
-            python -u /ulmo/ulmo/runs/VIIRS/viirs_ulmo.py --task eval --year 2018 --model viirs-98;
-            python -u /ulmo/ulmo/runs/VIIRS/viirs_ulmo.py --task eval --year 2019 --model viirs-98;
-            python -u /ulmo/ulmo/runs/VIIRS/viirs_ulmo.py --task eval --year 2020 --model viirs-98;
+            mkdir Evaluations;   
+            python -u /ulmo/ulmo/runs/LLC/uniform/llc_uniform_144km.py 4;
             rm PreProc/*;
             cd ..;
-            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp foo s3://viirs --recursive;
+            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp foo s3://llc --recursive;
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"

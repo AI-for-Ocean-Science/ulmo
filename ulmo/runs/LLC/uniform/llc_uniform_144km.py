@@ -110,7 +110,8 @@ def u_extract_144(tbl_file:str, debug=False,
     print("You should probably remove the PreProc/ folder")
     
 
-def u_evaluate_144(clobber_local=False, debug=False):
+def u_evaluate_144(clobber_local=False, debug=False,
+                   model='viirs-98'):
     
     if debug:
         tbl_file = tst_file
@@ -118,10 +119,12 @@ def u_evaluate_144(clobber_local=False, debug=False):
     llc_table = ulmo_io.load_main_table(tbl_file)
 
     # Evaluate
-    ulmo_evaluate.eval_from_main(llc_table)
+    ulmo_evaluate.eval_from_main(llc_table,
+                                 model=model)
 
     # Write 
     ulmo_io.write_main_table(llc_table, tbl_file)
+
 
 def u_add_velocities():
     # Load
@@ -147,11 +150,11 @@ def main(flg):
         u_init_144(full_file, max_lat=57.)
 
     if flg & (2**1):
-        u_extract_144('', debug=True, dlocal=True)
-        #u_extract_144(full_file)
+        #u_extract_144('', debug=True, dlocal=True)
+        u_extract_144(full_file)
 
     if flg & (2**2):
-        u_evaluate()
+        u_evaluate_144()
 
     if flg & (2**3):
         u_add_velocities()
