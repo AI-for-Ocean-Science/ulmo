@@ -337,6 +337,7 @@ def viirs_train_ulmo(skip_auto=False):
 
     # Set to local stuff..
     if skip_auto:
+        embed(header='NEED TO FIX THESE PATHS;  340 of viirs_ulmo')
         pae.filepath['latents'] = 'SSH_std/SSH_100clear_32x32_train_latents.h5'
         pae.filepath['log_probs'] = 'SSH_std/SSH_100clear_32x32_train_log_probs.h5'
 
