@@ -12,10 +12,7 @@ class TwoCropTransform:
         self.transform = transform
 
     def __call__(self, x):
-        try:
-            return [self.transform(x), self.transform(x)]
-        except:
-            import pdb; pdb.set_trace()
+        return [self.transform(x), self.transform(x)]
 
 
 class AverageMeter(object):
