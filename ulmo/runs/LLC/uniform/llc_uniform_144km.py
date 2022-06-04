@@ -44,10 +44,10 @@ def u_init_144(tbl_file:str, debug=False, resol=0.5, plot=False,
     # Temporal sampling
     if debug:
         # Extract 6 days across the full range;  ends of months
-        dti = pandas.date_range('2011-09-01', periods=6, freq='2M')
+        dti = pandas.date_range('2011-09-13', periods=6, freq='2M')
     else:
         # Extract 24 days across the full range;  ends of months; every 2 weeks
-        dti = pandas.date_range('2011-09-01', periods=24, freq='2W')
+        dti = pandas.date_range('2011-09-13', periods=24, freq='2W')
     llc_table = extract.add_days(llc_table, dti, outfile=tbl_file)
 
     print(f"Wrote: {tbl_file} with {len(llc_table)} unique cutouts.")
@@ -56,7 +56,7 @@ def u_init_144(tbl_file:str, debug=False, resol=0.5, plot=False,
 
 def u_extract_144(tbl_file:str, debug=False, 
                   debug_local=False, 
-                  root_file=None, dlocal=False, 
+                  root_file=None, dlocal=True, 
                   preproc_root='llc_144'):
     """Extract 144km cutouts and resize to 64x64
     Add noise too!
@@ -68,6 +68,7 @@ def u_extract_144(tbl_file:str, debug=False,
         root_file (_type_, optional): _description_. Defaults to None.
         dlocal (bool, optional): _description_. Defaults to False.
         preproc_root (str, optional): _description_. Defaults to 'llc_144'.
+        dlocal (bool, optional): Use local files for LLC data.
     """
 
     if debug:
@@ -104,7 +105,8 @@ def u_extract_144(tbl_file:str, debug=False,
                                  preproc_root=preproc_root,
                                  s3_file=pp_s3_file,
                                  debug=debug,
-                                 dlocal=dlocal)
+                                 dlocal=dlocal,
+                                 override_RAM=True)
     # Final write
     ulmo_io.write_main_table(llc_table, tbl_file)
     print("You should probably remove the PreProc/ folder")
@@ -165,11 +167,17 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg = 0
-        flg += 2 ** 0  # 1 -- Setup Table
-        #flg += 2 ** 1  # 2 -- Extract
+        #flg += 2 ** 0  # 1 -- Setup Table
+        flg += 2 ** 1  # 2 -- Extract
         #flg += 2 ** 2  # 4 -- Evaluate
         #flg += 2 ** 3  # 8 -- Velocities
     else:
         flg = sys.argv[1]
 
     main(flg)
+
+# Setup
+# python -u llc_uniform_144km.py 1
+
+# Extract with noise
+# python -u llc_uniform_144km.py 2

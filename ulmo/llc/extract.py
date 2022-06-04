@@ -111,6 +111,7 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
                          n_cores=10,
                          valid_fraction=1., 
                          dlocal=False,
+                         override_RAM=False,
                          s3_file=None, debug=False):
     """Main routine to extract and pre-process LLC data for later SST analysis
     The llc_table is modified in place.
@@ -124,6 +125,7 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         n_cores (int, optional): Number of cores for parallel processing. Defaults to 10.
         valid_fraction (float, optional): [description]. Defaults to 1..
         dlocal (bool, optional): Data files are local? Defaults to False.
+        override_RAM (bool, optional): Over-ride RAM warning?
         s3_file (str, optional): s3 URL for file to write. Defaults to None.
 
     Raises:
@@ -145,7 +147,7 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
 
     # Setup for dates
     uni_date = np.unique(llc_table.datetime)
-    if len(llc_table) > 1000000:
+    if len(llc_table) > 1000000 and not override_RAM:
         raise IOError("You are likely to exceed the RAM.  Deal")
 
     # Init
