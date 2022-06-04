@@ -1,8 +1,8 @@
-# Script to train an SSL model on the cloud free MODIS data
+# Script to train an SSL model on the 96% cloud free MODIS data
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-ssl-modis-cf-train
+  name: xavier-ssl-modis-96cf-train
 spec:
   backoffLimit: 0
   template:
@@ -33,7 +33,7 @@ spec:
             cpu: "8"
             memory: "15Gi"
             ephemeral-storage: 100Gi
-            nvidia.com/gpu:  "4"  # See docs to exlude certain types
+            nvidia.com/gpu:  "1"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]
             #command: ["sh", "-c", "sleep infinity"]
         args:
@@ -42,6 +42,7 @@ spec:
             git checkout ssl_paper; 
             git pull; 
             python setup.py develop;
+            sleep 600;
             cd ulmo/runs/SSL/MODIS/v3;
             aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp s3://modis-l2/SSL/preproc/MODIS_SSL_96clear_images.h5 ./;
             python ./ssl_modis_v3.py --opt_path opts_96clear_ssl.json --func_flag train;
