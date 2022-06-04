@@ -45,7 +45,7 @@ def vet_main_table(table:pandas.DataFrame, cut_prefix=None,
 
     Args:
         table (pandas.DataFrame or dict): [description]
-        cut_prefix (str, optional): . Defaults to None.
+        cut_prefix (str, optional): Allow this prefix on the standard datamodel
         data_model (dict, optional): Data model to test
             against.  If None, use the main Ulmo data model
 
