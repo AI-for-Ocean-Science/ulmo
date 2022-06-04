@@ -1,4 +1,4 @@
-# Script to perform VIIRS 2013 extractions 
+# Script to perform VIIRS evaluations with viirs-98 model 
 apiVersion: batch/v1
 kind: Job
 metadata:
