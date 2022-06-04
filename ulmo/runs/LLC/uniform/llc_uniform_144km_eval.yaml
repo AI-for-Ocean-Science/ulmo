@@ -28,7 +28,7 @@ spec:
           requests:
             cpu: "2"
             memory: "16Gi"  # Need at least 15.5
-            ephemeral-storage: 50Gi
+            ephemeral-storage: 60Gi
           limits:
             cpu: "4"
             memory: "24Gi"

@@ -135,6 +135,68 @@ def fig_LLvsDT(clear_frac, outroot='fig_viirs_LLvsDT',
     print('Wrote {:s}'.format(outfile))
 
 
+def fig_compare_LL(zoom=False, outfile='fig_compare_LL.png'):
+    """ Compare LL from MODIS and VIIRS Ulmo models
+
+    Args:
+        outfile (str, optional): [description]. Defaults to 'fig_LLvsDT.png'.
+    """
+    if zoom:
+        outfile='fig_compare_LL_zoom.png'
+
+    # Load table
+    tbl_base = 'VIIRS_2019_std.parquet'
+    tbl_file = os.path.join(os.getenv('SST_OOD'), 'VIIRS', 'Tables', tbl_base)
+    viirs_tbl = ulmo_io.load_main_table(tbl_file)
+
+    # DT
+    viirs_tbl['DT'] = viirs_tbl.T90 - viirs_tbl.T10
+
+    # Cuts
+    cutCC = viirs_tbl.clear_fraction < 0.02
+    viirs_tbl = viirs_tbl[cutCC].copy()
+
+    if zoom:
+        cutLL = viirs_tbl.LL > -1000.
+        viirs_tbl = viirs_tbl[cutLL].copy()
+
+    # Random cut (speed things up a bit)
+    if len(viirs_tbl) > 2000000:
+        idx = np.random.choice(len(viirs_tbl), 2000000, replace=False)
+        viirs_tbl = viirs_tbl.iloc[idx].copy()
+    viirs_tbl = viirs_tbl.reset_index()
+    print(f"Plotting: {len(viirs_tbl)} cutouts")
+
+    # Plot
+    fig = plt.figure()#figsize=(9, 12))
+    plt.clf()
+
+    ymnx = [-5000., 1000.]
+
+    print("Starting plot...")
+    jg = sns.jointplot(data=viirs_tbl, x='MODIS_LL', y='LL', kind='hex',
+                       gridsize=250, 
+                       cmap=plt.get_cmap('autumn'), mincnt=1,
+                       marginal_kws=dict(fill=False, color='black', 
+                                         bins=100)) 
+    # Line
+    if zoom:
+        jg.ax_joint.plot([-1000, 1000.], [-1000, 1000], 'k:')
+    
+    # Axes                                 
+    jg.ax_joint.set_ylabel('VIIRS_LL (98%)')
+    #jg.ax_joint.set_ylim(ymnx)
+    jg.fig.set_figwidth(8.)
+    jg.fig.set_figheight(7.)
+
+    plotting.set_fontsize(jg.ax_joint, 16.)
+
+    # Save
+    plt.savefig(outfile, dpi=200, bbox_inches="tight")
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
+
         
 #### ########################## #########################
 def main(pargs):
@@ -142,6 +204,11 @@ def main(pargs):
     # LL vs DT
     if pargs.figure == 'LLvsDT':
         fig_LLvsDT(pargs.cc, local=pargs.local, debug=pargs.debug)
+
+    # Compate MODIS and VIIRS LL
+    if pargs.figure == 'compareLL':
+        fig_compare_LL() # Full
+        fig_compare_LL(zoom=True) # Zoom in
 
 def parse_option():
     """
@@ -168,4 +235,8 @@ if __name__ == '__main__':
     pargs = parse_option()
     main(pargs)
 
-# LL vs DT -- python py/viirs.py LLvsDT --cc 0.95 --local
+# LL vs DT 
+#  python py/viirs.py LLvsDT --cc 0.95 --local
+
+# Compare LL 
+#  python py/viirs.py compareLL --local

@@ -112,7 +112,8 @@ def u_extract_144(tbl_file:str, debug=False,
     print("You should probably remove the PreProc/ folder")
     
 
-def u_evaluate_144(clobber_local=False, debug=False,
+def u_evaluate_144(tbl_file:str, 
+                   clobber_local=False, debug=False,
                    model='viirs-98'):
     
     if debug:
@@ -156,7 +157,7 @@ def main(flg):
         u_extract_144(full_file)
 
     if flg & (2**2):
-        u_evaluate_144()
+        u_evaluate_144(full_file)
 
     if flg & (2**3):
         u_add_velocities()
@@ -181,3 +182,6 @@ if __name__ == '__main__':
 
 # Extract with noise
 # python -u llc_uniform_144km.py 2
+
+# Evaluate -- run in Nautilus
+# python -u llc_uniform_144km.py 4

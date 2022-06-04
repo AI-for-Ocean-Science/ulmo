@@ -420,8 +420,6 @@ def viirs_concat_tables(clear_frac=None, debug=False):
 
     if clear_frac is None:
         clear_frac = 0.95
-    else:
-        embed(header='218 -- did not code this up')
 
     first = True
     # Loop
@@ -429,6 +427,9 @@ def viirs_concat_tables(clear_frac=None, debug=False):
         # Load table
         tbl_file = f's3://viirs/Tables/VIIRS_{year}_std.parquet'
         viirs_tbl = ulmo_io.load_main_table(tbl_file)
+        # Cut CC
+        goodCC = viirs_tbl.clear_fraction < (1-clear_frac)
+        viirs_tbl = viirs_tbl[goodCC].copy()
         # 
         if first:
             all_tbl = viirs_tbl
@@ -441,7 +442,7 @@ def viirs_concat_tables(clear_frac=None, debug=False):
         outfile = f'all_debug.parquet'
     else:
         outfile = f's3://viirs/Tables/VIIRS_all_{int(100*clear_frac)}clear_std.parquet'
-    assert cat_utils.vet_main_table(all_tbl)
+    assert cat_utils.vet_main_table(all_tbl, cut_prefix='MODIS_')
     ulmo_io.write_main_table(all_tbl, outfile, to_s3=(not debug))
 
 def parse_option():
@@ -502,9 +503,6 @@ if __name__ == "__main__":
         raise IOError("Bad choice")
 
 
-# Concatanate all of the tables
-# python viirs_ulmo.py --task concat
-
 # Prep for Training
 # python viirs_ulmo.py --task prep --year 2013 --cf 98   # This gives 150,000 training and validation cutouts
 
@@ -513,3 +511,6 @@ if __name__ == "__main__":
 
 # Evaluate (Test)
 # python viirs_ulmo.py --task eval --year 2013 --debug --model viirs-test
+
+# Concatanate all of the tables
+# python viirs_ulmo.py --task concat --cf 0.98
