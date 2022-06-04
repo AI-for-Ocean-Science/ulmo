@@ -86,7 +86,7 @@ class RandomRotate:
     # print("RR", image.shape, image.dtype)
         rang = np.float32(360*np.random.rand(1))
         #print('random angle = {}'.format(rang))
-        return (skimage.transform.rotate(image, rang)).astype(np.float32)
+        return (skimage.transform.rotate(image, rang[0])).astype(np.float32)
         #return (skimage.transform.rotate(image, np.float32(360*np.random.rand(1)))).astype(np.float32)
     
 class JitterCrop:
