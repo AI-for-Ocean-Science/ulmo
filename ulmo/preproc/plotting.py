@@ -4,14 +4,14 @@ import pandas
 
 from matplotlib import pyplot as plt
 
-import cartopy.crs as ccrs
+try:
+    import cartopy.crs as ccrs
+except ImportError:
+    print("cartopy not installed..")
 
 # Astronomy tools
 import astropy_healpix
 from astropy import units
-
-from ulmo.utils import image_utils
-
 
 def plot_extraction(llc_table:pandas.DataFrame, figsize=(7,4),
                     resol=None, cbar=False, s=0.01):
