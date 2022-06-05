@@ -541,7 +541,7 @@ class ProbabilisticAutoencoder:
 
     def eval_data_file(self, data_file:str, dataset:str, output_file:str,
                        csv=False, **kwargs):
-        """ Make PyTorch dataset from HDF5 file
+        """ Evaluate all of the images in the input data file
 
         Args:
             data_file (str): PreProc data file. Must have .h5 extension
