@@ -71,18 +71,15 @@ def u_extract_144(tbl_file:str, debug=False,
         dlocal (bool, optional): Use local files for LLC data.
     """
 
-    if debug:
-        tbl_file = tst_file
-        debug_local = True
-
     # Giddy up (will take a bit of memory!)
     llc_table = ulmo_io.load_main_table(tbl_file)
 
     if debug:
-        # Cut down to first day
+        # Cut down to first 2 days
         uni_date = np.unique(llc_table.datetime)
-        gd_date = llc_table.datetime == uni_date[0]
+        gd_date = llc_table.datetime <= uni_date[1]
         llc_table = llc_table[gd_date]
+        debug_local = True
 
     if debug:
         root_file = 'LLC_uniform144_test_preproc.h5'
@@ -99,16 +96,20 @@ def u_extract_144(tbl_file:str, debug=False,
     # Run it
     if debug_local:
         pp_s3_file = None  
+    # Check indices
+    assert np.all(np.arange(len(llc_table)) == llc_table.index)
+    # Do it
     extract.preproc_for_analysis(llc_table, 
                                  pp_local_file,
                                  fixed_km=144.,
                                  preproc_root=preproc_root,
                                  s3_file=pp_s3_file,
-                                 debug=debug,
+                                 #debug=debug,
                                  dlocal=dlocal,
                                  override_RAM=True)
     # Final write
-    ulmo_io.write_main_table(llc_table, tbl_file)
+    if not debug:
+        ulmo_io.write_main_table(llc_table, tbl_file)
     print("You should probably remove the PreProc/ folder")
     
 
@@ -154,7 +155,7 @@ def main(flg):
 
     if flg & (2**1):
         #u_extract_144('', debug=True, dlocal=True)
-        u_extract_144(full_file)
+        u_extract_144(full_file)#, debug=True)
 
     if flg & (2**2):
         u_evaluate_144(full_file)
@@ -181,7 +182,7 @@ if __name__ == '__main__':
 # python -u llc_uniform_144km.py 1
 
 # Extract with noise
-# python -u llc_uniform_144km.py 2
+# python -u llc_uniform_144km.py 2 
 
 # Evaluate -- run in Nautilus
 # python -u llc_uniform_144km.py 4

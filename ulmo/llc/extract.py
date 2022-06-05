@@ -19,6 +19,7 @@ from ulmo import io as ulmo_io
 from ulmo.preproc import utils as pp_utils
 from ulmo.preproc import extract as pp_extract
 from ulmo.preproc import io as pp_io
+from ulmo.utils import catalog
 
 from ulmo.llc import io as llc_io
 from ulmo.llc import kinematics
@@ -151,7 +152,7 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         raise IOError("You are likely to exceed the RAM.  Deal")
 
     # Init
-    pp_fields, meta, img_idx = [], [], []
+    pp_fields, meta, img_idx, all_sub = [], [], [], []
 
     # Prep LLC Table
     llc_table = pp_utils.prep_table_for_preproc(llc_table, 
@@ -170,6 +171,7 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         # Parse 
         gd_date = llc_table.datetime == udate
         sub_idx = np.where(gd_date)[0]
+        all_sub += sub_idx.tolist()  # These really should be the indices of the Table
         coord_tbl = llc_table[gd_date]
 
         # Add to table
@@ -212,11 +214,15 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         del answers, fields, items, sst
         ds.close()
 
+    # Fuss with indices
+    ex_idx = np.array(all_sub)
+    ppf_idx = []
+    ppf_idx = catalog.match_ids(np.array(img_idx), ex_idx)
     # Write
-    pp_utils.write_pp_fields(pp_fields, meta, llc_table, 
-                            sub_idx, img_idx,
-                             valid_fraction,
-                             s3_file, local_file)
+    llc_table = pp_utils.write_pp_fields(pp_fields, meta, llc_table, 
+                            ex_idx, ppf_idx,
+                            valid_fraction,
+                            s3_file, local_file)
 
     # Clean up
     del pp_fields
