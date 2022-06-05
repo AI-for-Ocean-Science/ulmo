@@ -30,7 +30,7 @@ spec:
             memory: "16Gi"  # Need at least 15.5
             ephemeral-storage: 60Gi
           limits:
-            cpu: "4"
+            cpu: "5"
             memory: "24Gi"
             ephemeral-storage: 100Gi
             nvidia.com/gpu:  "1"  # See docs to exlude certain types
