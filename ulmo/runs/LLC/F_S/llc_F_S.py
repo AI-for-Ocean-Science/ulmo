@@ -40,6 +40,8 @@ def u_init_F_S(tbl_file:str, debug=False,
     # Begin 
     llc_table = uniform.coords(resol=resol, max_lat=max_lat,
                                field_size=(64,64), outfile=tbl_file)
+    # Reset index                        
+    llc_table.reset_index(inplace=True, drop=True)
     # Plot
     if plot:
         pp_plotting.plot_extraction(llc_table, s=1, resol=resol)
@@ -50,7 +52,9 @@ def u_init_F_S(tbl_file:str, debug=False,
         dti = pandas.date_range('2011-09-13', periods=1, freq='2M')
     else:
         # Extract 24 days across the full range;  ends of months; every 2 weeks
-        dti = pandas.date_range('2011-09-13', periods=24, freq='2W')
+        #dti = pandas.date_range('2011-09-13', periods=24, freq='2W')
+        # Extract 1 day
+        dti = pandas.date_range('2011-09-13', periods=1, freq='2M')
     llc_table = extract.add_days(llc_table, dti, outfile=tbl_file)
 
     print(f"Wrote: {tbl_file} with {len(llc_table)} unique cutouts.")
@@ -110,8 +114,10 @@ def u_extract_F_S(tbl_file:str, debug=False,
     # Run it
     if debug_local:
         pp_s3_file = None  
+
     # Check indices
     assert np.all(np.arange(len(llc_table)) == llc_table.index)
+
     # Do it
     extract.preproc_for_analysis(llc_table, 
                                  pp_local_file,
@@ -122,6 +128,7 @@ def u_extract_F_S(tbl_file:str, debug=False,
                                  kin_stat_dict=FS_stat_dict,
                                  dlocal=dlocal,
                                  override_RAM=True)
+
     # Final write
     ulmo_io.write_main_table(llc_table, tbl_file)
     print("You should probably remove the PreProc/ folder")
