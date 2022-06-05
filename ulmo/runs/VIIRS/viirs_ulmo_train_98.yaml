@@ -1,37 +1,53 @@
-# Script to perform VIIRS 2020 Pre-proc
+# Script to perform VIIRS 2013 extractions 
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-modis-powerlaw
+  name: xavier-viirs-2013-train-98
 spec:
   backoffLimit: 0
   template:
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: NotIn
+                values:
+                  - k8s-chase-ci-01.noc.ucsb.edu
+              - key: nvidia.com/gpu.product
+                operator: In
+                values:
+                  - NVIDIA-GeForce-GTX-1080-Ti
       containers:
       - name: container
         image: localhost:30081/profxj/ulmo_nvidia:latest  # UPDATE
         imagePullPolicy: Always
         resources:
           requests:
-            cpu: "1"
-            memory: "24Gi"  # Ran at ~21 Gb
-            ephemeral-storage: 30Gi  # Fine 
-          limits:
             cpu: "2"
-            memory: "32Gi"
-            ephemeral-storage: 200Gi
-            #nvidia.com/gpu:  "1"  # See docs to exlude certain types
+            memory: "13Gi"  # 12Gb is enough for AE
+            ephemeral-storage: 50Gi
+          limits:
+            cpu: "4"
+            memory: "24Gi"
+            ephemeral-storage: 100Gi
+            nvidia.com/gpu:  "1"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]
         args:
           - cd ulmo; 
             git fetch;
-            git checkout modis_ssl_full; 
+            git checkout LLC_paper; 
             git pull; 
+            pip install -U scikit-image;
             python setup.py develop;
             cd ../tmp; 
             mkdir foo; 
             cd foo; 
-            python -u /ulmo/ulmo/runs/PowerLaw/modis_powerlaw.py --task powerlaw; # --debug;
+            python -u /ulmo/ulmo/runs/VIIRS/viirs_ulmo.py --task train --cf 98;
+            cd ..;
+            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp VIIRS_std_98 s3://viirs/Models/VIIRS_std_98 --recursive --force;
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"
@@ -47,7 +63,6 @@ spec:
             mountPath: "/dev/shm"
       nodeSelector:
         nautilus.io/disktype: nvme
-        gpu-type: "1080Ti"  # titan-xp
       restartPolicy: Never
       volumes:
         # Secrets file for nautilus s3 credentials .aws/credentials and .s3cfg

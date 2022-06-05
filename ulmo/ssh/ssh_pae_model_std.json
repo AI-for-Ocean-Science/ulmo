@@ -1,0 +1,28 @@
+{
+    "AE": {
+        "image_shape": [
+            1,
+            32,
+            32
+        ],
+        "latent_dim": 128
+    },
+    "flow": {
+        "context_dim": null,
+        "dim": 128,
+        "dropout": 0.2,
+        "encoder": null,
+        "hidden_units": 256,
+        "min_bin_height": 0.001,
+        "min_bin_width": 0.001,
+        "min_derivative": 0.001,
+        "n_bins": 5,
+        "n_blocks": 2,
+        "n_layers": 10,
+        "tail_bound": 10,
+        "tails": "linear",
+        "transform_type": "autoregressive",
+        "unconditional_transform": false,
+        "use_batch_norm": false
+    }
+}
