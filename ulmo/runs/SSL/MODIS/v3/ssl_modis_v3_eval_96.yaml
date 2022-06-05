@@ -2,7 +2,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-ssl-modis-cf-train
+  name: xavier-ssl-modis-96-eval
 spec:
   backoffLimit: 0
   template:
@@ -30,7 +30,7 @@ spec:
             memory: "15Gi"  # Using ~7
             ephemeral-storage: 50Gi
           limits:
-            cpu: "4"
+            cpu: "5"
             memory: "35Gi"
             ephemeral-storage: 100Gi
             nvidia.com/gpu:  "1"  # See docs to exlude certain types
@@ -41,6 +41,8 @@ spec:
             git fetch;
             git checkout ssl_paper; 
             git pull; 
+            pip install torch==1.11.0;
+            pip install -U smart-open[s3];
             python setup.py develop;
             cd ulmo/runs/SSL/MODIS/v3;
             python ./ssl_modis_v3.py --opt_path opts_96clear_ssl.json --func_flag evaluate --model 96;

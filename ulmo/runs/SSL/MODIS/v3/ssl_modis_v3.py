@@ -338,12 +338,15 @@ def main_evaluate(opt_path, model_name,
     """
     # Parse the model
     opt = option_preprocess(ulmo_io.Params(opt_path))
-    model_file = os.path.join(opt.model_folder, 'last.pth')
+    model_file = os.path.join(opt.s3_outdir,
+        opt.model_folder, 'last.pth')
 
     # Load up the table
+    print(f"Grabbing table: {opt.tbl_file}")
     modis_tbl = ulmo_io.load_main_table(opt.tbl_file)
 
     # Grab the model
+    print(f"Grabbing model: {model_file}")
     model_base = os.path.basename(model_file)
     ulmo_io.download_file_from_s3(model_base, model_file)
     
