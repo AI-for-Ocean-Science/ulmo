@@ -473,6 +473,7 @@ def write_pp_fields(pp_fields:list, meta:list,
                     ppf_idx:np.ndarray,
                     valid_fraction:float,
                     s3_file:str, local_file:str,
+                    kin_meta:dict=None,
                     skip_meta=False):
     """Write a set of pre-processed cutouts to disk
 
@@ -485,6 +486,7 @@ def write_pp_fields(pp_fields:list, meta:list,
         valid_fraction (float): Valid fraction (the rest is Train)
         s3_file (str): [description]
         local_file (str): [description]
+        kin_meta (dict, optional): Additional meta to include
         skip_meta (bool, optional):
             If True, don't fuss with meta data
 
@@ -517,6 +519,14 @@ def write_pp_fields(pp_fields:list, meta:list,
                 # Add to clms
                 if key not in clms:
                     clms += [key]
+
+    # Kinematic meta
+    if kin_meta is not None:
+        for key in kin_meta[0].keys():
+            main_tbl.loc[idx_idx, key] = [imeta[key] for imeta in kin_meta]
+            # Add to clms
+            if key not in clms:
+                clms += [key]
 
     # Train/validation
     n = int(valid_fraction * pp_fields.shape[0])

@@ -84,5 +84,11 @@ mtbl_dmodel = {
                 help='UMAP 2nd coefficient for ndim=3'),
     'UID': dict(dtype=(int, np.integer),
                 help='Unique identifier generated for each cutout'),
+    # KINEMATICS
+    'FS_Npos': dict(dtype=(int, np.integer),
+                help='Number of pixels exceeding the F_S threshold'),
+    'FS_pos_sum': dict(dtype=(float,np.floating),
+                help='Sum of F_s for pixels with F_S>0'),
+    # REQUIRED
     'required': ('lat', 'lon', 'row', 'col', 'datetime')
     }

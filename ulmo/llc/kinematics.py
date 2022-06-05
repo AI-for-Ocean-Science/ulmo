@@ -168,9 +168,9 @@ def cutout_F_S(item:tuple, FS_stats:dict, field_size=None):
 def calc_F_S_stats(F_s:np.ndarray, stat_dict:dict):
     Fs_metrics = {}
     if 'Fronto_thresh' in stat_dict.keys():
-        Fs_metrics['N_pos_thresh'] = np.sum(F_s > Fs_metrics['Fronto_thresh'])
+        Fs_metrics['FS_Npos'] = int(np.sum(F_s > stat_dict['Fronto_thresh']))
     if 'Fronto_sum' in stat_dict.keys():
-        Fs_metrics['pos_sum'] = np.sum(F_s[F_s > 0.])
+        Fs_metrics['FS_pos_sum'] = np.sum(F_s[F_s > 0.])
     #
     return Fs_metrics
 

@@ -14,8 +14,8 @@ from ulmo.preproc import plotting as pp_plotting
 
 from IPython import embed
 
-tst_file = 's3://llc/Tables/test_uniform144_r5.0_test.parquet'
-full_file = 's3://llc/Tables/LLC_uniform144_r0.5.parquet'
+tst_file = 's3://llc/Tables/test_FS_r5.0_test.parquet'
+full_file = 's3://llc/Tables/LLC_FS_r1.0.parquet'
 
 
 def u_init_F_S(tbl_file:str, debug=False, 
@@ -51,7 +51,6 @@ def u_init_F_S(tbl_file:str, debug=False,
     else:
         # Extract 24 days across the full range;  ends of months; every 2 weeks
         dti = pandas.date_range('2011-09-13', periods=24, freq='2W')
-    embed(header='54 of F_S')
     llc_table = extract.add_days(llc_table, dti, outfile=tbl_file)
 
     print(f"Wrote: {tbl_file} with {len(llc_table)} unique cutouts.")
@@ -81,14 +80,20 @@ def u_extract_F_S(tbl_file:str, debug=False,
     FS_stat_dict['Fronto_sum'] = True
 
     # Giddy up (will take a bit of memory!)
+    if debug:
+        tbl_file = tst_file
+        debug_local = True
+
     llc_table = ulmo_io.load_main_table(tbl_file)
 
+    ''' # Another test
     if debug:
         # Cut down to first 2 days
         uni_date = np.unique(llc_table.datetime)
         gd_date = llc_table.datetime <= uni_date[1]
         llc_table = llc_table[gd_date]
         debug_local = True
+    '''
 
     if debug:
         root_file = 'LLC_FS_test_preproc.h5'
@@ -118,8 +123,7 @@ def u_extract_F_S(tbl_file:str, debug=False,
                                  dlocal=dlocal,
                                  override_RAM=True)
     # Final write
-    if not debug:
-        ulmo_io.write_main_table(llc_table, tbl_file)
+    ulmo_io.write_main_table(llc_table, tbl_file)
     print("You should probably remove the PreProc/ folder")
     
 
@@ -159,12 +163,12 @@ def main(flg):
     # Generate the LLC Table
     if flg & (2**0):
         # Debug
-        u_init_F_S('tmp', debug=True, plot=True)
+        #u_init_F_S('tmp', debug=True, plot=True)
         # Real deal
-        #u_init_F_S(full_file, max_lat=57.)
+        u_init_F_S(full_file, max_lat=57.)
 
     if flg & (2**1):
-        #u_extract_144('', debug=True, dlocal=True)
+        #u_extract_F_S('', debug=True, dlocal=True)
         u_extract_F_S(full_file)#, debug=True)
 
     if flg & (2**2):
@@ -192,7 +196,7 @@ if __name__ == '__main__':
 # python -u llc_F_S.py 1
 
 # Extract with noise
-# python -u llc_uniform_144km.py 2 
+# python -u llc_F_S.py 2 
 
 # Evaluate -- run in Nautilus
 # python -u llc_uniform_144km.py 4

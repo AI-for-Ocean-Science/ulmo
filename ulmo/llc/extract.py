@@ -239,7 +239,6 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         if calculate_kin:
             # Assuming FS for now
             #if 'calc_FS' in kin_stat_dict.keys() and kin_stat_dict['calc_FS']:
-            embed(header='220 of LLC extract')
 
             # Grab the data fields (~5 Gb RAM)
             U = ds.U.values
@@ -248,7 +247,14 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
 
             # Build cutouts
             items = []
+            print("Building Kinematic cutouts")
             for ii in cur_img_idx:
+                # Saved
+                r = rs[ii]
+                c = cs[ii]
+                dr = drs[ii]
+                dc = dr
+                #
                 items.append(
                     (U[r:r+dr, c:c+dc],
                     V[r:r+dr, c:c+dc],
@@ -257,12 +263,14 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
                     ii)
                 )
 
+            #if debug:
+            #    idx, FS_metrics = kinematics.cutout_F_S(items[0], FS_stats=kin_stat_dict,
+            #             field_size=field_size[0])
             # Process em
             with ProcessPoolExecutor(max_workers=n_cores) as executor:
                 chunksize = len(items) // n_cores if len(items) // n_cores > 0 else 1
                 answers = list(tqdm(executor.map(map_FS, items,
                                              chunksize=chunksize), total=len(items)))
-            embed(header='261 of extract')
             kin_meta += [item[1] for item in answers]
 
         ds.close()
