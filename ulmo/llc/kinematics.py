@@ -1,7 +1,10 @@
 """ Routines related to kinemaic measures of LLC data """
 import numpy as np
 
-from gsw import density
+try:
+    from gsw import density
+except ImportError:
+    print("gsw not imported;  cannot do density calculations")
 
 def calc_div(U:np.ndarray, V:np.ndarray):
     """Calculate the divergence
