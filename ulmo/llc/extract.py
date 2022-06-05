@@ -111,11 +111,12 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
                          fixed_km=None,
                          n_cores=10,
                          valid_fraction=1., 
+                         calculate_FS=False,
                          dlocal=False,
                          override_RAM=False,
                          s3_file=None, debug=False):
     """Main routine to extract and pre-process LLC data for later SST analysis
-    The llc_table is modified in place.
+    The llc_table is modified in place (and also returned).
 
     Args:
         llc_table (pandas.DataFrame): cutout table
@@ -125,6 +126,7 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         fixed_km (float, optional): Require cutout to be this size in km
         n_cores (int, optional): Number of cores for parallel processing. Defaults to 10.
         valid_fraction (float, optional): [description]. Defaults to 1..
+        calculate_FS (bool, optional): Perform frontogenesis calculations?
         dlocal (bool, optional): Data files are local? Defaults to False.
         override_RAM (bool, optional): Over-ride RAM warning?
         s3_file (str, optional): s3 URL for file to write. Defaults to None.
@@ -211,7 +213,15 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         img_idx += [item[1] for item in answers]
         meta += [item[2] for item in answers]
 
+        # Kinmatics
+        if calculate_FS:
+            # Grab the data fields
+            pass
+
         del answers, fields, items, sst
+
+
+
         ds.close()
 
     # Fuss with indices
