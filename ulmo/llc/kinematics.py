@@ -1,5 +1,6 @@
 """ Routines related to kinemaic measures of LLC data """
 import numpy as np
+from skimage.transform import resize_local_mean
 
 try:
     from gsw import density
@@ -140,6 +141,39 @@ def calc_F_s(U:np.ndarray, V:np.ndarray,
 
     # Return
     return F_s
+
+def cutout_F_S(item:tuple, FS_stats:dict, field_size=None):
+    """Simple function to measue F_S stats
+    Enable multi-processing
+
+    Args:
+        item (tuple): Items for analysis
+        FS_stats (dict): FS stats to calculate
+    """
+    # Unpack
+    U_cutout, V_cutout, Theta_cutout, Salt_cutout, idx = item
+
+    # F_S
+    F_s = calc_F_s(U_cutout, V_cutout, Theta_cutout, Salt_cutout)
+
+    # Resize?
+    if field_size is not None:
+        F_s = resize_local_mean(F_s, (field_size, field_size))
+
+    # Stats
+    Fs_metrics = calc_F_S_stats(F_s, FS_stats)
+
+    return idx, Fs_metrics
+
+def calc_F_S_stats(F_s:np.ndarray, stat_dict:dict):
+    Fs_metrics = {}
+    if 'Fronto_thresh' in stat_dict.keys():
+        Fs_metrics['N_pos_thresh'] = np.sum(F_s > Fs_metrics['Fronto_thresh'])
+    if 'Fronto_sum' in stat_dict.keys():
+        Fs_metrics['pos_sum'] = np.sum(F_s[F_s > 0.])
+    #
+    return Fs_metrics
+
 
 def cutout_vel_stat(item:tuple):
     """
