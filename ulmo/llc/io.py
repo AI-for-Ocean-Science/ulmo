@@ -3,9 +3,10 @@
 import os
 import warnings
 
+import numpy as np
 import xarray as xr
 import pandas
-import h5py
+
 
 from ulmo import io as ulmo_io
 from ulmo.utils import image_utils
@@ -100,6 +101,32 @@ def load_llc_ds(filename, local=False):
     else:
         ds = xr.open_dataset(filename)
     return ds
+
+def grab_cutout(data_var, row, col, field_size=None, fixed_km=None,
+                coords_ds=None, resize=False):
+    if field_size is None and fixed_km is None:
+        raise IOError("Must set field_size or fixed_km")
+    if coords_ds is None:
+        coords_ds = load_coords()
+    # Setup
+    R_earth = 6371. # km
+    circum = 2 * np.pi* R_earth
+    km_deg = circum / 360.
+
+    if fixed_km is not None:
+        dlat_km = (coords_ds.lat.data[row+1,col]-coords_ds.lat.data[row,col]) * km_deg
+        dr = int(np.round(fixed_km / dlat_km))
+    else:
+        dr = field_size
+    dc = dr
+
+    cut_data = data_var[row:row+dr, col:col+dc]
+
+    if resize:
+        raise NotImplementedError("Need to resize..")
+
+    # Return
+    return cut_data
                     
 def grab_image(args):
     warnings.warn('Use grab_image() in utils.image_utils',
