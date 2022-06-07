@@ -12,6 +12,8 @@ start = time.time()
 
 filename = input('Enter filename from s3 with cutouts: ')
 
+key = input('Enter key to access the images from file: ')
+
 new_filename = input('Enter filename with h5 extension to contain all spectral info: ')
 
 apply_hanning_filter = input('To apply Hanning window, enter y : ')
@@ -31,9 +33,9 @@ debug = False
 pp_hf = h5py.File(filename, 'r')
 
 if debug: 
-    imgs = pp_hf['valid'][0:100, ...]
+    imgs = pp_hf[key][0:100, ...]
 else:
-    imgs = pp_hf['valid'][()]
+    imgs = pp_hf[key][()]
 
 pp_hf.close()
     
@@ -51,7 +53,7 @@ data4 = np.zeros( (num_of_cutouts, 4) )
 for idx in range( num_of_cutouts ):
 
     # image
-    img = imgs[idx,0,...]
+    img = imgs[idx,...]
 
     # call ffft
     zonal_psd, freq, zonal_slope_small, zonal_intercept_small, zonal_slope_large, zonal_intercept_large = ffft.fast_fft(array=img, dim=0, d=2000., Detrend_Demean=dtdm ) 

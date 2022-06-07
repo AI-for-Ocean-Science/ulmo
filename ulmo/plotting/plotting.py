@@ -64,7 +64,7 @@ def grid_plot(nrows, ncols):
     return fig, axes
 
 def show_image(img:np.ndarray, cm=None, cbar=True, flipud=True,
-               vmnx=(None,None), show=False):
+               vmnx=(None,None), show=False, clbl = None):
     """Dispay the cutout image
 
     Args:
@@ -83,7 +83,9 @@ def show_image(img:np.ndarray, cm=None, cbar=True, flipud=True,
     #
     ax = sns.heatmap(np.flipud(img), xticklabels=[], 
                      vmin=vmnx[0], vmax=vmnx[1],
-                     yticklabels=[], cmap=cm, cbar=cbar)
+                     yticklabels=[], cmap=cm, cbar=cbar, cbar_kws={'label': clbl, 'fontsize': 20})
+    plt.savefig('image', dpi=600)
+    
     if show:
         plt.show()
     #
