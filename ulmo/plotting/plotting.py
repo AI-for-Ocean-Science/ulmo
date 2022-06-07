@@ -64,7 +64,7 @@ def grid_plot(nrows, ncols):
     return fig, axes
 
 def show_image(img:np.ndarray, cm=None, cbar=True, flipud=True,
-               vmnx=(None,None), show=False, clbl = None):
+               vmnx=(None,None), show=False, set_aspect=None, clbl=None):
     """Dispay the cutout image
 
     Args:
@@ -74,6 +74,8 @@ def show_image(img:np.ndarray, cm=None, cbar=True, flipud=True,
         cbar (bool, optional): If True, show a color bar. Defaults to True.
         flipud (bool, optional): If True, flip the image up/down. Defaults to True.
         vmnx (tuple, optional): Set vmin, vmax. Defaults to None
+        set_aspect (str, optional):
+            Passed to ax.set_aspect() if provided
 
     Returns:
         matplotlib.Axis: axis containing the plot
@@ -88,6 +90,8 @@ def show_image(img:np.ndarray, cm=None, cbar=True, flipud=True,
     
     if show:
         plt.show()
+    if set_aspect is not None:
+        ax.set_aspect(set_aspect)
     #
     return ax
 
@@ -108,9 +112,11 @@ def set_fontsize(ax, fsz):
         item.set_fontsize(fsz)
 
 
-def umap_gallery(main_tbl, outfile=None, point_sz_scl=1., width=800, 
+def umap_gallery(main_tbl, outfile=None, point_sz_scl=1., 
+                 width=800, 
                  height=800, vmnx=(-1000.,None), dxdy=(0.3, 0.3),
-                 Nx=20, debug=None):
+                 Nx=20, debug=False, skip_scatter=False,
+                 fsz=15., ax=None):
     """Generate a UMAP plot and overplot a gallery
     of cutouts
 
@@ -123,7 +129,10 @@ def umap_gallery(main_tbl, outfile=None, point_sz_scl=1., width=800,
         vmnx (tuple, optional): Color bar vmin,vmax. Defaults to (-1000.,None).
         dxdy (tuple, optional): Amount to pad the xlim, ylim by. Defaults to (0.3, 0.3).
         Nx (int, optional): Number of cutout images in x to show. Defaults to 20.
-        debug (bool, optional): Debug? Defaults to None.
+        skip_scatter (bool, optional): Skip the scatter plot?
+        debug (bool, optional): Debug? Defaults to False.
+        ax (matplotlib.plt.Axes, optional): Use this axis!
+        fsz (float, optional): fontsize
 
     Returns:
         matplotlib.plt.Axes: Axis
@@ -136,14 +145,17 @@ def umap_gallery(main_tbl, outfile=None, point_sz_scl=1., width=800,
     dpi = 100
 
     # New plot
-    plt.figure(figsize=(width//dpi, height//dpi))
-    ax = plt.gca()
-    img = ax.scatter(main_tbl.U0, main_tbl.U1,
-            s=point_size, c=main_tbl.LL, 
-            cmap='jet', vmin=vmnx[0], vmax=vmnx[1])
-    cb = plt.colorbar(img, pad=0.)
-    cb.set_label('LL', fontsize=20.)
-    #
+    if ax is None:
+        plt.figure(figsize=(width//dpi, height//dpi))
+        ax = plt.gca()
+    if not skip_scatter:
+        img = ax.scatter(main_tbl.U0, main_tbl.U1,
+                s=point_size, c=main_tbl.LL, 
+                cmap='jet', vmin=vmnx[0], vmax=vmnx[1])
+        cb = plt.colorbar(img, pad=0.)
+        cb.set_label('LL', fontsize=20.)
+        #
+
     ax.set_xlabel(r'$U_0$')
     ax.set_ylabel(r'$U_1$')
 
@@ -184,9 +196,12 @@ def umap_gallery(main_tbl, outfile=None, point_sz_scl=1., width=800,
             axins = ax.inset_axes(
                     [x, y, 0.9*dxv, 0.9*dxv], 
                     transform=ax.transData)
-            cutout_img, pp_hf = image_utils.grab_image(cutout, 
+            try:
+                cutout_img, pp_hf = image_utils.grab_image(cutout, 
                                                        pp_hf=pp_hf,
                                                        close=False)
+            except:
+                embed(header='198 of plotting')                                                    
             _ = sns.heatmap(np.flipud(cutout_img), xticklabels=[], 
                      #vmin=vmnx[0], vmax=vmnx[1],
                      yticklabels=[], cmap=cm, cbar=False,
@@ -198,7 +213,7 @@ def umap_gallery(main_tbl, outfile=None, point_sz_scl=1., width=800,
         if ndone > nmax:
             break
 
-    set_fontsize(ax, 15.)
+    set_fontsize(ax, fsz)
     ax.set_aspect('equal', 'datalim')
     # Finish
     if outfile is not None:

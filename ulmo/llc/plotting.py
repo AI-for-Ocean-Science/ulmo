@@ -4,10 +4,11 @@
 import pandas
 
 from ulmo.plotting import plotting
-from ulmo.llc import io as llc_io
+from ulmo.utils import image_utils
 
 
-def show_cutout(cutout:pandas.core.series.Series): 
+def show_cutout(cutout:pandas.core.series.Series,
+                local_file:str=None): 
     """Simple wrapper for showing the input cutout
 
     Args:
@@ -16,7 +17,7 @@ def show_cutout(cutout:pandas.core.series.Series):
 
 
     # Load image
-    img = llc_io.grab_image(cutout, close=True)
+    img = image_utils.grab_image(cutout, close=True, local_file=local_file)
 
     # Plot
     plotting.show_image(img)

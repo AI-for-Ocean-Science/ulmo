@@ -4,14 +4,14 @@ import pandas
 
 from matplotlib import pyplot as plt
 
-import cartopy.crs as ccrs
+try:
+    import cartopy.crs as ccrs
+except ImportError:
+    print("cartopy not installed..")
 
 # Astronomy tools
 import astropy_healpix
 from astropy import units
-
-from ulmo.utils import image_utils
-
 
 def plot_extraction(llc_table:pandas.DataFrame, figsize=(7,4),
                     resol=None, cbar=False, s=0.01):
@@ -44,7 +44,7 @@ def plot_extraction(llc_table:pandas.DataFrame, figsize=(7,4),
 
     # Healpix?
     if resol is not None:
-        nside = astropy_healpix.pixel_resolution_to_nside(0.5*units.deg)
+        nside = astropy_healpix.pixel_resolution_to_nside(resol*units.deg)
         hp = astropy_healpix.HEALPix(nside=nside)
         hp_lon, hp_lat = hp.healpix_to_lonlat(np.arange(hp.npix))
         img = plt.scatter(x=hp_lon.to('deg').value,

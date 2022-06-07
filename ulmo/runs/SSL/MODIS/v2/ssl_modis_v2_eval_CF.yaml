@@ -1,0 +1,61 @@
+# Script to perform evaluations on all cloud-free data for MODIS 
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: xavier-ssl-modis-cf-eval
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      containers:
+      - name: container
+        image: localhost:30081/profxj/ulmo_nvidia:latest  # UPDATE
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: "1"  # 1 is enough 
+            memory: "15Gi"  # Needs more but hopefully the limits work..
+            ephemeral-storage: 50Gi
+          limits:
+            cpu: "2"
+            memory: "35Gi"  # Memory accumulates, not sure why.  Usually have to run twice..
+            ephemeral-storage: 100Gi
+            nvidia.com/gpu:  "1"  # Uses 100%
+        command: ["/bin/bash", "-c"]
+        args:
+          - cd ulmo; 
+            git fetch;
+            git checkout ssl_paper; 
+            git pull; 
+            python setup.py develop;
+            cd ulmo/runs/SSL/MODIS/v2;
+            python ./ssl_modis_v2.py --opt_path ./experiments/modis_model_v2/opts_cloud_free.json --func_flag evaluate --model CF;
+        env:
+          - name: "ENDPOINT_URL"
+            value: "http://rook-ceph-rgw-nautiluss3.rook"
+          - name: "S3_ENDPOINT"
+            value: "rook-ceph-rgw-nautiluss3.rook"
+        volumeMounts:
+          - name: prp-s3-credentials
+            mountPath: "/root/.aws/credentials"
+            subPath: "credentials"
+          - name: ephemeral
+            mountPath: "/tmp"
+          - name: "dshm"
+            mountPath: "/dev/shm"
+      nodeSelector:
+        nautilus.io/disktype: nvme
+        gpu-type: "1080Ti"  # titan-xp
+      restartPolicy: Never
+      volumes:
+        # Secrets file for nautilus s3 credentials .aws/credentials and .s3cfg
+        - name: prp-s3-credentials
+          secret:
+            secretName: prp-s3-credentials
+        # Shared memory (necessary for Python's multiprocessing.shared_memory module to work)
+        - name: dshm
+          emptyDir:
+            medium: Memory
+        # Ephemeral storage
+        - name: ephemeral
+          emptyDir: {}
