@@ -554,7 +554,8 @@ def fig_LLvsDT(outfile='fig_LLvsDT.png', local=False, vmax=None,
     print('Wrote {:s}'.format(outfile))
 
 
-def fig_slopevsDT(outfile='fig_slopevsDT.png', local=False, vmax=None, 
+def fig_slopevsDT(outfile='fig_slopevsDT.png', table=None,
+                  local=False, vmax=None, 
                     cmap=None, cuts=None, scl = 1, debug=False):
     """ Bivariate of slope_min vs. DT
 
@@ -570,6 +571,7 @@ def fig_slopevsDT(outfile='fig_slopevsDT.png', local=False, vmax=None,
 
     # Load table
     modis_tbl = ssl_paper_analy.load_modis_tbl(local=local, cuts=cuts)
+    outfile = update_outfile(outfile, table)
 
     # Debug?
     if debug:
@@ -593,11 +595,13 @@ def fig_slopevsDT(outfile='fig_slopevsDT.png', local=False, vmax=None,
     print('Wrote {:s}'.format(outfile))
 
 
-def fig_slopes(outfile='fig_slopes.png', local=False, vmax=None, 
+def fig_slopes(outfile='fig_slopes.png', 
+               local=False, vmax=None, table=None,
                     cmap=None, cuts=None, scl = 1, debug=False):
 
     # Load table
     modis_tbl = ssl_paper_analy.load_modis_tbl(local=local, cuts=cuts)
+    outfile = update_outfile(outfile, table)
 
     # Debug?
     if debug:
@@ -943,11 +947,13 @@ def main(pargs):
     
     # slopts
     if pargs.figure == 'slopes':
-        fig_slopes(local=pargs.local, debug=pargs.debug)
+        fig_slopes(local=pargs.local, debug=pargs.debug,
+                    table=pargs.table)
 
     # Slope vs DT
     if pargs.figure == 'slopevsDT':
-        fig_slopevsDT(local=pargs.local, debug=pargs.debug)
+        fig_slopevsDT(local=pargs.local, debug=pargs.debug,
+                    table=pargs.table)
     
     # 2D Stats
     if pargs.figure == '2d_stats':
@@ -1079,6 +1085,8 @@ if __name__ == '__main__':
 # ###########################################################
 # 96% CF
 # LL vs DT -- python py/fig_ssl_modis.py LLvsDT --local --table 96
+# Slopes -- python py/fig_ssl_modis.py slopes --local --table 96
+# Slope vs DT -- python py/fig_ssl_modis.py slopevsDT --local --table 96
 
 # UMAP colored by LL -- python py/fig_ssl_modis.py umap_LL --local --table 96
 # UMAP colored by DT -- python py/fig_ssl_modis.py umap_DT --local --table CF

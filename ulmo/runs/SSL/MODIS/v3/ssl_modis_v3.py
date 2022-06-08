@@ -210,6 +210,7 @@ def ssl_v3_umap(opt_path:str, debug=False, ntrain = 150000,
 def main_train(opt_path: str, debug=False, restore=False, save_file=None):
     """Train the model
 
+    Previously ---
     After running on 2012 without a validation dataset,
     I have now switched to running on 2010.  And to confuse
     everyone, I am going to use the valid set for training
@@ -217,6 +218,10 @@ def main_train(opt_path: str, debug=False, restore=False, save_file=None):
     for validation and ~800,000 for training.  
     But note it is done in the opt_path file.
     Yup, that is confusing
+
+    Now -- (June 2022)
+    We build a single file satisfying the clear_fraction criterion
+    and train/valid are properly named. 
 
     Args:
         opt_path (str): Path + filename of options file
@@ -441,7 +446,7 @@ def sub_tbl_2010():
     ulmo_io.write_main_table(valid_tbl, 'MODIS_2010_valid_SSLv2.parquet', to_s3=False)
     
 
-def prep_cloud_free(clear_fraction=0.04, local=True, 
+def prep_cloud_free(clear_fraction=96, local=True, 
                     img_shape=(64,64), debug=False, 
                     outfile='MODIS_SSL_96clear_images.h5',
                     new_tbl_file='s3://modis-l2/Tables/MODIS_SSL_96clear.parquet'): 
@@ -449,7 +454,7 @@ def prep_cloud_free(clear_fraction=0.04, local=True,
     MODIS L2 that are "cloud free"  (>= 96% clear)
 
     Args:
-        clear_fraction (float, optional): [description]. Defaults to 0.01.
+        clear_fraction (float, optional): [description]. Defaults to 96
         local (bool, optional): [description]. Defaults to True.
         img_shape (tuple, optional): [description]. Defaults to (64,64).
         debug (bool, optional): [description]. Defaults to False.
@@ -466,8 +471,9 @@ def prep_cloud_free(clear_fraction=0.04, local=True,
     modis_tbl = ulmo_io.load_main_table(tbl_file)
 
     # Restrict to cloud free
-    cloud_free = modis_tbl.clear_fraction < clear_fraction
+    cloud_free = modis_tbl.clear_fraction < (1-clear_fraction/100)
     cfree_tbl = modis_tbl[cloud_free].copy()
+    print(f"We have {len(cfree_tbl)} images satisfying the clear_fraction={clear_fraction} criterion")
 
     # Save Ulmo pp_type
     cfree_tbl['ulmo_pp_type'] = cfree_tbl.pp_type.values.copy()
@@ -503,6 +509,7 @@ def prep_cloud_free(clear_fraction=0.04, local=True,
     valid_img_pp = img_tbl.pp_type == 0
     
     # Loop on PreProc files
+    print("Building the file for SSL training and validation")
     pp_files = np.unique(img_tbl.pp_file)
     ivalid, itrain = 0, 0
     for pp_file in pp_files:
@@ -659,7 +666,8 @@ if __name__ == "__main__":
 
 # Re-run with 96% cloud free -- June 2022
 
-# Training images -- on profx (DONE) 2022-06-04
+# Training images -- on profx (DONE) 2022-06-04 -- Done wrong
+# on profx (DONE) 2022-06-08 
 # python ssl_modis_v3.py --func_flag prep_cloud_free --cf 96 --outfile MODIS_SSL_96clear_images.h5
 
 # TRAIN :: Run in cloud

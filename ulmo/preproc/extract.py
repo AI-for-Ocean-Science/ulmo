@@ -23,7 +23,7 @@ def clear_grid(mask, field_size, method, CC_max=0.05,
     CC_max : float
         Maximum cloudy fraction allowed
     ndraw_mnx
-    nsub : int, optional
+    sub_grid_step : int, optional
         Fraction of field-size to use for sub-gridding
     nsgrid_draw : int, optional
         Number of fields to draw per sub-grid
