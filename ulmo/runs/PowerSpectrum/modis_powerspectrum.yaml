@@ -1,8 +1,8 @@
-# Script to perform VIIRS 2013 extractions 
+# Script to perform VIIRS 2020 Pre-proc
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-ssl-modis-2010-train-debug
+  name: xavier-modis-powerspectrum
 spec:
   backoffLimit: 0
   template:
@@ -13,14 +13,14 @@ spec:
         imagePullPolicy: Always
         resources:
           requests:
-            cpu: "4"   # Using at least 4
-            memory: "10Gi"  # Using ~7
-            ephemeral-storage: 50Gi
+            cpu: "1"
+            memory: "24Gi"  # Ran at ~21 Gb
+            ephemeral-storage: 30Gi  # Fine 
           limits:
-            cpu: "8"
-            memory: "20Gi"
-            ephemeral-storage: 100Gi
-            nvidia.com/gpu:  "4"  # See docs to exlude certain types
+            cpu: "2"
+            memory: "32Gi"
+            ephemeral-storage: 200Gi
+            #nvidia.com/gpu:  "1"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]
         args:
           - cd ulmo; 
@@ -28,10 +28,10 @@ spec:
             git checkout ssl_paper; 
             git pull; 
             python setup.py develop;
-            cd ulmo/runs/SSL/MODIS/v2;
-            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp s3://modis-l2/PreProc/MODIS_R2019_2010_95clear_128x128_preproc_std.h5 ./;
-            python ./ssl_modis_v2.py --opt_path ./experiments/modis_model_v2/opts_2010.json --func_flag train --debug;
-            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp models s3://modis-l2/SSL/models --recursive --force;
+            cd ../tmp; 
+            mkdir foo; 
+            cd foo; 
+            python -u /ulmo/ulmo/runs/PowerSpectrum/modis_powerspectrum.py --task slopes; # --debug;
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"

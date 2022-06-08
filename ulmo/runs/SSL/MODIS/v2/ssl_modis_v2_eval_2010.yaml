@@ -1,8 +1,8 @@
-# Script to perform VIIRS 2013 extractions 
+# Script to perform evaluations on all of MODIS using the 2010 model
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-ssl-modis-2012-eval #-debug
+  name: xavier-ssl-modis-2010-eval #-debug
 spec:
   backoffLimit: 0
   template:
@@ -13,24 +13,23 @@ spec:
         imagePullPolicy: Always
         resources:
           requests:
-            cpu: "8"   
-            memory: "8Gi"  # Needs to be large enough to slurp in the images
+            cpu: "1"  # 1 is enough 
+            memory: "15Gi"  # Needs more but hopefully the limits work..
             ephemeral-storage: 50Gi
           limits:
-            cpu: "16"
-            memory: "16Gi"
+            cpu: "2"
+            memory: "35Gi"  # Memory accumulates, not sure why.  
             ephemeral-storage: 100Gi
-            nvidia.com/gpu:  "1"  # See docs to exlude certain types
+            nvidia.com/gpu:  "1"  # Uses 100%
         command: ["/bin/bash", "-c"]
         args:
           - cd ulmo; 
             git fetch;
-            git checkout modis_ssl_full; 
+            git checkout ssl_paper; 
             git pull; 
-            yes | pip install umap healpy torchvision;
             python setup.py develop;
             cd ulmo/runs/SSL/MODIS/v2;
-            python ./ssl_modis_v2.py --opt_path ./experiments/modis_model_v2/opts_2012.json --func_flag evaluate --debug;
+            python ./ssl_modis_v2.py --opt_path ./experiments/modis_model_v2/opts_2010.json --func_flag evaluate; # --debug;
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"

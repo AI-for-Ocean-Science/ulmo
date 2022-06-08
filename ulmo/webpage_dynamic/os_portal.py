@@ -99,6 +99,7 @@ class os_web(object):
         self.stacks_colors = ['#fde725', '#90d743', '#35b779', '#21908d', '#31688e', '#443983', '#440154'][::-1]
         self.nrow, self.ncol = 2, 5
         self.first_im_index = 0
+        self.zero_gallery = 0
 
         # TODO -- ELIMINATE THIS
         self.selected_objects = ColumnDataSource(
@@ -121,6 +122,7 @@ class os_web(object):
         doc.add_root(column(row(self.main_title_div ), 
                             row(column(self.info_div), 
                                 column(self.umap_figure, self.gallery_figure,
+                                    row(self.prev_set, self.next_set), 
                                        self.geo_figure), 
                                 column(
                                     row(self.x_text, self.y_text),
@@ -129,7 +131,7 @@ class os_web(object):
                                     self.search_object, 
                                     self.data_figure, 
                                     self.selected_objects_table,
-                                    self.print_table), #, self.title_div  
+                                    self.print_table),
                             )
                                    #row(self.prev_button, self.next_button)),
                             )
@@ -198,6 +200,8 @@ class os_web(object):
         self.internal_reset = Select(title="Inactive", value="",
                                          options=[])
         self.print_table = Button(label="Print Table", button_type="default")
+        self.next_set = Button(label="Next Set", button_type="default")
+        self.prev_set = Button(label="Previous Set", button_type="default")
         # 
         select_metric_menu = []
         for key in self.metric_dict.keys():
@@ -238,10 +242,11 @@ class os_web(object):
         collage_im_width = int((umap_plot_width-buffer)/self.ncol)
         self.gallery_figures = []
         for _ in range(self.nrow*self.ncol):
-            sfig = figure(tools="box_zoom,save,reset", plot_width=collage_im_width, plot_height=collage_im_width+title_height, 
-            toolbar_location="above", output_backend='webgl', 
-            x_range=(0,self.imsize[0]), 
-            y_range=(0,self.imsize[1]))
+            sfig = figure(tools="box_zoom,save,reset", 
+                          plot_width=collage_im_width, 
+                          plot_height=collage_im_width+title_height, 
+                          toolbar_location="above", output_backend='webgl', 
+                          x_range=(0,self.imsize[0]), y_range=(0,self.imsize[1]))
             self.gallery_figures.append(sfig)
 
         self.gallery_figure = gridplot(self.gallery_figures, ncols=self.ncol)
@@ -468,10 +473,8 @@ class os_web(object):
 
         # Buttons
         self.print_table.on_click(self.print_table_callback)
-        '''
-        self.next_button.on_click(self.next_stack_index)
-        self.prev_button.on_click(self.prev_stack_index)        
-        '''
+        self.prev_set.on_click(self.prev_set_callback)
+        self.next_set.on_click(self.next_set_callback)
 
         # Non-dropdowns
         self.select_object.on_change('value', self.select_object_callback())
@@ -493,7 +496,7 @@ class os_web(object):
         self.select_colormap.on_click(self.select_colormap_callback)
         '''
 
-        self.umap_figure.on_event(PanEnd, self.reset_stack_index)
+        self.umap_figure.on_event(PanEnd, self.reset_gallery_index)
         self.umap_figure.on_event(PanEnd, self.select_stacks_callback())
 
         self.selected_objects_source.selected.on_change(
@@ -569,10 +572,10 @@ class os_web(object):
         self.umap_figure.on_event(Reset, self.update_umap_filter_reset())
 
 
-    def reset_stack_index(self):
+    def reset_gallery_index(self):
         """ Reset stack index
         """
-        self.stack_index = 0
+        self.gallery_index = 0
 
 
     def remove_ticks_and_labels(self, figure):
@@ -671,6 +674,37 @@ class os_web(object):
         # Write
         df.to_csv('OS_viz.csv')
         print("Table written to: OS_viz.csv")
+
+    def prev_set_callback(self, event):
+        """Callback to previous gallery images
+
+        Args:
+            event ([type]): [description]
+        """
+        if len(self.selected_objects_source.data['index']) == 0:
+            print("Need to use the lasso first!")
+            return
+        # 
+        self.gallery_index -= self.nrow*self.ncol
+        self.gallery_index = max(self.gallery_index, 0)
+        print(f"Previous set of gallery images; zero={self.gallery_index}")
+        self.stacks_callback()
+
+    def next_set_callback(self, event):
+        """Callback to next gallery images
+
+        Args:
+            event ([type]): [description]
+        """
+        if len(self.selected_objects_source.data['index']) == 0:
+            print("Need to use the lasso first!")
+            return
+        # 
+        nobj = len(self.selected_objects.data['index'])
+        self.gallery_index += self.nrow*self.ncol
+        self.gallery_index = min(self.gallery_index, nobj-1)
+        print(f"Next set of gallery images; zero={self.gallery_index}")
+        self.stacks_callback()
 
     def select_object_callback(self):
         if self.verbose:
@@ -789,14 +823,15 @@ class os_web(object):
             self.geo_source.data = geo_dict.copy()
 
     def stacks_callback(self):
-        """ Callback method for stacks
+        """ Callback method for lasso objects
         """
         if self.verbose: 
-            print('select_stacks_callback')
+            print('select_objects_callback')
         selected_objects = self.selected_objects.data['index']
         selected_inds = np.array([int(s) for s in selected_objects])
         nof_selected = selected_inds.size
-        inds_visible = selected_inds[self.stack_index:self.stack_index+self.nrow*self.ncol]
+        inds_visible = selected_inds[self.gallery_index:self.gallery_index+
+                                     self.nrow*self.ncol]
 
         xsize, ysize = self.imsize
         self.stacks_sources = []

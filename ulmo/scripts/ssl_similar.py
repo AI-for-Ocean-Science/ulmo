@@ -1,13 +1,15 @@
-""" Script to grab LLC model data """
-### used to set the interpreter searching path
+""" Script to find a set of similar images based on SSL + UMAP """
+
+from signal import raise_signal
 import sys
-target_path = '/home/jovyan/ulmo/'
-sys.path.append(target_path)
 
 # Have to do this here, so odd..
 import pickle
+
 from ulmo import io as ulmo_io
 import os
+
+from IPython import embed
 
 
 def parser(options=None):
@@ -16,10 +18,17 @@ def parser(options=None):
     parser = argparse.ArgumentParser(description='Grab Similar SSL Images')
     parser.add_argument("pp_file", type=str, help="Pre-process file; can be s3")
     parser.add_argument("--pp_idx", default=None, type=int, help="Pre-process identifier")
-    parser.add_argument("model", type=str, help="Name of SSL model [LLC]")
-    parser.add_argument("dataset", type=str, help="Name of dataset [LLC]")
+    parser.add_argument("--opt_path", type=str, help="Name of parameter file for SSL model")
+    parser.add_argument("--method", type=str, default='DT_UMAP', help="Approach to image finding")
+    parser.add_argument("--model", type=str, default='CF', help="Model")
+    #parser.add_argument("dataset", type=str, help="Name of dataset [LLC]")
     parser.add_argument("--img_path", default=None, type=str, help="Path of the target image")
     parser.add_argument("--num_imgs", default=5, type=int, help="Number of images to be searched")
+    parser.add_argument("--s3", default=False, action='store_true',
+                        help="Over-ride errors (as possible)? Not recommended")
+    parser.add_argument("--remove_model", default=False, action='store_true',
+                        help="Remove the model?")
+
 
     if options is None:
         pargs = parser.parse_args()
@@ -27,23 +36,48 @@ def parser(options=None):
         pargs = parser.parse_args(options)
     return pargs
 
-def load_umap(pargs):
+def load_umap(pargs, DT=None):
+    tbl_file = None
     print("Loading UMAP")
     if pargs.model == 'LLC':
         umap_file = 's3://llc/SSL/LLC_MODIS_2012_model/ssl_LLC_v1_umap.pkl'
     elif pargs.model == 'LLC_local':
         umap_file = './ssl_LLC_v1_umap.pkl'
+    if pargs.model == 'CF':
+        if pargs.s3:
+            raise IOError("Not ready for s3!")
+        umap_path = os.path.join(os.getenv('SST_OOD'),
+                                 'MODIS_L2', 'UMAP')
+        if DT < 0.5:
+            umap_file = os.path.join(umap_path, 'MODIS_SSL_cloud_free_DT0_UMAP.pkl')
+        elif DT < 1.0:
+            umap_file = os.path.join(umap_path, 'MODIS_SSL_cloud_free_DT1_UMAP.pkl')
+        elif DT < 1.5:
+            umap_file = os.path.join(umap_path, 'MODIS_SSL_cloud_free_DT15_UMAP.pkl')
+        elif DT < 2.5:
+            umap_file = os.path.join(umap_path, 'MODIS_SSL_cloud_free_DT2_UMAP.pkl')
+        elif DT < 4.:
+            umap_file = os.path.join(umap_path, 'MODIS_SSL_cloud_free_DT4_UMAP.pkl')
+        else:
+            umap_file = os.path.join(umap_path, 'MODIS_SSL_cloud_free_DT5_UMAP.pkl')
+        tbl_file = os.path.join(
+            os.getenv('SST_OOD'), 'MODIS_L2', 'Tables', 
+            os.path.basename(umap_file).replace('_UMAP.pkl', '.parquet'))
     else:
         raise IOError("bad model")
-    umap_base = os.path.basename(umap_file)
-    if not os.path.isfile(umap_base):
-        ulmo_io.download_file_from_s3(umap_base, umap_file)
+    if pargs.s3:
+        umap_base = os.path.basename(umap_file)
+        if not os.path.isfile(umap_base):
+            ulmo_io.download_file_from_s3(umap_base, umap_file)
+    else: # local
+        umap_base = umap_file
     print("UMAP Loaded")
     # Return
-    return pickle.load(ulmo_io.open(umap_base, "rb")) 
+    return pickle.load(ulmo_io.open(umap_base, "rb")), tbl_file
 
-def build_gallery(pargs, img, data_tbl, srt, 
+def build_gallery(pargs, img, data_tbl, srt, local=True, 
                   outfile='similar_images.png', n_new=5):
+
     from matplotlib import pyplot as plt
     import matplotlib.gridspec as gridspec
     import seaborn as sns
@@ -54,20 +88,27 @@ def build_gallery(pargs, img, data_tbl, srt,
     from ulmo.utils import image_utils
 
     # Grab the new images
-    pp_hf = None
     new_imgs = []
+
+    cutout = data_tbl.iloc[srt.values[0]]
+
     for idx in srt[0:n_new]:
         cutout = data_tbl.iloc[idx]
-        print("Grabbing {} from {}".format(cutout.pp_idx, cutout.pp_file))
-        iimg, pp_hf = image_utils.grab_image(cutout, close=False,
-                                            pp_hf=pp_hf)
+        if local:
+            local_file = os.path.join(os.getenv('SST_OOD'),
+                                 'MODIS_L2', 'PreProc',
+                                 os.path.basename(cutout.pp_file))
+        else:
+            local_file = None
+        print("Grabbing {} from {}".format(cutout.pp_idx, os.path.basename(cutout.pp_file)))
+        iimg = image_utils.grab_image(cutout, close=True,
+                                      local_file=local_file)
         new_imgs.append(iimg)
-    pp_hf.close()
     
     _, cm = plotting.load_palette()
     fig = plt.figure(figsize=(12, 6))
     plt.clf()
-    n_col = 4
+    n_col = 3
     n_rows = n_new // n_col + 1 if n_new % n_col else n_new // n_col
     #gs = gridspec.GridSpec(2,3)
     gs = gridspec.GridSpec(n_rows,n_col)
@@ -96,13 +137,9 @@ def build_gallery(pargs, img, data_tbl, srt,
     plt.close()
     print('Wrote {:s}'.format(outfile))
     
-def main(pargs):
+def main_umap(pargs):
     """ Run
     """
-    from IPython import embed
-    # UMAP first
-    latents_mapping = load_umap(pargs)
-
     # Continue
     import numpy as np
     import os
@@ -115,19 +152,27 @@ def main(pargs):
     from PIL import Image
 
     from ulmo import io as ulmo_io
-    from ulmo.ssl.train_util import Params, option_preprocess
+    from ulmo.ssl.train_util import option_preprocess
     from ulmo.ssl import latents_extraction
 
     # Prep
     if pargs.model == 'LLC' or pargs.model == 'LLC_local':
         model_file = 's3://llc/SSL/LLC_MODIS_2012_model/SimCLR_LLC_MODIS_2012_resnet50_lr_0.05_decay_0.0001_bsz_64_temp_0.07_trial_0_cosine_warm/last.pth'
-        opt_file = os.path.join(resource_filename('ulmo', 'runs'),
+        opt_path = os.path.join(resource_filename('ulmo', 'runs'),
                                 'SSL', 'LLC', 'experiments', 
                                 'llc_modis_2012', 'opts.json')
         table_file = 's3://llc/Tables/LLC_MODIS2012_SSL_v1.parquet'
-        
+        opt = option_preprocess(ulmo_io.Params(opt_path))
+    elif pargs.model == 'CF': 
+        opt_path= os.path.join(resource_filename('ulmo', 'runs'),
+            'SSL', 'MODIS', 'v2', 'experiments',
+            'modis_model_v2', 'opts_cloud_free.json')
+        opt = option_preprocess(ulmo_io.Params(opt_path))
+        model_file = os.path.join(opt.s3_outdir, 
+                                  opt.model_folder, 'last.pth')
     else:
         raise IOError("Bad model!!")
+
     
     if not (pargs.pp_idx or pargs.img_path):
         raise IOError("One argument of 'pp_idx' and 'img_path' must be valued.")
@@ -140,9 +185,8 @@ def main(pargs):
     if pargs.pp_idx:
         with ulmo_io.open(pargs.pp_file, 'rb') as f:
             pp_hf = h5py.File(f, 'r')
-        #img = pp_hf['valid'][pargs.pp_idx:pargs.pp_idx+1, ...]
-        img = pp_hf['valid'][pargs.pp_idx:pargs.pp_idx+64, ...]
-        pp_hf.close()
+            img = pp_hf['valid'][pargs.pp_idx:pargs.pp_idx+1, ...]
+            #img = pp_hf['valid'][pargs.pp_idx:pargs.pp_idx+64, ...]
         img = np.repeat(img, 3, axis=1)
         print(f"Image with index={pargs.pp_idx} loaded from {pargs.pp_file}") 
     else:
@@ -155,10 +199,12 @@ def main(pargs):
         img = np.expand_dims(img, axis=0)
         print(f"Target Image is loaded and pre-processd!")
         
+    # Build the SSL model
     model_base = os.path.basename(model_file)
     if not os.path.isfile(model_base):
         ulmo_io.download_file_from_s3(model_base, model_file)
-    opt = option_preprocess(Params(opt_file))
+    else:
+        print(f"Using already downloaded {model_base} for the model")
 
     # DataLoader
     dset = torch.utils.data.TensorDataset(torch.from_numpy(img).float())
@@ -167,12 +213,25 @@ def main(pargs):
         drop_last=False, num_workers=1)
 
     # Time to run
+    embed(header='216 of ssls')
     latents = latents_extraction.model_latents_extract(opt, pargs.pp_file, 
                 'valid', model_base, None, None,
                 loader=data_loader)
 
+    # T90
+    timg = img[0,0,...]
+    srt = np.argsort(timg.flatten())
+    i10 = int(0.1*timg.size)
+    i90 = int(0.9*timg.size)
+    T10 = timg.flatten()[srt[i10]]
+    T90 = timg.flatten()[srt[i90]]
+    DT = T90 - T10
+
     # UMAP me
     print("Embedding")
+    latents_mapping, new_table_file = load_umap(pargs, DT=DT)
+    if new_table_file is not None:
+        table_file = new_table_file
     embedding = latents_mapping.transform(latents)
 
     # Find the closest
@@ -182,14 +241,17 @@ def main(pargs):
     srt_dist = np.argsort(dist)
 
     # Gallery time
-    build_gallery(pargs, img[0,0,...], data_tbl, srt_dist, n_new=pargs.num_imgs)
+    build_gallery(pargs, img[0,0,...], data_tbl, srt_dist, 
+                  n_new=pargs.num_imgs)
     
     # Leave no trace
-    os.remove(model_base)
+    if pargs.remove_model:
+        os.remove(model_base)
 
 if __name__ == "__main__":
     args = parser()
-    main(args)
+    main_umap(args)
 
 # Eddy
 # noise = 480574
+
