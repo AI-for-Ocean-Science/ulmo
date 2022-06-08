@@ -435,7 +435,7 @@ def viirs_concat_tables(clear_frac=None, debug=False):
             all_tbl = viirs_tbl
             first = False
         else:
-            all_tbl = pandas.concat([all_tbl, viirs_tbl])
+            all_tbl = pandas.concat([all_tbl, viirs_tbl], ignore_index=True)
 
     # Write
     if debug:
