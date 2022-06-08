@@ -60,7 +60,7 @@ def load_modis_tbl(table:str=None,
             base1 = 'MODIS_SSL_96clear'
         # DT
         if 'DT' in table:
-            dtstr = table.split('_')
+            dtstr = table.split('_')[1]
             base2 = '_'+dtstr
         else:
             base2 = ''

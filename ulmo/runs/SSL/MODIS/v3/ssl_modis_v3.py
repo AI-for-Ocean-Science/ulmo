@@ -47,6 +47,7 @@ def ssl_v3_umap(opt_path:str, debug=False, ntrain = 150000,
         debug (bool, optional): For testing and debuggin 
         ndim (int, optional): Number of dimensions for the embedding
     """
+    raise NotImplementedError("Am using umap_subset in Analysis/py/ssl_paper_analy.py")
     # Load up the options file
     opt = option_preprocess(ulmo_io.Params(opt_path))
     model_file = os.path.join(opt.model_folder, 'last.pth')

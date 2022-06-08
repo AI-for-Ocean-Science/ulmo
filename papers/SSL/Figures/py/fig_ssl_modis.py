@@ -70,6 +70,20 @@ def update_outfile(outfile, table, umap_dim=2,
     # Table
     if table is None or table == 'std':
         pass
+    else:
+        # Base 1
+        if 'CF' in table:
+            base1 = '_CF'
+        elif '96' in table:
+            base1 = '_96clear'
+        # DT
+        if 'DT' in table:
+            dtstr = table.split('_')[1]
+            base2 = '_'+dtstr
+        else:
+            base2 = ''
+        outfile = outfile.replace('.png', f'{base1}{base2}.png')
+    '''
     elif table == 'CF':
         outfile = outfile.replace('.png', '_CF.png')
     elif table == 'CF_DT0':
@@ -82,6 +96,7 @@ def update_outfile(outfile, table, umap_dim=2,
         outfile = outfile.replace('.png', '_CF_DT1_DT2.png')
     elif table == 'CF_DT2':
         outfile = outfile.replace('.png', '_CF_DT2.png')
+    '''
 
     # Ndim
     if umap_dim == 2:
@@ -1060,4 +1075,20 @@ if __name__ == '__main__':
 # 6) Tracking
 # 7) UMAP on DT=2K subset.
 # 8) Focus on the arc?
+
+# ###########################################################
+# 96% CF
+# LL vs DT -- python py/fig_ssl_modis.py LLvsDT --local --table 96
+
+# UMAP colored by LL -- python py/fig_ssl_modis.py umap_LL --local --table 96
+# UMAP colored by DT -- python py/fig_ssl_modis.py umap_DT --local --table CF
+# UMAP gallery -- python py/fig_ssl_modis.py umap_gallery --local --table CF
+# UMAP of Brazil + 2K -- python py/fig_ssl_modis.py umap_brazil --local --table CF
+# UMAP of Med -- python py/fig_ssl_modis.py umap_Med --local --table CF
+# UMAP of Gulf Stream -- python py/fig_ssl_modis.py umap_GS --local --table CF
+# slope 2dstat -- python py/fig_ssl_modis.py 2d_stats --local --table CF
+
+# 2dhist + contours -- python py/fig_ssl_modis.py umap_2dhist --local --table CF
+# DT vs. U0 -- python py/fig_ssl_modis.py DT_vs_U0 --local --table CF
+
 
