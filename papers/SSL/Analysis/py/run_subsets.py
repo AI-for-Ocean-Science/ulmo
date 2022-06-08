@@ -4,11 +4,14 @@ from pkg_resources import resource_filename
 
 import ssl_paper_analy
 
-opt_path = os.path.join(resource_filename('ulmo', 'runs'),
+opt_path_CF = os.path.join(resource_filename('ulmo', 'runs'),
                         'SSL', 'MODIS', 'v2', 
                         'experiments', 'modis_model_v2', 'opts_cloud_free.json')
+opt_path_96 = os.path.join(resource_filename('ulmo', 'runs'),
+                        'SSL', 'MODIS', 'v3', 
+                        'opts_96clear_ssl.json')
 
-def run_subset(subset, remove=True):                    
+def run_subset(subset, remove=True, CF=False):                    
     if subset == 'DT0':
         DT_cut = (0.25, 0.25)
     elif subset == 'DT10':
@@ -23,17 +26,31 @@ def run_subset(subset, remove=True):
         DT_cut = (3.25, 0.75)
     elif subset == 'DT5':
         DT_cut = (5.0, -1)
+    elif subset == 'all':
+        DT_cut = None
 
+    # Prep
+    if CF:
+        base1 = 'cloud_free'
+        opt_path = opt_path_CF
+    else:
+        base1 = '96clear'
+        opt_path = opt_path_96
     outfile = os.path.join(
         os.getenv('SST_OOD'), 
-        f'MODIS_L2/Tables/MODIS_SSL_cloud_free_{subset}.parquet')
+        f'MODIS_L2/Tables/MODIS_SSL_{base1}_{subset}.parquet')
     umap_savefile = os.path.join(
         os.getenv('SST_OOD'), 
-        f'MODIS_L2/UMAP/MODIS_SSL_cloud_free_{subset}_UMAP.pkl')
+        f'MODIS_L2/UMAP/MODIS_SSL_{base1}_{subset}_UMAP.pkl')
+
+    # Run
     ssl_paper_analy.umap_subset(opt_path, outfile, 
                                 DT_cut=DT_cut, debug=False,
                                 umap_savefile=umap_savefile,
-                                remove=remove)
+                                remove=remove, CF=CF)
+
+# All
+run_subset('all', remove=False)
 
 # DT cuts
 # DT0  0 - 0.5 :: 430000 cutouts
@@ -55,4 +72,7 @@ def run_subset(subset, remove=True):
 #run_subset('DT5', remove=True) 
 
 # DT1  1 :: 2000000 cutouts
-run_subset('DT10', remove=False)
+#run_subset('DT10', remove=False)
+
+# CF
+# IF WE REDOO, SET CF=True

@@ -22,6 +22,8 @@ if os.getenv('SST_OOD'):
                                     'MODIS_L2/Tables/MODIS_SSL_cloud_free.parquet')
     local_modis_CF_DT2_file = os.path.join(os.getenv('SST_OOD'),
                                     'MODIS_L2/Tables/MODIS_SSL_cloud_free_DT2.parquet')
+    local_modis_96_file = os.path.join(os.getenv('SST_OOD'),
+                                    'MODIS_L2/Tables/MODIS_SSL_96clear.parquet')
 
 def load_modis_tbl(table:str=None, 
                    local=False, cuts:str=None, 
@@ -47,9 +49,25 @@ def load_modis_tbl(table:str=None,
 
     # Which file?
     if table is None:
-        table = 'std' # Might change this to CF
-    if table == 'std':
+        table = '96' 
+    if table == 'std':  # Original; too many clouds
         basename = 'MODIS_L2_std.parquet'
+    else:
+        # Base 1
+        if 'CF' in table:
+            base1 = 'MODIS_SSL_cloud_free'
+        elif '96' in table:
+            base1 = 'MODIS_SSL_96clear'
+        # DT
+        if 'DT' in table:
+            dtstr = table.split('_')
+            base2 = '_'+dtstr
+        else:
+            base2 = ''
+        # 
+        basename = base1+base2+'.parquet'
+
+    '''
     elif table == 'CF':
         basename = 'MODIS_SSL_cloud_free.parquet'
     elif table == 'CF_DT0':
@@ -62,6 +80,7 @@ def load_modis_tbl(table:str=None,
         basename = 'MODIS_SSL_cloud_free_DT2.parquet'
     elif table == 'CF_DT1_DT2':
         basename = 'UT1_2003.parquet'
+    '''
 
     if local:
         tbl_file = os.path.join(os.getenv('SST_OOD'), 'MODIS_L2', 'Tables', basename)
@@ -125,7 +144,7 @@ def load_modis_tbl(table:str=None,
 def umap_subset(opt_path:str, outfile:str, DT_cut=None, 
                 ntrain=200000, remove=True,
                 umap_savefile:str=None,
-                local=True, CF=True, debug=False):
+                local=True, CF=False, debug=False):
     """Run UMAP on a subset of the data
     First 2 dimensions are written to the table
 
@@ -137,7 +156,7 @@ def umap_subset(opt_path:str, outfile:str, DT_cut=None,
         remove (bool, optional): _description_. Defaults to True.
         umap_savefile (str, optional): _description_. Defaults to None.
         local (bool, optional): _description_. Defaults to True.
-        CF (bool, optional): Use cloud free set? Defaults to True.
+        CF (bool, optional): Use cloud free (99%) set? Defaults to False.
         debug (bool, optional): _description_. Defaults to False.
 
     Raises:
@@ -148,8 +167,9 @@ def umap_subset(opt_path:str, outfile:str, DT_cut=None,
     opt = option_preprocess(ulmo_io.Params(opt_path))
 
     # Load main table
+    table='CF' if CF else '96'
     modis_tbl = load_modis_tbl(local=local, 
-                               table='CF' if CF else 'std')
+                               table=table)
     modis_tbl['US0'] = 0.
     modis_tbl['US1'] = 0.
 
@@ -159,14 +179,14 @@ def umap_subset(opt_path:str, outfile:str, DT_cut=None,
             keep = modis_tbl.DT > DT_cut[0]
         else:
             keep = np.abs(modis_tbl.DT - DT_cut[0]) < DT_cut[1]
-    else:
-        raise IOError("Need at least one cut!")
+    else: # Do em all!
+        keep = np.ones(len(modis_tbl), dtype=bool)
 
     modis_tbl = modis_tbl[keep].copy()
     print(f"After the cuts, we have {len(modis_tbl)} cutouts to work on.")
 
     # 
-    if CF:
+    if table in ['CF', '96']:
         valid = modis_tbl.ulmo_pp_type == 0
         train = modis_tbl.ulmo_pp_type == 1
         cut_prefix = 'ulmo_'
@@ -174,6 +194,7 @@ def umap_subset(opt_path:str, outfile:str, DT_cut=None,
         raise IOError("Need to deal with this")
 
     # Prep latent_files
+    print(f"Loading latents from this folder: {opt.latents_folder}")
     latents_path = os.path.join(opt.s3_outdir, opt.latents_folder)
     latent_files = ulmo_io.list_of_bucket_files(latents_path)
     latent_files = ['s3://modis-l2/'+item for item in latent_files]
@@ -232,7 +253,7 @@ def umap_subset(opt_path:str, outfile:str, DT_cut=None,
 
     # UMAP me
     ntrain = min(ntrain, nlatents)
-    print(f"Training UMAP on {ntrain} of the files")
+    print(f"Training UMAP on a random {ntrain} set of the files")
     random = np.random.choice(np.arange(nlatents), size=ntrain, 
                               replace=False)
     reducer_umap = umap.UMAP()
