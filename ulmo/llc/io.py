@@ -135,7 +135,9 @@ def grab_image(args):
 
 
 def grab_velocity(cutout:pandas.core.series.Series, ds=None,
-                  add_SST=False, add_Salt:bool=False, local=False):                
+                  add_SST=False, add_Salt:bool=False, 
+                  add_W=False, 
+                  local=False):                
     """Grab velocity
 
     Args:
@@ -144,11 +146,13 @@ def grab_velocity(cutout:pandas.core.series.Series, ds=None,
         local (bool, optional): Grab files from local?
         add_SST (bool, optional): Include SST too?. Defaults to False.
         add_Salt (bool, optional): Include Salt too?. Defaults to False.
+        add_W (bool, optional): Include wz too?. Defaults to False.
 
     Returns:
         list: U, V cutputs 
             and SST too if add_SST=True
             and Salt too if add_SST=True
+            and W too if add_W=True
     """
     if local:
         raise NotImplementedError("Not ready for this yet")
@@ -171,6 +175,11 @@ def grab_velocity(cutout:pandas.core.series.Series, ds=None,
     # Add Salt?
     if add_Salt:
         output.append(ds.Salt[cutout.row:cutout.row+cutout.field_size, 
+                cutout.col:cutout.col+cutout.field_size])
+
+    # Add W
+    if add_W:
+        output.append(ds.W[0, cutout.row:cutout.row+cutout.field_size, 
                 cutout.col:cutout.col+cutout.field_size])
 
     # Return

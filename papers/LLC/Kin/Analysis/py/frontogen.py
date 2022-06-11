@@ -43,29 +43,35 @@ def grab_brazil_cutouts(DT=2.05, dDT=0.05):
     return evals_bz, idx_R1, idx_R2
 
 
-def brazil_pdfs(outfile='F_S_pdfs.npz', debug=False):
-    """ Generate the PDFs of F_S for DT ~ 1K cutouts
+def brazil_pdfs(outfile='brazil_kin_cutouts.npz', debug=False):
+    """ Generate the Kin cutouts of F_S, w_z, Divb2 for DT ~ 1K cutouts
     in the Brazil-Malvanis confluence
     """
     evals_bz, idx_R1, idx_R2 = grab_brazil_cutouts(dDT=0.25) # Higher dDT for stats
 
     # R1 first
-    R1_F_s = []
+    R1_F_s, R1_W, R1_divb = [], [], []
     for kk, iR1 in enumerate(idx_R1):
         if debug and kk > 1:
             continue
         print(f'R1: {kk} of {idx_R1.size}')
         cutout = evals_bz.iloc[iR1]
         # Load 
-        U, V, SST, Salt = llc_io.grab_velocity(
-            cutout, add_SST=True, add_Salt=True)
-        # Calculate
+        U, V, SST, Salt, W = llc_io.grab_velocity(
+            cutout, add_SST=True, add_Salt=True, 
+            add_W=True)
+        # Calculate F_s
         F_s = kinematics.calc_F_s(U.data, V.data, 
                 SST.data, Salt.data)
+        # Calculate divb
+        divb = kinematics.calc_divb(SST.data, Salt.data)
+        # Store
         R1_F_s.append(F_s)
+        R1_W.append(W)
+        R1_divb.append(divb)
 
     # R2 first
-    R2_F_s = []
+    R2_F_s, R2_W, R2_divb = [], [], []
     for kk, iR2 in enumerate(idx_R2):
         if debug and kk > 1:
             continue
@@ -77,11 +83,22 @@ def brazil_pdfs(outfile='F_S_pdfs.npz', debug=False):
         # Calculate
         F_s = kinematics.calc_F_s(U.data, V.data, 
                 SST.data, Salt.data)
+        # Calculate divb
+        divb = kinematics.calc_divb(SST.data, Salt.data)
+        # 
         R2_F_s.append(F_s)
+        R2_W.append(W)
+        R2_divb.append(divb)
 
     # Output
-    np.savez(outfile, R1_F_s=np.stack(R1_F_s),
-             R2_F_s=np.stack(R2_F_s))
+    np.savez(outfile, 
+             R1_F_s=np.stack(R1_F_s),
+             R1_W=np.stack(R1_W),
+             R1_divb=np.stack(R1_divb),
+             R2_F_s=np.stack(R2_F_s),
+             R2_W=np.stack(R2_W),
+             R2_divb=np.stack(R2_divb),
+             )
     print(f"Wrote: {outfile}")
 
 def explore_F_S_thresh(outfile='F_S_thresh.png', debug=False):
