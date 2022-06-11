@@ -107,6 +107,30 @@ def calc_okubo_weiss(U:np.ndarray, V:np.ndarray):
     # Return
     return W
 
+def calc_divb(Theta:np.ndarray, Salt:np.ndarray,
+             ref_rho=1.):
+    """Calculate |Div b|^2
+
+    Args:
+        SST (np.ndarray): SST field
+        Salt (np.ndarray): Salt field
+        ref_rho (float, optional): Reference density
+
+    Returns:
+        np.ndarray: |Div b|^2 field
+    """
+    # Buoyancy
+    rho = density.rho(Salt, Theta, np.zeros_like(Salt))
+    b = rho/ref_rho
+
+    # Gradient
+    dbdx = np.gradient(b, axis=1)
+    dbdy = np.gradient(b, axis=0)
+
+    # Magnitude
+    Div_b2 = dbdx**2 + dbdy**2
+    return Div_b2
+
 def calc_F_s(U:np.ndarray, V:np.ndarray,
              Theta:np.ndarray, Salt:np.ndarray,
              ref_rho=1.):
@@ -117,6 +141,7 @@ def calc_F_s(U:np.ndarray, V:np.ndarray,
         V (np.ndarray): V velocity field
         SST (np.ndarray): SST field
         Salt (np.ndarray): Salt field
+        ref_rho (float, optional): Reference density
 
     Returns:
         np.ndarray: F_s field
@@ -144,11 +169,14 @@ def calc_F_s(U:np.ndarray, V:np.ndarray,
 
 def cutout_F_S(item:tuple, FS_stats:dict, field_size=None):
     """Simple function to measue F_S stats
-    Enable multi-processing
+    Enables multi-processing
 
     Args:
         item (tuple): Items for analysis
         FS_stats (dict): FS stats to calculate
+
+    Returns:
+        int, dict:
     """
     # Unpack
     U_cutout, V_cutout, Theta_cutout, Salt_cutout, idx = item
@@ -166,6 +194,16 @@ def cutout_F_S(item:tuple, FS_stats:dict, field_size=None):
     return idx, Fs_metrics
 
 def calc_F_S_stats(F_s:np.ndarray, stat_dict:dict):
+    """Calcualte statistics on the F_s metric
+
+    Args:
+        F_s (np.ndarray): F_s cutout
+        stat_dict (dict): F_s dict of metrics to calculate
+        and related parameters
+
+    Returns:
+        dict: F_s metrics
+    """
     Fs_metrics = {}
     if 'Fronto_thresh' in stat_dict.keys():
         Fs_metrics['FS_Npos'] = int(np.sum(F_s > stat_dict['Fronto_thresh']))
