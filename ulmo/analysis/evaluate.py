@@ -54,7 +54,9 @@ def eval_from_main(main_table: pandas.DataFrame,
         os.mkdir(output_folder)
 
     # Loop on PreProc files
-    for pp_file in uni_pp_files:
+    for kk, pp_file in enumerate(uni_pp_files):
+        if debug and kk > 0:
+            continue
         # Parse me
         parsed_s3 = urlparse(pp_file)
         local_file = os.path.join(preproc_folder, os.path.basename(pp_file))
