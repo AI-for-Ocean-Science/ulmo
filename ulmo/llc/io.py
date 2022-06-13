@@ -137,7 +137,7 @@ def grab_image(args):
 def grab_velocity(cutout:pandas.core.series.Series, ds=None,
                   add_SST=False, add_Salt:bool=False, 
                   add_W=False, 
-                  local=False):                
+                  local=True):                
     """Grab velocity
 
     Args:
@@ -149,38 +149,38 @@ def grab_velocity(cutout:pandas.core.series.Series, ds=None,
         add_W (bool, optional): Include wz too?. Defaults to False.
 
     Returns:
-        list: U, V cutputs 
+        list: U, V cutouts as np.ndarray (i.e. values)
             and SST too if add_SST=True
             and Salt too if add_SST=True
             and W too if add_W=True
     """
-    if local:
+    if not local:
         raise NotImplementedError("Not ready for this yet")
     # Open
-    with ulmo_io.open(cutout.filename, 'rb') as f:
-        ds = xr.open_dataset(f)
+    #with ulmo_io.open(cutout.filename, 'rb') as f:
+    ds = xr.open_dataset(cutout.filename)
     # U field
     U_cutout = ds.U[cutout.row:cutout.row+cutout.field_size, 
-                cutout.col:cutout.col+cutout.field_size]
+                cutout.col:cutout.col+cutout.field_size].values
     # Vfield
     V_cutout = ds.V[cutout.row:cutout.row+cutout.field_size, 
-                cutout.col:cutout.col+cutout.field_size]
+                cutout.col:cutout.col+cutout.field_size].values
     output = [U_cutout, V_cutout]
 
     # Add SST?
     if add_SST:
         output.append(ds.Theta[cutout.row:cutout.row+cutout.field_size, 
-                cutout.col:cutout.col+cutout.field_size])
+                cutout.col:cutout.col+cutout.field_size].values)
 
     # Add Salt?
     if add_Salt:
         output.append(ds.Salt[cutout.row:cutout.row+cutout.field_size, 
-                cutout.col:cutout.col+cutout.field_size])
+                cutout.col:cutout.col+cutout.field_size].values)
 
     # Add W
     if add_W:
         output.append(ds.W[0, cutout.row:cutout.row+cutout.field_size, 
-                cutout.col:cutout.col+cutout.field_size])
+                cutout.col:cutout.col+cutout.field_size].values)
 
     # Return
     return output

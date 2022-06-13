@@ -99,6 +99,9 @@ def fig_FS_Npos(outfile='fig_FS_Npos.png', log_scale=True):
     plt.close()
     print(f'Wrote: {outfile}')
 
+
+
+
 def fig_LL_distribution(outfile, LL_source='LLC', nside=64, 
                         func='mean', vmnx=None,
                         min_sample=5, normalize=False):
@@ -255,14 +258,12 @@ def main(flg_fig):
     if flg_fig & (2 ** 0):
         fig_FS_Npos()
 
-
-
 # Command line execution
 if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg_fig = 0
-        flg_fig += 2 ** 0  # FS Npos across the globe
+        #flg_fig += 2 ** 0  # FS Npos across the globe
     else:
         flg_fig = sys.argv[1]
 
