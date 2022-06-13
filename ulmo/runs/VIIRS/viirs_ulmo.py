@@ -419,7 +419,7 @@ def viirs_modis_evaluate(debug=False,
     modis_tbl = ulmo_io.load_main_table(modis_tbl_file)
 
     # Save MODIS LL
-    MODIS_LL = modis_tbl.LL.values
+    MODIS_LL = modis_tbl.LL.values.copy()
 
     # Evaluate
     print("Starting evaluating..")
@@ -428,8 +428,8 @@ def viirs_modis_evaluate(debug=False,
                                              debug=debug)
 
     # Rename LL's
-    modis_tbl['VIIRS_LL'] = modis_tbl.LL.values
-    modis_tbl['LL'] = MODIS_LL
+    new_modis_tbl['VIIRS_LL'] = new_modis_tbl.LL.values.copy()
+    new_modis_tbl['LL'] = MODIS_LL
 
     # Write
     new_tbl_file = 's3://modis-l2/Tables/MODIS_L2_viirs.parquet'
