@@ -153,11 +153,11 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
     # Kinematics
     if calculate_kin:
         if kin_stat_dict is None:
-            raise IOError("You must provide kin_stat_dict with calcualte_kin")
+            raise IOError("You must provide kin_stat_dict with calculate_kin")
         # Prep
         if 'calc_FS' in kin_stat_dict.keys() and kin_stat_dict['calc_FS']:
-            map_FS = partial(kinematics.cutout_F_S, 
-                         FS_stats=kin_stat_dict,
+            map_kin = partial(kinematics.cutout_kin, 
+                         kin_stats=kin_stat_dict,
                          field_size=field_size[0])
 
     # Setup for dates
@@ -269,7 +269,7 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
             # Process em
             with ProcessPoolExecutor(max_workers=n_cores) as executor:
                 chunksize = len(items) // n_cores if len(items) // n_cores > 0 else 1
-                answers = list(tqdm(executor.map(map_FS, items,
+                answers = list(tqdm(executor.map(map_kin, items,
                                              chunksize=chunksize), total=len(items)))
             kin_meta += [item[1] for item in answers]
 

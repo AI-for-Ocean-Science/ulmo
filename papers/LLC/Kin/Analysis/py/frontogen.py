@@ -68,10 +68,7 @@ def brazil_pdfs(outfile='brazil_kin_cutouts.npz', debug=False):
             cutout, add_SST=True, add_Salt=True, 
             add_W=True)
         # Calculate F_s
-        F_s = kinematics.calc_F_s(U, V, 
-                SST, Salt)
-        # Calculate divb
-        divb = kinematics.calc_divb(SST, Salt)
+        F_s, divb = kinematics.calc_F_s(U, V, SST, Salt, add_gradb=True)
         # Store
         R1_F_s.append(F_s)
         R1_W.append(W)
@@ -89,9 +86,7 @@ def brazil_pdfs(outfile='brazil_kin_cutouts.npz', debug=False):
             cutout, add_SST=True, add_Salt=True,
             add_W=True)
         # Calculate
-        F_s = kinematics.calc_F_s(U, V, SST, Salt)
-        # Calculate divb
-        divb = kinematics.calc_divb(SST, Salt)
+        F_s, divb = kinematics.calc_F_s(U, V, SST, Salt, add_gradb=True)
         # 
         R2_F_s.append(F_s)
         R2_W.append(W)

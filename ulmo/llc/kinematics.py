@@ -107,9 +107,9 @@ def calc_okubo_weiss(U:np.ndarray, V:np.ndarray):
     # Return
     return W
 
-def calc_divb(Theta:np.ndarray, Salt:np.ndarray,
+def calc_gradb(Theta:np.ndarray, Salt:np.ndarray,
              ref_rho=1.):
-    """Calculate |Div b|^2
+    """Calculate |grad b|^2
 
     Args:
         SST (np.ndarray): SST field
@@ -117,7 +117,7 @@ def calc_divb(Theta:np.ndarray, Salt:np.ndarray,
         ref_rho (float, optional): Reference density
 
     Returns:
-        np.ndarray: |Div b|^2 field
+        np.ndarray: |grad b|^2 field
     """
     # Buoyancy
     rho = density.rho(Salt, Theta, np.zeros_like(Salt))
@@ -128,11 +128,12 @@ def calc_divb(Theta:np.ndarray, Salt:np.ndarray,
     dbdy = np.gradient(b, axis=0)
 
     # Magnitude
-    Div_b2 = dbdx**2 + dbdy**2
-    return Div_b2
+    grad_b2 = dbdx**2 + dbdy**2
+    return grad_b2
 
 def calc_F_s(U:np.ndarray, V:np.ndarray,
              Theta:np.ndarray, Salt:np.ndarray,
+             add_gradb=False,
              ref_rho=1.):
     """Calculate Frontogenesis forcing term
 
@@ -142,9 +143,10 @@ def calc_F_s(U:np.ndarray, V:np.ndarray,
         SST (np.ndarray): SST field
         Salt (np.ndarray): Salt field
         ref_rho (float, optional): Reference density
+        add_gradb (bool, optional): Calculate+return gradb 
 
     Returns:
-        np.ndarray: F_s field
+        np.ndarray or tuple: F_s field (, gradb2)
     """
     dUdx = np.gradient(U, axis=1)
     dVdx = np.gradient(V, axis=1)
@@ -164,16 +166,21 @@ def calc_F_s(U:np.ndarray, V:np.ndarray,
     # Finish
     F_s = F_s_x + F_s_y
 
-    # Return
-    return F_s
+    # div b too?
+    if add_gradb:
+        grad_b2 = dbdx**2 + dbdy**2
+        return F_s, grad_b2
+    else:
+        return F_s
 
-def cutout_F_S(item:tuple, FS_stats:dict, field_size=None):
-    """Simple function to measue F_S stats
+def cutout_kin(item:tuple, kin_stats:dict, field_size=None):
+    """Simple function to measure kinematic stats
+    So far -- front related stats
     Enables multi-processing
 
     Args:
         item (tuple): Items for analysis
-        FS_stats (dict): FS stats to calculate
+        kin_stats (dict): kin stats to calculate
 
     Returns:
         int, dict:
@@ -182,35 +189,44 @@ def cutout_F_S(item:tuple, FS_stats:dict, field_size=None):
     U_cutout, V_cutout, Theta_cutout, Salt_cutout, idx = item
 
     # F_S
-    F_s = calc_F_s(U_cutout, V_cutout, Theta_cutout, Salt_cutout)
+    F_s, gradb = calc_F_s(U_cutout, V_cutout, Theta_cutout, Salt_cutout,
+                   add_gradb=True)
 
     # Resize?
     if field_size is not None:
         F_s = resize_local_mean(F_s, (field_size, field_size))
+        gradb = resize_local_mean(gradb, (field_size, field_size))
 
     # Stats
-    Fs_metrics = calc_F_S_stats(F_s, FS_stats)
+    kin_metrics = calc_kin_stats(F_s, gradb, kin_stats)
 
-    return idx, Fs_metrics
+    return idx, kin_metrics
 
-def calc_F_S_stats(F_s:np.ndarray, stat_dict:dict):
+def calc_kin_stats(F_s:np.ndarray, gradb:np.ndarray, stat_dict:dict):
     """Calcualte statistics on the F_s metric
 
     Args:
         F_s (np.ndarray): F_s cutout
-        stat_dict (dict): F_s dict of metrics to calculate
+        gradb (np.ndarray): |grad b|^2 cutout
+        stat_dict (dict): kin dict of metrics to calculate
         and related parameters
 
     Returns:
-        dict: F_s metrics
+        dict: kin metrics
     """
-    Fs_metrics = {}
+    kin_metrics = {}
+
+    # Frontogensis
     if 'Fronto_thresh' in stat_dict.keys():
-        Fs_metrics['FS_Npos'] = int(np.sum(F_s > stat_dict['Fronto_thresh']))
+        kin_metrics['FS_Npos'] = int(np.sum(F_s > stat_dict['Fronto_thresh']))
     if 'Fronto_sum' in stat_dict.keys():
-        Fs_metrics['FS_pos_sum'] = np.sum(F_s[F_s > 0.])
+        kin_metrics['FS_pos_sum'] = np.sum(F_s[F_s > 0.])
+
+    # Fronts
+    if 'Front_thresh' in stat_dict.keys():
+        kin_metrics['gradb_Npos'] = int(np.sum(gradb > stat_dict['Front_thresh']))
     #
-    return Fs_metrics
+    return kin_metrics
 
 
 def cutout_vel_stat(item:tuple):

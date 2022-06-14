@@ -38,22 +38,32 @@ from IPython import embed
 local_modis_file = '/home/xavier/Projects/Oceanography/AI/OOD/MODIS_L2/Tables/MODIS_L2_std.parquet'
 
 
-
-def fig_FS_Npos(outfile='fig_FS_Npos.png', log_scale=True): 
-
+def fig_xxx_Npos(stat_str:str, log_scale=True): 
     # Load LLC
     LLC_FS_file = 's3://llc/Tables/LLC_FS_r1.0.parquet'
     llc_table = ulmo_io.load_main_table(LLC_FS_file)
     gd = np.isfinite(llc_table.T90.values) 
     llc_table = llc_table[gd].copy()
 
+    # Stat
+    if stat_str == 'FS':
+        outfile='fig_FS_Npos.png'
+        stat = llc_table.FS_Npos.values
+        clbl=r'$\log_{10} \, N(F_s > 0.0002)$'
+    elif stat_str == 'gradb':
+        outfile='fig_gradb_Npos.png'
+        stat = llc_table.gradb_Npos.values
+        clbl=r'$\log_{10} \, N(|\nabla b|^2 > 0.0002)$'
+    else:
+        raise IOError(f'Bad stat: {stat_str}')
+
     # Stats
     if log_scale:
-        metric = np.zeros_like(llc_table.FS_Npos)
-        gdp = np.where(llc_table.FS_Npos.values > 0.)
-        metric[gdp] = np.log10(llc_table.FS_Npos.values[gdp]) 
+        metric = np.zeros_like(stat)
+        gdp = np.where(stat > 0.)
+        metric[gdp] = np.log10(stat[gdp]) 
     else:
-        metric = llc_table.FS_Npos.values
+        metric = stat
 
 
     fig = plt.figure(figsize=(12,8))
@@ -74,10 +84,7 @@ def fig_FS_Npos(outfile='fig_FS_Npos.png', log_scale=True):
         transform=tformP)
 
     cb = plt.colorbar(img, orientation='horizontal', pad=0., location='top')
-    if log_scale:
-        clbl=r'$\log_{10} \, N(F_s > 0.0002)$'
     cb.set_label(clbl, fontsize=20.)
-    #cb.ax.tick_params(labelsize=17)
 
     # Spatial plot
     ax.coastlines(zorder=10)
@@ -256,7 +263,11 @@ def main(flg_fig):
 
     # FS Npos across the globe
     if flg_fig & (2 ** 0):
-        fig_FS_Npos()
+        fig_xxx_Npos('FS')
+
+    # Front Npos across the globe
+    if flg_fig & (2 ** 1):
+        fig_xxx_Npos('gradb')
 
 # Command line execution
 if __name__ == '__main__':
@@ -264,6 +275,7 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         flg_fig = 0
         #flg_fig += 2 ** 0  # FS Npos across the globe
+        flg_fig += 2 ** 1  # gradb Npos across the globe
     else:
         flg_fig = sys.argv[1]
 

@@ -80,8 +80,11 @@ def u_extract_F_S(tbl_file:str, debug=False,
     """
     FS_stat_dict = {}
     FS_stat_dict['calc_FS'] = True
+    # Frontogenesis
     FS_stat_dict['Fronto_thresh'] = 2e-4 
     FS_stat_dict['Fronto_sum'] = True
+    # Fronts
+    FS_stat_dict['Front_thresh'] = 3e-3 
 
     # Giddy up (will take a bit of memory!)
     if debug:
@@ -175,8 +178,8 @@ def main(flg):
         u_init_F_S(full_file, max_lat=57.)
 
     if flg & (2**1):
-        #u_extract_F_S('', debug=True, dlocal=True)
-        u_extract_F_S(full_file)#, debug=True)
+        #u_extract_F_S('', debug=True, dlocal=True)  # debug
+        u_extract_F_S(full_file)
 
     if flg & (2**2):
         u_evaluate_144(full_file)
@@ -192,8 +195,6 @@ if __name__ == '__main__':
         flg = 0
         #flg += 2 ** 0  # 1 -- Setup Table
         #flg += 2 ** 1  # 2 -- Extract
-        #flg += 2 ** 2  # 4 -- Evaluate
-        #flg += 2 ** 3  # 8 -- Velocities
     else:
         flg = sys.argv[1]
 
@@ -202,8 +203,5 @@ if __name__ == '__main__':
 # Setup
 # python -u llc_F_S.py 1
 
-# Extract with noise
+# Extract 
 # python -u llc_F_S.py 2 
-
-# Evaluate -- run in Nautilus
-# python -u llc_uniform_144km.py 4
