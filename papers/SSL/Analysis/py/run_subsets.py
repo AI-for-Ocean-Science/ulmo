@@ -50,13 +50,13 @@ def run_subset(subset, remove=True, CF=False):
                                 remove=remove, CF=CF)
 
 # All
-#run_subset('all', remove=False)
+run_subset('all', remove=False)
 
 # DT cuts
-# DT0  0 - 0.5 :: 430000 cutouts
+# DT0  0 - 0.5 :: 656783 cutouts
 #run_subset('DT0', remove=False)
 
-# DT1  0.5 - 1 :: 2000000 cutouts
+# DT1  0.5 - 1 :: 3579807 cutouts
 #run_subset('DT1', remove=False)
 
 # DT15 1 - 1.5
@@ -68,11 +68,11 @@ def run_subset(subset, remove=True, CF=False):
 # DT4  2.5 - 4 # > 200000
 #run_subset('DT4', remove=False)
 
-# DT5  >5  # 41794 cutouts
+# DT5  >5  # 16000 cutouts
 #run_subset('DT5', remove=False) 
 
 # DT1  1 :: 2000000 cutouts
 #run_subset('DT10', remove=False)
 
 # CF
-# IF WE REDOO, SET CF=True
+# IF WE REDO, SET CF=True
