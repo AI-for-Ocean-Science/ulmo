@@ -670,6 +670,12 @@ if __name__ == "__main__":
 # on profx (DONE) 2022-06-08 
 # python ssl_modis_v3.py --func_flag prep_cloud_free --cf 96 --outfile MODIS_SSL_96clear_images.h5
 
+# EXTRACTION WAS DONE WITH THE v2 FILE
+# Re-run with 96% cloud free -- June 2022
+#  BROKE OFF HERE AND STARTED v3
+# python ssl_modis_v2.py --func_flag prep_cloud_free
+
+
 # TRAIN :: Run in cloud
 #  python ./ssl_modis_v3.py --opt_path opts_96clear_ssl.json --func_flag train;
 
