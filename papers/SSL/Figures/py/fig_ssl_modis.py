@@ -706,12 +706,13 @@ def fig_2d_stats(outroot='fig_2dstats_', stat=None, table=None,
 
 
 def fig_fit_metric(outroot='fig_fit_', metric=None, 
-                   local=False, vmax=None, 
+                   local=False, vmax=None, table=None,
                    distr='normal',
                    cmap=None, cuts=None, debug=False):
 
     # Load table
-    modis_tbl = ssl_paper_analy.load_modis_tbl(local=local, cuts=cuts)
+    modis_tbl = ssl_paper_analy.load_modis_tbl(local=local, cuts=cuts,
+                                               table=table)
 
     # Debug?
     if debug:
@@ -721,6 +722,8 @@ def fig_fit_metric(outroot='fig_fit_', metric=None,
     if metric is None:
         metric = 'DT'
     outfile = outroot+metric+'.png'
+    # Decorate
+    outfile = update_outfile(outfile, table)
 
     # Fit
     xmnx = modis_tbl[metric].min(), modis_tbl[metric].max()
@@ -772,8 +775,8 @@ def fig_fit_metric(outroot='fig_fit_', metric=None,
     print('Wrote {:s}'.format(outfile))
 
     # KS test
-    embed(header='656 of figs')
-    print(stats.kstest(modis_tbl[metric], 'lognorm'))
+    #embed(header='778 of figs')
+    #print(stats.kstest(modis_tbl[metric], distr))
 
 
 def fig_learn_curve(outfile='fig_learn_curve.png'):
@@ -1009,6 +1012,7 @@ if __name__ == '__main__':
     pargs = parse_option()
     main(pargs)
 
+
 # UMAP colored by LL -- python py/fig_ssl_modis.py umap_LL --local
 # Slopes -- python py/fig_ssl_modis.py slopes --local
 # Slope vs DT -- python py/fig_ssl_modis.py slopevsDT --local
@@ -1082,13 +1086,9 @@ if __name__ == '__main__':
 # 7) UMAP on DT=2K subset.
 # 8) Focus on the arc?
 
-# ###########################################################
-# 96% CF
-# LL vs DT -- python py/fig_ssl_modis.py LLvsDT --local --table 96
-# Slopes -- python py/fig_ssl_modis.py slopes --local --table 96
-# Slope vs DT -- python py/fig_ssl_modis.py slopevsDT --local --table 96
 
-# UMAP colored by LL -- python py/fig_ssl_modis.py umap_LL --local --table 96
+
+
 # UMAP colored by DT -- python py/fig_ssl_modis.py umap_DT --local --table CF
 # UMAP gallery -- python py/fig_ssl_modis.py umap_gallery --local --table CF
 # UMAP of Brazil + 2K -- python py/fig_ssl_modis.py umap_brazil --local --table CF
@@ -1100,3 +1100,16 @@ if __name__ == '__main__':
 # DT vs. U0 -- python py/fig_ssl_modis.py DT_vs_U0 --local --table CF
 
 
+
+# ###########################################################
+# 96% CF
+# LL vs DT -- python py/fig_ssl_modis.py LLvsDT --local --table 96
+
+# DT -- python py/fig_ssl_modis.py fit_metric --metric DT --distr lognorm --local --table 96
+# LL -- python py/fig_ssl_modis.py fit_metric --metric LL --distr normal --local --table 96
+# zonal_slope -- python py/fig_ssl_modis.py fit_metric --metric zonal_slope --distr normal --local --table 96
+
+# Slopes -- python py/fig_ssl_modis.py slopes --local --table 96
+# Slope vs DT -- python py/fig_ssl_modis.py slopevsDT --local --table 96
+
+# UMAP colored by LL -- python py/fig_ssl_modis.py umap_LL --local --table 96
