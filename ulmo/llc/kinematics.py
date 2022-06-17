@@ -2,6 +2,8 @@
 import numpy as np
 from skimage.transform import resize_local_mean
 
+from IPython import embed
+
 try:
     from gsw import density
 except ImportError:
@@ -107,34 +109,57 @@ def calc_okubo_weiss(U:np.ndarray, V:np.ndarray):
     # Return
     return W
 
+def calc_gradT(Theta:np.ndarray, dx=2.):
+    """Calculate |grad T|^2
+
+    Args:
+        Theta (np.ndarray): SST field
+        dx (float, optional): Grid spacing in km
+
+    Returns:
+        np.ndarray: |grad T|^2 field
+    """
+
+    # Gradient
+    dTdx = np.gradient(Theta, axis=1) / dx
+    dTdy = np.gradient(Theta, axis=0) / dx
+
+    # Magnitude
+    grad_T2 = dTdx**2 + dTdy**2
+    return grad_T2
+
 def calc_gradb(Theta:np.ndarray, Salt:np.ndarray,
-             ref_rho=1.):
+             ref_rho=1025., g=0.0098, dx=2.):
     """Calculate |grad b|^2
 
     Args:
-        SST (np.ndarray): SST field
+        Theta (np.ndarray): SST field
         Salt (np.ndarray): Salt field
         ref_rho (float, optional): Reference density
+        g (float, optional): Acceleration due to gravity
+            in km/s^2
+        dx (float, optional): Grid spacing in km
 
     Returns:
         np.ndarray: |grad b|^2 field
     """
     # Buoyancy
     rho = density.rho(Salt, Theta, np.zeros_like(Salt))
-    b = rho/ref_rho
+    b = g*rho/ref_rho
 
     # Gradient
-    dbdx = np.gradient(b, axis=1)
-    dbdy = np.gradient(b, axis=0)
+    dbdx = np.gradient(b, axis=1) / dx
+    dbdy = np.gradient(b, axis=0) / dx
 
     # Magnitude
     grad_b2 = dbdx**2 + dbdy**2
+    embed(header='136 of kin')
     return grad_b2
 
 def calc_F_s(U:np.ndarray, V:np.ndarray,
              Theta:np.ndarray, Salt:np.ndarray,
              add_gradb=False,
-             ref_rho=1.):
+             ref_rho=1025., g=0.0098, dx=2.):
     """Calculate Frontogenesis forcing term
 
     Args:
@@ -144,6 +169,9 @@ def calc_F_s(U:np.ndarray, V:np.ndarray,
         Salt (np.ndarray): Salt field
         ref_rho (float, optional): Reference density
         add_gradb (bool, optional): Calculate+return gradb 
+        g (float, optional): Acceleration due to gravity
+            in km/s^2
+        dx (float, optional): Grid spacing in km
 
     Returns:
         np.ndarray or tuple: F_s field (, gradb2)
@@ -156,8 +184,8 @@ def calc_F_s(U:np.ndarray, V:np.ndarray,
 
     # Buoyancy
     rho = density.rho(Salt, Theta, np.zeros_like(Salt))
-    dbdx = -1*np.gradient(rho/ref_rho, axis=1)
-    dbdy = -1*np.gradient(rho/ref_rho, axis=0)
+    dbdx = -1*np.gradient(g*rho/ref_rho, axis=1) / dx
+    dbdy = -1*np.gradient(g*rho/ref_rho, axis=0) / dx
 
     # Terms
     F_s_x = -1 * (dUdx*dbdx + dVdx*dbdy) * dbdx 

@@ -57,7 +57,7 @@ def brazil_pdfs(outfile='brazil_kin_cutouts.npz', debug=False):
     evals_bz, idx_R1, idx_R2 = grab_brazil_cutouts(dDT=0.25) # Higher dDT for stats
 
     # R1 first
-    R1_F_s, R1_W, R1_divb = [], [], []
+    R1_F_s, R1_W, R1_divb, R1_divT = [], [], [], []
     for kk, iR1 in enumerate(idx_R1):
         if debug and kk > 1:
             continue
@@ -69,13 +69,15 @@ def brazil_pdfs(outfile='brazil_kin_cutouts.npz', debug=False):
             add_W=True)
         # Calculate F_s
         F_s, divb = kinematics.calc_F_s(U, V, SST, Salt, add_gradb=True)
+        divT = kinematics.calc_gradT(SST)
         # Store
         R1_F_s.append(F_s)
         R1_W.append(W)
         R1_divb.append(divb)
+        R1_divT.append(divT)
 
     # R2 first
-    R2_F_s, R2_W, R2_divb = [], [], []
+    R2_F_s, R2_W, R2_divb, R2_divT = [], [], [], []
     for kk, iR2 in enumerate(idx_R2):
         if debug and kk > 1:
             continue
@@ -91,15 +93,18 @@ def brazil_pdfs(outfile='brazil_kin_cutouts.npz', debug=False):
         R2_F_s.append(F_s)
         R2_W.append(W)
         R2_divb.append(divb)
+        R2_divT.append(divT)
 
     # Output
     np.savez(outfile, 
              R1_F_s=np.stack(R1_F_s),
              R1_W=np.stack(R1_W),
              R1_divb=np.stack(R1_divb),
+             R1_divT=np.stack(R1_divT),
              R2_F_s=np.stack(R2_F_s),
              R2_W=np.stack(R2_W),
              R2_divb=np.stack(R2_divb),
+             R2_divT=np.stack(R2_divT),
              )
     print(f"Wrote: {outfile}")
 
@@ -221,7 +226,9 @@ def fig_brazil_front_stats(stat:str, outroot='fig_brazil_stats'):
 # Command line execution
 if __name__ == '__main__':
     #grab_brazil_cutouts()
-    #brazil_pdfs()#debug=True)
+
+    # Generate Brazil cutouts
+    brazil_pdfs()#debug=True)
 
     # F_s
     #fig_brazil_front_stats('F_s')
@@ -230,4 +237,4 @@ if __name__ == '__main__':
 
     # Thresholds
     #explore_stat_thresh('F_s')
-    explore_stat_thresh('divb')
+    #explore_stat_thresh('divb')
