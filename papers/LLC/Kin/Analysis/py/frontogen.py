@@ -89,6 +89,7 @@ def brazil_pdfs(outfile='brazil_kin_cutouts.npz', debug=False):
             add_W=True)
         # Calculate
         F_s, divb = kinematics.calc_F_s(U, V, SST, Salt, add_gradb=True)
+        divT = kinematics.calc_gradT(SST)
         # 
         R2_F_s.append(F_s)
         R2_W.append(W)
@@ -117,19 +118,21 @@ def explore_stat_thresh(stat, outroot='_thresh.png', debug=False):
     if stat == 'F_s':
         R1_stat = brazil_front_dict['R1_F_s']
         R2_stat = brazil_front_dict['R2_F_s']
-        xlbl = r'$F_s$'
         mnmx = [2e-5, 1e-2]
     elif stat == 'divb':
         R1_stat = brazil_front_dict['R1_divb']
         R2_stat = brazil_front_dict['R2_divb']
-        xlbl = r'$|\nabla b|^2$'
-        mnmx = [1e-3, 2e-1]
+        mnmx = [1e-14, 1e-12]
+    elif stat == 'divT':
+        R1_stat = brazil_front_dict['R1_divT']
+        R2_stat = brazil_front_dict['R2_divT']
+        mnmx = [1e-2, 1]
 
     N_R1 = R1_stat.shape[0]
 
     # Thesholds
     threshes = 10**np.linspace(np.log10(mnmx[0]),
-                                 np.log10(mnmx[1]), 20)
+                                 np.log10(mnmx[1]), 50)
                                 
     # Prep
     nlim = [1, 3, 10, 30]
@@ -197,6 +200,10 @@ def fig_brazil_front_stats(stat:str, outroot='fig_brazil_stats'):
         R1_stat = brazil_front_dict['R1_divb']
         R2_stat = brazil_front_dict['R2_divb']
         xlbl = r'$|\nabla b|^2$'
+    elif stat == 'divT':
+        R1_stat = brazil_front_dict['R1_divT']
+        R2_stat = brazil_front_dict['R2_divT']
+        xlbl = r'$|\nabla T|^2$'
 
     bins = np.linspace(R1_stat.min(), R1_stat.max(), 100)
 
@@ -234,7 +241,10 @@ if __name__ == '__main__':
     #fig_brazil_front_stats('F_s')
     # divb
     #fig_brazil_front_stats('divb')
+    # divT
+    fig_brazil_front_stats('divT')
 
     # Thresholds
     #explore_stat_thresh('F_s')
     #explore_stat_thresh('divb')
+    explore_stat_thresh('divT')
