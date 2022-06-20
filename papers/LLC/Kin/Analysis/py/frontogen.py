@@ -83,12 +83,13 @@ def brazil_pdfs(outfile='brazil_kin_cutouts.npz', debug=False):
              )
     print(f"Wrote: {outfile}")
 
-def explore_stat_thresh(stat, outroot='_thresh.png', debug=False):
+def explore_stat_thresh(stat, outroot='_thresh.png', debug=False,
+    brazil_front_file = '../Analysis/brazil_kin_cutouts.npz'):
 
     outfile = stat+outroot
 
     # Load
-    brazil_front_dict = np.load('../Analysis/brazil_kin_cutouts.npz')
+    brazil_front_dict = np.load(brazil_front_file)
     if stat == 'F_s':
         R1_stat = brazil_front_dict['R1_F_s']
         R2_stat = brazil_front_dict['R2_F_s']
@@ -103,6 +104,7 @@ def explore_stat_thresh(stat, outroot='_thresh.png', debug=False):
         mnmx = [1e-2, 1]
 
     N_R1 = R1_stat.shape[0]
+    N_R2 = R2_stat.shape[0]
 
     # Thesholds
     threshes = 10**np.linspace(np.log10(mnmx[0]),
@@ -147,7 +149,7 @@ def explore_stat_thresh(stat, outroot='_thresh.png', debug=False):
             R2_lbl = f'R2_{ilim}'
         else:
             R2_lbl = None
-        ax.plot(threshes, np.array(lim_dict[f'R2_{ilim}'])/N_R1,
+        ax.plot(threshes, np.array(lim_dict[f'R2_{ilim}'])/N_R2,
                 label=R2_lbl, ls=lss[kk], color='red')
     # 
     ax.set_xscale('log')
@@ -160,12 +162,16 @@ def explore_stat_thresh(stat, outroot='_thresh.png', debug=False):
     print(f"Wrote: {outfile}")
     #plt.show()
 
-def fig_brazil_front_stats(stat:str, outroot='fig_brazil_stats'):
+def fig_brazil_front_stats(stat:str, outroot='fig_brazil_stats',
+    brazil_front_file = '../Analysis/brazil_kin_cutouts.npz',
+    xlog=False):
 
     outfile = f'{outroot}_{stat}.png'
-    brazil_front_dict = np.load('../Analysis/brazil_kin_cutouts.npz')
 
     # Load
+    brazil_front_dict = np.load(brazil_front_file)
+
+    # Stat
     if stat == 'F_s':
         R1_stat = brazil_front_dict['R1_F_s']
         R2_stat = brazil_front_dict['R2_F_s']
@@ -179,19 +185,26 @@ def fig_brazil_front_stats(stat:str, outroot='fig_brazil_stats'):
         R2_stat = brazil_front_dict['R2_divT']
         xlbl = r'$|\nabla T|^2$'
 
-    bins = np.linspace(R1_stat.min(), R1_stat.max(), 100)
+    # Scaling
+    if xlog:
+        bins = np.linspace(np.log10(max(R1_stat.min(),1e-5)), 
+                           np.log10(R1_stat.max()), 100)
+    else:
+        bins = np.linspace(R1_stat.min(), R1_stat.max(), 100)
+    lscale = (xlog, True)
 
 
     fig = plt.figure(figsize=(12,8))
     gs = gridspec.GridSpec(1,2)
 
+
     # R1
     ax_R1 = plt.subplot(gs[0])
-    _ = sns.histplot(x=R1_stat.flatten(), bins=bins, log_scale=(False,True), ax=ax_R1)
+    _ = sns.histplot(x=R1_stat.flatten(), bins=bins, log_scale=lscale, ax=ax_R1)
     ax_R1.set_title('R1')
 
     ax_R2 = plt.subplot(gs[1])
-    _ = sns.histplot(x=R2_stat.flatten(), bins=bins, log_scale=(False,True), ax=ax_R2,
+    _ = sns.histplot(x=R2_stat.flatten(), bins=bins, log_scale=lscale, ax=ax_R2,
                      color='orange')
     ax_R2.set_title('R2')
 
@@ -209,16 +222,25 @@ if __name__ == '__main__':
     #grab_brazil_cutouts()
 
     # Generate Brazil cutouts
-    brazil_pdfs()#debug=True)
+    #brazil_pdfs()#debug=True)
 
     # F_s
     #fig_brazil_front_stats('F_s')
     # divb
     #fig_brazil_front_stats('divb')
     # divT
-    fig_brazil_front_stats('divT')
+    #fig_brazil_front_stats('divT')
 
     # Thresholds
-    #explore_stat_thresh('F_s')
-    #explore_stat_thresh('divb')
+    explore_stat_thresh('F_s')
+    explore_stat_thresh('divb')
     explore_stat_thresh('divT')
+
+
+    # VIIRS
+    #fig_brazil_front_stats('divT', 
+    #                       outroot='fig_viirs_brazil_stats',
+    #    brazil_front_file = '../Analysis/viirs_brazil_kin_cutouts.npz',
+    #    xlog=True)
+    #explore_stat_thresh('divT', outroot='_viirs_thresh.png',
+    #    brazil_front_file = '../Analysis/viirs_brazil_kin_cutouts.npz')

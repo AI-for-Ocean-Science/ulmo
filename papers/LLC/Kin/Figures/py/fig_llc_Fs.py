@@ -269,10 +269,6 @@ def main(flg_fig):
     if flg_fig & (2 ** 1):
         fig_xxx_Npos('gradb')
 
-    # VIIRS 
-    if flg_fig & (2 ** 1):
-        fig_xxx_Npos('gradb')
-
 # Command line execution
 if __name__ == '__main__':
 

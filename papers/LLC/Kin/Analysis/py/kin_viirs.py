@@ -7,6 +7,7 @@ import h5py
 
 from ulmo import io as ulmo_io
 from ulmo.llc import kinematics
+from ulmo.plotting import plotting
 
 from IPython import embed
 
@@ -15,7 +16,7 @@ sys.path.append(os.path.abspath("../Analysis/py"))
 import kin_utils
 
 def grab_image(cutout:pandas.core.series.Series, 
-               close=True, pp_hf=None, use_local=False):
+               close=True, pp_hf=None, use_local=True):
     """Grab a cutout image
 
     Args:
@@ -29,8 +30,10 @@ def grab_image(cutout:pandas.core.series.Series,
     """
     if use_local:
         basefile = os.path.basename(cutout.pp_file)
-        local_file = os.path.join(os.getenv('SST_OOD'), 'VIIRS', 'PreProc', basefile)
-        pp_hf = h5py.File(local_file, 'r')
+        local_file = os.path.join(os.getenv('SST_OOD'), 'VIIRS', 
+                                  'PreProc', basefile)
+        if pp_hf is None:
+            pp_hf = h5py.File(local_file, 'r')
     # Open?
     if pp_hf is None:
         with ulmo_io.open(cutout.pp_file, 'rb') as f:
@@ -57,7 +60,6 @@ def brazil_pdfs(outfile='viirs_brazil_kin_cutouts.npz', debug=False):
     evals_bz, idx_R1, idx_R2 = kin_utils.grab_brazil_cutouts(
         viirs_table, dDT=0.25) # Higher dDT for stats
 
-
     # R1 first
     R1_F_s, R1_W, R1_divb, R1_divT = [], [], [], []
     for kk, iR1 in enumerate(idx_R1):
@@ -66,9 +68,11 @@ def brazil_pdfs(outfile='viirs_brazil_kin_cutouts.npz', debug=False):
         print(f'R1: {kk} of {idx_R1.size}')
         cutout = evals_bz.iloc[iR1]
         # Load  -- These are done local
-        SST = grab_image(cutout, close=True)
+        SST = grab_image(cutout, close=True, use_local=True)
         # Calculate F_s
         divT = kinematics.calc_gradT(SST)
+        if debug:
+            embed(header='73 of kin viirs')
         # Store
         R1_divT.append(divT)
 
@@ -95,4 +99,4 @@ def brazil_pdfs(outfile='viirs_brazil_kin_cutouts.npz', debug=False):
 
 # Command line execution
 if __name__ == '__main__':
-    brazil_pdfs()
+    brazil_pdfs()#debug=True)
