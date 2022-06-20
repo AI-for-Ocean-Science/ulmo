@@ -44,6 +44,11 @@ yrngs_CF_DT2 = -1., 8.
 xrngs_95 = -4.5, 8.
 yrngs_95 = 4.5, 10.5
 
+# 96
+xyrng_dict = {}
+#xyrng_dict['xrngs_96_DT15'] = (0., 10.)
+#xyrng_dict['yrngs_96_DT15'] = (0., 10.)
+
 # U3
 xrngs_CF_U3 = -4.5, 7.5
 yrngs_CF_U3 = 6.0, 13.
@@ -331,6 +336,22 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
         # Add more!
         dyv *= 0.66
         dxv *= 0.66
+    elif '96_DT' in table: 
+        if f'xrngs_{table}' in xyrng_dict.keys():
+            xmin, xmax = xyrng_dict[f'xrngs_{table}']
+            ymin, ymax = xyrng_dict[f'yrngs_{table}']
+            dxv = 0.5 
+            dyv = 0.25
+        else:
+            xmin, xmax = np.percentile(modis_tbl[umap_keys[0]].values, [0.1, 99.9])
+            ymin, ymax = np.percentile(modis_tbl[umap_keys[1]].values, [0.1, 99.9])
+            dxv = (xmax-xmin)/16.
+            dyv = (ymax-ymin)/16.
+            # Edges
+            xmin -= dxv
+            xmax += dxv
+            ymin -= dyv
+            ymax += dyv
     else:
         xmin, xmax = -4.5, 7
         ymin, ymax = 4.5, 10.5
@@ -886,7 +907,7 @@ def main(pargs):
         #fig_umap_gallery(debug=pargs.debug, in_vmnx=None, table=pargs.table,
         #                 outfile='fig_umap_gallery_novmnx.png')
         if pargs.vmnx is not None:
-            vmnx = [int(ivmnx) for ivmnx in pargs.vmnx.split(',')]
+            vmnx = [float(ivmnx) for ivmnx in pargs.vmnx.split(',')]
         else:
             vmnx = [-1,1]
         if pargs.outfile is not None:
@@ -1113,3 +1134,11 @@ if __name__ == '__main__':
 # Slope vs DT -- python py/fig_ssl_modis.py slopevsDT --local --table 96
 
 # UMAP colored by LL -- python py/fig_ssl_modis.py umap_LL --local --table 96
+
+# UMAP gallery -- 
+#  python py/fig_ssl_modis.py umap_gallery --local --table 96_DT0 --umap_comp S0,S1 --vmnx=-0.3, 0.3
+#  python py/fig_ssl_modis.py umap_gallery --local --table 96_DT1 --umap_comp S0,S1 --vmnx=-0.75,0.75
+#  python py/fig_ssl_modis.py umap_gallery --local --table 96_DT15 --umap_comp S0,S1 --vmnx=-1,1
+#  python py/fig_ssl_modis.py umap_gallery --local --table 96_DT2 --umap_comp S0,S1 --vmnx=-1.5,1.5
+#  python py/fig_ssl_modis.py umap_gallery --local --table 96_DT4 --umap_comp S0,S1 --vmnx=-2,2
+#  python py/fig_ssl_modis.py umap_gallery --local --table 96_DT5 --umap_comp S0,S1 --vmnx=-3,3

@@ -71,8 +71,6 @@ run_subset('all', remove=False)
 # DT5  >5  # 16000 cutouts
 #run_subset('DT5', remove=False) 
 
-# DT1  1 :: 2000000 cutouts
-#run_subset('DT10', remove=False)
 
 # CF
 # IF WE REDO, SET CF=True
