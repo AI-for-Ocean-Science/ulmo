@@ -19,13 +19,13 @@ from IPython import embed
 
 
 def coords(resol, field_size, CC_max=1e-4, outfile=None, 
-           max_lat=None, localCC=True):
+           minmax_lat=None, localCC=True):
     """
     Use healpix to setup a uniform extraction grid
 
     Args:
         resol (float): Typical separation on the healpix grid
-        max_lat (float): Restrict to latitudes lower than this
+        minmax_lat (tuple): Restrict to latitudes given by this range
         field_size (tuple): Cutout size in pixels
         outfile (str, optional): If provided, write the table to this outfile.
             Defaults to None.
@@ -60,9 +60,7 @@ def coords(resol, field_size, CC_max=1e-4, outfile=None,
     # Cross-match
     print("Cross-match")
     idx, sep2d, _ = match_coordinates_sky(hp_coord, llc_coord, nthneighbor=1)
-    flag = np.zeros(len(llc_coord), dtype='bool')
     good_sep = sep2d < hp.pixel_resolution
-    good_sep_idx = np.where(good_sep)
 
     # Build the table
     llc_table = pandas.DataFrame()
@@ -73,10 +71,13 @@ def coords(resol, field_size, CC_max=1e-4, outfile=None,
     llc_table['col'] = good_CC_idx[1][idx[good_sep]] - field_size[0]//2 # Lower left corner
 
     # Cut on latitutde?
-    if max_lat is not None:
-        print(f"Restricting to |latitude| < {max_lat}")
-        gd_lat = np.abs(llc_table.lat) < max_lat
+    if minmax_lat is not None:
+        print(f"Restricting to latitudes = {minmax_lat}")
+        #gd_lat = np.abs(llc_table.lat) < max_lat
+        gd_lat = (llc_table.lat > minmax_lat[0]) & (llc_table.lat < minmax_lat[1])
         llc_table = llc_table[gd_lat].copy()
+        # Reset index                        
+        llc_table.reset_index(inplace=True, drop=True)
     
     # Write
     if outfile is not None:

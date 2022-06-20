@@ -15,13 +15,13 @@ from ulmo.preproc import plotting as pp_plotting
 from IPython import embed
 
 tst_file = 's3://llc/Tables/test_FS_r5.0_test.parquet'
-full_file = 's3://llc/Tables/LLC_FS_r1.0.parquet'
+full_file = 's3://llc/Tables/LLC_FS_r0.5.parquet'
 
 
 def u_init_F_S(tbl_file:str, debug=False, 
                resol=0.5, 
                plot=False,
-               max_lat=None):
+               minmax_lat=None):
     """ Get the show started by sampling uniformly
     in space and and time
 
@@ -30,7 +30,7 @@ def u_init_F_S(tbl_file:str, debug=False,
         debug (bool, optional): _description_. Defaults to True.
         resol (float, optional): _description_. Defaults to 0.5.
         plot (bool, optional): Plot the spatial distribution?
-        max_lat (float, optional): Restrict on latitude
+        minmax_lat (tuple, optional): Restrict on latitude
     """
 
     if debug:
@@ -38,7 +38,7 @@ def u_init_F_S(tbl_file:str, debug=False,
         resol = 5.0
 
     # Begin 
-    llc_table = uniform.coords(resol=resol, max_lat=max_lat,
+    llc_table = uniform.coords(resol=resol, minmax_lat=minmax_lat,
                                field_size=(64,64), outfile=tbl_file)
     # Reset index                        
     llc_table.reset_index(inplace=True, drop=True)
@@ -52,9 +52,7 @@ def u_init_F_S(tbl_file:str, debug=False,
         dti = pandas.date_range('2011-09-13', periods=1, freq='2M')
     else:
         # Extract 24 days across the full range;  ends of months; every 2 weeks
-        #dti = pandas.date_range('2011-09-13', periods=24, freq='2W')
-        # Extract 1 day
-        dti = pandas.date_range('2011-09-13', periods=1, freq='2M')
+        dti = pandas.date_range('2011-09-13', periods=24, freq='2W')
     llc_table = extract.add_days(llc_table, dti, outfile=tbl_file)
 
     print(f"Wrote: {tbl_file} with {len(llc_table)} unique cutouts.")
@@ -175,7 +173,7 @@ def main(flg):
         # Debug
         #u_init_F_S('tmp', debug=True, plot=True)
         # Real deal
-        u_init_F_S(full_file, max_lat=57.)
+        u_init_F_S(full_file, minmax_lat=(-72,57.))
 
     if flg & (2**1):
         #u_extract_F_S('', debug=True, dlocal=True)  # debug
@@ -200,7 +198,7 @@ if __name__ == '__main__':
 
     main(flg)
 
-# Setup
+# Init
 # python -u llc_F_S.py 1
 
 # Extract 
