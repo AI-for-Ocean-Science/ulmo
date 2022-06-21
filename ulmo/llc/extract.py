@@ -294,6 +294,7 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         ex_idx, ppf_idx, 
         valid_fraction, s3_file, local_file,
         kin_meta=kin_meta)
+    del pp_fields
 
     # Write kin?
     if extract_kin:
@@ -305,7 +306,6 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         pp_utils.write_extra_fields(divb_fields, llc_table, divb_local_file)
 
     # Clean up
-    del pp_fields
 
     # Upload to s3? 
     if s3_file is not None:
