@@ -201,7 +201,8 @@ def calc_F_s(U:np.ndarray, V:np.ndarray,
     else:
         return F_s
 
-def cutout_kin(item:tuple, kin_stats:dict, field_size=None):
+def cutout_kin(item:tuple, kin_stats:dict, field_size=None,
+               extract_kin=False):
     """Simple function to measure kinematic stats
     So far -- front related stats
     Enables multi-processing
@@ -209,9 +210,12 @@ def cutout_kin(item:tuple, kin_stats:dict, field_size=None):
     Args:
         item (tuple): Items for analysis
         kin_stats (dict): kin stats to calculate
+        extract_kin (bool, optioal): If True, return
+            the extracted cutouts too
 
     Returns:
-        int, dict:
+        tuple: int, dict if extract_kin is False
+            Otherwise, int, dict, np.ndarray, np.ndarray
     """
     # Unpack
     U_cutout, V_cutout, Theta_cutout, Salt_cutout, idx = item
@@ -228,7 +232,11 @@ def cutout_kin(item:tuple, kin_stats:dict, field_size=None):
     # Stats
     kin_metrics = calc_kin_stats(F_s, gradb, kin_stats)
 
-    return idx, kin_metrics
+    if extract_kin:
+        return idx, kin_metrics, F_s, gradb
+    else:
+        return idx, kin_metrics
+
 
 def calc_kin_stats(F_s:np.ndarray, gradb:np.ndarray, stat_dict:dict):
     """Calcualte statistics on the F_s metric
