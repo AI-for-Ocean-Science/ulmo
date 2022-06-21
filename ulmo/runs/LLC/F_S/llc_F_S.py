@@ -168,8 +168,8 @@ def main(flg):
         u_init_F_S(full_file, minmax_lat=(-72,57.))
 
     if flg & (2**1):
-        u_extract_F_S('', debug=True, dlocal=True)  # debug
-        #u_extract_F_S(full_file)
+        #u_extract_F_S('', debug=True, dlocal=True)  # debug
+        u_extract_F_S(full_file)
 
     if flg & (2**2):
         u_evaluate_144(full_file)

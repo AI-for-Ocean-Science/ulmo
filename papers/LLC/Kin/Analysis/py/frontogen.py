@@ -217,6 +217,50 @@ def fig_brazil_front_stats(stat:str, outroot='fig_brazil_stats',
     plt.close()
     print(f'Wrote: {outfile}')
 
+def fig_brazil_divT_cdf(outfile='fig_brazil_divT_cdf.png', xlog=False):
+
+    # Load
+    brazil_front_file = '../Analysis/brazil_kin_cutouts.npz'
+    viirs_brazil_front_file = '../Analysis/viirs_brazil_kin_cutouts.npz'
+
+    brazil_front_dict = np.load(brazil_front_file)
+    viirs_brazil_front_dict = np.load(viirs_brazil_front_file)
+
+    # Load up
+    R1_stat = brazil_front_dict['R1_divT']
+    R2_stat = brazil_front_dict['R2_divT']
+    viirs_R1_stat = viirs_brazil_front_dict['R1_divT']
+    viirs_R2_stat = viirs_brazil_front_dict['R2_divT']
+    xlbl = r'$|\nabla T|^2$'
+
+    fig = plt.figure(figsize=(12,8))
+    gs = gridspec.GridSpec(1,1)
+
+    # CDFs
+    ax = plt.subplot(gs[0])
+    # LLC
+    _ = sns.ecdfplot(x=R1_stat.flatten(), ax=ax, log_scale=(True,False),
+                     label='R1 LLC')
+    _ = sns.ecdfplot(x=R2_stat.flatten(), ax=ax, log_scale=(True,False),
+                     label='R2 LLC', color='r')
+    _ = sns.ecdfplot(x=viirs_R1_stat.flatten(), ax=ax, log_scale=(True,False),
+                     label='R1 VIIRS', ls='--', color='b')
+    _ = sns.ecdfplot(x=viirs_R2_stat.flatten(), ax=ax, log_scale=(True,False),
+                     label='R2 VIIRS', ls='--', color='r')
+
+    # Legend
+    ax.legend(loc='upper left')
+    ax.set_xlim(1e-8, 1.)
+
+    # Axes
+    for ax in [ax]:
+        plotting.set_fontsize(ax, 14.)
+        ax.set_xlabel(xlbl)
+    plt.tight_layout(pad=0.2,h_pad=0.,w_pad=0.1)
+    plt.savefig(outfile, dpi=200)
+    plt.close()
+    print(f'Wrote: {outfile}')
+
 # Command line execution
 if __name__ == '__main__':
     #grab_brazil_cutouts()
@@ -232,9 +276,9 @@ if __name__ == '__main__':
     #fig_brazil_front_stats('divT')
 
     # Thresholds
-    explore_stat_thresh('F_s')
-    explore_stat_thresh('divb')
-    explore_stat_thresh('divT')
+    #explore_stat_thresh('F_s')
+    #explore_stat_thresh('divb')
+    #explore_stat_thresh('divT')
 
 
     # VIIRS
@@ -244,3 +288,6 @@ if __name__ == '__main__':
     #    xlog=True)
     #explore_stat_thresh('divT', outroot='_viirs_thresh.png',
     #    brazil_front_file = '../Analysis/viirs_brazil_kin_cutouts.npz')
+
+    # VIIRS vs. LLC
+    fig_brazil_divT_cdf()
