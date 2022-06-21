@@ -295,6 +295,10 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         valid_fraction, s3_file, local_file,
         kin_meta=kin_meta)
 
+    # Write kin?
+    pp_utils.write_extra_fields(Fs_fields, llc_table,
+                                Fs_local_file)
+
     # Clean up
     del pp_fields
 

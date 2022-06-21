@@ -557,3 +557,57 @@ def write_pp_fields(pp_fields:list, meta:list,
 
     # Return
     return main_tbl
+
+def write_extra_fields(fields:list, 
+                    main_tbl:pandas.DataFrame, 
+                    local_file:str):
+    """Write an extra set of cutouts to disk
+
+    Args:
+        fields (list): List of preprocessed fields
+        main_tbl (pandas.DataFrame): Main table
+        s3_file (str): [description]
+        local_file (str): [description]
+
+    Returns:
+        pandas.DataFrame: Updated main table
+    """
+    
+    # Recast
+    fields = np.stack(fields)
+    fields = fields[:, None, :, :]  # Shaped for training
+    fields = fields.astype(np.float32) # Recast
+
+    print("After pre-processing, there are {} images ready for analysis".format(pp_fields.shape[0]))
+
+    # Need to be in sync with main cutouts
+    valid = main_tbl.pp_type == ulmo_defs.mtbl_dmodel['pp_type']['valid']
+    train = main_tbl.pp_type == ulmo_defs.mtbl_dmodel['pp_type']['train']
+    ntrain = np.sum(train)
+
+    # Fuss with indexing
+    all_idx = np.arange(len(main_tbl))
+    embed(header='588 of utils')
+    valid_idx = all_idx[valid][main_tbl.pp_idx[valid]]
+    
+    clms = list(main_tbl.keys())
+    # ###################
+    # Write to disk (avoids holding another 20Gb in memory)
+    print("Writing: {}".format(local_file))
+    with h5py.File(local_file, 'w') as f:
+        # Validation
+        f.create_dataset(
+            'valid', data=fields[valid_idx].astype(np.float32))
+        # Metadata
+        dset = f.create_dataset('valid_metadata', 
+                                data=main_tbl.iloc[valid_idx].to_numpy(dtype=str).astype('S'))
+        dset.attrs['columns'] = clms
+        # Train
+        if ntrain > 0:
+            f.create_dataset('train', data=pp_fields[train_idx].astype(np.float32))
+            dset = f.create_dataset('train_metadata', data=main_tbl.iloc[train_idx].to_numpy(dtype=str).astype('S'))
+            dset.attrs['columns'] = clms
+    print("Wrote: {}".format(local_file))
+
+    # Return
+    return main_tbl
