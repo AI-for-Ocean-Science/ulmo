@@ -578,17 +578,26 @@ def write_extra_fields(fields:list,
     fields = fields[:, None, :, :]  # Shaped for training
     fields = fields.astype(np.float32) # Recast
 
-    print("After pre-processing, there are {} images ready for analysis".format(pp_fields.shape[0]))
+    print("After pre-processing, there are {} images ready for analysis".format(fields.shape[0]))
 
     # Need to be in sync with main cutouts
     valid = main_tbl.pp_type == ulmo_defs.mtbl_dmodel['pp_type']['valid']
     train = main_tbl.pp_type == ulmo_defs.mtbl_dmodel['pp_type']['train']
     ntrain = np.sum(train)
 
+    # Prep -- this stuff is confusing!!
+    sub_tbl = main_tbl[valid | train].copy()
+    sub_idx = np.arange(len(sub_tbl))
+    assert len(sub_idx) == fields.shape[0]
+
     # Fuss with indexing
-    all_idx = np.arange(len(main_tbl))
-    embed(header='588 of utils')
-    valid_idx = all_idx[valid][main_tbl.pp_idx[valid]]
+    valid = sub_tbl.pp_type == ulmo_defs.mtbl_dmodel['pp_type']['valid']
+    valid_idx = sub_idx[np.argsort(sub_tbl.pp_idx.values[valid])]
+
+    # Train
+    if ntrain > 0:
+        train = sub_tbl.pp_type == ulmo_defs.mtbl_dmodel['pp_type']['train']
+        train_idx = sub_idx[np.argsort(sub_tbl.pp_idx.values[train])]
     
     clms = list(main_tbl.keys())
     # ###################
@@ -604,7 +613,7 @@ def write_extra_fields(fields:list,
         dset.attrs['columns'] = clms
         # Train
         if ntrain > 0:
-            f.create_dataset('train', data=pp_fields[train_idx].astype(np.float32))
+            f.create_dataset('train', data=fields[train_idx].astype(np.float32))
             dset = f.create_dataset('train_metadata', data=main_tbl.iloc[train_idx].to_numpy(dtype=str).astype('S'))
             dset.attrs['columns'] = clms
     print("Wrote: {}".format(local_file))

@@ -296,8 +296,13 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         kin_meta=kin_meta)
 
     # Write kin?
-    pp_utils.write_extra_fields(Fs_fields, llc_table,
-                                Fs_local_file)
+    if extract_kin:
+        # F_s
+        Fs_local_file = local_file.replace('.h5', '_Fs.h5')
+        pp_utils.write_extra_fields(Fs_fields, llc_table, Fs_local_file)
+        # divb
+        divb_local_file = local_file.replace('.h5', '_divb.h5')
+        pp_utils.write_extra_fields(divb_fields, llc_table, divb_local_file)
 
     # Clean up
     del pp_fields

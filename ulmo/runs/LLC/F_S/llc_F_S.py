@@ -154,16 +154,6 @@ def u_evaluate_144(tbl_file:str,
     ulmo_io.write_main_table(llc_table, tbl_file)
 
 
-def u_add_velocities():
-    # Load
-    llc_table = ulmo_io.load_main_table(tbl_file)
-    
-    # Velocities
-    extract.velocity_stats(llc_table)
-
-    # Write 
-    ulmo_io.write_main_table(llc_table, tbl_file)
-
 def main(flg):
     if flg== 'all':
         flg= np.sum(np.array([2 ** ii for ii in range(25)]))
