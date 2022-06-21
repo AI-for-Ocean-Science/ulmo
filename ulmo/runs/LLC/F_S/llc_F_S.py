@@ -127,6 +127,7 @@ def u_extract_F_S(tbl_file:str, debug=False,
                                  preproc_root=preproc_root,
                                  s3_file=pp_s3_file,
                                  calculate_kin=True,
+                                 extract_kin=True,
                                  kin_stat_dict=FS_stat_dict,
                                  dlocal=dlocal,
                                  override_RAM=True)

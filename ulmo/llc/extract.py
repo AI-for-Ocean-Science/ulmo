@@ -112,6 +112,7 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
                          n_cores=10,
                          valid_fraction=1., 
                          calculate_kin=False,
+                         extract_kin=False,
                          kin_stat_dict=None,
                          dlocal=False,
                          override_RAM=False,
@@ -127,7 +128,8 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         fixed_km (float, optional): Require cutout to be this size in km
         n_cores (int, optional): Number of cores for parallel processing. Defaults to 10.
         valid_fraction (float, optional): [description]. Defaults to 1..
-        calculate_FS (bool, optional): Perform frontogenesis calculations?
+        calculate_kin (bool, optional): Perform frontogenesis calculations?
+        extract_kin (bool, optional): Extract kinematic cutouts too!
         kin_stat_dict (dict, optional): dict for guiding FS stats
         dlocal (bool, optional): Data files are local? Defaults to False.
         override_RAM (bool, optional): Over-ride RAM warning?
@@ -158,6 +160,7 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         if 'calc_FS' in kin_stat_dict.keys() and kin_stat_dict['calc_FS']:
             map_kin = partial(kinematics.cutout_kin, 
                          kin_stats=kin_stat_dict,
+                         extract_kin=extract_kin,
                          field_size=field_size[0])
 
     # Setup for dates
@@ -171,11 +174,12 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         kin_meta = []
     else:
         kin_meta = None
+    if extract_kin:  # Cutouts of kinematic information
+        Fs_fields, divb_fields = [], []
 
     # Prep LLC Table
-    llc_table = pp_utils.prep_table_for_preproc(llc_table, 
-                                                preproc_root,
-                                                field_size=field_size)
+    llc_table = pp_utils.prep_table_for_preproc(
+        llc_table, preproc_root, field_size=field_size)
     # Loop
     if debug:
         uni_date = uni_date[0:1]
@@ -205,7 +209,7 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
                 dlat_km = (coords_ds.lat.data[r+1,c]-coords_ds.lat.data[r,c]) * km_deg
                 dr = int(np.round(fixed_km / dlat_km))
                 dc = dr
-                # Save for F_S
+                # Save for kinematics
                 drs.append(dr)
                 rs.append(r)
                 cs.append(c)
@@ -272,6 +276,10 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
                 answers = list(tqdm(executor.map(map_kin, items,
                                              chunksize=chunksize), total=len(items)))
             kin_meta += [item[1] for item in answers]
+            if extract_kin:
+                Fs_fields += [item[2] for item in answers]
+                divb_fields += [item[3] for item in answers]
+            del answers
 
         ds.close()
 
@@ -286,6 +294,10 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         ex_idx, ppf_idx, 
         valid_fraction, s3_file, local_file,
         kin_meta=kin_meta)
+
+    # Write kin?
+    pp_utils.write_extra_fields(Fs_fields, llc_table,
+                                Fs_local_file)
 
     # Clean up
     del pp_fields
