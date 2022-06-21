@@ -45,7 +45,7 @@ def vet_main_table(table:pandas.DataFrame, cut_prefix=None,
 
     Args:
         table (pandas.DataFrame or dict): [description]
-        cut_prefix (str, optional): . Defaults to None.
+        cut_prefix (str or list, optional): . Defaults to None.
         data_model (dict, optional): Data model to test
             against.  If None, use the main Ulmo data model
 
@@ -54,6 +54,12 @@ def vet_main_table(table:pandas.DataFrame, cut_prefix=None,
     """
     if data_model is None:
         data_model = defs.mtbl_dmodel
+    if cut_prefix is not None:
+        # Make the list
+        if not isinstance(cut_prefix, list):
+            list_cut_prefix = [cut_prefix]
+        else:
+            list_cut_prefix = cut_prefix
 
     chk = True
     # Loop on the keys
@@ -61,11 +67,13 @@ def vet_main_table(table:pandas.DataFrame, cut_prefix=None,
     badtype_keys = []
     for key in table.keys():
         # Allow for cut prefix
-        if cut_prefix is not None and len(key) > len(cut_prefix) and (
-                key[:len(cut_prefix)] == cut_prefix):
-            skey = key[len(cut_prefix):]
-        else:
-            skey = key
+        skey = key
+        if cut_prefix is not None: 
+            # Loop over em
+            for icut_prefix in list_cut_prefix:
+                if len(key) > len(icut_prefix) and (
+                    key[:len(icut_prefix)] == icut_prefix):
+                    skey = key[len(icut_prefix):]
         # In data model?
         if not skey in data_model.keys():
             disallowed_keys.append(key)
