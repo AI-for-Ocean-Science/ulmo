@@ -692,7 +692,94 @@ def fig_umap_geo(outfile, table, umap_rngs, local=False,
     plt.close()
     print('Wrote {:s}'.format(outfile))
 
+def fig_geo_umap(outfile, lonlat_rngs,
+                     local=False, 
+                     umap_comp='S0,S1',
+                     table='96_DT15',
+                     umap_dim=2, cmap='bwr',
+                     debug=False): 
+    # Load
+    modis_tbl = ssl_paper_analy.load_modis_tbl(local=local, table=table)
 
+    umap_keys = gen_umap_keys(umap_dim, umap_comp)
+    outfile = update_outfile(outfile, table, umap_dim,
+                             umap_comp=umap_comp)
+    # Boundaries of the box
+    xmin, xmax = np.percentile(modis_tbl[umap_keys[0]].values, [0.1, 99.9])
+    ymin, ymax = np.percentile(modis_tbl[umap_keys[1]].values, [0.1, 99.9])
+    dxv = (xmax-xmin)/16.
+    dyv = (ymax-ymin)/16.
+    # Edges
+    xmin -= dxv
+    xmax += dxv
+    ymin -= dyv
+    ymax += dyv
+
+    # Grid
+    xval = np.arange(xmin, xmax+dxv, dxv)
+    yval = np.arange(ymin, ymax+dyv, dyv)
+
+    # cut
+    good = (modis_tbl[umap_keys[0]] > xmin) & (
+        modis_tbl[umap_keys[0]] < xmax) & (
+        modis_tbl[umap_keys[1]] > ymin) & (
+            modis_tbl[umap_keys[1]] < ymax) & np.isfinite(modis_tbl.LL)
+
+    modis_tbl = modis_tbl.loc[good].copy()
+    num_samples = len(modis_tbl)
+    print(f"We have {num_samples} making the cuts.")
+
+    # All
+    counts, xedges, yedges = np.histogram2d(
+        modis_tbl[umap_keys[0]], 
+        modis_tbl[umap_keys[1]], bins=(xval, yval))
+
+    counts /= np.sum(counts)
+
+    # Geographic
+    #embed(header='739 of figs')
+    geo = ( (modis_tbl.lon > lonlat_rngs[0][0]) &
+        (modis_tbl.lon < lonlat_rngs[0][1]) &
+        (modis_tbl.lat > lonlat_rngs[1][0]) &
+        (modis_tbl.lat < lonlat_rngs[1][1]) )
+
+    geo_tbl = modis_tbl.loc[good & geo].copy()
+    counts_geo, xedges, yedges = np.histogram2d(
+        geo_tbl[umap_keys[0]], 
+        geo_tbl[umap_keys[1]], bins=(xval, yval))
+    counts_geo /= np.sum(counts_geo)
+
+    rtio_counts = counts_geo / counts
+
+    fig = plt.figure(figsize=(8, 8))
+    plt.clf()
+    ax = plt.gca()
+
+
+    ax.set_xlabel(r'$'+umap_keys[0]+'$')
+    ax.set_ylabel(r'$'+umap_keys[1]+'$')
+
+    #ax.set_xlim(xmin, xmax)
+    #ax.set_ylim(ymin, ymax)
+
+    cm = plt.get_cmap(cmap)
+    values = rtio_counts.transpose()
+    lbl = 'Relative Frequency'
+    vmin, vmax = 0, 2.
+    mplt = ax.pcolormesh(xedges, yedges, values, 
+                         cmap=cm, vmin=vmin, vmax=vmax) 
+
+    # Color bar
+    show_cbar = False
+    if show_cbar:
+        cbaxes = plt.colorbar(mplt, pad=0., fraction=0.030)
+        cbaxes.set_label(lbl, fontsize=15.)
+
+    plotting.set_fontsize(ax, 19.)
+    plt.savefig(outfile, dpi=200)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+    
 
 def fig_LLvsDT(outfile='fig_LLvsDT.png', local=False, vmax=None, 
                 umap_dim=2,
@@ -1125,6 +1212,32 @@ def main(pargs):
         #    '96_DT2', [[5.5,7], [8.7,9.5]], 
         #    debug=pargs.debug, local=pargs.local)
 
+    if pargs.figure == 'geo_umap':
+        # Mediterranean
+        #fig_geo_umap('fig_geo_umap_DT15_med.png',
+        #    [[0, 60.],   # E
+        #     [30, 45.]], # North
+        #    debug=pargs.debug, local=pargs.local)
+
+        # Equatorial Pacific
+        #fig_geo_umap('fig_geo_umap_DT15_eqpacific.png',
+        #    [[-140, -90.],   # W
+        #     [-10, 10.]],    # Equitorial 
+        #    debug=pargs.debug, local=pargs.local)
+
+        # Coastal California
+        #fig_geo_umap('fig_geo_umap_DT15_california.png',
+        #    [[-130, -110.],   # W (Pretty crude)
+        #     [30, 50.]],      # N
+        #    debug=pargs.debug, local=pargs.local)
+
+        # South Atlantic
+        fig_geo_umap('fig_geo_umap_DT1_southatlantic.png',
+            [[-40, 0.],   # W (Pretty crude)
+             [-20, -10.]],      # N
+            table='96_DT1',
+            debug=pargs.debug, local=pargs.local)
+
     # UMAP LL Brazil
     if pargs.figure  == 'umap_brazil':
         fig_umap_colored(outfile='fig_umap_brazil.png', 
@@ -1358,3 +1471,4 @@ if __name__ == '__main__':
 
 # UMAP geographic
 #  python py/fig_ssl_modis.py umap_geo --local 
+#  python py/fig_ssl_modis.py geo_umap --local 
