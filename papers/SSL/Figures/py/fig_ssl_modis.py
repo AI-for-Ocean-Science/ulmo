@@ -8,11 +8,14 @@ from urllib.parse import urlparse
 
 import argparse
 
+import healpy as hp
+
 import matplotlib as mpl
 import matplotlib.gridspec as gridspec
 from matplotlib import pyplot as plt
 
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
+import cartopy.crs as ccrs
 
 mpl.rcParams['font.family'] = 'stixgeneral'
 
@@ -276,6 +279,81 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
     print('Wrote {:s}'.format(outfile))
 
 
+def fig_umap_density(outfile='fig_umap_density.png',
+                     local=False, table='std', 
+                     umap_comp='0,1',
+                     umap_dim=2, cmap=None,
+                     debug=False): 
+    # Load
+    modis_tbl = ssl_paper_analy.load_modis_tbl(local=local, table=table)
+
+    umap_keys = gen_umap_keys(umap_dim, umap_comp)
+    outfile = update_outfile(outfile, table, umap_dim,
+                             umap_comp=umap_comp)
+    # Boundaries of the box
+    xmin, xmax = np.percentile(modis_tbl[umap_keys[0]].values, [0.1, 99.9])
+    ymin, ymax = np.percentile(modis_tbl[umap_keys[1]].values, [0.1, 99.9])
+    dxv = (xmax-xmin)/16.
+    dyv = (ymax-ymin)/16.
+    # Edges
+    xmin -= dxv
+    xmax += dxv
+    ymin -= dyv
+    ymax += dyv
+
+    # Grid
+    xval = np.arange(xmin, xmax+dxv, dxv)
+    yval = np.arange(ymin, ymax+dyv, dyv)
+
+    # cut
+    good = (modis_tbl[umap_keys[0]] > xmin) & (
+        modis_tbl[umap_keys[0]] < xmax) & (
+        modis_tbl[umap_keys[1]] > ymin) & (
+            modis_tbl[umap_keys[1]] < ymax) & np.isfinite(modis_tbl.LL)
+
+    modis_tbl = modis_tbl.loc[good].copy()
+    num_samples = len(modis_tbl)
+    print(f"We have {num_samples} making the cuts.")
+
+    counts, xedges, yedges = np.histogram2d(
+        modis_tbl[umap_keys[0]], 
+        modis_tbl[umap_keys[1]], bins=(xval, yval))
+
+    counts /= np.sum(counts)
+
+    fig = plt.figure(figsize=(8, 8))
+    plt.clf()
+    ax = plt.gca()
+
+
+    ax.set_xlabel(r'$'+umap_keys[0]+'$')
+    ax.set_ylabel(r'$'+umap_keys[1]+'$')
+
+    #ax.set_xlim(xmin, xmax)
+    #ax.set_ylim(ymin, ymax)
+
+    if cmap is None:
+        cmap = "Greys"
+    cm = plt.get_cmap(cmap)
+    values = counts.transpose()
+    lbl = 'Counts'
+    vmax = None
+    mplt = ax.pcolormesh(xedges, yedges, values, 
+                         cmap=cm, 
+                         vmax=vmax) 
+
+    # Color bar
+    show_cbar = False
+    if show_cbar:
+        cbaxes = plt.colorbar(mplt, pad=0., fraction=0.030)
+        cbaxes.set_label(lbl, fontsize=15.)
+
+    plotting.set_fontsize(ax, 19.)
+    plt.savefig(outfile, dpi=200)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+    
+
 def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
                      local=False, table='std', in_vmnx=None,
                      umap_comp='0,1',
@@ -524,6 +602,92 @@ def fig_umap_2dhist(outfile='fig_umap_2dhist.png',
     plt.savefig(outfile, dpi=300)
     plt.close()
     print('Wrote {:s}'.format(outfile))
+
+def fig_umap_geo(outfile, table, umap_rngs, local=False, 
+    nside=32, umap_comp='S0,S1', umap_dim=2, debug=False,
+    color='Greys', vmax=None): 
+
+    # Load
+    modis_tbl = ssl_paper_analy.load_modis_tbl(local=local, table=table)
+
+    umap_keys = gen_umap_keys(umap_dim, umap_comp)
+    outfile = update_outfile(outfile, table, umap_dim,
+                             umap_comp=umap_comp)
+                            
+    # Evaluate full table in healpix
+    hp_events, hp_lons, hp_lats = image_utils.evals_to_healpix(modis_tbl, nside)
+
+    # Now the cut region
+    cut = ( (modis_tbl[umap_keys[0]] > umap_rngs[0][0]) & 
+            (modis_tbl[umap_keys[0]] < umap_rngs[0][1]) & 
+            (modis_tbl[umap_keys[1]] > umap_rngs[1][0]) & 
+            (modis_tbl[umap_keys[1]] < umap_rngs[1][1]) )
+    cut_tbl = modis_tbl[cut].copy()
+
+    hp_events_cut, _, _ = image_utils.evals_to_healpix(cut_tbl, nside)
+
+    #embed(header='630 of figs')
+
+    # Stats
+    f_tot = hp_events / np.sum(hp_events)
+    f_cut = hp_events_cut / np.sum(hp_events_cut)
+
+    # Ratio
+    ratio = f_cut / f_tot #hp_events_cut / hp_events
+
+    # What to plot?
+    hp_plot = ratio
+    vmax = 2.
+
+
+   # Figure
+    fig = plt.figure(figsize=(12,8))
+    plt.clf()
+
+    tformM = ccrs.Mollweide()
+    tformP = ccrs.PlateCarree()
+
+    ax = plt.axes(projection=tformM)
+
+    cm = plt.get_cmap(color)
+    # Cut
+    good = np.invert(hp_plot.mask)
+    img = plt.scatter(x=hp_lons[good],
+        y=hp_lats[good],
+        c=hp_plot[good], 
+        cmap=cm,
+        vmax=vmax, 
+        s=1,
+        transform=tformP)
+
+    # Colorbar
+    cb = plt.colorbar(img, orientation='horizontal', pad=0.)
+    lbl = None
+    if lbl is not None:
+        clbl=r'$\log_{10} \, N_{\rm '+'{}'.format(lbl)+'}$'
+        cb.set_label(clbl, fontsize=20.)
+    cb.ax.tick_params(labelsize=17)
+
+    # Coast lines
+    ax.coastlines(zorder=10)
+    ax.set_global()
+
+    gl = ax.gridlines(crs=ccrs.PlateCarree(), linewidth=1, 
+        color='black', alpha=0.5, linestyle=':', draw_labels=True)
+    gl.xlabels_top = False
+    gl.ylabels_left = True
+    gl.ylabels_right=False
+    gl.xlines = True
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.yformatter = LATITUDE_FORMATTER
+    gl.xlabel_style = {'color': 'black'}# 'weight': 'bold'}
+    gl.ylabel_style = {'color': 'black'}# 'weight': 'bold'}
+
+    plotting.set_fontsize(ax, 19.)
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
 
 
 def fig_LLvsDT(outfile='fig_LLvsDT.png', local=False, vmax=None, 
@@ -920,6 +1084,24 @@ def main(pargs):
             umap_dim=pargs.umap_dim,
             umap_comp=pargs.umap_comp)
 
+    if pargs.figure == 'umap_density':
+        fig_umap_density(
+            debug=pargs.debug, 
+            table=pargs.table ,
+            local=pargs.local,
+            umap_dim=pargs.umap_dim,
+            umap_comp=pargs.umap_comp)
+
+    if pargs.figure == 'umap_geo':
+        # 'Turbulent' region
+        fig_umap_geo('fig_umap_geo_DT15_7834.png',
+            '96_DT15', [[7,8], [3,4]], 
+            debug=pargs.debug, local=pargs.local)
+        # Gradient region
+        fig_umap_geo('fig_umap_geo_DT15_6779.png',
+            '96_DT15', [[6,7], [7.5,9]], 
+            debug=pargs.debug, local=pargs.local)
+
     # UMAP LL Brazil
     if pargs.figure  == 'umap_brazil':
         fig_umap_colored(outfile='fig_umap_brazil.png', 
@@ -1142,3 +1324,14 @@ if __name__ == '__main__':
 #  python py/fig_ssl_modis.py umap_gallery --local --table 96_DT2 --umap_comp S0,S1 --vmnx=-1.5,1.5
 #  python py/fig_ssl_modis.py umap_gallery --local --table 96_DT4 --umap_comp S0,S1 --vmnx=-2,2
 #  python py/fig_ssl_modis.py umap_gallery --local --table 96_DT5 --umap_comp S0,S1 --vmnx=-3,3
+
+# UMAP density -- 
+#  python py/fig_ssl_modis.py umap_density --local --table 96_DT0 --umap_comp S0,S1 
+#  python py/fig_ssl_modis.py umap_density --local --table 96_DT1 --umap_comp S0,S1 
+#  python py/fig_ssl_modis.py umap_density --local --table 96_DT15 --umap_comp S0,S1 
+#  python py/fig_ssl_modis.py umap_density --local --table 96_DT2 --umap_comp S0,S1 
+#  python py/fig_ssl_modis.py umap_density --local --table 96_DT4 --umap_comp S0,S1 
+#  python py/fig_ssl_modis.py umap_density --local --table 96_DT5 --umap_comp S0,S1 
+
+# UMAP geographic
+#  python py/fig_ssl_modis.py umap_geo --local 
