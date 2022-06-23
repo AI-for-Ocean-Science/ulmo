@@ -5,6 +5,8 @@ import numpy as np
 import pandas
 import h5py
 
+from scipy.ndimage import gaussian_filter
+
 from ulmo import io as ulmo_io
 from ulmo.llc import kinematics
 from ulmo.plotting import plotting
@@ -49,7 +51,8 @@ def grab_image(cutout:pandas.core.series.Series,
     else:
         return img, pp_hf
 
-def brazil_pdfs(outfile='viirs_brazil_kin_cutouts.npz', debug=False):
+def brazil_pdfs(outfile='viirs_brazil_kin_cutouts.npz', debug=False,
+                smooth=None):
     """ Generate the Kin cutouts of F_S, w_z, Divb2 for DT ~ 1K cutouts
     in the Brazil-Malvanis confluence
     """
@@ -69,6 +72,11 @@ def brazil_pdfs(outfile='viirs_brazil_kin_cutouts.npz', debug=False):
         cutout = evals_bz.iloc[iR1]
         # Load  -- These are done local
         SST = grab_image(cutout, close=True, use_local=True)
+
+        # Smooth?
+        if smooth is not None:
+            SST = gaussian_filter(SST, sigma=smooth)
+        
         # Calculate F_s
         divT = kinematics.calc_gradT(SST)
         if debug:
@@ -85,9 +93,14 @@ def brazil_pdfs(outfile='viirs_brazil_kin_cutouts.npz', debug=False):
         cutout = evals_bz.iloc[iR2]
         # Load 
         SST = grab_image(cutout, close=True)
+
+        # Smooth?
+        if smooth is not None:
+            SST = gaussian_filter(SST, sigma=smooth)
+
         # Calculate
         divT = kinematics.calc_gradT(SST)
-        # 
+        # Store
         R2_divT.append(divT)
 
     # Output
@@ -99,4 +112,5 @@ def brazil_pdfs(outfile='viirs_brazil_kin_cutouts.npz', debug=False):
 
 # Command line execution
 if __name__ == '__main__':
-    brazil_pdfs()#debug=True)
+    #brazil_pdfs()#debug=True)
+    brazil_pdfs(smooth=2.5, outfile='viirs_brazil_kin_cutouts_smooth25.npz')

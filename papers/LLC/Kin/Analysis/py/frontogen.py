@@ -217,12 +217,12 @@ def fig_brazil_front_stats(stat:str, outroot='fig_brazil_stats',
     plt.close()
     print(f'Wrote: {outfile}')
 
-def fig_brazil_divT_cdf(outfile='fig_brazil_divT_cdf.png', xlog=False):
+def fig_brazil_divT_cdf(outfile='fig_brazil_divT_cdf.png', 
+                        xlog=False, 
+                        viirs_brazil_front_file='../Analysis/viirs_brazil_kin_cutouts.npz'):
 
     # Load
     brazil_front_file = '../Analysis/brazil_kin_cutouts.npz'
-    viirs_brazil_front_file = '../Analysis/viirs_brazil_kin_cutouts.npz'
-
     brazil_front_dict = np.load(brazil_front_file)
     viirs_brazil_front_dict = np.load(viirs_brazil_front_file)
 
@@ -290,4 +290,7 @@ if __name__ == '__main__':
     #    brazil_front_file = '../Analysis/viirs_brazil_kin_cutouts.npz')
 
     # VIIRS vs. LLC
-    fig_brazil_divT_cdf()
+    #fig_brazil_divT_cdf()
+    fig_brazil_divT_cdf(
+        outfile='fig_brazil_divT_cdf_smooth25.png',
+        viirs_brazil_front_file='../Analysis/viirs_brazil_kin_cutouts_smooth25.npz')
