@@ -604,8 +604,8 @@ def fig_umap_2dhist(outfile='fig_umap_2dhist.png',
     print('Wrote {:s}'.format(outfile))
 
 def fig_umap_geo(outfile, table, umap_rngs, local=False, 
-    nside=32, umap_comp='S0,S1', umap_dim=2, debug=False,
-    color='Greys', vmax=None): 
+    nside=64, umap_comp='S0,S1', umap_dim=2, debug=False,
+    color='bwr', vmax=None): 
 
     # Load
     modis_tbl = ssl_paper_analy.load_modis_tbl(local=local, table=table)
@@ -626,11 +626,16 @@ def fig_umap_geo(outfile, table, umap_rngs, local=False,
 
     hp_events_cut, _, _ = image_utils.evals_to_healpix(cut_tbl, nside)
 
-    #embed(header='630 of figs')
+    # Have 0 for unmasked in full set
+    masked_in_cut_only = hp_events_cut.mask & np.invert(hp_events.mask)
+    hp_events_cut.mask[masked_in_cut_only] = False
+    hp_events_cut.data[masked_in_cut_only] = 0.
 
     # Stats
     f_tot = hp_events / np.sum(hp_events)
     f_cut = hp_events_cut / np.sum(hp_events_cut)
+
+    #embed(header='638 of figs')
 
     # Ratio
     ratio = f_cut / f_tot #hp_events_cut / hp_events
@@ -662,10 +667,9 @@ def fig_umap_geo(outfile, table, umap_rngs, local=False,
 
     # Colorbar
     cb = plt.colorbar(img, orientation='horizontal', pad=0.)
-    lbl = None
+    lbl = "Relative Frequency"
     if lbl is not None:
-        clbl=r'$\log_{10} \, N_{\rm '+'{}'.format(lbl)+'}$'
-        cb.set_label(clbl, fontsize=20.)
+        cb.set_label(lbl, fontsize=20.)
     cb.ax.tick_params(labelsize=17)
 
     # Coast lines
@@ -1093,14 +1097,33 @@ def main(pargs):
             umap_comp=pargs.umap_comp)
 
     if pargs.figure == 'umap_geo':
+        # Most boring
+        #fig_umap_geo('fig_umap_geo_DT0_5656.png',
+        #    '96_DT0', [[5.5,6.5], [5.3,6.3]], 
+        #    debug=pargs.debug, local=pargs.local)
+
+        # Turbulent in DT1
+        fig_umap_geo('fig_umap_geo_DT1_57n10.png',
+            '96_DT1', [[5.5,7.0], [-1,-0.25]], 
+            debug=pargs.debug, local=pargs.local)
+
         # 'Turbulent' region
-        fig_umap_geo('fig_umap_geo_DT15_7834.png',
-            '96_DT15', [[7,8], [3,4]], 
-            debug=pargs.debug, local=pargs.local)
+        #fig_umap_geo('fig_umap_geo_DT15_7834.png',
+        #    '96_DT15', [[7,8], [3,4]], 
+        #    debug=pargs.debug, local=pargs.local)
+        # Another 'Turbulent' region
+        #fig_umap_geo('fig_umap_geo_DT15_8923.png',
+        #    '96_DT15', [[8,9], [2,3]], 
+        #    debug=pargs.debug, local=pargs.local)
         # Gradient region
-        fig_umap_geo('fig_umap_geo_DT15_6779.png',
-            '96_DT15', [[6,7], [7.5,9]], 
-            debug=pargs.debug, local=pargs.local)
+        #fig_umap_geo('fig_umap_geo_DT15_6779.png',
+        #    '96_DT15', [[6,7], [7.5,9]], 
+        #    debug=pargs.debug, local=pargs.local)
+
+        # 'Turbulent' in DT2
+        #fig_umap_geo('fig_umap_geo_DT2_5789.png',
+        #    '96_DT2', [[5.5,7], [8.7,9.5]], 
+        #    debug=pargs.debug, local=pargs.local)
 
     # UMAP LL Brazil
     if pargs.figure  == 'umap_brazil':
