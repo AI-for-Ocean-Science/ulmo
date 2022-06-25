@@ -252,7 +252,9 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
             # Build cutouts
             items = []
             print("Building Kinematic cutouts")
-            for ii in cur_img_idx:
+            for jj in cur_img_idx:
+                # Re-index
+                ii = np.where(sub_idx == jj)[0][0]
                 # Saved
                 r = rs[ii]
                 c = cs[ii]
@@ -264,7 +266,7 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
                     V[r:r+dr, c:c+dc],
                     sst[r:r+dr, c:c+dc],
                     Salt[r:r+dr, c:c+dc],
-                    ii)
+                    jj)
                 )
 
             #if debug:
