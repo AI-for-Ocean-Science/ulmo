@@ -1,4 +1,4 @@
-""" Script to run Web Portal"""
+""" Script to collate images in one file for Web Portal"""
 
 import enum
 from IPython import embed

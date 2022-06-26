@@ -1,0 +1,20 @@
+{
+    "image_file": "/data/Projects/Oceanography/AI/OOD/SST/MODIS_L2/Portal/MODIS_SSL_96clear_DT15_preproc.h5",
+    "image_key": "valid",
+    "pp_type": "ulmo_pp_type",
+    "pp_idx": "portal_pp_idx",
+    "Nimages": 500000,
+    "xy_values": "US0,US1",
+    "table_file": "/data/Projects/Oceanography/AI/OOD/SST/MODIS_L2/Tables/MODIS_SSL_96clear_DT15.parquet",
+    "metrics": [
+        ["US0", "US0"],
+        ["US1", "US1"],
+        ["LL", "LL"],
+        ["DT", "DT"],
+        ["lon", "lon"],
+        ["lat", "lat"],
+        ["lat", "lat"],
+        ["slope", "min_slope"],
+        ["avgT", "mean_temperature"]
+    ]
+}

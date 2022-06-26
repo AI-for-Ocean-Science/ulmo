@@ -88,6 +88,15 @@ def process_preproc_file(pp_hf, dtdm=True, debug=False, key='valid'):
     return data1, data2, slopes, data4
 
 def analyze_cutout(img, dtdm=True):
+    """Analyze an input cutout
+
+    Args:
+        img (np.ndarra): Input cutout
+        dtdm (bool, optional): _description_. Defaults to True.
+
+    Returns:
+        tuple: zonal_results, merid_results
+    """
 
     # call ffft
     zonal_results = fast_fft(array=img, dim=0, d=2000., Detrend_Demean=dtdm) 
