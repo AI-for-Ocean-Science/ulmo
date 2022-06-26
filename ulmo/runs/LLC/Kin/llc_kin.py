@@ -4,7 +4,9 @@
 import os
 import numpy as np
 
+import h5py
 import pandas
+from pkg_resources import resource_filename
 
 from ulmo.llc import extract 
 from ulmo.llc import uniform
@@ -12,13 +14,16 @@ from ulmo import io as ulmo_io
 from ulmo.analysis import evaluate as ulmo_evaluate 
 from ulmo.preproc import plotting as pp_plotting
 
+from ulmo.ssl.train_util import option_preprocess
+from ulmo.ssl import latents_extraction
+
 from IPython import embed
 
 tst_file = 's3://llc/Tables/test_FS_r5.0_test.parquet'
 full_fileA = 's3://llc/Tables/LLC_FS_r0.5A.parquet'
 
 
-def u_init_F_S(tbl_file:str, debug=False, 
+def u_init_kin(tbl_file:str, debug=False, 
                resol=0.5, 
                plot=False,
                minmax_lat=None):
@@ -60,7 +65,7 @@ def u_init_F_S(tbl_file:str, debug=False,
     print("All done with init")
 
 
-def u_extract_F_S(tbl_file:str, debug=False, 
+def u_extract_kin(tbl_file:str, debug=False, 
                   debug_local=False, 
                   root_file=None, dlocal=True, 
                   preproc_root='llc_FS'):
@@ -138,22 +143,85 @@ def u_extract_F_S(tbl_file:str, debug=False,
     print("You should probably remove the PreProc/ folder")
     
 
-def u_evaluate_144(tbl_file:str, 
-                   clobber_local=False, debug=False,
-                   model='viirs-98'):
+def kin_ssl_eval(tbl_file:str, 
+                   clobber_local=False, debug=False):
+    # SSL model
+    opt_path = os.path.join(resource_filename('ulmo', 'runs'), 'SSL',
+                              'MODIS', 'v3', 'opts_96clear_ssl.json')
     
-    if debug:
-        tbl_file = tst_file
-    # Load
+    # Parse the model
+    opt = option_preprocess(ulmo_io.Params(opt_path))
+    model_file = os.path.join(opt.s3_outdir,
+        opt.model_folder, 'last.pth')
+
+    # Load up the table
+    print(f"Grabbing table: {opt.tbl_file}")
     llc_table = ulmo_io.load_main_table(tbl_file)
 
-    # Evaluate
-    ulmo_evaluate.eval_from_main(llc_table,
-                                 model=model)
+    # Grab the model
+    print(f"Grabbing model: {model_file}")
+    model_base = os.path.basename(model_file)
+    ulmo_io.download_file_from_s3(model_base, model_file)
 
-    # Write 
-    ulmo_io.write_main_table(llc_table, tbl_file)
+    # PreProc files
+    pp_files = np.unique(llc_table.pp_file).tolist()
 
+    # New Latents path
+    s3_outdir = 's3://llc/SSL/'
+    latents_path = os.path.join(s3_outdir, opt.latents_folder)
+
+    for ifile in pp_files:
+        print(f"Working on {ifile}")
+        data_file = os.path.basename(ifile)
+
+        # Setup
+        latents_file = data_file.replace('_preproc', '_latents')
+        #if latents_file in existing_files and not clobber:
+        #    print(f"Not clobbering {latents_file} in s3")
+        #    continue
+        s3_file = os.path.join(latents_path, latents_file) 
+
+        # Download
+        if not os.path.isfile(data_file):
+            ulmo_io.download_file_from_s3(data_file, ifile)
+
+        # Ready to write
+        latents_hf = h5py.File(latents_file, 'w')
+
+        # Read
+        with h5py.File(data_file, 'r') as file:
+            if 'train' in file.keys():
+                train=True
+            else:
+                train=False
+
+        # Train?
+        if train: 
+            print("Starting train evaluation")
+            latents_numpy = latents_extraction.model_latents_extract(
+                opt, data_file, 'train', model_base, None, None)
+            latents_hf.create_dataset('train', data=latents_numpy)
+            print("Extraction of Latents of train set is done.")
+
+        # Valid
+        print("Starting valid evaluation")
+        latents_numpy = latents_extraction.model_latents_extract(
+            opt, data_file, 'valid', model_base, None, None)
+        latents_hf.create_dataset('valid', data=latents_numpy)
+        print("Extraction of Latents of valid set is done.")
+
+        # Close
+        latents_hf.close()
+
+        # Push to s3
+        print("Uploading to s3..")
+        ulmo_io.upload_file_to_s3(latents_file, s3_file)
+
+        # Remove data file
+        if not debug:
+            os.remove(data_file)
+            print(f'{data_file} removed')
+    
 
 def main(flg):
     if flg== 'all':
@@ -166,14 +234,14 @@ def main(flg):
         # Debug
         #u_init_F_S('tmp', debug=True, plot=True)
         # Real deal
-        u_init_F_S(full_fileA, minmax_lat=(-72,57.))
+        u_init_kin(full_fileA, minmax_lat=(-72,57.))
 
     if flg & (2**1):
         #u_extract_F_S('', debug=True, dlocal=True)  # debug
-        u_extract_F_S(full_fileA)
+        u_extract_kin(full_fileA)
 
     if flg & (2**2):
-        u_evaluate_144(full_file)
+        kin_ssl_eval(full_fileA)
 
     if flg & (2**3):
         u_add_velocities()
@@ -192,7 +260,10 @@ if __name__ == '__main__':
     main(flg)
 
 # Init
-# python -u llc_F_S.py 1
+# python -u llc_kin.py 1
 
 # Extract 
-# python -u llc_F_S.py 2 
+# python -u llc_kin.py 2 
+
+# SSL Evaluate
+# python -u llc_kin.py 4
