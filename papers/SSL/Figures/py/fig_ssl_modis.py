@@ -1,10 +1,11 @@
 """ Figures for SSL paper on MODIS """
+from datetime import datetime
 import os, sys
-from typing import IO
 import numpy as np
 import scipy
 from scipy import stats
 from urllib.parse import urlparse
+import datetime
 
 import argparse
 
@@ -67,6 +68,29 @@ metric_lbls = dict(min_slope=r'$\alpha_{\rm min}$',
                    zonal_slope=r'$\alpha_{\rm AS}}$',
                    merid_slope=r'$\alpha_{\rm AT}}$',
                    )
+
+def grid_umap(U0, U1, nxy=16, percent=[0.1, 99.9]):
+
+    # Boundaries of the grid
+    xmin, xmax = np.percentile(U0, percent)
+    ymin, ymax = np.percentile(U1, percent)
+    dxv = (xmax-xmin)/nxy
+    dyv = (ymax-ymin)/nxy
+
+    # Edges
+    xmin -= dxv
+    xmax += dxv
+    ymin -= dyv
+    ymax += dyv
+
+    # Grid
+    xval = np.arange(xmin, xmax+dxv, dxv)
+    yval = np.arange(ymin, ymax+dyv, dyv)
+
+    # Return
+    grid = dict(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax,
+                xval=xval, yval=yval, dxv=dxv, dyv=dyv)
+    return grid
 
 
 # Local
@@ -704,26 +728,15 @@ def fig_geo_umap(outfile, lonlat_rngs,
     umap_keys = gen_umap_keys(umap_dim, umap_comp)
     outfile = update_outfile(outfile, table, umap_dim,
                              umap_comp=umap_comp)
-    # Boundaries of the box
-    xmin, xmax = np.percentile(modis_tbl[umap_keys[0]].values, [0.1, 99.9])
-    ymin, ymax = np.percentile(modis_tbl[umap_keys[1]].values, [0.1, 99.9])
-    dxv = (xmax-xmin)/16.
-    dyv = (ymax-ymin)/16.
-    # Edges
-    xmin -= dxv
-    xmax += dxv
-    ymin -= dyv
-    ymax += dyv
-
     # Grid
-    xval = np.arange(xmin, xmax+dxv, dxv)
-    yval = np.arange(ymin, ymax+dyv, dyv)
-
+    grid = grid_umap(modis_tbl[umap_keys[0]].values, 
+        modis_tbl[umap_keys[1]].values)
+ 
     # cut
-    good = (modis_tbl[umap_keys[0]] > xmin) & (
-        modis_tbl[umap_keys[0]] < xmax) & (
-        modis_tbl[umap_keys[1]] > ymin) & (
-            modis_tbl[umap_keys[1]] < ymax) & np.isfinite(modis_tbl.LL)
+    good = (modis_tbl[umap_keys[0]] > grid['xmin']) & (
+        modis_tbl[umap_keys[0]] < grid['xmax']) & (
+        modis_tbl[umap_keys[1]] > grid['ymin']) & (
+            modis_tbl[umap_keys[1]] < grid['ymax']) & np.isfinite(modis_tbl.LL)
 
     modis_tbl = modis_tbl.loc[good].copy()
     num_samples = len(modis_tbl)
@@ -732,8 +745,10 @@ def fig_geo_umap(outfile, lonlat_rngs,
     # All
     counts, xedges, yedges = np.histogram2d(
         modis_tbl[umap_keys[0]], 
-        modis_tbl[umap_keys[1]], bins=(xval, yval))
+        modis_tbl[umap_keys[1]], bins=(grid['xval'], 
+                                       grid['yval']))
 
+    # Normalize
     counts /= np.sum(counts)
 
     # Geographic
@@ -746,11 +761,15 @@ def fig_geo_umap(outfile, lonlat_rngs,
     geo_tbl = modis_tbl.loc[good & geo].copy()
     counts_geo, xedges, yedges = np.histogram2d(
         geo_tbl[umap_keys[0]], 
-        geo_tbl[umap_keys[1]], bins=(xval, yval))
+        geo_tbl[umap_keys[1]], bins=(grid['xval'], 
+                                     grid['yval']))
+    # Normalize
     counts_geo /= np.sum(counts_geo)
 
+    # Ratio
     rtio_counts = counts_geo / counts
 
+    # Plot
     fig = plt.figure(figsize=(8, 8))
     plt.clf()
     ax = plt.gca()
@@ -774,6 +793,95 @@ def fig_geo_umap(outfile, lonlat_rngs,
     if show_cbar:
         cbaxes = plt.colorbar(mplt, pad=0., fraction=0.030)
         cbaxes.set_label(lbl, fontsize=15.)
+
+    plotting.set_fontsize(ax, 19.)
+    plt.savefig(outfile, dpi=200)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+    
+def fig_yearly_geo_umap(outfile, geo_region,
+                     local=False, 
+                     rtio_cut = 1.5,
+                     umap_comp='S0,S1',
+                     table='96_DT15',
+                     umap_dim=2, cmap='bwr',
+                     debug=False): 
+    # Load
+    modis_tbl = ssl_paper_analy.load_modis_tbl(
+        local=local, table=table)
+
+    umap_keys = gen_umap_keys(umap_dim, umap_comp)
+    outfile = update_outfile(outfile, table, umap_dim,
+                             umap_comp=umap_comp)
+    # Grid
+    grid = grid_umap(modis_tbl[umap_keys[0]].values, 
+        modis_tbl[umap_keys[1]].values)
+ 
+    # cut
+    good = (modis_tbl[umap_keys[0]] > grid['xmin']) & (
+        modis_tbl[umap_keys[0]] < grid['xmax']) & (
+        modis_tbl[umap_keys[1]] > grid['ymin']) & (
+            modis_tbl[umap_keys[1]] < grid['ymax']) & np.isfinite(modis_tbl.LL)
+
+    modis_tbl = modis_tbl.loc[good].copy()
+    num_samples = len(modis_tbl)
+    print(f"We have {num_samples} making the cuts.")
+
+    # All
+    counts, xedges, yedges = np.histogram2d(
+        modis_tbl[umap_keys[0]], 
+        modis_tbl[umap_keys[1]], bins=(grid['xval'], 
+                                       grid['yval']))
+
+    # Normalize
+    counts /= np.sum(counts)
+
+    # Geographic
+    lons = ssl_paper_analy.geo_regions[geo_region]['lons']
+    lats = ssl_paper_analy.geo_regions[geo_region]['lats']
+    geo = ( (modis_tbl.lon > lons[0]) &
+        (modis_tbl.lon < lons[1]) &
+        (modis_tbl.lat > lats[0]) &
+        (modis_tbl.lat < lats[1]) )
+
+    geo_tbl = modis_tbl.loc[good & geo].copy()
+    counts_geo, xedges, yedges = np.histogram2d(
+        geo_tbl[umap_keys[0]], 
+        geo_tbl[umap_keys[1]], bins=(grid['xval'], 
+                                     grid['yval']))
+    # Normalize
+    counts_geo /= np.sum(counts_geo)
+
+    # Ratio
+    rtio_counts = counts_geo / counts
+
+    if rtio_cut >= 1.:
+        use_grid = rtio_counts > rtio_cut
+    else:
+        embed(header='858 of figs')
+
+    # Loop on years
+    years = 2003 + np.arange(17)
+
+    fracs = []
+    for year in years:
+        in_year = (geo_tbl.datetime >= datetime.datetime(year,1,1)) & (
+            geo_tbl.datetime < datetime.datetime(year+1,1,1))
+        year_tbl = geo_tbl[in_year].copy()
+        counts_year, xedges, yedges = np.histogram2d(
+            year_tbl[umap_keys[0]], 
+            year_tbl[umap_keys[1]], 
+            bins=(grid['xval'], grid['yval']))
+        # frac
+        frac = np.sum(counts_year*use_grid) / np.sum(counts_year)
+        fracs.append(frac)
+
+    # Plot
+    fig = plt.figure(figsize=(8, 8))
+    plt.clf()
+    ax = plt.gca()
+
+    ax.plot(years, fracs, 'k')
 
     plotting.set_fontsize(ax, 19.)
     plt.savefig(outfile, dpi=200)
@@ -1220,10 +1328,10 @@ def main(pargs):
         #    debug=pargs.debug, local=pargs.local)
 
         # Equatorial Pacific
-        #fig_geo_umap('fig_geo_umap_DT15_eqpacific.png',
-        #    [[-140, -90.],   # W
-        #     [-10, 10.]],    # Equitorial 
-        #    debug=pargs.debug, local=pargs.local)
+        fig_geo_umap('fig_geo_umap_DT15_eqpacific.png',
+            [[-140, -90.],   # W
+             [-10, 10.]],    # Equitorial 
+            debug=pargs.debug, local=pargs.local)
 
         # Coastal California
         #fig_geo_umap('fig_geo_umap_DT15_california.png',
@@ -1232,10 +1340,16 @@ def main(pargs):
         #    debug=pargs.debug, local=pargs.local)
 
         # South Atlantic
-        fig_geo_umap('fig_geo_umap_DT1_southatlantic.png',
-            [[-40, 0.],   # W (Pretty crude)
-             [-20, -10.]],      # N
-            table='96_DT1',
+        #fig_geo_umap('fig_geo_umap_DT1_southatlantic.png',
+        #    [[-40, 0.],   # W (Pretty crude)
+        #     [-20, -10.]],      # N
+        #    table='96_DT1',
+        #    debug=pargs.debug, local=pargs.local)
+
+    if pargs.figure == 'yearly_geo':
+        # Equatorial Pacific
+        fig_yearly_geo_umap('fig_yearly_geo_DT15_eqpacific.png',
+            'eqpacific',
             debug=pargs.debug, local=pargs.local)
 
     # UMAP LL Brazil
@@ -1472,3 +1586,6 @@ if __name__ == '__main__':
 # UMAP geographic
 #  python py/fig_ssl_modis.py umap_geo --local 
 #  python py/fig_ssl_modis.py geo_umap --local 
+
+# UMAP temporal
+#  python py/fig_ssl_modis.py yearly_geo --local 

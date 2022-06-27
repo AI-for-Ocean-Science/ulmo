@@ -25,6 +25,11 @@ if os.getenv('SST_OOD'):
     local_modis_96_file = os.path.join(os.getenv('SST_OOD'),
                                     'MODIS_L2/Tables/MODIS_SSL_96clear.parquet')
 
+# Geo graphical regions
+geo_regions = {}
+geo_regions['eqpacific'] = dict(lons=[-140, -90.],   # W
+             lats=[-10, 10.])    # Equitorial 
+
 def load_modis_tbl(table:str=None, 
                    local=False, cuts:str=None, 
                    region:str=None, percentiles:list=None):
