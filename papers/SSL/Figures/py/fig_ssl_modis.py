@@ -799,7 +799,7 @@ def fig_geo_umap(outfile, lonlat_rngs,
     plt.close()
     print('Wrote {:s}'.format(outfile))
     
-def fig_yearly_geo_umap(outfile, geo_region,
+def fig_seasonal_geo_umap(outfile, geo_region,
                      local=False, 
                      rtio_cut = 1.5,
                      umap_comp='S0,S1',
@@ -859,6 +859,114 @@ def fig_yearly_geo_umap(outfile, geo_region,
         use_grid = rtio_counts > rtio_cut
     else:
         embed(header='858 of figs')
+
+    # Loop on years
+    months = 1 + np.arange(12)
+
+    pdates = pandas.DatetimeIndex(geo_tbl.datetime)
+    fracs = []
+    for month in months:
+        in_month = pdates.month == month
+        month_tbl = geo_tbl[in_month].copy()
+        counts_month, xedges, yedges = np.histogram2d(
+            month_tbl[umap_keys[0]], 
+            month_tbl[umap_keys[1]], 
+            bins=(grid['xval'], grid['yval']))
+        # frac
+        frac = np.sum(counts_month*use_grid) / np.sum(counts_month)
+        fracs.append(frac)
+
+    # Plot
+    fig = plt.figure(figsize=(8, 8))
+    plt.clf()
+    ax = plt.gca()
+
+    ax.plot(months, fracs, 'b')
+
+    # Label
+    ax.set_ylabel('Fraction')
+    ax.set_xlabel('Month')
+
+    plotting.set_fontsize(ax, 19.)
+    plt.savefig(outfile, dpi=200)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+    
+
+
+def fig_yearly_geo_umap(outfile, geo_region,
+                     local=False, 
+                     rtio_cut = 1.5,
+                     rtio_region=None,
+                     umap_comp='S0,S1',
+                     table='96_DT15',
+                     umap_dim=2, cmap='bwr',
+                     debug=False): 
+    # Init
+    if rtio_region is None:
+        rtio_region = geo_region
+    # Load
+    modis_tbl = ssl_paper_analy.load_modis_tbl(
+        local=local, table=table)
+
+    umap_keys = gen_umap_keys(umap_dim, umap_comp)
+    outfile = update_outfile(outfile, table, umap_dim,
+                             umap_comp=umap_comp)
+    # Grid
+    grid = grid_umap(modis_tbl[umap_keys[0]].values, 
+        modis_tbl[umap_keys[1]].values)
+ 
+    # cut
+    good = (modis_tbl[umap_keys[0]] > grid['xmin']) & (
+        modis_tbl[umap_keys[0]] < grid['xmax']) & (
+        modis_tbl[umap_keys[1]] > grid['ymin']) & (
+            modis_tbl[umap_keys[1]] < grid['ymax']) & np.isfinite(modis_tbl.LL)
+
+    modis_tbl = modis_tbl.loc[good].copy()
+    num_samples = len(modis_tbl)
+    print(f"We have {num_samples} making the cuts.")
+
+    # All
+    counts, xedges, yedges = np.histogram2d(
+        modis_tbl[umap_keys[0]], 
+        modis_tbl[umap_keys[1]], bins=(grid['xval'], 
+                                       grid['yval']))
+
+    # Normalize
+    counts /= np.sum(counts)
+
+    # Ratio
+    lons = ssl_paper_analy.geo_regions[rtio_region]['lons']
+    lats = ssl_paper_analy.geo_regions[rtio_region]['lats']
+    rtio_geo = ( (modis_tbl.lon > lons[0]) &
+        (modis_tbl.lon < lons[1]) &
+        (modis_tbl.lat > lats[0]) &
+        (modis_tbl.lat < lats[1]) )
+    rtio_tbl = modis_tbl.loc[good & rtio_geo].copy()
+    
+    counts_rtio, xedges, yedges = np.histogram2d(
+        rtio_tbl[umap_keys[0]], 
+        rtio_tbl[umap_keys[1]], bins=(grid['xval'], 
+                                     grid['yval']))
+    # Normalize
+    counts_rtio /= np.sum(counts_rtio)
+
+    # Ratio
+    rtio_counts = counts_rtio / counts
+
+    if rtio_cut >= 1.:
+        use_grid = rtio_counts > rtio_cut
+    else:
+        embed(header='858 of figs')
+
+    # Geo table
+    lons = ssl_paper_analy.geo_regions[geo_region]['lons']
+    lats = ssl_paper_analy.geo_regions[geo_region]['lats']
+    geo = ( (modis_tbl.lon > lons[0]) &
+        (modis_tbl.lon < lons[1]) &
+        (modis_tbl.lat > lats[0]) &
+        (modis_tbl.lat < lats[1]) )
+    geo_tbl = modis_tbl.loc[good & geo].copy()
 
     # Loop on years
     years = 2003 + np.arange(17)
@@ -1348,7 +1456,28 @@ def main(pargs):
 
     if pargs.figure == 'yearly_geo':
         # Equatorial Pacific
-        fig_yearly_geo_umap('fig_yearly_geo_DT15_eqpacific.png',
+        #fig_yearly_geo_umap('fig_yearly_geo_DT15_eqpacific.png',
+        #    'eqpacific',
+        #    debug=pargs.debug, local=pargs.local)
+
+        # Med
+        #fig_yearly_geo_umap('fig_yearly_geo_DT15_med.png',
+        #    'med', rtio_cut=1.25,
+        #    debug=pargs.debug, local=pargs.local)
+
+        # Global using Med
+        fig_yearly_geo_umap('fig_yearly_geo_DT15_global_med.png',
+            'global', rtio_cut=1.25, rtio_region='med',
+            debug=pargs.debug, local=pargs.local)
+
+    if pargs.figure == 'seasonal_geo':
+        # Med
+        fig_seasonal_geo_umap('fig_seasonal_geo_DT15_med.png',
+            'med', rtio_cut=1.25,
+            debug=pargs.debug, local=pargs.local)
+
+        # Equatorial Pacific
+        fig_seasonal_geo_umap('fig_seasonal_geo_DT15_eqpacific.png',
             'eqpacific',
             debug=pargs.debug, local=pargs.local)
 
@@ -1589,3 +1718,4 @@ if __name__ == '__main__':
 
 # UMAP temporal
 #  python py/fig_ssl_modis.py yearly_geo --local 
+#  python py/fig_ssl_modis.py seasonal_geo --local 

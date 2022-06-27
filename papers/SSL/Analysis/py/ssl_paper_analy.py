@@ -27,8 +27,16 @@ if os.getenv('SST_OOD'):
 
 # Geo graphical regions
 geo_regions = {}
-geo_regions['eqpacific'] = dict(lons=[-140, -90.],   # W
-             lats=[-10, 10.])    # Equitorial 
+geo_regions['eqpacific'] = dict(
+    lons=[-140, -90.],   # W
+    lats=[-10, 10.])    # Equitorial 
+geo_regions['med'] = dict(
+    lons=[0, 60.],   # E
+    lats=[30, 45.])    # N
+geo_regions['global'] = dict(
+    lons=[-999., 999.],   # E
+    lats=[-999, 999.])    # N
+
 
 def load_modis_tbl(table:str=None, 
                    local=False, cuts:str=None, 
