@@ -970,8 +970,32 @@ def fig_yearly_geo_umap(outfile, geo_region,
 
     # Loop on years
     years = 2003 + np.arange(17)
+    months = 1 + np.arange(12)
 
     fracs = []
+    dates = []
+    for year in years:
+        for month in months:
+            if month < 12:
+                in_date = (geo_tbl.datetime >= datetime.datetime(year,month,1)) & (
+                    geo_tbl.datetime < datetime.datetime(year,month+1,1))
+            else:
+                in_date = (geo_tbl.datetime >= datetime.datetime(year,month,1)) & (
+                    geo_tbl.datetime < datetime.datetime(year+1,1,1))
+            date_tbl = geo_tbl[in_date].copy()
+            counts_date, xedges, yedges = np.histogram2d(
+                date_tbl[umap_keys[0]], 
+                date_tbl[umap_keys[1]], 
+                bins=(grid['xval'], grid['yval']))
+            # frac
+            frac = np.sum(counts_date*use_grid) / np.sum(counts_date)
+            fracs.append(frac)
+            # Date
+            dates.append(datetime.datetime(year, month, 15))
+
+    # Annual
+    year_fracs = []
+    year_dates = []
     for year in years:
         in_year = (geo_tbl.datetime >= datetime.datetime(year,1,1)) & (
             geo_tbl.datetime < datetime.datetime(year+1,1,1))
@@ -982,14 +1006,20 @@ def fig_yearly_geo_umap(outfile, geo_region,
             bins=(grid['xval'], grid['yval']))
         # frac
         frac = np.sum(counts_year*use_grid) / np.sum(counts_year)
-        fracs.append(frac)
+        year_fracs.append(frac)
+        #
+        year_dates.append(datetime.datetime(year, 7, 1))
 
     # Plot
     fig = plt.figure(figsize=(8, 8))
     plt.clf()
     ax = plt.gca()
 
-    ax.plot(years, fracs, 'k')
+    # All
+    ax.plot(dates, fracs, 'k')
+
+    # Annual
+    ax.plot(year_dates, year_fracs, 'ro')
 
     plotting.set_fontsize(ax, 19.)
     plt.savefig(outfile, dpi=200)
@@ -1456,9 +1486,9 @@ def main(pargs):
 
     if pargs.figure == 'yearly_geo':
         # Equatorial Pacific
-        #fig_yearly_geo_umap('fig_yearly_geo_DT15_eqpacific.png',
-        #    'eqpacific',
-        #    debug=pargs.debug, local=pargs.local)
+        fig_yearly_geo_umap('fig_yearly_geo_DT15_eqpacific.png',
+            'eqpacific',
+            debug=pargs.debug, local=pargs.local)
 
         # Med
         #fig_yearly_geo_umap('fig_yearly_geo_DT15_med.png',
@@ -1466,9 +1496,13 @@ def main(pargs):
         #    debug=pargs.debug, local=pargs.local)
 
         # Global using Med
-        fig_yearly_geo_umap('fig_yearly_geo_DT15_global_med.png',
-            'global', rtio_cut=1.25, rtio_region='med',
-            debug=pargs.debug, local=pargs.local)
+        #fig_yearly_geo_umap('fig_yearly_geo_DT15_global_med.png',
+        #    'global', rtio_cut=1.25, rtio_region='med',
+        #    debug=pargs.debug, local=pargs.local)
+        # Global using Equatorial
+        #fig_yearly_geo_umap('fig_yearly_geo_DT15_global_eqpac.png',
+        #    'global', rtio_cut=1.5, rtio_region='eqpacific',
+        #    debug=pargs.debug, local=pargs.local)
 
     if pargs.figure == 'seasonal_geo':
         # Med
