@@ -1,4 +1,5 @@
 """ Figures for SSL paper on MODIS """
+from dataclasses import replace
 from datetime import datetime
 import os, sys
 import numpy as np
@@ -212,6 +213,7 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
                 point_size = None, 
                 lbl=None,
                 vmnx = (-1000., None),
+                maxN=None,
                 region=None,
                 umap_comp='0,1',
                 umap_dim=2,
@@ -227,9 +229,16 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
         IOError: [description]
     """
     # Load table
-    modis_tbl = ssl_paper_analy.load_modis_tbl(local=local, cuts=cuts, 
-                                              region=region, table=table,
-                               percentiles=percentiles)
+    modis_tbl = ssl_paper_analy.load_modis_tbl(
+        local=local, cuts=cuts, region=region, 
+        table=table, percentiles=percentiles)
+
+    # Limit the sample?
+    if maxN is not None:
+        N = len(modis_tbl)
+        idx = np.random.choice(np.arange(N), maxN, replace=False)
+        modis_tbl = modis_tbl.iloc[idx].copy()
+
     num_samples = len(modis_tbl)
     outfile = update_outfile(outfile, table, umap_dim,
                              umap_comp=umap_comp)
@@ -252,11 +261,16 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
     lmetric = metric
     if metric == 'LL':
         values = modis_tbl.LL 
-    elif metric == 'DT':
+    elif metric == 'logDT':
         values = np.log10(modis_tbl.DT.values)
         lmetric = r'$\log \, \Delta T$'
+    elif metric == 'DT':
+        values = modis_tbl.DT.values
+        lmetric = r'$\Delta T$'
     elif metric == 'clouds':
         values = modis_tbl.clear_fraction
+    elif metric == 'slope':
+        values = modis_tbl.min_slope.values
     else:
         raise IOError("Bad metric!")
     
@@ -1303,7 +1317,8 @@ def fig_fit_metric(outroot='fig_fit_', metric=None,
 
 def fig_learn_curve(outfile='fig_learn_curve.png'):
     # Grab the data
-    valid_losses_file = 's3://modis-l2/SSL/models/MODIS_R2019_2010/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/learning_curve/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm_losses_valid.h5'
+    #valid_losses_file = 's3://modis-l2/SSL/models/MODIS_R2019_96/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/learning_curve/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm_losses_valid.h5'
+    valid_losses_file = 's3://modis-l2/SSL/models/MODIS_R2019_96/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/learning_curve/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm_losses_valid.h5'
     with ulmo_io.open(valid_losses_file, 'rb') as f:
         valid_hf = h5py.File(f, 'r')
     loss_avg_valid = valid_hf['loss_avg_valid'][:]
@@ -1311,7 +1326,8 @@ def fig_learn_curve(outfile='fig_learn_curve.png'):
     loss_valid = valid_hf['loss_valid'][:]
     valid_hf.close()
 
-    train_losses_file = 's3://modis-l2/SSL/models/MODIS_R2019_2010/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/learning_curve/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm_losses_train.h5'
+    #train_losses_file = 's3://modis-l2/SSL/models/MODIS_R2019_96/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/learning_curve/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm_losses_train.h5'
+    train_losses_file = 's3://modis-l2/SSL/models/MODIS_R2019_96/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/learning_curve/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm_losses_train.h5'
     with ulmo_io.open(train_losses_file, 'rb') as f:
         train_hf = h5py.File(f, 'r')
     loss_train = train_hf['loss_train'][:]
@@ -1330,7 +1346,7 @@ def fig_learn_curve(outfile='fig_learn_curve.png'):
     ax.legend(fontsize=15.)
 
     # Label
-    ax.set_xlabel("Step")
+    ax.set_xlabel("Epoch")
     ax.set_ylabel("Loss")
 
     plotting.set_fontsize(ax, 17.)
@@ -1395,12 +1411,18 @@ def main(pargs):
                          vmnx=(None,None),
                          umap_dim=pargs.umap_dim,
                          umap_comp=pargs.umap_comp)
-        #                 vmnx=(None, None), table=pargs.table,
-        #                 umap_dim=pargs.umap_dim,
-        #                 umap_comp=pargs.umap_comp)
         # Clouds
         #fig_umap_colored(local=pargs.local, metric='clouds', outfile='fig_umap_clouds.png',
         #                 vmnx=(None,None))
+
+    # UMAP_slope
+    if pargs.figure == 'umap_slope':
+        fig_umap_colored(local=pargs.local, table=pargs.table,
+                         metric='slope', outfile='fig_umap_slope.png',
+                         vmnx=(-3., -1),
+                         maxN=400000,
+                         umap_dim=pargs.umap_dim,
+                         umap_comp=pargs.umap_comp)
 
     # UMAP gallery
     if pargs.figure == 'umap_gallery':
@@ -1730,6 +1752,9 @@ if __name__ == '__main__':
 
 # UMAP colored by LL -- python py/fig_ssl_modis.py umap_LL --local --table 96
 
+# UMAP DT15 colored by DT -- python py/fig_ssl_modis.py umap_DT --local --table 96_DT15 --umap_comp S0,S1
+# UMAP DT15 colored by min_slope -- python py/fig_ssl_modis.py umap_slope --local --table 96_DT15 --umap_comp S0,S1
+
 # UMAP gallery -- 
 #  python py/fig_ssl_modis.py umap_gallery --local --table 96_DT0 --umap_comp S0,S1 --vmnx=-0.3, 0.3
 #  python py/fig_ssl_modis.py umap_gallery --local --table 96_DT1 --umap_comp S0,S1 --vmnx=-0.75,0.75
@@ -1753,3 +1778,6 @@ if __name__ == '__main__':
 # UMAP temporal
 #  python py/fig_ssl_modis.py yearly_geo --local 
 #  python py/fig_ssl_modis.py seasonal_geo --local 
+
+# MISC
+#  python py/fig_ssl_modis.py learning_curve
