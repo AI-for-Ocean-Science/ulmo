@@ -608,7 +608,7 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
     #ax.set_aspect('equal')#, 'datalim')
 
     # Incidence plot
-    ax_incidence = fig.add_axes([0.72, 0.45, 0.25, 0.36])
+    ax_incidence = fig.add_axes([0.71, 0.45, 0.25, 0.36])
 
     fig_umap_density(outfile=None, modis_tbl=modis_tbl,
                      umap_grid=umap_grid, umap_comp=umap_comp,
@@ -692,6 +692,8 @@ def fig_umap_geo(outfile, table, umap_rngs, local=False,
             (modis_tbl[umap_keys[1]] < umap_rngs[1][1]) )
     cut_tbl = modis_tbl[cut].copy()
 
+    print(f"We have {len(cut_tbl)} cutouts in the UMAP range.")
+
     hp_events_cut, _, _ = image_utils.evals_to_healpix(cut_tbl, nside)
 
     # Have 0 for unmasked in full set
@@ -707,6 +709,10 @@ def fig_umap_geo(outfile, table, umap_rngs, local=False,
 
     # Ratio
     ratio = f_cut / f_tot #hp_events_cut / hp_events
+
+    # Set 1 event to ratio of 1
+    #set_one = (hp_events_cut <= 2) & (hp_events < 10)
+    #ratio[set_one] = 1.
 
     # What to plot?
     hp_plot = ratio
@@ -1506,7 +1512,7 @@ def main(pargs):
         #    debug=pargs.debug, local=pargs.local)
         # Gradient region
         #fig_umap_geo('fig_umap_geo_DT15_6779.png',
-        #    '96_DT15', [[6,7], [7.5,9]], 
+        #    '96_DT15', [[5,7], [7.5,9]], 
         #    debug=pargs.debug, local=pargs.local)
 
         # 'Turbulent' in DT2
@@ -1791,6 +1797,7 @@ if __name__ == '__main__':
 # UMAP DT15 colored by min_slope -- python py/fig_ssl_modis.py umap_slope --local --table 96_DT15 --umap_comp S0,S1
 
 # UMAP gallery -- 
+#  python py/fig_ssl_modis.py umap_gallery --local --table 96_DTall --umap_comp S0,S1 --vmnx=-1,1
 #  python py/fig_ssl_modis.py umap_gallery --local --table 96_DT0 --umap_comp S0,S1 --vmnx=-0.3, 0.3
 #  python py/fig_ssl_modis.py umap_gallery --local --table 96_DT1 --umap_comp S0,S1 --vmnx=-0.75,0.75
 #  python py/fig_ssl_modis.py umap_gallery --local --table 96_DT15 --umap_comp S0,S1 --vmnx=-1,1
