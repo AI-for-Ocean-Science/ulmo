@@ -1546,10 +1546,17 @@ def main(pargs):
         #    table='96_DT1',
         #    debug=pargs.debug, local=pargs.local)
 
+        # South Pacific
+        #fig_geo_umap('fig_geo_umap_DT1_southpacific.png',
+        #    [[-120, -90.],   # W (Pretty crude)
+        #     [-30, -10.]],      # S
+        #    table='96_DT1',
+        #    debug=pargs.debug, local=pargs.local)
+
     if pargs.figure == 'yearly_geo':
         # Equatorial Pacific
         fig_yearly_geo_umap('fig_yearly_geo_DT15_eqpacific.png',
-            'eqpacific',
+            'eqpacific', rtio_cut=1.5,
             debug=pargs.debug, local=pargs.local)
 
         # Med
