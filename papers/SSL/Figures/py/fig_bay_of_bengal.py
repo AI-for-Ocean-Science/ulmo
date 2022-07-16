@@ -55,7 +55,10 @@ def fig_bob_gallery(outfile='fig_bob_gallery.png',
                     geo_region='baybengal',
                     local=True, 
                     ngallery = 8,
+                    seed=1234,
                     table='96_DT15'):
+    # Random seed
+    np.random.RandomState(seed=seed)
 
     _, cm = plotting.load_palette()
     # Load Table
@@ -98,7 +101,9 @@ def fig_bob_gallery(outfile='fig_bob_gallery.png',
         ax = plt.subplot(gs[ss])
         row = modis_cut.iloc[idx]
         assert row.pp_type == 0 # valid only
+        print(f"UID: {row.UID}")
 
+        '''
         # Cutout
         ax_cutout = ax.inset_axes([0, 0.1, 1., 0.9],
                     transform=ax.transData)
@@ -107,6 +112,7 @@ def fig_bob_gallery(outfile='fig_bob_gallery.png',
                      vmin=-2., vmax=2.,
                      yticklabels=[], cmap=cm,
                      cbar=False, ax=ax_cutout)
+        '''
 
         # Plot the latent
         pp_base = os.path.basename(row.pp_file)

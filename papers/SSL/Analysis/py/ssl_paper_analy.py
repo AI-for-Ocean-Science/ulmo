@@ -7,11 +7,12 @@ import pickle
 
 import h5py
 import umap
-import pandas
 
 from ulmo import io as ulmo_io
 from ulmo.ssl.train_util import option_preprocess
 from ulmo.utils import catalog as cat_utils
+
+import ssl_defs
 
 from IPython import embed
 
@@ -155,6 +156,23 @@ def load_modis_tbl(table:str=None,
         modis_tbl = modis_tbl[cut_p].copy()
 
     return modis_tbl
+
+def grab_subset(DT:float):
+    for key, item in ssl_defs.umap_DT.items():
+        if item is None:
+            raise ValueError("Should not get to all!!")
+        if item[1] < 0:
+            DTmin = item[0]
+            DTmax = 1e9
+        else:
+            DTmin = item[0] - item[1]
+            DTmax = item[0] + item[1]
+        #
+        if (DT >= DTmin) & (DT < DTmax):
+            break
+
+    # Return
+    return key
 
 
 def umap_subset(opt_path:str, outfile:str, DT_cut=None, 

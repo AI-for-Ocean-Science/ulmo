@@ -9,6 +9,7 @@ from ulmo import io as ulmo_io
 from ulmo.utils import catalog as cat_utils
 
 import ssl_paper_analy
+import ssl_defs
 
 from IPython import embed
 
@@ -20,22 +21,7 @@ opt_path_96 = os.path.join(resource_filename('ulmo', 'runs'),
                         'opts_96clear_ssl.json')
 
 def run_subset(subset, remove=True, CF=False):                    
-    if subset == 'DT0':
-        DT_cut = (0.25, 0.25)
-    elif subset == 'DT10':
-        DT_cut = (1.0, 0.05)
-    elif subset == 'DT1':
-        DT_cut = (0.75, 0.25)
-    elif subset == 'DT15':
-        DT_cut = (1.25, 0.25)
-    elif subset == 'DT2':
-        DT_cut = (2.0, 0.5)
-    elif subset == 'DT4':
-        DT_cut = (3.25, 0.75)
-    elif subset == 'DT5':
-        DT_cut = (5.0, -1)
-    elif subset == 'all':
-        DT_cut = None
+    DT_cut = ssl_defs[subset]
 
     # Prep
     if CF:
