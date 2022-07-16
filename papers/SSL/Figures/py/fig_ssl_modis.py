@@ -730,7 +730,7 @@ def fig_umap_geo(outfile, table, umap_rngs, local=False,
     plt.close()
     print('Wrote {:s}'.format(outfile))
 
-def fig_geo_umap(outfile, lonlat_rngs,
+def fig_geo_umap(outfile, geo_region,
                      local=False, 
                      umap_comp='S0,S1',
                      table='96_DT15',
@@ -766,11 +766,13 @@ def fig_geo_umap(outfile, lonlat_rngs,
     counts /= np.sum(counts)
 
     # Geographic
+    lons = ssl_paper_analy.geo_regions[geo_region]['lons']
+    lats = ssl_paper_analy.geo_regions[geo_region]['lats']
     #embed(header='739 of figs')
-    geo = ( (modis_tbl.lon > lonlat_rngs[0][0]) &
-        (modis_tbl.lon < lonlat_rngs[0][1]) &
-        (modis_tbl.lat > lonlat_rngs[1][0]) &
-        (modis_tbl.lat < lonlat_rngs[1][1]) )
+    geo = ( (modis_tbl.lon > lons[0]) &
+        (modis_tbl.lon < lons[1]) &
+        (modis_tbl.lat > lats[0]) &
+        (modis_tbl.lat < lats[1]) )
 
     geo_tbl = modis_tbl.loc[good & geo].copy()
     counts_geo, xedges, yedges = np.histogram2d(
@@ -1458,10 +1460,10 @@ def main(pargs):
         #    debug=pargs.debug, local=pargs.local)
 
         # Equatorial Pacific
-        fig_geo_umap('fig_geo_umap_DT15_eqpacific.png',
-            [[-140, -90.],   # W
-             [-10, 10.]],    # Equitorial 
-            debug=pargs.debug, local=pargs.local)
+        #fig_geo_umap('fig_geo_umap_DT15_eqpacific.png',
+        #    [[-140, -90.],   # W
+        #     [-10, 10.]],    # Equitorial 
+        #    debug=pargs.debug, local=pargs.local)
 
         # Coastal California
         #fig_geo_umap('fig_geo_umap_DT15_california.png',
@@ -1476,6 +1478,12 @@ def main(pargs):
         #    table='96_DT1',
         #    debug=pargs.debug, local=pargs.local)
 
+        # Bay of Bengal
+        fig_geo_umap('fig_geo_umap_DT15_baybengal.png', 
+                     'baybengal',
+            table='96_DT15',
+            debug=pargs.debug, local=pargs.local)
+
     if pargs.figure == 'yearly_geo':
         # Equatorial Pacific
         #fig_yearly_geo_umap('fig_yearly_geo_DT15_eqpacific.png',
@@ -1488,20 +1496,31 @@ def main(pargs):
         #    debug=pargs.debug, local=pargs.local)
 
         # Global using Med
-        fig_yearly_geo_umap('fig_yearly_geo_DT15_global_med.png',
-            'global', rtio_cut=1.25, rtio_region='med',
+        #fig_yearly_geo_umap('fig_yearly_geo_DT15_global_med.png',
+        #    'global', rtio_cut=1.25, rtio_region='med',
+        #    debug=pargs.debug, local=pargs.local)
+
+        # Bay of Bengal
+        fig_yearly_geo_umap('fig_yearly_geo_DT15_baybengal.png',
+            'baybengal', rtio_cut=1.5,
             debug=pargs.debug, local=pargs.local)
 
     if pargs.figure == 'seasonal_geo':
         # Med
-        fig_seasonal_geo_umap('fig_seasonal_geo_DT15_med.png',
-            'med', rtio_cut=1.25,
-            debug=pargs.debug, local=pargs.local)
+        #fig_seasonal_geo_umap('fig_seasonal_geo_DT15_med.png',
+        #    'med', rtio_cut=1.25,
+        #    debug=pargs.debug, local=pargs.local)
 
         # Equatorial Pacific
-        fig_seasonal_geo_umap('fig_seasonal_geo_DT15_eqpacific.png',
-            'eqpacific',
+        #fig_seasonal_geo_umap('fig_seasonal_geo_DT15_eqpacific.png',
+        #    'eqpacific',
+        #    debug=pargs.debug, local=pargs.local)
+
+        # Bay of Bengal
+        fig_seasonal_geo_umap('fig_seasonal_geo_DT15_baybengal.png',
+            'baybengal', rtio_cut=1.5,
             debug=pargs.debug, local=pargs.local)
+
 
     # UMAP LL Brazil
     if pargs.figure  == 'umap_brazil':
