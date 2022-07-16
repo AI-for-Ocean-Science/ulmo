@@ -3,9 +3,6 @@ import os
 import numpy as np
 
 import pandas
-import xarray
-
-import datetime
 
 from ulmo.llc import extract 
 from ulmo.llc import io as llc_io
