@@ -29,7 +29,7 @@ def main(pargs):
     modis_subtbl_file = os.path.join(os.getenv("SST_OOD"), 
                         'MODIS_L2', 'Tables', 
                         f'MODIS_SSL_96clear_{subset}.parquet') # This should be all
-    modis_subtbl = ulmo_io.load_main_table(modis_tbl_file)
+    modis_subtbl = ulmo_io.load_main_table(modis_subtbl_file)
     idx = np.where(modis_subtbl.UID == pargs.UID)[0][0]
     cutout = modis_subtbl.iloc[idx]
 
