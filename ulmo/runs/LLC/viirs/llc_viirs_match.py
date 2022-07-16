@@ -235,16 +235,29 @@ def llc_viirs_extract(tbl_file:str,
     print("You should probably remove the PreProc/ folder")
     
     
-
-def u_add_velocities():
+def llc_viirs_evaluate_144(tbl_file:str, 
+                   debug=False,
+                   model='viirs-98'):
+    """ Run Ulmo on the cutouts with the given model
+    """
+    
+    
+    if debug:
+        tbl_file = tst_file
     # Load
     llc_table = ulmo_io.load_main_table(tbl_file)
-    
-    # Velocities
-    extract.velocity_stats(llc_table)
+
+    # Evaluate
+    ulmo_evaluate.eval_from_main(llc_table,
+                                 model=model)
+
+    # Vet
+    assert cat_utils.vet_main_table(llc_table)
 
     # Write 
     ulmo_io.write_main_table(llc_table, tbl_file)
+
+
 
 def main(flg):
     if flg== 'all':
