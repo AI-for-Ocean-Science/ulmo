@@ -49,6 +49,7 @@ def viirs_match_table(field_size=(64,64), CC_max=1e-6,
         modisl2_table = ulmo_io.load_main_table(modis_file)
 
     # Load up CC_mask for the coordinates
+    embed(header='consider using a 128 field_size or however big it needs to be')
     CC_mask = llc_io.load_CC_mask(field_size=field_size, 
                                   local=localCC)
     # Cut
@@ -181,72 +182,59 @@ def viirs_match_table(field_size=(64,64), CC_max=1e-6,
     print("All done with test init.")
 
 
-def modis_extract(test=True, debug_local=False, 
-                  noise=False, debug=False):
+
+def llc_viirs_extract(tbl_file:str, 
+                      root_file=None, dlocal=True, 
+                      preproc_root='llc_144', 
+                      debug=False):
 
     # Giddy up (will take a bit of memory!)
-    if noise:
-        preproc_root='llc_noise' 
-    else:
-        preproc_root='llc_std' 
-    if test:
-        if noise:
-            tbl_file = tbl_test_noise_file
-            root_file = 'LLC_modis2012_test_noise_preproc.h5'
-        else:
-            tbl_file = tbl_test_file
-            root_file = 'LLC_modis2012_test_preproc.h5'
-    else:
-        raise IOError("Not ready for anything but testing..")
     llc_table = ulmo_io.load_main_table(tbl_file)
-    # Rename MODIS columns
-    if 'filename' in llc_table.keys() and 'modis_filename' not in llc_table.keys():
-        llc_table = llc_table.rename(columns=dict(filename='modis_filename'))
 
+    if debug:
+        # Cut down to first 2 days
+        uni_date = np.unique(llc_table.datetime)
+        gd_date = llc_table.datetime <= uni_date[1]
+        llc_table = llc_table[gd_date]
+        debug_local = True
+
+    if debug:
+        root_file = 'LLC_VIIRS144_test_preproc.h5'
+    else:
+        if root_file is None:
+            root_file = 'LLC_VIIRS144_preproc.h5'
+
+    # Setup
     pp_local_file = 'PreProc/'+root_file
     pp_s3_file = 's3://llc/PreProc/'+root_file
     if not os.path.isdir('PreProc'):
         os.mkdir('PreProc')
 
+    print(f"Outputting to: {pp_s3_file}")
+
     # Run it
     if debug_local:
         pp_s3_file = None  
-    llc_table = extract.preproc_for_analysis(llc_table, 
+    # Check indices
+    assert np.all(np.arange(len(llc_table)) == llc_table.index)
+    # Do it
+    extract.preproc_for_analysis(llc_table, 
                                  pp_local_file,
+                                 fixed_km=144.,
                                  preproc_root=preproc_root,
                                  s3_file=pp_s3_file,
-                                 dlocal=False,
-                                 debug=debug)
+                                 #debug=debug,
+                                 dlocal=dlocal,
+                                 override_RAM=True)
     # Vet
-    assert cat_utils.vet_main_table(llc_table, cut_prefix='modis_')
+    assert cat_utils.vet_main_table(llc_table)
 
     # Final write
     if not debug:
         ulmo_io.write_main_table(llc_table, tbl_file)
+    print("You should probably remove the PreProc/ folder")
     
-
-def modis_evaluate(test=True, noise=False, tbl_file=None, rename=True):
-
-    if tbl_file is None:
-        if test:
-            tbl_file = tbl_test_noise_file if noise else tbl_test_file
-        else:
-            raise IOError("Not ready for anything but testing..")
     
-    # Load
-    llc_table = ulmo_io.load_main_table(tbl_file)
-
-    # Rename
-    if rename and 'LL' in llc_table.keys() and 'modis_LL' not in llc_table.keys():
-        llc_table = llc_table.rename(
-            columns=dict(LL='modis_LL'))
-
-    # Evaluate
-    llc_table = ulmo_evaluate.eval_from_main(llc_table)
-
-    # Write 
-    assert cat_utils.vet_main_table(llc_table, cut_prefix='modis_')
-    ulmo_io.write_main_table(llc_table, tbl_file)
 
 def u_add_velocities():
     # Load
