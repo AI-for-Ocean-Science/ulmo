@@ -3,6 +3,7 @@ import os
 import numpy as np
 
 import pandas
+import datetime
 
 from ulmo.llc import extract 
 from ulmo.llc import io as llc_io
@@ -18,11 +19,10 @@ from IPython import embed
 
 viirs_match_file = 's3://llc/Tables/llc_viirs_match.parquet'
 tbl_test_noise_file = 's3://llc/Tables/test_noise_modis2012.parquet'
-modis_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
 local_modis_file = '/home/xavier/Projects/Oceanography/AI/OOD/MODIS_L2/Tables/MODIS_L2_std.parquet'
-local_viirs_file = os.path.join(os.getenv('SSD_OOD'),
+local_viirs_file = os.path.join(os.getenv('SST_OOD'),
                                 'VIIRS', 'Tables',
-                                'viirs_98_all.parquet')
+                                'VIIRS_all_98clear_std.parquet')
 
 
 def viirs_match_table(field_size=(64,64), CC_max=1e-6, 
@@ -38,7 +38,7 @@ def viirs_match_table(field_size=(64,64), CC_max=1e-6,
         localM (bool, optional): Load MODIS from local disk. Defaults to False.
     """
     # Load MODIS
-    print("Loading MODIS...")
+    print("Loading VIIRS...")
     if localV:
         viirs_tbl = ulmo_io.load_main_table(local_viirs_file)
     else:
@@ -57,20 +57,21 @@ def viirs_match_table(field_size=(64,64), CC_max=1e-6,
     llc_lon = CC_mask.lon.values[good_CC].flatten()
     llc_lat = CC_mask.lat.values[good_CC].flatten()
 
-
-    print("Building LLC SkyCoord")
-    llc_coord = SkyCoord(llc_lon*units.deg + 180.*units.deg, 
-                         llc_lat*units.deg, 
-                         frame='galactic')
     del CC_mask                            
     
     # Times
     
     # LLC files
-    llc_files = np.array(
-        ulmo_io.list_of_bucket_files('llc', prefix='/ThetaUVSalt'))
+    llc_files = ulmo_io.list_of_bucket_files('llc', prefix='/ThetaUVSalt')
+    llc_files = [item for item in llc_files if ('T12_00' in item) or ('T00_00' in item)]
     times = [os.path.basename(ifile)[8:-3].replace('_',':') for ifile in llc_files]
     llc_dti = pandas.to_datetime(times)
+
+    # Cut down to have 1 year of coverage and only 1 
+    keep_llc = llc_dti > datetime.datetime(2011, 11, 16, 13)
+    times = np.array(times)[keep_llc].tolist()
+    llc_dti = pandas.to_datetime(times)
+    llc_files = np.array(llc_files)[keep_llc]
 
     # LLC 12hr steps
     llc_start_year = pandas.to_datetime(llc_dti.year, format='%Y')
@@ -79,7 +80,7 @@ def viirs_match_table(field_size=(64,64), CC_max=1e-6,
     # These ought to all be unique
     assert llc_12hrs.size == uni_12hrs.size
 
-    # Cuts -- Could restrict to night-time here
+    # VIIRS
     viirs_dti = pandas.to_datetime(viirs_tbl.datetime.values)
     viirs_start_year = pandas.to_datetime(viirs_dti.year, format='%Y')
     viirs_12hrs = (viirs_dti - viirs_start_year).total_seconds().astype(int) // (12*3600)
@@ -91,6 +92,11 @@ def viirs_match_table(field_size=(64,64), CC_max=1e-6,
     # Cut and do it again
     viirs_llc_tbl = viirs_tbl[keep].copy()
     mt_t = cat_utils.match_ids(viirs_12hrs[keep], llc_12hrs) 
+
+    print("Building LLC SkyCoord")
+    llc_coord = SkyCoord(llc_lon*units.deg + 180.*units.deg, 
+                         llc_lat*units.deg, 
+                         frame='galactic')
 
     # Coords
     viirs_coord = SkyCoord(viirs_llc_tbl.lon.values*units.deg + 180.*units.deg, 
@@ -104,21 +110,6 @@ def viirs_match_table(field_size=(64,64), CC_max=1e-6,
 
     print(f"Maximum separaton is: {np.max(sep2d).to('arcsec')}")
 
-    # Match in time
-    
-    '''
-    # Pivot around every 12 hrs
-    modis_dt = modis_2012.datetime - pandas.Timestamp('2012-01-01')                                        
-    hours = np.round(modis_dt.values / np.timedelta64(1, 'h')).astype(int)
-    
-    # Round to every 12 hours
-    hour_12 = 12*np.round(hours / 12).astype(int)
-    # LLC
-    llc_hours = np.round((llc_dti-pandas.Timestamp('2012-01-01')).values / np.timedelta64(1, 'h')).astype(int)
-
-    # Finally match!
-    mt_t = cat_utils.match_ids(hour_12, llc_hours)#, require_in_match=False)
-    '''
 
     # Indexing and Assigning
     assert mt_t.max() < 1000
@@ -170,16 +161,17 @@ def viirs_match_table(field_size=(64,64), CC_max=1e-6,
         pp_plotting.plot_extraction(llc_viirs_tbl, figsize=(9,6))
 
     # Vet
-    assert cat_utils.vet_main_table(llc_viirs_tbl, cut_prefix='viirs')
+    embed(header='164 of llc viirs match')
+    assert cat_utils.vet_main_table(llc_viirs_tbl, cut_prefix='viirs_')
 
     # Write
     outfile = viirs_match_file
 
     ulmo_io.write_main_table(llc_viirs_tbl, outfile)
-    print("All done with test init.")
+    print("All done generating the Table")
 
 
-
+# EXTRACTION
 def llc_viirs_extract(tbl_file:str, 
                       root_file=None, dlocal=True, 
                       preproc_root='llc_144', 
@@ -262,9 +254,9 @@ def main(flg):
     else:
         flg= int(flg)
 
-        # MMT/MMIRS
+    # Start us off
     if flg & (2**0):
-        modis_init_test(show=True)
+        viirs_match_table(show=True)
 
     if flg & (2**1):
         modis_extract()
@@ -272,42 +264,13 @@ def main(flg):
     if flg & (2**2):
         modis_evaluate()
 
-    # 2012 + noise
-    if flg & (2**3):
-        modis_init_test(show=False, noise=True, localCC=False)
-        #modis_init_test(show=True, noise=True, localCC=True)#, localM=False)
-
-    if flg & (2**4):
-        modis_extract(noise=True, debug=False)
-
-    if flg & (2**5):
-        modis_evaluate(noise=True)
-
-    if flg & (2**6):  # Debuggin
-        modis_evaluate(tbl_file='s3://llc/Tables/test2_modis2012.parquet')
-
-    if flg & (2**7):  
-        modis_evaluate(tbl_file='s3://llc/Tables/ulmo2_test.parquet')
-    
-    if flg & (2**8):
-        modis_evaluate(tbl_file='s3://llc/Tables/LLC_modis_noise2.parquet')
-
-    if flg & (2**9): 
-        modis_evaluate(tbl_file='s3://llc/Tables/LLC_modis_noise_track.parquet')
-    
-    if flg & (2**10):
-        modis_evaluate(tbl_file='s3://llc/Tables/LLC_uniform_test.parquet')
-
-    if flg & (2**11): # 2048
-        modis_evaluate(tbl_file='s3://llc/Tables/LLC_uniform_viirs_noise.parquet')
-
 # Command line execution
 if __name__ == '__main__':
     import sys
 
     if len(sys.argv) == 1:
         flg = 0
-        #flg += 2 ** 0  # 1 -- Setup coords
+        flg += 2 ** 0  # 1 -- Setup coords and table
         #flg += 2 ** 1  # 2 -- Extract
         #flg += 2 ** 2  # 4 -- Evaluate
         #flg += 2 ** 3  # 8 -- Init test + noise
@@ -318,7 +281,7 @@ if __name__ == '__main__':
         #flg += 2 ** 8  #256 -- Katharina: modis noise avgd
         #flg += 2 ** 9  #512 -- Katharina: modis along track noise
         #flg += 2 ** 10 #1024 -- Katharina: LLc uniformly sampled, no noise (not done)
-        flg += 2 ** 11  #2048 -- Katharina: LLC uniform viirs along scan noise
+        #flg += 2 ** 11  #2048 -- Katharina: LLC uniform viirs along scan noise
 
 
 
