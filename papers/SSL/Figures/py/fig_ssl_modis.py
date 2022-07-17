@@ -319,25 +319,30 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
 
 def fig_umap_density(outfile='fig_umap_density.png',
                      local=False, table='std', 
-                     umap_comp='0,1',
-                     umap_dim=2, cmap=None,
-                     debug=False): 
+                     umap_comp='0,1', umap_grid=None,
+                     umap_dim=2, cmap=None, nxy=16,
+                     fsz=19.,
+                     modis_tbl=None,
+                     show_cbar = False,
+                     debug=False, ax=None): 
     # Load
-    modis_tbl = ssl_paper_analy.load_modis_tbl(local=local, table=table)
+    if modis_tbl is None:
+        modis_tbl = ssl_paper_analy.load_modis_tbl(local=local, table=table)
 
     umap_keys = gen_umap_keys(umap_dim, umap_comp)
-    outfile = update_outfile(outfile, table, umap_dim,
+    if outfile is not None:
+        outfile = update_outfile(outfile, table, umap_dim,
                              umap_comp=umap_comp)
+
     # Boundaries of the box
-    xmin, xmax = np.percentile(modis_tbl[umap_keys[0]].values, [0.1, 99.9])
-    ymin, ymax = np.percentile(modis_tbl[umap_keys[1]].values, [0.1, 99.9])
-    dxv = (xmax-xmin)/16.
-    dyv = (ymax-ymin)/16.
-    # Edges
-    xmin -= dxv
-    xmax += dxv
-    ymin -= dyv
-    ymax += dyv
+    if umap_grid is None:
+        grid_umap(modis_tbl[umap_keys[0]].values, modis_tbl[umap_keys[0]].values,
+                  nxy=nxy)
+
+    xmin, xmax = umap_grid['xmin'], umap_grid['xmax']
+    ymin, ymax = umap_grid['ymin'], umap_grid['ymax']
+    dxv = umap_grid['dxv']
+    dyv = umap_grid['dyv']
 
     # Grid
     xval = np.arange(xmin, xmax+dxv, dxv)
@@ -359,9 +364,10 @@ def fig_umap_density(outfile='fig_umap_density.png',
 
     counts /= np.sum(counts)
 
-    fig = plt.figure(figsize=(8, 8))
-    plt.clf()
-    ax = plt.gca()
+    if ax is None:
+        fig = plt.figure(figsize=(8, 8))
+        plt.clf()
+        ax = plt.gca()
 
 
     ax.set_xlabel(r'$'+umap_keys[0]+'$')
@@ -381,20 +387,22 @@ def fig_umap_density(outfile='fig_umap_density.png',
                          vmax=vmax) 
 
     # Color bar
-    show_cbar = False
     if show_cbar:
         cbaxes = plt.colorbar(mplt, pad=0., fraction=0.030)
-        cbaxes.set_label(lbl, fontsize=15.)
+        #cbaxes.set_label(lbl, fontsize=15.)
 
-    plotting.set_fontsize(ax, 19.)
-    plt.savefig(outfile, dpi=200)
-    plt.close()
-    print('Wrote {:s}'.format(outfile))
+    plotting.set_fontsize(ax, fsz)
+
+    # Write?
+    if outfile is not None:
+        plt.savefig(outfile, dpi=200)
+        plt.close()
+        print('Wrote {:s}'.format(outfile))
     
 
 def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
                      local=False, table='std', in_vmnx=None,
-                     umap_comp='0,1',
+                     umap_comp='0,1', nxy=16,
                      umap_dim=2,
                      debug=False): 
     """ UMAP gallery
@@ -414,6 +422,9 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
     umap_keys = gen_umap_keys(umap_dim, umap_comp)
     outfile = update_outfile(outfile, table, umap_dim,
                              umap_comp=umap_comp)
+
+    if debug:
+        nxy = 4
 
     # Cut table
     dxv = 0.5
@@ -459,15 +470,13 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
             dxv = 0.5 
             dyv = 0.25
         else:
-            xmin, xmax = np.percentile(modis_tbl[umap_keys[0]].values, [0.1, 99.9])
-            ymin, ymax = np.percentile(modis_tbl[umap_keys[1]].values, [0.1, 99.9])
-            dxv = (xmax-xmin)/16.
-            dyv = (ymax-ymin)/16.
-            # Edges
-            xmin -= dxv
-            xmax += dxv
-            ymin -= dyv
-            ymax += dyv
+            umap_grid = grid_umap(modis_tbl[umap_keys[0]].values,
+                                  modis_tbl[umap_keys[1]].values, nxy=nxy)
+            # Unpack
+            xmin, xmax = umap_grid['xmin'], umap_grid['xmax']
+            ymin, ymax = umap_grid['ymin'], umap_grid['ymax']
+            dxv = umap_grid['dxv']
+            dyv = umap_grid['dyv']
     else:
         xmin, xmax = -4.5, 7
         ymin, ymax = 4.5, 10.5
@@ -498,19 +507,20 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
     # Fig
     _, cm = plotting.load_palette()
     fsz = 15.
-    fig = plt.figure(figsize=(8, 8))
+    fig = plt.figure(figsize=(12, 8))
     plt.clf()
-    ax = plt.gca()
 
-    ax.set_xlabel(r'$'+umap_keys[0]+'$')
-    ax.set_ylabel(r'$'+umap_keys[1]+'$')
+    ax_gallery = fig.add_axes([0.05, 0.1, 0.6, 0.90])
+
+    ax_gallery.set_xlabel(r'$'+umap_keys[0]+'$')
+    ax_gallery.set_ylabel(r'$'+umap_keys[1]+'$')
 
     # Gallery
     #dxdy=(0.3, 0.3)
     #xmin, xmax = modis_tbl.U0.min()-dxdy[0], modis_tbl.U0.max()+dxdy[0]
     #ymin, ymax = modis_tbl.U1.min()-dxdy[1], modis_tbl.U1.max()+dxdy[1]
-    ax.set_xlim(xmin, xmax)
-    ax.set_ylim(ymin, ymax)
+    ax_gallery.set_xlim(xmin, xmax)
+    ax_gallery.set_ylim(ymin, ymax)
 
     print('x,y', xmin, xmax, ymin, ymax, dxv, dyv)
 
@@ -528,6 +538,14 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
         nmax = 100
     else:
         nmax = 1000000000
+
+    # Color bar
+    plt_cbar = True
+    ax_cbar = ax_gallery.inset_axes(
+                    [xmax + dxv/10, ymin, dxv/2, (ymax-ymin)*0.2],
+                    transform=ax_gallery.transData)
+    cbar_kws = dict(label=r'$\Delta T$ (K)')
+
     for x in xval[:-1]:
         for y in yval[:-1]:
             pts = np.where((modis_tbl[umap_keys[0]] >= x) & (
@@ -543,9 +561,9 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
             cutout = modis_tbl.iloc[idx]
 
             # Image
-            axins = ax.inset_axes(
+            axins = ax_gallery.inset_axes(
                     [x, y, 0.9*dxv, 0.9*dyv], 
-                    transform=ax.transData)
+                    transform=ax_gallery.transData)
             try:
                 if local:
                     parsed_s3 = urlparse(cutout.pp_file)
@@ -569,11 +587,15 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
                 amax = max(np.abs(imin), np.abs(imax))
                 vmnx = (-1*amax, amax)
             # Plot
-            _ = sns.heatmap(np.flipud(cutout_img), 
+            sns_ax = sns.heatmap(np.flipud(cutout_img), 
                             xticklabels=[], 
                      vmin=vmnx[0], vmax=vmnx[1],
-                     yticklabels=[], cmap=cm, cbar=False,
+                     yticklabels=[], cmap=cm, cbar=plt_cbar,
+                     cbar_ax=ax_cbar, cbar_kws=cbar_kws,
                      ax=axins)
+            # Only do this once
+            if plt_cbar:
+                plt_cbar = False
             ndone += 1
             print(f'ndone= {ndone}, LL={cutout.LL}')
             if ndone > nmax:
@@ -581,9 +603,17 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
         if ndone > nmax:
             break
 
-    plotting.set_fontsize(ax, fsz)
+    plotting.set_fontsize(ax_gallery, fsz)
     #ax.set_aspect('equal', 'datalim')
     #ax.set_aspect('equal')#, 'datalim')
+
+    # Incidence plot
+    ax_incidence = fig.add_axes([0.71, 0.45, 0.25, 0.36])
+
+    fig_umap_density(outfile=None, modis_tbl=modis_tbl,
+                     umap_grid=umap_grid, umap_comp=umap_comp,
+                     show_cbar=True, ax=ax_incidence, fsz=12.)
+    #ax_incidence.plot(np.arange(10), np.arange(10))
 
     #plt.tight_layout(pad=0.0, h_pad=0.0, w_pad=0.0)
     plt.savefig(outfile, dpi=300)
@@ -662,6 +692,8 @@ def fig_umap_geo(outfile, table, umap_rngs, local=False,
             (modis_tbl[umap_keys[1]] < umap_rngs[1][1]) )
     cut_tbl = modis_tbl[cut].copy()
 
+    print(f"We have {len(cut_tbl)} cutouts in the UMAP range.")
+
     hp_events_cut, _, _ = image_utils.evals_to_healpix(cut_tbl, nside)
 
     # Have 0 for unmasked in full set
@@ -677,6 +709,10 @@ def fig_umap_geo(outfile, table, umap_rngs, local=False,
 
     # Ratio
     ratio = f_cut / f_tot #hp_events_cut / hp_events
+
+    # Set 1 event to ratio of 1
+    #set_one = (hp_events_cut <= 2) & (hp_events < 10)
+    #ratio[set_one] = 1.
 
     # What to plot?
     hp_plot = ratio
@@ -986,8 +1022,32 @@ def fig_yearly_geo_umap(outfile, geo_region,
 
     # Loop on years
     years = 2003 + np.arange(17)
+    months = 1 + np.arange(12)
 
     fracs = []
+    dates = []
+    for year in years:
+        for month in months:
+            if month < 12:
+                in_date = (geo_tbl.datetime >= datetime.datetime(year,month,1)) & (
+                    geo_tbl.datetime < datetime.datetime(year,month+1,1))
+            else:
+                in_date = (geo_tbl.datetime >= datetime.datetime(year,month,1)) & (
+                    geo_tbl.datetime < datetime.datetime(year+1,1,1))
+            date_tbl = geo_tbl[in_date].copy()
+            counts_date, xedges, yedges = np.histogram2d(
+                date_tbl[umap_keys[0]], 
+                date_tbl[umap_keys[1]], 
+                bins=(grid['xval'], grid['yval']))
+            # frac
+            frac = np.sum(counts_date*use_grid) / np.sum(counts_date)
+            fracs.append(frac)
+            # Date
+            dates.append(datetime.datetime(year, month, 15))
+
+    # Annual
+    year_fracs = []
+    year_dates = []
     for year in years:
         in_year = (geo_tbl.datetime >= datetime.datetime(year,1,1)) & (
             geo_tbl.datetime < datetime.datetime(year+1,1,1))
@@ -998,14 +1058,20 @@ def fig_yearly_geo_umap(outfile, geo_region,
             bins=(grid['xval'], grid['yval']))
         # frac
         frac = np.sum(counts_year*use_grid) / np.sum(counts_year)
-        fracs.append(frac)
+        year_fracs.append(frac)
+        #
+        year_dates.append(datetime.datetime(year, 7, 1))
 
     # Plot
     fig = plt.figure(figsize=(8, 8))
     plt.clf()
     ax = plt.gca()
 
-    ax.plot(years, fracs, 'k')
+    # All
+    ax.plot(dates, fracs, 'k')
+
+    # Annual
+    ax.plot(year_dates, year_fracs, 'ro')
 
     plotting.set_fontsize(ax, 19.)
     plt.savefig(outfile, dpi=200)
@@ -1377,9 +1443,13 @@ def main(pargs):
                          umap_comp=pargs.umap_comp)
 
     # UMAP_DT 
-    if pargs.figure == 'umap_DT':
+    if pargs.figure in 'umap_DT':
+        if 'all' in pargs.table:
+            metric = 'logDT'
+        else:
+            metric = 'DT'
         fig_umap_colored(local=pargs.local, table=pargs.table,
-                         metric='DT', outfile='fig_umap_DT.png',
+                         metric=metric, outfile='fig_umap_DT.png',
                          vmnx=(None,None),
                          umap_dim=pargs.umap_dim,
                          umap_comp=pargs.umap_comp)
@@ -1444,7 +1514,7 @@ def main(pargs):
         #    debug=pargs.debug, local=pargs.local)
         # Gradient region
         #fig_umap_geo('fig_umap_geo_DT15_6779.png',
-        #    '96_DT15', [[6,7], [7.5,9]], 
+        #    '96_DT15', [[5,7], [7.5,9]], 
         #    debug=pargs.debug, local=pargs.local)
 
         # 'Turbulent' in DT2
@@ -1484,11 +1554,18 @@ def main(pargs):
             table='96_DT15',
             debug=pargs.debug, local=pargs.local)
 
+        # South Pacific
+        #fig_geo_umap('fig_geo_umap_DT1_southpacific.png',
+        #    [[-120, -90.],   # W (Pretty crude)
+        #     [-30, -10.]],      # S
+        #    table='96_DT1',
+        #    debug=pargs.debug, local=pargs.local)
+
     if pargs.figure == 'yearly_geo':
         # Equatorial Pacific
-        #fig_yearly_geo_umap('fig_yearly_geo_DT15_eqpacific.png',
-        #    'eqpacific',
-        #    debug=pargs.debug, local=pargs.local)
+        fig_yearly_geo_umap('fig_yearly_geo_DT15_eqpacific.png',
+            'eqpacific', rtio_cut=1.5,
+            debug=pargs.debug, local=pargs.local)
 
         # Med
         #fig_yearly_geo_umap('fig_yearly_geo_DT15_med.png',
@@ -1504,6 +1581,11 @@ def main(pargs):
         fig_yearly_geo_umap('fig_yearly_geo_DT15_baybengal.png',
             'baybengal', rtio_cut=1.5,
             debug=pargs.debug, local=pargs.local)
+
+        # Global using Equatorial
+        #fig_yearly_geo_umap('fig_yearly_geo_DT15_global_eqpac.png',
+        #    'global', rtio_cut=1.5, rtio_region='eqpacific',
+        #    debug=pargs.debug, local=pargs.local)
 
     if pargs.figure == 'seasonal_geo':
         # Med
@@ -1737,10 +1819,12 @@ if __name__ == '__main__':
 
 # UMAP colored by LL -- python py/fig_ssl_modis.py umap_LL --local --table 96
 
+# UMAP DT15 colored by DT -- python py/fig_ssl_modis.py umap_DT --local --table 96_DTall --umap_comp S0,S1
 # UMAP DT15 colored by DT -- python py/fig_ssl_modis.py umap_DT --local --table 96_DT15 --umap_comp S0,S1
 # UMAP DT15 colored by min_slope -- python py/fig_ssl_modis.py umap_slope --local --table 96_DT15 --umap_comp S0,S1
 
 # UMAP gallery -- 
+#  python py/fig_ssl_modis.py umap_gallery --local --table 96_DTall --umap_comp S0,S1 --vmnx=-1,1
 #  python py/fig_ssl_modis.py umap_gallery --local --table 96_DT0 --umap_comp S0,S1 --vmnx=-0.3, 0.3
 #  python py/fig_ssl_modis.py umap_gallery --local --table 96_DT1 --umap_comp S0,S1 --vmnx=-0.75,0.75
 #  python py/fig_ssl_modis.py umap_gallery --local --table 96_DT15 --umap_comp S0,S1 --vmnx=-1,1

@@ -21,6 +21,7 @@ opt_path_96 = os.path.join(resource_filename('ulmo', 'runs'),
                         'opts_96clear_ssl.json')
 
 def run_subset(subset, remove=True, CF=False):                    
+
     DT_cut = ssl_defs[subset]
 
     # Prep
@@ -136,7 +137,7 @@ def build_portal_images(subset, local=True, CF=False, debug=False):
         print("Push the Table to s3 to keep the portal info")
 
 # All
-#run_subset('all', remove=False)
+#run_subset('DTall', remove=False)
 
 # DT cuts
 # DT0  0 - 0.5 :: 656783 cutouts
