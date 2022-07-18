@@ -264,7 +264,7 @@ def main(flg):
         llc_viirs_extract(viirs_match_file, debug=False)
 
     if flg & (2**2):
-        llc_viirs_evaluate_144()
+        llc_viirs_evaluate_144(viirs_match_file)
 
 # Command line execution
 if __name__ == '__main__':
