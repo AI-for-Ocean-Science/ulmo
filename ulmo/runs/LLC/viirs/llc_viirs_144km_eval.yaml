@@ -1,8 +1,8 @@
-# Script to evaluate LLC with VIIRS 98 Ulmo 
+# Script to evaluate LLC matched to VIIRS with VIIRS 98 Ulmo 
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-llc-uniform-eval-viirs-98
+  name: xavier-llc-viirs-eval-viirs-98
 spec:
   backoffLimit: 0
   template:
@@ -47,7 +47,7 @@ spec:
             mkdir foo; 
             cd foo; 
             mkdir Evaluations;   
-            python -u /ulmo/ulmo/runs/LLC/uniform/llc_uniform_144km.py 4;
+            python -u /ulmo/ulmo/runs/LLC/uniform/llc_viirs_match.py 4;
             rm PreProc/*;
             cd ..;
             aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp foo s3://llc --recursive;

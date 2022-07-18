@@ -273,8 +273,8 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         flg = 0
         #flg += 2 ** 0  # 1 -- Setup coords and table
-        flg += 2 ** 1  # 2 -- Extract
-        #flg += 2 ** 2  # 4 -- Evaluate
+        #flg += 2 ** 1  # 2 -- Extract
+        flg += 2 ** 2  # 4 -- Evaluate
         #flg += 2 ** 3  # 8 -- Init test + noise
         #flg += 2 ** 4  # 16 -- Extract + noise
         #flg += 2 ** 5  # 32 -- Evaluate + noise
