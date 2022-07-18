@@ -26,12 +26,12 @@ spec:
         imagePullPolicy: Always
         resources:
           requests:
-            cpu: "2"
-            memory: "16Gi"  # Need at least 15.5
+            cpu: "5"  # Using at least this many
+            memory: "24Gi"  # Need nearly this much
             ephemeral-storage: 60Gi
           limits:
-            cpu: "5"
-            memory: "24Gi"
+            cpu: "8"
+            memory: "32Gi"
             ephemeral-storage: 100Gi
             nvidia.com/gpu:  "1"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]

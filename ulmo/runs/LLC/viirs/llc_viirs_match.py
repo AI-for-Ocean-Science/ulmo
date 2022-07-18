@@ -243,7 +243,7 @@ def llc_viirs_evaluate_144(tbl_file:str,
                                  model=model)
 
     # Vet
-    assert cat_utils.vet_main_table(llc_table)
+    assert cat_utils.vet_main_table(llc_table, cut_prefix=['viirs_', 'MODIS_'])
 
     # Write 
     ulmo_io.write_main_table(llc_table, tbl_file)
