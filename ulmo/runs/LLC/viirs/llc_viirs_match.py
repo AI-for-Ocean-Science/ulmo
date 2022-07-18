@@ -275,15 +275,6 @@ if __name__ == '__main__':
         #flg += 2 ** 0  # 1 -- Setup coords and table
         #flg += 2 ** 1  # 2 -- Extract
         flg += 2 ** 2  # 4 -- Evaluate
-        #flg += 2 ** 3  # 8 -- Init test + noise
-        #flg += 2 ** 4  # 16 -- Extract + noise
-        #flg += 2 ** 5  # 32 -- Evaluate + noise
-        #flg += 2 ** 6  # 64 -- Evaluate debug run
-        #flg += 2 ** 7  # 128 -- Katharina's first noise try
-        #flg += 2 ** 8  #256 -- Katharina: modis noise avgd
-        #flg += 2 ** 9  #512 -- Katharina: modis along track noise
-        #flg += 2 ** 10 #1024 -- Katharina: LLc uniformly sampled, no noise (not done)
-        #flg += 2 ** 11  #2048 -- Katharina: LLC uniform viirs along scan noise
 
 
 
