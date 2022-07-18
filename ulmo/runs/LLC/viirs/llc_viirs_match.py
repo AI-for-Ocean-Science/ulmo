@@ -20,9 +20,6 @@ from IPython import embed
 viirs_match_file = 's3://llc/Tables/llc_viirs_match.parquet'
 tbl_test_noise_file = 's3://llc/Tables/test_noise_modis2012.parquet'
 local_modis_file = '/home/xavier/Projects/Oceanography/AI/OOD/MODIS_L2/Tables/MODIS_L2_std.parquet'
-local_viirs_file = os.path.join(os.getenv('SST_OOD'),
-                                'VIIRS', 'Tables',
-                                'VIIRS_all_98clear_std.parquet')
 
 
 def viirs_match_table(field_size=(64,64), CC_max=1e-6, 
@@ -40,6 +37,9 @@ def viirs_match_table(field_size=(64,64), CC_max=1e-6,
     # Load MODIS
     print("Loading VIIRS...")
     if localV:
+        local_viirs_file = os.path.join(os.getenv('SST_OOD'),
+                                'VIIRS', 'Tables',
+                                'VIIRS_all_98clear_std.parquet')
         viirs_tbl = ulmo_io.load_main_table(local_viirs_file)
     else:
         embed(header='46 of viirs match table')
