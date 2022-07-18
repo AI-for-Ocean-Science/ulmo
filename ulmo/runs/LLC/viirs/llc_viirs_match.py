@@ -161,14 +161,13 @@ def viirs_match_table(field_size=(64,64), CC_max=1e-6,
         pp_plotting.plot_extraction(llc_viirs_tbl, figsize=(9,6))
 
     # Vet
-    embed(header='164 of llc viirs match')
-    assert cat_utils.vet_main_table(llc_viirs_tbl, cut_prefix='viirs_')
+    assert cat_utils.vet_main_table(llc_viirs_tbl, cut_prefix=['viirs_', 'MODIS_'])
 
     # Write
     outfile = viirs_match_file
 
     ulmo_io.write_main_table(llc_viirs_tbl, outfile)
-    print("All done generating the Table")
+    print(f"All done generating the Table: {outfile}")
 
 
 # EXTRACTION
@@ -202,11 +201,14 @@ def llc_viirs_extract(tbl_file:str,
     print(f"Outputting to: {pp_s3_file}")
 
     # Run it
-    if debug_local:
-        pp_s3_file = None  
+    #if debug_local:
+    #    pp_s3_file = None  
     # Check indices
+    llc_table.reset_index(drop=True, inplace=True)
     assert np.all(np.arange(len(llc_table)) == llc_table.index)
     # Do it
+    if debug:
+        embed(header='210 of llc viirs')
     extract.preproc_for_analysis(llc_table, 
                                  pp_local_file,
                                  fixed_km=144.,
@@ -216,7 +218,7 @@ def llc_viirs_extract(tbl_file:str,
                                  dlocal=dlocal,
                                  override_RAM=True)
     # Vet
-    assert cat_utils.vet_main_table(llc_table)
+    assert cat_utils.vet_main_table(llc_table, cut_prefix=['viirs_', 'MODIS_'])
 
     # Final write
     if not debug:
@@ -259,7 +261,7 @@ def main(flg):
         viirs_match_table(show=True)
 
     if flg & (2**1):
-        modis_extract()
+        llc_viirs_extract(viirs_match_file, debug=False)
 
     if flg & (2**2):
         modis_evaluate()
@@ -270,8 +272,8 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg = 0
-        flg += 2 ** 0  # 1 -- Setup coords and table
-        #flg += 2 ** 1  # 2 -- Extract
+        #flg += 2 ** 0  # 1 -- Setup coords and table
+        flg += 2 ** 1  # 2 -- Extract
         #flg += 2 ** 2  # 4 -- Evaluate
         #flg += 2 ** 3  # 8 -- Init test + noise
         #flg += 2 ** 4  # 16 -- Extract + noise
