@@ -1,0 +1,133 @@
+""" Figures for SSL paper on MODIS """
+import os, sys
+from typing import IO
+import numpy as np
+import scipy
+from scipy import stats
+from urllib.parse import urlparse
+
+import argparse
+
+import matplotlib as mpl
+import matplotlib.gridspec as gridspec
+from matplotlib import pyplot as plt
+
+from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
+
+mpl.rcParams['font.family'] = 'stixgeneral'
+
+import pandas
+import seaborn as sns
+
+import h5py
+
+from ulmo import plotting
+from ulmo.utils import utils as utils
+
+from ulmo import io as ulmo_io
+from ulmo.ssl import single_image as ssl_simage
+from ulmo.utils import image_utils
+
+from IPython import embed
+
+#llc_table = 's3://llc/Tables/LLC_uniform144_r0.5.parquet'
+s3_llc_table_file = 's3://llc/Tables/llc_viirs_match.parquet'
+s3_viirs_table_file = 's3://viirs/Tables/VIIRS_all_98clear_std.parquet'
+
+#sys.path.append(os.path.abspath("../Analysis/py"))
+#import ssl_paper_analy
+
+def load_table(dataset, local=False, cut_lat=57.):
+    if dataset == 'llc':
+        if local:
+            tbl_file = os.path.join(os.getenv('SST_OOD'),
+                'LLC', 'Tables', os.path.basename(s3_llc_table_file))
+        else:
+            tbl_file = s3_llc_table_file
+    elif dataset == 'viirs':
+        if local:
+            tbl_file = os.path.join(os.getenv('SST_OOD'),
+                'VIIRS', 'Tables', os.path.basename(s3_viirs_table_file))
+        else:
+            tbl_file = s3_viirs_table_file
+    # Load
+    tbl = ulmo_io.load_main_table(tbl_file)
+
+    # Cut?
+    if cut_lat is not None:
+        tbl = tbl[tbl.lat < cut_lat].copy()
+        tbl.reset_index(drop=True, inplace=True)
+
+    # Return
+    return tbl
+
+def fig_LL_histograms(outfile='fig_LL_histograms.png', local=True):
+
+    llc_tbl = load_table('llc', local=local)
+    viirs_tbl = load_table('viirs', local=local)
+    print(f"N VIIRS: {len(viirs_tbl)}")
+
+    xmnx = (-1000., 1200.)
+
+    # Cut
+    llc_tbl = llc_tbl[llc_tbl.LL > xmnx[0]].copy()
+    viirs_tbl = viirs_tbl[viirs_tbl.LL > xmnx[0]].copy()
+
+    # Figure time
+    fig = plt.figure(figsize=(7, 4))
+    plt.clf()
+    ax = plt.gca()
+
+    _ = sns.histplot(llc_tbl, x='LL', ax=ax, label='LLC')
+    _ = sns.histplot(viirs_tbl, x='LL', ax=ax, color='orange', label='VIIRS')
+
+    ax.set_xlim(xmnx)
+
+    ax.legend()
+
+    # plt.tight_layout(pad=0.5, h_pad=0.5, w_pad=0.5)
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
+
+#### ########################## #########################
+def main(pargs):
+
+    # UMAP gallery
+    if pargs.figure == 'LL_histograms':
+        fig_LL_histograms(local=pargs.local)
+
+
+def parse_option():
+    """
+    This is a function used to parse the arguments in the training.
+    
+    Returns:
+        args: (dict) dictionary of the arguments.
+    """
+    parser = argparse.ArgumentParser("SSL Figures")
+    parser.add_argument("figure", type=str, 
+                        help="function to execute: 'slopes, 2d_stats, slopevsDT, umap_LL, learning_curve'")
+    parser.add_argument('--metric', type=str, help="Metric for the figure: 'DT, T10'")
+    parser.add_argument('--cmap', type=str, help="Color map")
+    parser.add_argument('--vmnx', default='-1,1', type=str, help="Color bar scale")
+    parser.add_argument('--outfile', type=str, help="Outfile")
+    parser.add_argument('--local', default=False, action='store_true', 
+                        help='Use local file(s)?')
+    parser.add_argument('--table', type=str, default='std', 
+                        help='Table to load: [std, CF, CF_DT2')
+    parser.add_argument('--debug', default=False, action='store_true',
+                        help='Debug?')
+    args = parser.parse_args()
+    
+    return args
+
+# Command line execution
+if __name__ == '__main__':
+
+    pargs = parse_option()
+    main(pargs)
+
+# LL histograms
+# python py/figs_llc_viirs.py LL_histograms --local
