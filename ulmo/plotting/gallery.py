@@ -23,7 +23,7 @@ def gallery( tbl, a=3, b=3, dLL=20, south=0, north=2, mid_lon=100, dlon=5, tmin=
     Returns a plot with all imgs on same color scale, temp scale, median LL"""
     
     #pick a geographical region
-    rect = (tbl.lat > south ) & (np.abs(tbl.lat) < north) & (np.abs(tbl.lon + mid_lon) < dlon)
+    rect = (tbl.lat > south ) & (tbl.lat < north) & (np.abs(tbl.lon + mid_lon) < dlon)
     tbl1 = tbl[ rect ]
 
     #calculate median LL
@@ -45,12 +45,12 @@ def gallery( tbl, a=3, b=3, dLL=20, south=0, north=2, mid_lon=100, dlon=5, tmin=
     fig, axes = plt.subplots(a, b, figsize = (8,8) )
     
     if title==True:
-        fig.suptitle('9 ~ med LL imgs')
+        fig.suptitle('9 ~ med LL imgs', fontsize=15)
     else: 
-        fig.suptitle(title)
-    
-    fig.supylabel('dT')
+        fig.suptitle(title, fontsize=15)
+
     cbar_ax = fig.add_axes([0.95, 0.15, 0.02, 0.7])
+    cbar_kws={"orientation": "vertical", "shrink":1, "aspect":40, "label": "T - T$_{mean}$"}
     pal, cm = plotting.load_palette()
 
     #determine tmax and tmin
@@ -78,8 +78,10 @@ def gallery( tbl, a=3, b=3, dLL=20, south=0, north=2, mid_lon=100, dlon=5, tmin=
         sns.heatmap(ax=ax, data=img, xticklabels=[], yticklabels=[], cmap=cm,
                 cbar=i == 0,
                 vmin=tmin, vmax=tmax,
-                cbar_ax=None if i else cbar_ax)
+                cbar_ax=None if i else cbar_ax,
+                cbar_kws=None if i else cbar_kws)
         ax.set_title('LL = {}'.format(round(LLs[i])))
+        ax.figure.axes[-1].yaxis.label.set_size(15)
 
     return fig.tight_layout(rect=[0, 0, .9, 1])
 
