@@ -184,6 +184,7 @@ def fig_augmenting(outfile='fig_augmenting.png', use_s3=False):
     print(f'Temperature range: {Trange}')
     
     # Augment me
+    embed(header='187 of figs -- YOU NEED TO NOW UPDATE THE ANGLES IN THE TEXT')
     loader = ssl_simage.image_loader(img)
     test_batch = iter(loader).next()
     img1, img2 = test_batch
@@ -215,6 +216,7 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
                 vmnx = (-1000., None),
                 maxN=None,
                 region=None,
+                use_std_labels=True,
                 umap_comp='0,1',
                 umap_dim=2,
                 debug=False): 
@@ -291,8 +293,12 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
     cb = plt.colorbar(img, pad=0., fraction=0.030)
     cb.set_label(lmetric, fontsize=14.)
     #
-    ax0.set_xlabel(r'$'+umap_keys[0]+'$')
-    ax0.set_ylabel(r'$'+umap_keys[1]+'$')
+    if use_std_labels:
+        ax0.set_xlabel(r'$U_0$')
+        ax0.set_ylabel(r'$U_1$')
+    else:
+        ax0.set_xlabel(r'$'+umap_keys[0]+'$')
+        ax0.set_ylabel(r'$'+umap_keys[1]+'$')
     #ax0.set_aspect('equal')#, 'datalim')
 
     fsz = 17.
@@ -323,6 +329,7 @@ def fig_umap_density(outfile='fig_umap_density.png',
                      umap_dim=2, cmap=None, nxy=16,
                      fsz=19.,
                      modis_tbl=None,
+                     use_std_lbls=True,
                      show_cbar = False,
                      debug=False, ax=None): 
     # Load
@@ -370,8 +377,12 @@ def fig_umap_density(outfile='fig_umap_density.png',
         ax = plt.gca()
 
 
-    ax.set_xlabel(r'$'+umap_keys[0]+'$')
-    ax.set_ylabel(r'$'+umap_keys[1]+'$')
+    if use_std_lbls:
+        ax.set_xlabel(r'$U_0$')
+        ax.set_ylabel(r'$U_1$')
+    else:
+        ax.set_xlabel(r'$'+umap_keys[0]+'$')
+        ax.set_ylabel(r'$'+umap_keys[1]+'$')
 
     #ax.set_xlim(xmin, xmax)
     #ax.set_ylim(ymin, ymax)
@@ -403,7 +414,9 @@ def fig_umap_density(outfile='fig_umap_density.png',
 def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
                      local=False, table='std', in_vmnx=None,
                      umap_comp='0,1', nxy=16,
+                     min_pts=10,
                      umap_dim=2,
+                     use_std_lbls=True,
                      debug=False): 
     """ UMAP gallery
 
@@ -512,8 +525,12 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
 
     ax_gallery = fig.add_axes([0.05, 0.1, 0.6, 0.90])
 
-    ax_gallery.set_xlabel(r'$'+umap_keys[0]+'$')
-    ax_gallery.set_ylabel(r'$'+umap_keys[1]+'$')
+    if use_std_lbls:
+        ax_gallery.set_xlabel(r'$U_0$')
+        ax_gallery.set_ylabel(r'$U_1$')
+    else:
+        ax_gallery.set_xlabel(r'$'+umap_keys[0]+'$')
+        ax_gallery.set_ylabel(r'$'+umap_keys[1]+'$')
 
     # Gallery
     #dxdy=(0.3, 0.3)
@@ -552,7 +569,7 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
                 modis_tbl[umap_keys[0]] < x+dxv) & (
                 modis_tbl[umap_keys[1]] >= y) & (modis_tbl[umap_keys[1]] < y+dxv)
                            & np.isfinite(modis_tbl.LL))[0]
-            if len(pts) == 0:
+            if len(pts) < min_pts:
                 continue
 
             # Pick a random one
@@ -1461,6 +1478,7 @@ def main(pargs):
     if pargs.figure == 'umap_slope':
         fig_umap_colored(local=pargs.local, table=pargs.table,
                          metric='slope', outfile='fig_umap_slope.png',
+                         cmap='viridis',
                          vmnx=(-3., -1),
                          maxN=400000,
                          umap_dim=pargs.umap_dim,
@@ -1819,7 +1837,7 @@ if __name__ == '__main__':
 
 # UMAP colored by LL -- python py/fig_ssl_modis.py umap_LL --local --table 96
 
-# UMAP DT15 colored by DT -- python py/fig_ssl_modis.py umap_DT --local --table 96_DTall --umap_comp S0,S1
+# UMAP DT15 colored by DT (all) -- python py/fig_ssl_modis.py umap_DT --local --table 96_DTall --umap_comp S0,S1
 # UMAP DT15 colored by DT -- python py/fig_ssl_modis.py umap_DT --local --table 96_DT15 --umap_comp S0,S1
 # UMAP DT15 colored by min_slope -- python py/fig_ssl_modis.py umap_slope --local --table 96_DT15 --umap_comp S0,S1
 
@@ -1850,3 +1868,4 @@ if __name__ == '__main__':
 
 # MISC
 #  python py/fig_ssl_modis.py learning_curve
+#  python py/fig_ssl_modis.py augment
