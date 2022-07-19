@@ -51,14 +51,60 @@ sys.path.append(os.path.abspath("../Analysis/py"))
 import ssl_paper_analy
 import fig_ssl_modis
 
-def fig_bob_gallery(outfile='fig_bob_gallery.png', 
+def fig_spatial(outfile='fig_spatial.png', nside=64, local=True,
+                    table='96_DTall'):
+    """
+    Spatial distribution of the cutouts
+
+    Parameters
+    ----------
+    pproc
+    outfile
+    nside
+
+    Returns
+    -------
+
+    """
+    # Load
+    modis_tbl = ssl_paper_analy.load_modis_tbl(
+        local=local, table=table)
+
+    lbl = 'evals'
+    use_log = True
+    use_mask = True
+
+    # Healpix me
+    hp_events, hp_lons, hp_lats = image_utils.evals_to_healpix(
+        modis_tbl, nside, log=use_log, mask=use_mask)
+
+    fig = plt.figure(figsize=(12, 8))
+    plt.clf()
+    
+    hp.mollview(hp_events, min=0, max=4.,
+                hold=True,
+                cmap='Blues',
+                flip='geo', title='', unit=r'$\log_{10} \, N_{\rm '+'{}'.format(lbl)+'}$',
+                rot=(0., 180., 180.))
+    #plt.gca().coastlines()
+
+    # Layout and save
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
+
+
+def fig_bob_gallery(outfile='fig_bob_gallery_w_latent.png', 
                     geo_region='baybengal',
                     local=True, 
-                    ngallery = 8,
+                    ngallery=8,
                     seed=1234,
-                    table='96_DT15'):
+                    skip_latent=False,
+                    table='96_DTall'):
     # Random seed
-    np.random.RandomState(seed=seed)
+    np.random.seed(seed)
+    #np.random.RandomState(seed=seed)
 
     _, cm = plotting.load_palette()
     # Load Table
@@ -103,32 +149,47 @@ def fig_bob_gallery(outfile='fig_bob_gallery.png',
         assert row.pp_type == 0 # valid only
         print(f"UID: {row.UID}")
 
-        '''
+
         # Cutout
-        ax_cutout = ax.inset_axes([0, 0.1, 1., 0.9],
+        if skip_latent:
+            ax_cutout = ax
+        else:
+            ax_cutout = ax.inset_axes([0, 0.1, 1., 0.9],
                     transform=ax.transData)
-        img = image_utils.grab_image(row)
+        if local:
+            pp_file = os.path.join(os.getenv('SST_OOD'),
+                             'MODIS_L2', 'PreProc', os.path.basename(row.pp_file))
+            img = image_utils.grab_image(row, local_file=pp_file)
+        else:
+            img = image_utils.grab_image(row)
         _ = sns.heatmap(img, xticklabels=[], 
-                     vmin=-2., vmax=2.,
+                     vmin=-1.5, vmax=1.5,
                      yticklabels=[], cmap=cm,
                      cbar=False, ax=ax_cutout)
-        '''
+        ax_cutout.xaxis.set_visible(False)
+        ax_cutout.yaxis.set_visible(False)
+        ax.xaxis.set_visible(False)
+        ax.yaxis.set_visible(False)
 
-        # Plot the latent
-        pp_base = os.path.basename(row.pp_file)
-        lpath = '/home/xavier/Projects/Oceanography/SST/MODIS_L2/SSL/latents/MODIS_R2019_CF/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm'
-        latent_base = pp_base.replace('preproc', 'latents')
-        latent_file = os.path.join(lpath, latent_base)
+        # Plot the latent?
+        if not skip_latent:
+            pp_base = os.path.basename(row.pp_file)
+            lpath = os.path.join(os.getenv('SST_OOD'),
+                                'MODIS_L2', 'SSL', 'latents', 
+                                'MODIS_R2019_96', 
+                                'SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm')
+            latent_base = pp_base.replace('preproc', 'latents')
+            latent_file = os.path.join(lpath, latent_base)
 
-        l_f = h5py.File(latent_file, 'r')
-        latent = l_f['valid'][row.pp_idx, :].reshape((1,256))
+            l_f = h5py.File(latent_file, 'r')
+            latent = l_f['valid'][row.pp_idx, :].reshape((1,256))
 
-        ax_latent = ax.inset_axes([0, 0, 1., 0.1],
-                    transform=ax.transData)
-        _ = sns.heatmap(latent, xticklabels=[], 
-                     vmin=-0.4, vmax=0.4,
-                     yticklabels=[], cmap='Blues', 
-                     cbar=False, ax=ax_latent)
+            ax_latent = ax.inset_axes([0, 0, 1., 0.1],
+                        transform=ax.transData)
+            _ = sns.heatmap(latent, xticklabels=[], 
+                        vmin=-0.4, vmax=0.4,
+                        yticklabels=[], cmap='Greys', 
+                        cbar=False, ax=ax_latent)
 
     plt.tight_layout(pad=0.5, h_pad=0.5, w_pad=0.5)
     plt.savefig(outfile, dpi=300)
@@ -375,8 +436,13 @@ def fig_DT_vs_U0(outfile='fig_DT_vs_U0.png',
 #### ########################## #########################
 def main(pargs):
 
-    # UMAP gallery
+    # Spatial distribution
+    if pargs.figure == 'spatial':
+        fig_spatial()
+
+    # BoB gallery
     if pargs.figure == 'gallery':
+        #fig_bob_gallery(outfile='fig_bob_gallery_wo_latent.png', skip_latent=True)
         fig_bob_gallery()
 
 
@@ -415,6 +481,9 @@ if __name__ == '__main__':
     main(pargs)
 
 # Figs
+
+# Spatial distribution
+# python py/fig_bay_of_bengal.py spatial
 
 # Gallery
 # python py/fig_bay_of_bengal.py gallery

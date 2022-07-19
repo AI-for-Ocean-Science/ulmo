@@ -14,7 +14,7 @@ def main(pargs):
     # Load table
     modis_tbl_file = os.path.join(os.getenv("SST_OOD"), 
                         'MODIS_L2', 'Tables', 
-                        'MODIS_SSL_96clear_DT15.parquet') # This should be all
+                        'MODIS_SSL_96clear_DTall.parquet') 
     modis_tbl = ulmo_io.load_main_table(modis_tbl_file)
 
     # Grab the cutout
@@ -23,12 +23,13 @@ def main(pargs):
 
     # DT
     DT = cutout.T90 - cutout.T10
+    print(f"DT = {DT}")
     subset = ssl_paper_analy.grab_subset(DT)
 
     # Open that table now!
     modis_subtbl_file = os.path.join(os.getenv("SST_OOD"), 
                         'MODIS_L2', 'Tables', 
-                        f'MODIS_SSL_96clear_{subset}.parquet') # This should be all
+                        f'MODIS_SSL_96clear_{subset}.parquet') 
     modis_subtbl = ulmo_io.load_main_table(modis_subtbl_file)
     idx = np.where(modis_subtbl.UID == pargs.UID)[0][0]
     cutout = modis_subtbl.iloc[idx]
