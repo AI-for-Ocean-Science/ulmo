@@ -12,6 +12,7 @@ import matplotlib as mpl
 import matplotlib.gridspec as gridspec
 from matplotlib import pyplot as plt
 
+import cartopy.crs as ccrs
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
 mpl.rcParams['font.family'] = 'stixgeneral'
@@ -90,14 +91,72 @@ def fig_LL_histograms(outfile='fig_LL_histograms.png', local=True):
     plt.close()
     print('Wrote {:s}'.format(outfile))
 
+def fig_med_LL_head_tail(outfile='med_LL_diff_head_vs_tail.png',
+                         hp_root='_v98'):
+
+    # Load up the data
+    evts_head    = np.load('../Analysis/evts_head'+hp_root, allow_pickle=True)
+    hp_lons_tail = np.load('../Analysis/hp_lons_tail'+hp_root, allow_pickle=True)
+    hp_lats_tail = np.load('../Analysis/hp_lats_tail'+hp_root, allow_pickle=True)
+    meds_head = np.load('../Analysis/meds_head'+hp_root, allow_pickle=True)
+    meds_tail = np.load('../Analysis/meds_tail'+hp_root, allow_pickle=True)
+    
+    fig = plt.figure(figsize=(12,8))
+    plt.clf()
+
+    tformM = ccrs.Mollweide()
+    tformP = ccrs.PlateCarree()
+
+    ax = plt.axes(projection=tformM)
+
+    cm = plt.get_cmap('coolwarm')
+    # Cut
+    good = np.invert(evts_head.mask)
+    img = plt.scatter(x=hp_lons_tail[good],
+        y=hp_lats_tail[good],
+        c=meds_head[good]- meds_tail[good], vmin = -300, vmax = 300, 
+        cmap=cm,
+        s=1,
+        transform=tformP)
+
+    # Colorbar
+    cb = plt.colorbar(img, orientation='horizontal', pad=0.)
+    clbl = r'$LL_{head} - LL_{tail}$'
+    cb.set_label(clbl, fontsize=20.)
+    cb.ax.tick_params(labelsize=17)
+
+    # Coast lines
+
+    ax.coastlines(zorder=10)
+    ax.set_global()
+
+    gl = ax.gridlines(crs=ccrs.PlateCarree(), linewidth=1, 
+        color='black', alpha=0.5, linestyle=':', draw_labels=True)
+    gl.xlabels_top = False
+    gl.ylabels_left = True
+    gl.ylabels_right=False
+    gl.xlines = True
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.yformatter = LATITUDE_FORMATTER
+    gl.xlabel_style = {'color': 'black'}# 'weight': 'bold'}
+    gl.ylabel_style = {'color': 'black'}# 'weight': 'bold'}
+    #gl.xlocator = mticker.FixedLocator([-180., -160, -140, -120, -60, -20.])
+    #gl.xlocator = mticker.FixedLocator([-240., -180., -120, -65, -60, -55, 0, 60, 120.])
+    #gl.ylocator = mticker.FixedLocator([0., 15., 30., 45, 60.])
+    plt.savefig(outfile, dpi = 600)
+
+
 
 #### ########################## #########################
 def main(pargs):
 
-    # UMAP gallery
+    # LL histograms
     if pargs.figure == 'LL_histograms':
         fig_LL_histograms(local=pargs.local)
 
+    # Median heads vs tails
+    if pargs.figure == 'head_tail':
+        fig_med_LL_head_tail()
 
 def parse_option():
     """
@@ -131,3 +190,6 @@ if __name__ == '__main__':
 
 # LL histograms
 # python py/figs_llc_viirs.py LL_histograms --local
+
+# Median values heads vs. tails
+# python py/figs_llc_viirs.py head_tail
