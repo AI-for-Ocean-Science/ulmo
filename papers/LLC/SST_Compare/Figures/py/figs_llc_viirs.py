@@ -25,47 +25,45 @@ import h5py
 from ulmo import plotting
 from ulmo.utils import utils as utils
 
-from ulmo import io as ulmo_io
 from ulmo.ssl import single_image as ssl_simage
 from ulmo.utils import image_utils
 
 from IPython import embed
 
 #llc_table = 's3://llc/Tables/LLC_uniform144_r0.5.parquet'
-s3_llc_table_file = 's3://llc/Tables/llc_viirs_match.parquet'
-s3_viirs_table_file = 's3://viirs/Tables/VIIRS_all_98clear_std.parquet'
 
-#sys.path.append(os.path.abspath("../Analysis/py"))
-#import ssl_paper_analy
+sys.path.append(os.path.abspath("../Analysis/py"))
+import sst_compare_utils
 
-def load_table(dataset, local=False, cut_lat=57.):
-    if dataset == 'llc':
-        if local:
-            tbl_file = os.path.join(os.getenv('SST_OOD'),
-                'LLC', 'Tables', os.path.basename(s3_llc_table_file))
-        else:
-            tbl_file = s3_llc_table_file
-    elif dataset == 'viirs':
-        if local:
-            tbl_file = os.path.join(os.getenv('SST_OOD'),
-                'VIIRS', 'Tables', os.path.basename(s3_viirs_table_file))
-        else:
-            tbl_file = s3_viirs_table_file
-    # Load
-    tbl = ulmo_io.load_main_table(tbl_file)
 
-    # Cut?
-    if cut_lat is not None:
-        tbl = tbl[tbl.lat < cut_lat].copy()
-        tbl.reset_index(drop=True, inplace=True)
+def load_hp_files(hp_type, hp_root:str):
 
-    # Return
-    return tbl
+    # Load up the data
+    if hp_type == 'heads':
+        evts_head    = np.load('../Analysis/evts_head'+hp_root, allow_pickle=True)
+        meds_head = np.load('../Analysis/meds_head'+hp_root, allow_pickle=True)
+        hp_lons_head = np.load('../Analysis/hp_lons_head'+hp_root, allow_pickle=True)
+        hp_lats_head = np.load('../Analysis/hp_lats_head'+hp_root, allow_pickle=True)
+        return evts_head, meds_head, hp_lons_head, hp_lats_head
+    elif hp_type == 'tails':
+        evts_tail    = np.load('../Analysis/evts_tail'+hp_root, allow_pickle=True)
+        hp_lons_tail = np.load('../Analysis/hp_lons_tail'+hp_root, allow_pickle=True)
+        hp_lats_tail = np.load('../Analysis/hp_lats_tail'+hp_root, allow_pickle=True)
+        meds_tail = np.load('../Analysis/meds_tail'+hp_root, allow_pickle=True)
+        return evts_tail, meds_tail, hp_lons_tail, hp_lats_tail
+    elif hp_type == 'all':
+        evts    = np.load('../Analysis/evts'+hp_root, allow_pickle=True)
+        hp_lons = np.load('../Analysis/hp_lons'+hp_root, allow_pickle=True)
+        hp_lats = np.load('../Analysis/hp_lats'+hp_root, allow_pickle=True)
+        meds = np.load('../Analysis/meds'+hp_root, allow_pickle=True)
+        return evts, meds, hp_lons, hp_lats
+    else:
+        return None
 
 def fig_LL_histograms(outfile='fig_LL_histograms.png', local=True):
 
-    llc_tbl = load_table('llc', local=local)
-    viirs_tbl = load_table('viirs', local=local)
+    llc_tbl = sst_compare_utils.load_table('llc_match', local=local)
+    viirs_tbl = sst_compare_utils.load_table('viirs', local=local)
     print(f"N VIIRS: {len(viirs_tbl)}")
 
     xmnx = (-1000., 1200.)
@@ -94,12 +92,8 @@ def fig_LL_histograms(outfile='fig_LL_histograms.png', local=True):
 def fig_med_LL_head_tail(outfile='med_LL_diff_head_vs_tail.png',
                          hp_root='_v98'):
 
-    # Load up the data
-    evts_head    = np.load('../Analysis/evts_head'+hp_root, allow_pickle=True)
-    hp_lons_tail = np.load('../Analysis/hp_lons_tail'+hp_root, allow_pickle=True)
-    hp_lats_tail = np.load('../Analysis/hp_lats_tail'+hp_root, allow_pickle=True)
-    meds_head = np.load('../Analysis/meds_head'+hp_root, allow_pickle=True)
-    meds_tail = np.load('../Analysis/meds_tail'+hp_root, allow_pickle=True)
+    evts_head, meds_head, hp_lons_head, hp_lats_head = load_hp_files('heads', hp_root)
+    evts_tail, meds_tail, hp_lons_tail, hp_lats_tail = load_hp_files('tails', hp_root)
     
     fig = plt.figure(figsize=(12,8))
     plt.clf()
@@ -146,6 +140,56 @@ def fig_med_LL_head_tail(outfile='med_LL_diff_head_vs_tail.png',
     plt.savefig(outfile, dpi = 600)
 
 
+def fig_med_LL_VIIRS_LLC(outfile='med_LL_diff_VIIRS_vs_LLC.png'):
+
+    # Load
+    evts_v98, meds_v98, hp_lons_v98, hp_lats_v98 = load_hp_files('all', '_v98')
+    evts_llc, meds_llc, hp_lons_llc, hp_lats_llc = load_hp_files('all', '_llc_match')
+
+    fig = plt.figure(figsize=(12,8))
+    plt.clf()
+
+    tformM = ccrs.Mollweide()
+    tformP = ccrs.PlateCarree()
+
+    ax = plt.axes(projection=tformM)
+
+    cm = plt.get_cmap('coolwarm')
+    # Cut
+    good = np.invert(meds_v98.mask)
+    img = plt.scatter(x=hp_lons_llc[good],
+        y=hp_lats_llc[good],
+        c=meds_v98[good]- meds_llc[good], vmin = -300, vmax = 300, 
+        cmap=cm,
+        s=1,
+        transform=tformP)
+
+    # Colorbar
+    cb = plt.colorbar(img, orientation='horizontal', pad=0.)
+    clbl = r'$LL_{VIIRS} - LL_{LLC}$'
+    cb.set_label(clbl, fontsize=20.)
+    cb.ax.tick_params(labelsize=17)
+
+    # Coast lines
+
+    ax.coastlines(zorder=10)
+    ax.set_global()
+
+    gl = ax.gridlines(crs=ccrs.PlateCarree(), linewidth=1, 
+        color='black', alpha=0.5, linestyle=':', draw_labels=True)
+    gl.xlabels_top = False
+    gl.ylabels_left = True
+    gl.ylabels_right=False
+    gl.xlines = True
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.yformatter = LATITUDE_FORMATTER
+    gl.xlabel_style = {'color': 'black'}# 'weight': 'bold'}
+    gl.ylabel_style = {'color': 'black'}# 'weight': 'bold'}
+    #gl.xlocator = mticker.FixedLocator([-180., -160, -140, -120, -60, -20.])
+    #gl.xlocator = mticker.FixedLocator([-240., -180., -120, -65, -60, -55, 0, 60, 120.])
+    #gl.ylocator = mticker.FixedLocator([0., 15., 30., 45, 60.])
+    plt.savefig(outfile, dpi = 600)
+    print(f"Wrote: {outfile}")
 
 #### ########################## #########################
 def main(pargs):
@@ -157,6 +201,11 @@ def main(pargs):
     # Median heads vs tails
     if pargs.figure == 'head_tail':
         fig_med_LL_head_tail()
+
+    # Median heads vs tails
+    if pargs.figure == 'med_LL_VIIRS_LLC':
+        fig_med_LL_VIIRS_LLC()
+
 
 def parse_option():
     """
@@ -193,3 +242,6 @@ if __name__ == '__main__':
 
 # Median values heads vs. tails
 # python py/figs_llc_viirs.py head_tail
+
+# Median values VIIRS vs LLC
+# python py/figs_llc_viirs.py med_LL_VIIRS_LLC

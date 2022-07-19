@@ -4,7 +4,10 @@ from ulmo import io as ulmo_io
 
 from ulmo.analysis import spatial_plots as sp
 
-def generate_lonslats(table:str, out_root:str, write=False):
+#sys.path.append(os.path.abspath("../Analysis/py"))
+import sst_compare_utils
+
+def generate_headtails(table:str, out_root:str, write=False):
 
     # Load table
     tbl = ulmo_io.load_main_table(table)#'s3://viirs/Tables/VIIRS_all_98clear_std.parquet')
@@ -32,9 +35,35 @@ def generate_lonslats(table:str, out_root:str, write=False):
         hp_lats_tail.dump('hp_lats_tail'+out_root)
         meds_tail.dump('meds_tail'+out_root)
 
+def generate_all(dataset:str, out_root:str, local=False):
+
+    # Load table
+    tbl = sst_compare_utils.load_table(dataset)
+
+    # Evaluate
+    evts, hp_lons, hp_lats, meds= sp.evals_to_healpix_meds(
+        eval_tbl=tbl, nside=64,  mask=True)
+    print("Done evaluating")
+
+    # Write
+    evts.dump('evts'+out_root)
+    hp_lons.dump('hp_lons'+out_root)
+    hp_lats.dump('hp_lats'+out_root)
+    meds.dump('meds'+out_root)
 
 # Command line execution
 if __name__ == '__main__':
-    generate_lonslats('s3://viirs/Tables/VIIRS_all_98clear_std.parquet',
-                      '_v98', write=True)
+
+    # Heads and tails for VIIRS
+    #generate_headtails('s3://viirs/Tables/VIIRS_all_98clear_std.parquet',
+    #                  '_v98', write=True)
+
+    # All for VIIRS
+    #generate_all('viirs', '_v98')
+
+    # All for LLC Uniform
+    #generate_all('llc_uniform', '_llc_uniform')
+
+    # All for LLC matched
+    generate_all('llc_match', '_llc_match')
 
