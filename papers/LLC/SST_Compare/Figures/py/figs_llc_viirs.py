@@ -202,7 +202,7 @@ def main(pargs):
     if pargs.figure == 'head_tail':
         fig_med_LL_head_tail()
 
-    # Median heads vs tails
+    # Median LL for VIIRS vs LLC
     if pargs.figure == 'med_LL_VIIRS_LLC':
         fig_med_LL_VIIRS_LLC()
 
