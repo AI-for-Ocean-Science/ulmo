@@ -66,6 +66,18 @@ def fig_LL_histograms(outfile='fig_LL_histograms.png', local=True):
     viirs_tbl = sst_compare_utils.load_table('viirs', local=local)
     print(f"N VIIRS: {len(viirs_tbl)}")
 
+    # Stats
+    med_viirs = np.median(viirs_tbl.LL)
+    med_LLC = np.nanmedian(llc_tbl.LL)
+    print(f"Medians:  VIIRS={med_viirs}, LLC={med_LLC}")
+
+    # Quantiles
+    for quantile in [0.25, 0.5, 0.75]:
+        q_viirs = np.quantile(viirs_tbl.LL, quantile)
+        q_llc = np.quantile(llc_tbl.LL, quantile)
+        print(f"Quantiles: q={quantile}, viirs={q_viirs}, llc={q_llc}")
+
+
     xmnx = (-1000., 1200.)
 
     # Cut
@@ -85,6 +97,72 @@ def fig_LL_histograms(outfile='fig_LL_histograms.png', local=True):
     ax.legend()
 
     # plt.tight_layout(pad=0.5, h_pad=0.5, w_pad=0.5)
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
+def fig_explore_highLL(outfile='fig_explore_highLL.png', local=True):
+    llc_tbl = sst_compare_utils.load_table('llc_match', local=local)
+    llc_tbl['DT'] = llc_tbl.T90.values - llc_tbl.T10.values
+
+    # Cut
+    high_LL = llc_tbl.LL > 750.
+    high_llc = llc_tbl[high_LL].copy()
+
+    fig = plt.figure(figsize=(3, 5))
+    plt.clf()
+    gs = gridspec.GridSpec(2,1)
+
+    # First DT 
+    axDT = plt.subplot(gs[0])
+    _ = sns.histplot(high_llc, x='DT', ax=axDT)
+
+    # Now geographic
+
+    # Healpix me
+    hp_events, hp_lons, hp_lats = image_utils.evals_to_healpix(
+        high_llc, 64, log=False, mask=True)
+
+        
+    tformM = ccrs.Mollweide()
+    tformP = ccrs.PlateCarree()
+
+    #ax = plt.axes(projection=tformM)
+    axgeo = plt.subplot(gs[1], projection=tformM)
+
+    cm = plt.get_cmap('Reds')
+    # Cut
+    good = np.invert(hp_events.mask)
+    img = axgeo.scatter(x=hp_lons[good],
+        y=hp_lats[good],
+        c=hp_events[good], vmin=0, vmax=100, 
+        cmap=cm,
+        s=1,
+        transform=tformP)
+
+    # Colorbar
+    cb = plt.colorbar(img, orientation='horizontal', pad=0.)
+    clbl = r'$N(\rm LL > 750)$'
+    cb.set_label(clbl, fontsize=10.)
+    cb.ax.tick_params(labelsize=10)
+
+    # Coast lines
+
+    axgeo.coastlines(zorder=10)
+    axgeo.set_global()
+
+    gl = axgeo.gridlines(crs=ccrs.PlateCarree(), linewidth=1, 
+        color='black', alpha=0.5, linestyle=':', draw_labels=True)
+    gl.xlabels_top = False
+    gl.ylabels_left = True
+    gl.ylabels_right=False
+    gl.xlines = True
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.yformatter = LATITUDE_FORMATTER
+    gl.xlabel_style = {'color': 'black'}# 'weight': 'bold'}
+    gl.ylabel_style = {'color': 'black'}# 'weight': 'bold'}
+    
+    plt.tight_layout(pad=0.5, h_pad=0.5, w_pad=0.5)
     plt.savefig(outfile, dpi=300)
     plt.close()
     print('Wrote {:s}'.format(outfile))
@@ -206,6 +284,10 @@ def main(pargs):
     if pargs.figure == 'med_LL_VIIRS_LLC':
         fig_med_LL_VIIRS_LLC()
 
+    # Exploring high LL cutouts in LLC
+    if pargs.figure == 'explore_highLL':
+        fig_explore_highLL()
+
 
 def parse_option():
     """
@@ -245,3 +327,6 @@ if __name__ == '__main__':
 
 # Median values VIIRS vs LLC
 # python py/figs_llc_viirs.py med_LL_VIIRS_LLC
+
+# Exploring high LL cutouts in LLC
+# python py/figs_llc_viirs.py explore_highLL

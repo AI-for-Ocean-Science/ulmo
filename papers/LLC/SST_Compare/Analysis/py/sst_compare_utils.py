@@ -1,6 +1,7 @@
 """ Analysis related methods """
 
 import os
+import numpy as np
 
 from ulmo import io as ulmo_io
 
@@ -35,6 +36,11 @@ def load_table(dataset, local=False, cut_lat=57.):
     if cut_lat is not None:
         tbl = tbl[tbl.lat < cut_lat].copy()
         tbl.reset_index(drop=True, inplace=True)
+
+    # Expunge Nan
+    finite = np.isfinite(tbl.LL)
+    tbl = tbl[finite]
+    tbl.reset_index(drop=True, inplace=True)
 
     # Return
     return tbl
