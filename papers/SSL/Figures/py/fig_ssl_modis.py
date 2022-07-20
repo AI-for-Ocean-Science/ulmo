@@ -18,6 +18,7 @@ from matplotlib import pyplot as plt
 
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 import cartopy.crs as ccrs
+import cartopy
 
 mpl.rcParams['font.family'] = 'stixgeneral'
 
@@ -765,6 +766,8 @@ def fig_umap_geo(outfile, table, umap_rngs, local=False,
 
     # Coast lines
     ax.coastlines(zorder=10)
+    ax.add_feature(cartopy.feature.LAND, 
+        facecolor='gray', edgecolor='black')
     ax.set_global()
 
     gl = ax.gridlines(crs=ccrs.PlateCarree(), linewidth=1, 
@@ -1518,9 +1521,9 @@ def main(pargs):
         #    debug=pargs.debug, local=pargs.local)
 
         # Turbulent in DT1
-        fig_umap_geo('fig_umap_geo_DT1_57n10.png',
-            '96_DT1', [[5.5,7.0], [-1,-0.25]], 
-            debug=pargs.debug, local=pargs.local)
+        #fig_umap_geo('fig_umap_geo_DT1_57n10.png',
+        #    '96_DT1', [[5.5,7.0], [-1,-0.25]], 
+        #    debug=pargs.debug, local=pargs.local)
 
         # 'Turbulent' region
         #fig_umap_geo('fig_umap_geo_DT15_7834.png',
@@ -1530,10 +1533,11 @@ def main(pargs):
         #fig_umap_geo('fig_umap_geo_DT15_8923.png',
         #    '96_DT15', [[8,9], [2,3]], 
         #    debug=pargs.debug, local=pargs.local)
+
         # Gradient region
-        #fig_umap_geo('fig_umap_geo_DT15_6779.png',
-        #    '96_DT15', [[5,7], [7.5,9]], 
-        #    debug=pargs.debug, local=pargs.local)
+        fig_umap_geo('fig_umap_geo_DT15_6779.png',
+            '96_DT15', [[5,7], [7.5,9]], 
+            debug=pargs.debug, local=pargs.local)
 
         # 'Turbulent' in DT2
         #fig_umap_geo('fig_umap_geo_DT2_5789.png',
@@ -1581,9 +1585,9 @@ def main(pargs):
 
     if pargs.figure == 'yearly_geo':
         # Equatorial Pacific
-        fig_yearly_geo_umap('fig_yearly_geo_DT15_eqpacific.png',
-            'eqpacific', rtio_cut=1.5,
-            debug=pargs.debug, local=pargs.local)
+        #fig_yearly_geo_umap('fig_yearly_geo_DT15_eqpacific.png',
+        #    'eqpacific', rtio_cut=1.5,
+        #    debug=pargs.debug, local=pargs.local)
 
         # Med
         #fig_yearly_geo_umap('fig_yearly_geo_DT15_med.png',
@@ -1596,8 +1600,8 @@ def main(pargs):
         #    debug=pargs.debug, local=pargs.local)
 
         # Bay of Bengal
-        fig_yearly_geo_umap('fig_yearly_geo_DT15_baybengal.png',
-            'baybengal', rtio_cut=1.5,
+        fig_yearly_geo_umap('fig_yearly_geo_DT1_baybengal.png',
+            'baybengal', rtio_cut=1.5, table='96_DT1',
             debug=pargs.debug, local=pargs.local)
 
         # Global using Equatorial
@@ -1617,8 +1621,8 @@ def main(pargs):
         #    debug=pargs.debug, local=pargs.local)
 
         # Bay of Bengal
-        fig_seasonal_geo_umap('fig_seasonal_geo_DT15_baybengal.png',
-            'baybengal', rtio_cut=1.5,
+        fig_seasonal_geo_umap('fig_seasonal_geo_DT1_baybengal.png',
+            'baybengal', rtio_cut=1.5, table='96_DT1',
             debug=pargs.debug, local=pargs.local)
 
 
