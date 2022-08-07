@@ -218,6 +218,7 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
                 maxN=None,
                 region=None,
                 use_std_labels=True,
+                hist_param=None,
                 umap_comp='0,1',
                 umap_dim=2,
                 debug=False): 
@@ -226,6 +227,8 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
     Args:
         outfile (str, optional): [description]. Defaults to 'fig_umap_LL.png'.
         local (bool, optional): [description]. Defaults to True.
+        hist_param (dict, optional): 
+            dict describing the histogram to generate and show
         debug (bool, optional): [description]. Defaults to False.
 
     Raises:
@@ -277,20 +280,44 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
     else:
         raise IOError("Bad metric!")
     
+    # Histogram??
+    if hist_param is not None:
+        stat, xedges, yedges, _ =\
+            stats.binned_statistic_2d(
+                modis_tbl[umap_keys[0]], 
+                modis_tbl[umap_keys[1]],
+                values,
+                'median', # 'std', 
+                bins=[hist_param['binx'], 
+                    hist_param['biny']])
+        counts, _, _ = np.histogram2d(
+                modis_tbl[umap_keys[0]], 
+                modis_tbl[umap_keys[1]],
+                bins=[hist_param['binx'], 
+                    hist_param['biny']])
+
 
     # Start the figure
     fig = plt.figure(figsize=(8, 8))
     plt.clf()
     gs = gridspec.GridSpec(1, 1)
 
-    # Just the UMAP colored by LL
+    # Just the UMAP colored by one of the stats
     ax0 = plt.subplot(gs[0])
 
     if point_size is None:
         point_size = 1. / np.sqrt(num_samples)
-    img = ax0.scatter(modis_tbl[umap_keys[0]], modis_tbl[umap_keys[1]],
+    if hist_param is None:
+        img = ax0.scatter(modis_tbl[umap_keys[0]], modis_tbl[umap_keys[1]],
             s=point_size, c=values,
             cmap=cmap, vmin=vmnx[0], vmax=vmnx[1])
+    else:
+        bad_counts = counts < 50
+        stat[bad_counts] = np.nan
+        img = ax0.pcolormesh(xedges, yedges, 
+                             stat.T, cmap=cmap) 
+
+    # Color bar
     cb = plt.colorbar(img, pad=0., fraction=0.030)
     cb.set_label(lmetric, fontsize=14.)
     #
@@ -304,14 +331,6 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
 
     fsz = 17.
     plotting.set_fontsize(ax0, fsz)
-
-    # Set boundaries
-    '''
-    xmin, xmax = -4.5, 7
-    ymin, ymax = 4.5, 10.5
-    ax0.set_xlim(xmin, xmax)
-    ax0.set_ylim(ymin, ymax)
-    '''
 
     # Label
     if lbl is not None:
@@ -643,6 +662,19 @@ def fig_umap_2dhist(outfile='fig_umap_2dhist.png',
                     version=1, local=False, vmax=None, 
                     cmap=None, cuts=None, region=None,
                     scl = 1):
+    """ Show a 2d histogram of the counts in each cell`
+
+    Args:
+        outfile (str, optional): _description_. Defaults to 'fig_umap_2dhist.png'.
+        table (_type_, optional): _description_. Defaults to None.
+        version (int, optional): _description_. Defaults to 1.
+        local (bool, optional): _description_. Defaults to False.
+        vmax (_type_, optional): _description_. Defaults to None.
+        cmap (_type_, optional): _description_. Defaults to None.
+        cuts (_type_, optional): _description_. Defaults to None.
+        region (_type_, optional): _description_. Defaults to None.
+        scl (int, optional): _description_. Defaults to 1.
+    """
 
     # Load
     modis_tbl = ssl_paper_analy.load_modis_tbl(local=local, cuts=cuts, table=table,
@@ -988,7 +1020,7 @@ def fig_yearly_geo_umap(outfile, geo_region,
     grid = grid_umap(modis_tbl[umap_keys[0]].values, 
         modis_tbl[umap_keys[1]].values)
  
-    # cut
+    # cut on UMAP space
     good = (modis_tbl[umap_keys[0]] > grid['xmin']) & (
         modis_tbl[umap_keys[0]] < grid['xmax']) & (
         modis_tbl[umap_keys[1]] > grid['ymin']) & (
@@ -996,7 +1028,7 @@ def fig_yearly_geo_umap(outfile, geo_region,
 
     modis_tbl = modis_tbl.loc[good].copy()
     num_samples = len(modis_tbl)
-    print(f"We have {num_samples} making the cuts.")
+    print(f"We have {num_samples} making the UMAP cuts.")
 
     # All
     counts, xedges, yedges = np.histogram2d(
@@ -1007,7 +1039,9 @@ def fig_yearly_geo_umap(outfile, geo_region,
     # Normalize
     counts /= np.sum(counts)
 
-    # Ratio
+    # Ratio table
+
+    # Cut on Geography
     lons = ssl_paper_analy.geo_regions[rtio_region]['lons']
     lats = ssl_paper_analy.geo_regions[rtio_region]['lats']
     rtio_geo = ( (modis_tbl.lon > lons[0]) &
@@ -1040,10 +1074,11 @@ def fig_yearly_geo_umap(outfile, geo_region,
         (modis_tbl.lat < lats[1]) )
     geo_tbl = modis_tbl.loc[good & geo].copy()
 
-    # Loop on years
+    # Time-series
     years = 2003 + np.arange(17)
     months = 1 + np.arange(12)
 
+    # Loop over each month
     fracs = []
     dates = []
     for year in years:
@@ -1480,9 +1515,13 @@ def main(pargs):
     # UMAP_slope
     if pargs.figure == 'umap_slope':
         fig_umap_colored(local=pargs.local, table=pargs.table,
-                         metric='slope', outfile='fig_umap_slope.png',
+                         metric='slope', 
+                         outfile='fig_umap_slope.png',
                          cmap='viridis',
-                         vmnx=(-3., -1),
+                         #vmnx=(-3., -1),
+                         hist_param=dict(
+                             binx=np.linspace(2,12.5,30),
+                             biny=np.linspace(-0.5,9,30)),
                          maxN=400000,
                          umap_dim=pargs.umap_dim,
                          umap_comp=pargs.umap_comp)
@@ -1843,7 +1882,7 @@ if __name__ == '__main__':
 
 # UMAP DT15 colored by DT (all) -- python py/fig_ssl_modis.py umap_DT --local --table 96_DTall --umap_comp S0,S1
 # UMAP DT15 colored by DT -- python py/fig_ssl_modis.py umap_DT --local --table 96_DT15 --umap_comp S0,S1
-# UMAP DT15 colored by min_slope -- python py/fig_ssl_modis.py umap_slope --local --table 96_DT15 --umap_comp S0,S1
+# UMAP DT15 histogram colored by min_slope -- python py/fig_ssl_modis.py umap_slope --local --table 96_DT15 --umap_comp S0,S1
 
 # UMAP gallery -- 
 #  python py/fig_ssl_modis.py umap_gallery --local --table 96_DTall --umap_comp S0,S1 --vmnx=-1,1
