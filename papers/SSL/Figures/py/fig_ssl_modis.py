@@ -1142,17 +1142,19 @@ def fig_yearly_geo_umap(outfile, geo_region,
         year_dates.append(datetime.datetime(year, 7, 1))
 
     # Plot
-    fig = plt.figure(figsize=(8, 8))
+    #fig = plt.figure(figsize=(12, 6))
+    fig = plt.figure(figsize=(8, 12))
     plt.clf()
-    ax = plt.gca()
+    gs = gridspec.GridSpec(2,1)
+
+    ax_time = plt.subplot(gs[0])
 
     # All
-    ax.plot(dates, fracs, 'k')
+    ax_time.plot(dates, fracs, 'k')
 
     # Annual
-    ax.plot(year_dates, year_fracs, 'ro')
+    ax_time.plot(year_dates, year_fracs, 'ro')
 
-    plotting.set_fontsize(ax, 19.)
 
     # Time-series analysis
     time_series = pandas.DataFrame()
@@ -1166,16 +1168,26 @@ def fig_yearly_geo_umap(outfile, geo_region,
     #ax.plot(np.array(dates)[keep], 
     #        glm_model.fittedvalues, 'b')
 
-    ax.plot(dates, result_dict['trend_yvals'], 
+    ax_time.plot(dates, result_dict['trend_yvals'], 
             ls='--', color='pink')
 
     # Label
-    ax.text(0.05, 0.9, 
+    ax_time.text(0.05, 0.9, 
             f"slope={result_dict['slope']:0.5f} +/- {result_dict['slope_err']:0.5f}",
-            transform=ax.transAxes,
+            transform=ax_time.transAxes,
             fontsize=15, ha='left', color='k')
-    
+    ax_time.set_xlabel('Time')
+
+    # Seasonal
+    ax_seasonal = plt.subplot(gs[1])
+    xval = np.arange(12) + 1
+    ax_seasonal.plot(xval, result_dict['seasonal'], 'g')
+
+    ax_seasonal.set_xlabel('Month')
+
     # Finish
+    for ax in [ax_time, ax_seasonal]:
+        plotting.set_fontsize(ax, 19.)
     plt.savefig(outfile, dpi=200)
     plt.close()
     print('Wrote {:s}'.format(outfile))

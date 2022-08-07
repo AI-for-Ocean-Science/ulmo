@@ -391,5 +391,21 @@ def time_series(df, metric, show=False):
     yval = glm_model.params['Intercept'] + xval * glm_model.params['time']
     result_dict['trend_yvals'] = yval
 
+    seas = []
+    seas_err = []
+    for idum in np.arange(11):
+        key = f'dum{idum}'
+        # Value
+        seas.append(glm_model.params[key])
+        # Error
+        seas_err.append(np.sqrt(
+            glm_model.cov_params()[key][key]))
+
+    # Add one more
+    seas.append(0.)
+    seas_err.append(0.)
+    result_dict['seasonal'] = seas
+    result_dict['seasonal_err'] = seas_err
+
     # Return
     return glm_model, result_dict
