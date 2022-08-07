@@ -1,7 +1,7 @@
 """ Run SSL Analysis specific to the paper """
 
 from pkg_resources import resource_filename
-import os
+import os, shutil
 import numpy as np
 import pickle
 
@@ -247,8 +247,16 @@ def umap_subset(opt_path:str, outfile:str, DT_cut=None,
 
         # Download?
         if not os.path.isfile(basefile):
-            print(f"Downloading {latents_file} (this is *much* faster than s3 access)...")
-            ulmo_io.download_file_from_s3(basefile, latents_file)
+            # Try local if local is True
+            if local:
+                local_file = latents_file.replace('s3://modis-l2/SSL',
+                    os.path.join(os.getenv('SST_OOD'),
+                                                  'MODIS_L2', 'SSL'))
+                print(f"Copying {local_file}")
+                shutil.copyfile(local_file, basefile)
+            if not os.path.isfile(basefile):
+                print(f"Downloading {latents_file} (this is *much* faster than s3 access)...")
+                ulmo_io.download_file_from_s3(basefile, latents_file)
 
         #  Load and apply
         print(f"Ingesting {basefile}")
