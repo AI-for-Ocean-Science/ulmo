@@ -48,6 +48,9 @@ geo_regions['med'] = dict(
 geo_regions['global'] = dict(
     lons=[-999., 999.],   # E
     lats=[-999, 999.])    # N
+geo_regions['north'] = dict(
+    lons=[-999., 999.],   # E
+    lats=[0, 999.])    # N
 
 
 def load_modis_tbl(table:str=None, 
@@ -388,8 +391,7 @@ def time_series(df, metric, show=False):
     result_dict['slope'] = glm_model.params['time']
     result_dict['slope_err'] = np.sqrt(
         glm_model.cov_params()['time']['time'])
-    yval = glm_model.params['Intercept'] + xval * glm_model.params['time']
-    result_dict['trend_yvals'] = yval
+
 
     seas = []
     seas_err = []
@@ -400,6 +402,11 @@ def time_series(df, metric, show=False):
         # Error
         seas_err.append(np.sqrt(
             glm_model.cov_params()[key][key]))
+
+    # Add em all up
+    yval = glm_model.params['Intercept'] + xval * glm_model.params['time'] + (
+        np.mean(seas))
+    result_dict['trend_yvals'] = yval
 
     # Add one more
     seas.append(0.)
