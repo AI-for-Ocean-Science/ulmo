@@ -1004,8 +1004,25 @@ def fig_yearly_geo_umap(outfile, geo_region,
                      rtio_region=None,
                      umap_comp='S0,S1',
                      table='96_DT15',
+                     min_Nsamp=10,
                      umap_dim=2, cmap='bwr',
                      debug=False): 
+    """Generate a time-series plot
+
+    Args:
+        outfile (_type_): _description_
+        geo_region (_type_): _description_
+        local (bool, optional): _description_. Defaults to False.
+        rtio_cut (float, optional): _description_. Defaults to 1.5.
+        rtio_region (_type_, optional): _description_. Defaults to None.
+        umap_comp (str, optional): _description_. Defaults to 'S0,S1'.
+        table (str, optional): _description_. Defaults to '96_DT15'.
+        min_Nsamp (int, optional): 
+            There must be at least this many sample to generate a point
+        umap_dim (int, optional): _description_. Defaults to 2.
+        cmap (str, optional): _description_. Defaults to 'bwr'.
+        debug (bool, optional): _description_. Defaults to False.
+    """
     # Init
     if rtio_region is None:
         rtio_region = geo_region
@@ -1083,12 +1100,19 @@ def fig_yearly_geo_umap(outfile, geo_region,
     dates = []
     for year in years:
         for month in months:
+            # Date
+            dates.append(datetime.datetime(year, month, 15))
+            #
             if month < 12:
                 in_date = (geo_tbl.datetime >= datetime.datetime(year,month,1)) & (
                     geo_tbl.datetime < datetime.datetime(year,month+1,1))
             else:
                 in_date = (geo_tbl.datetime >= datetime.datetime(year,month,1)) & (
                     geo_tbl.datetime < datetime.datetime(year+1,1,1))
+            if np.sum(in_date) < min_Nsamp:
+                fracs.append(np.nan)
+                continue
+            # Process 
             date_tbl = geo_tbl[in_date].copy()
             counts_date, xedges, yedges = np.histogram2d(
                 date_tbl[umap_keys[0]], 
@@ -1097,8 +1121,8 @@ def fig_yearly_geo_umap(outfile, geo_region,
             # frac
             frac = np.sum(counts_date*use_grid) / np.sum(counts_date)
             fracs.append(frac)
-            # Date
-            dates.append(datetime.datetime(year, month, 15))
+            if frac < 1e-1:
+                embed(header='1101 of figs')
 
     # Annual
     year_fracs = []
@@ -1129,10 +1153,33 @@ def fig_yearly_geo_umap(outfile, geo_region,
     ax.plot(year_dates, year_fracs, 'ro')
 
     plotting.set_fontsize(ax, 19.)
+
+    # Time-series analysis
+    time_series = pandas.DataFrame()
+    time_series['year'] = [date.year for date in dates]
+    time_series['month'] = [date.month for date in dates]
+    time_series['fracs'] = fracs
+
+    # Do it
+    glm_model, result_dict = ssl_paper_analy.time_series(
+        time_series, 'fracs', show=False)
+    #ax.plot(np.array(dates)[keep], 
+    #        glm_model.fittedvalues, 'b')
+
+    ax.plot(dates, result_dict['trend_yvals'], 
+            ls='--', color='pink')
+
+    # Label
+    ax.text(0.05, 0.9, 
+            f"slope={result_dict['slope']:0.5f} +/- {result_dict['slope_err']:0.5f}",
+            transform=ax.transAxes,
+            fontsize=15, ha='left', color='k')
+    
+    # Finish
     plt.savefig(outfile, dpi=200)
     plt.close()
     print('Wrote {:s}'.format(outfile))
-    
+
 
 def fig_LLvsDT(outfile='fig_LLvsDT.png', local=False, vmax=None, 
                 umap_dim=2,
@@ -1573,7 +1620,7 @@ def main(pargs):
         #    '96_DT15', [[8,9], [2,3]], 
         #    debug=pargs.debug, local=pargs.local)
 
-        # Gradient region
+        # Shallow gradient region
         fig_umap_geo('fig_umap_geo_DT15_6779.png',
             '96_DT15', [[5,7], [7.5,9]], 
             debug=pargs.debug, local=pargs.local)
@@ -1624,9 +1671,9 @@ def main(pargs):
 
     if pargs.figure == 'yearly_geo':
         # Equatorial Pacific
-        #fig_yearly_geo_umap('fig_yearly_geo_DT15_eqpacific.png',
-        #    'eqpacific', rtio_cut=1.5,
-        #    debug=pargs.debug, local=pargs.local)
+        fig_yearly_geo_umap('fig_yearly_geo_DT15_eqpacific.png',
+            'eqpacific', rtio_cut=1.5,
+            debug=pargs.debug, local=pargs.local)
 
         # Med
         #fig_yearly_geo_umap('fig_yearly_geo_DT15_med.png',
@@ -1639,9 +1686,9 @@ def main(pargs):
         #    debug=pargs.debug, local=pargs.local)
 
         # Bay of Bengal
-        fig_yearly_geo_umap('fig_yearly_geo_DT1_baybengal.png',
-            'baybengal', rtio_cut=1.5, table='96_DT1',
-            debug=pargs.debug, local=pargs.local)
+        #fig_yearly_geo_umap('fig_yearly_geo_DT1_baybengal.png',
+        #    'baybengal', rtio_cut=1.5, table='96_DT1',
+        #    debug=pargs.debug, local=pargs.local)
 
         # Global using Equatorial
         #fig_yearly_geo_umap('fig_yearly_geo_DT15_global_eqpac.png',
