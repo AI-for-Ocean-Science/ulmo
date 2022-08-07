@@ -1,6 +1,7 @@
 """ Figures for Bay of Bengal """
 
 from datetime import datetime
+from operator import mod
 import os, sys
 import numpy as np
 from requests import head
@@ -19,6 +20,7 @@ from matplotlib import pyplot as plt
 
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 import cartopy.crs as ccrs
+import cartopy
 
 mpl.rcParams['font.family'] = 'stixgeneral'
 
@@ -47,9 +49,11 @@ metric_lbls = dict(min_slope=r'$\alpha_{\rm min}$',
                    merid_slope=r'$\alpha_{\rm AT}}$',
                    )
 # Local
-sys.path.append(os.path.abspath("../Analysis/py"))
+#sys.path.append(os.path.abspath("../Analysis/py"))
+#import bob_analy
+
+sys.path.append(os.path.abspath("../../SSL/Analysis/py"))
 import ssl_paper_analy
-import fig_ssl_modis
 
 def fig_spatial(outfile='fig_spatial.png', nside=64, local=True,
                     table='96_DTall'):
@@ -70,6 +74,15 @@ def fig_spatial(outfile='fig_spatial.png', nside=64, local=True,
     modis_tbl = ssl_paper_analy.load_modis_tbl(
         local=local, table=table)
 
+    # Cut to speed up
+    lons=[60, 120.]   # E
+    lats=[0, 30.] # N
+    geo = ( (modis_tbl.lon > lons[0]) &
+        (modis_tbl.lon < lons[1]) &
+        (modis_tbl.lat > lats[0]) &
+        (modis_tbl.lat < lats[1]) )
+    modis_tbl = modis_tbl[geo].copy()
+
     lbl = 'evals'
     use_log = True
     use_mask = True
@@ -78,21 +91,56 @@ def fig_spatial(outfile='fig_spatial.png', nside=64, local=True,
     hp_events, hp_lons, hp_lats = image_utils.evals_to_healpix(
         modis_tbl, nside, log=use_log, mask=use_mask)
 
-    fig = plt.figure(figsize=(12, 8))
-    plt.clf()
-    
-    hp.mollview(hp_events, min=0, max=4.,
-                hold=True,
-                cmap='Blues',
-                flip='geo', title='', unit=r'$\log_{10} \, N_{\rm '+'{}'.format(lbl)+'}$',
-                rot=(0., 180., 180.))
-    #plt.gca().coastlines()
 
-    # Layout and save
+   # Figure
+    fig = plt.figure(figsize=(12,8))
+    plt.clf()
+
+    tformM = ccrs.Mollweide()
+    tformP = ccrs.PlateCarree()
+
+    ax = plt.axes(projection=tformM)
+
+    cm = plt.get_cmap('Blues')
+    # Cut
+    good = np.invert(hp_events.mask)
+    img = plt.scatter(x=hp_lons[good],
+        y=hp_lats[good],
+        c=hp_events[good], 
+        cmap=cm,
+        #vmax=vmax, 
+        s=1,
+        transform=tformP)
+
+    # Colorbar
+    cb = plt.colorbar(img, orientation='horizontal', pad=0.)
+    lbl = r"$\log_{10} \, N_{\\rm cutouts}$"
+    if lbl is not None:
+        cb.set_label(lbl, fontsize=20.)
+    cb.ax.tick_params(labelsize=17)
+
+    # Coast lines
+    ax.coastlines(zorder=10)
+    ax.add_feature(cartopy.feature.LAND, 
+        facecolor='gray', edgecolor='black')
+    ax.set_global()
+
+    gl = ax.gridlines(crs=ccrs.PlateCarree(), linewidth=1, 
+        color='black', alpha=0.5, linestyle=':', 
+        draw_labels=True)
+    gl.xlabels_top = False
+    gl.ylabels_left = True
+    gl.ylabels_right=False
+    gl.xlines = True
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.yformatter = LATITUDE_FORMATTER
+    gl.xlabel_style = {'color': 'black'}# 'weight': 'bold'}
+    gl.ylabel_style = {'color': 'black'}# 'weight': 'bold'}
+
+    plotting.set_fontsize(ax, 19.)
     plt.savefig(outfile, dpi=300)
     plt.close()
     print('Wrote {:s}'.format(outfile))
-
 
 
 def fig_bob_gallery(outfile='fig_bob_gallery_w_latent.png', 
