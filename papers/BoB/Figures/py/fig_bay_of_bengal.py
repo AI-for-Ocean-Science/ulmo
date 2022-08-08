@@ -77,8 +77,8 @@ def fig_spatial(outfile='fig_spatial.png', nside=64, local=True,
     # Cut to speed up
     lons=[60, 120.]   # E
     lats=[0, 30.] # N
-    geo = ( (modis_tbl.lon > lons[0]) &
-        (modis_tbl.lon < lons[1]) &
+    geo = ( (modis_tbl.lon > lons[0]-10) &
+        (modis_tbl.lon < lons[1]+10) &
         (modis_tbl.lat > lats[0]) &
         (modis_tbl.lat < lats[1]) )
     modis_tbl = modis_tbl[geo].copy()
@@ -109,21 +109,25 @@ def fig_spatial(outfile='fig_spatial.png', nside=64, local=True,
         c=hp_events[good], 
         cmap=cm,
         #vmax=vmax, 
-        s=1,
+        s=30,
+        marker='s',
         transform=tformP)
 
     # Colorbar
     cb = plt.colorbar(img, orientation='horizontal', pad=0.)
-    lbl = r"$\log_{10} \, N_{\\rm cutouts}$"
+    lbl = r"$\log_{10} \, N_{\rm cutouts}$"
     if lbl is not None:
         cb.set_label(lbl, fontsize=20.)
     cb.ax.tick_params(labelsize=17)
+
+    # Zoom in
 
     # Coast lines
     ax.coastlines(zorder=10)
     ax.add_feature(cartopy.feature.LAND, 
         facecolor='gray', edgecolor='black')
-    ax.set_global()
+    ax.set_extent(lons+lats)
+    #ax.set_global()
 
     gl = ax.gridlines(crs=ccrs.PlateCarree(), linewidth=1, 
         color='black', alpha=0.5, linestyle=':', 
