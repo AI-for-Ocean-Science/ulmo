@@ -1167,6 +1167,7 @@ def fig_yearly_geo_umap(outfile, geo_region,
         time_series, 'fracs', show=False)
     #ax.plot(np.array(dates)[keep], 
     #        glm_model.fittedvalues, 'b')
+    print(glm_model.summary())
 
     ax_time.plot(dates, result_dict['trend_yvals'], 
             ls='--', color='pink')
@@ -1693,9 +1694,9 @@ def main(pargs):
         #    debug=pargs.debug, local=pargs.local)
 
         # Global using Med
-        #fig_yearly_geo_umap('fig_yearly_geo_DT15_global_med.png',
-        #    'global', rtio_cut=1.25, rtio_region='med',
-        #    debug=pargs.debug, local=pargs.local)
+        fig_yearly_geo_umap('fig_yearly_geo_DT15_global_med.png',
+            'global', rtio_cut=1.25, rtio_region='med',
+            debug=pargs.debug, local=pargs.local)
 
         # Bay of Bengal
         #fig_yearly_geo_umap('fig_yearly_geo_DT1_baybengal.png',
@@ -1703,13 +1704,14 @@ def main(pargs):
         #    debug=pargs.debug, local=pargs.local)
 
         # Global using Equatorial
-        #fig_yearly_geo_umap('fig_yearly_geo_DT15_global_eqpac.png',
-        #    'global', rtio_cut=1.5, rtio_region='eqpacific',
-        #    debug=pargs.debug, local=pargs.local)
-
-        fig_yearly_geo_umap('fig_yearly_geo_DT15_north_eqpac.png',
-            'north', rtio_cut=1.5, rtio_region='eqpacific',
+        fig_yearly_geo_umap('fig_yearly_geo_DT15_global_eqpac.png',
+            'global', rtio_cut=1.5, rtio_region='eqpacific',
             debug=pargs.debug, local=pargs.local)
+
+        # North hemisphere
+        #fig_yearly_geo_umap('fig_yearly_geo_DT15_north_eqpac.png',
+        #    'north', rtio_cut=1.5, rtio_region='eqpacific',
+        #    debug=pargs.debug, local=pargs.local)
 
     if pargs.figure == 'seasonal_geo':
         # Med
