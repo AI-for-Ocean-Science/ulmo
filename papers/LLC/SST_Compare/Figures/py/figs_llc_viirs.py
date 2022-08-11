@@ -269,6 +269,57 @@ def fig_med_LL_VIIRS_LLC(outfile='med_LL_diff_VIIRS_vs_LLC.png'):
     plt.savefig(outfile, dpi = 600)
     print(f"Wrote: {outfile}")
 
+def fig_viirs_concentration(outfile='viirs_concentration.png'):
+
+    # Load
+    evts_v98, meds_v98, hp_lons_v98, hp_lats_v98 = load_hp_files('all', '_v98')
+    evts_llc, meds_llc, hp_lons_llc, hp_lats_llc = load_hp_files('all', '_llc_match')
+
+    fig = plt.figure(figsize=(12,8))
+    plt.clf()
+
+    tformM = ccrs.Mollweide()
+    tformP = ccrs.PlateCarree()
+
+    ax = plt.axes(projection=tformM)
+
+    cm = plt.get_cmap('Reds')
+    # Cut
+    good = np.invert(evts_v98.mask)
+    img = plt.scatter(x=hp_lons_v98[good],
+        y=hp_lats_v98[good],
+        c=np.log10(evts_v98)[good],
+        cmap=cm,
+        s=1,
+        transform=tformP)
+
+    # Colorbar
+    cb = plt.colorbar(img, orientation='horizontal', pad=0.)
+    clbl=r'$\log_{10} \, N_{\rm '+'{}'.format('viirs')+'}$'
+    cb.set_label(clbl, fontsize=20.)
+    cb.ax.tick_params(labelsize=17)
+
+    # Coast lines
+
+    ax.coastlines(zorder=10)
+    ax.set_global()
+
+    gl = ax.gridlines(crs=ccrs.PlateCarree(), linewidth=1, 
+        color='black', alpha=0.5, linestyle=':', draw_labels=True)
+    gl.xlabels_top = False
+    gl.ylabels_left = True
+    gl.ylabels_right=False
+    gl.xlines = True
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.yformatter = LATITUDE_FORMATTER
+    gl.xlabel_style = {'color': 'black'}# 'weight': 'bold'}
+    gl.ylabel_style = {'color': 'black'}# 'weight': 'bold'}
+    #gl.xlocator = mticker.FixedLocator([-180., -160, -140, -120, -60, -20.])
+    #gl.xlocator = mticker.FixedLocator([-240., -180., -120, -65, -60, -55, 0, 60, 120.])
+    #gl.ylocator = mticker.FixedLocator([0., 15., 30., 45, 60.])
+    plt.savefig(outfile, dpi=300)
+    print(f"Wrote: {outfile}")
+
 #### ########################## #########################
 def main(pargs):
 
@@ -287,6 +338,10 @@ def main(pargs):
     # Exploring high LL cutouts in LLC
     if pargs.figure == 'explore_highLL':
         fig_explore_highLL()
+
+    # VIIRS geographic location
+    if pargs.figure == 'concentration':
+        fig_viirs_concentration()
 
 
 def parse_option():
@@ -330,3 +385,6 @@ if __name__ == '__main__':
 
 # Exploring high LL cutouts in LLC
 # python py/figs_llc_viirs.py explore_highLL
+
+# VIIRS concentration
+# python py/figs_llc_viirs.py concentration
