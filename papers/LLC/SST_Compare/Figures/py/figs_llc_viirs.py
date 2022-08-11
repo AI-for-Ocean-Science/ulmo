@@ -218,7 +218,8 @@ def fig_med_LL_head_tail(outfile='med_LL_diff_head_vs_tail.png',
     plt.savefig(outfile, dpi = 600)
 
 
-def fig_med_LL_VIIRS_LLC(outfile='med_LL_diff_VIIRS_vs_LLC.png'):
+def fig_med_LL_VIIRS_LLC(outfile='med_LL_diff_VIIRS_vs_LLC.png',
+                         min_counts=5):
 
     # Load
     evts_v98, meds_v98, hp_lons_v98, hp_lats_v98 = load_hp_files('all', '_v98')
@@ -234,10 +235,11 @@ def fig_med_LL_VIIRS_LLC(outfile='med_LL_diff_VIIRS_vs_LLC.png'):
 
     cm = plt.get_cmap('coolwarm')
     # Cut
-    good = np.invert(meds_v98.mask)
+    good = np.invert(meds_v98.mask) & (evts_v98 >= min_counts)
     img = plt.scatter(x=hp_lons_llc[good],
         y=hp_lats_llc[good],
-        c=meds_v98[good]- meds_llc[good], vmin = -300, vmax = 300, 
+        c=meds_v98[good]- meds_llc[good], 
+        vmin=-300, vmax=300, 
         cmap=cm,
         s=1,
         transform=tformP)
@@ -273,7 +275,7 @@ def fig_viirs_concentration(outfile='viirs_concentration.png'):
 
     # Load
     evts_v98, meds_v98, hp_lons_v98, hp_lats_v98 = load_hp_files('all', '_v98')
-    evts_llc, meds_llc, hp_lons_llc, hp_lats_llc = load_hp_files('all', '_llc_match')
+    #evts_llc, meds_llc, hp_lons_llc, hp_lats_llc = load_hp_files('all', '_llc_match')
 
     fig = plt.figure(figsize=(12,8))
     plt.clf()
@@ -320,6 +322,90 @@ def fig_viirs_concentration(outfile='viirs_concentration.png'):
     plt.savefig(outfile, dpi=300)
     print(f"Wrote: {outfile}")
 
+def fig_viirs_llc_variability(
+    outfile='Variability_med_LL_diff_VIIRS_vs_LLC.png'):
+
+    # Load
+    evts_v98, meds_v98, hp_lons_v98, hp_lats_v98 = load_hp_files('all', '_v98')
+    evts_llc, meds_llc, hp_lons_llc, hp_lats_llc = load_hp_files('all', '_llc_match')
+
+    # Figure
+    fig = plt.figure(figsize=(12,8))
+    plt.clf()
+
+    # Cut
+    a = meds_v98.mask == False
+    b = meds_llc.mask == False
+    c = a & (a==b)
+
+    plt.scatter(x=evts_v98[c], 
+                     y=meds_v98[c]-meds_llc[c], 
+                     s=1)
+
+    ax = plt.gca()
+    ax.set_xscale('log')
+
+    # Axis Labels
+    plt.xlabel('VIIRS-derived Field Count in Bin', fontsize = 20)
+    plt.ylabel(r'$LL_{VIIRS} - LL_{LLC}$', fontsize = 20)
+    plt.ylim(-1000, 1000)
+    plt.xticks(fontsize=20)
+    plt.yticks(fontsize=20)
+    plt.savefig(outfile, dpi=300)
+    print(f"Wrote: {outfile}")
+
+def fig_med_LL_diff_head_vs_tail(
+    outfile='med_LL_diff_head_vs_tail.png'):
+
+    # Load
+    evts_head, meds_head, hp_lons_head, hp_lats_head = load_hp_files('heads', '_v98')
+    evts_tail, meds_tail, hp_lons_tail, hp_lats_tail = load_hp_files('tails', '_v98')
+
+    fig = plt.figure(figsize=(12,8))
+    plt.clf()
+
+    tformM = ccrs.Mollweide()
+    tformP = ccrs.PlateCarree()
+
+    ax = plt.axes(projection=tformM)
+
+    cm = plt.get_cmap('coolwarm')
+    # Cut
+    good = np.invert(evts_head.mask)
+    img = plt.scatter(x=hp_lons_tail[good],
+        y=hp_lats_tail[good],
+        c=meds_head[good]- meds_tail[good], vmin = -300, vmax = 300, 
+        cmap=cm,
+        s=1,
+        transform=tformP)
+
+    # Colorbar
+    cb = plt.colorbar(img, orientation='horizontal', pad=0.)
+    clbl = r'$LL_{head} - LL_{tail}$'
+    cb.set_label(clbl, fontsize=20.)
+    cb.ax.tick_params(labelsize=17)
+
+    # Coast lines
+
+    ax.coastlines(zorder=10)
+    ax.set_global()
+
+    gl = ax.gridlines(crs=ccrs.PlateCarree(), linewidth=1, 
+        color='black', alpha=0.5, linestyle=':', draw_labels=True)
+    gl.xlabels_top = False
+    gl.ylabels_left = True
+    gl.ylabels_right=False
+    gl.xlines = True
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.yformatter = LATITUDE_FORMATTER
+    gl.xlabel_style = {'color': 'black'}# 'weight': 'bold'}
+    gl.ylabel_style = {'color': 'black'}# 'weight': 'bold'}
+    #gl.xlocator = mticker.FixedLocator([-180., -160, -140, -120, -60, -20.])
+    #gl.xlocator = mticker.FixedLocator([-240., -180., -120, -65, -60, -55, 0, 60, 120.])
+    #gl.ylocator = mticker.FixedLocator([0., 15., 30., 45, 60.])
+    plt.savefig(outfile, dpi=300) 
+    print(f"Wrote: {outfile}")
+
 #### ########################## #########################
 def main(pargs):
 
@@ -342,6 +428,14 @@ def main(pargs):
     # VIIRS geographic location
     if pargs.figure == 'concentration':
         fig_viirs_concentration()
+
+    # VIIRS geographic location
+    if pargs.figure == 'variability':
+        fig_viirs_llc_variability()
+
+    # Heads/tails
+    if pargs.figure == 'med_heads_tails':
+        fig_med_LL_diff_head_vs_tail()
 
 
 def parse_option():
@@ -388,3 +482,9 @@ if __name__ == '__main__':
 
 # VIIRS concentration
 # python py/figs_llc_viirs.py concentration
+
+# LLC/VIIRS variability
+# python py/figs_llc_viirs.py variability
+
+# VIIRS heads/tails
+# python py/figs_llc_viirs.py med_heads_tails
