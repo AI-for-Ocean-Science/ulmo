@@ -21,7 +21,8 @@ def generate_headtails(table:str, out_root:str, write=False):
 
     # Tails
     tail = tbl[ (tbl.datetime.dt.year > 2017) & (tbl.datetime.dt.year < 2021) ]
-    evts_tail, hp_lons_tail, hp_lats_tail, meds_tail = sp.evals_to_healpix_meds(eval_tbl=tail, nside=64,  mask=True)
+    evts_tail, hp_lons_tail, hp_lats_tail, meds_tail = sp.evals_to_healpix_meds(
+        eval_tbl=tail, nside=64,  mask=True)
 
     # Write
     if write:

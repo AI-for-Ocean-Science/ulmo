@@ -219,7 +219,7 @@ def fig_med_LL_head_tail(outfile='med_LL_diff_head_vs_tail.png',
 
 
 def fig_med_LL_VIIRS_LLC(outfile='med_LL_diff_VIIRS_vs_LLC.png',
-                         min_counts=5):
+                         min_counts=10):
 
     # Load
     evts_v98, meds_v98, hp_lons_v98, hp_lats_v98 = load_hp_files('all', '_v98')
@@ -355,7 +355,8 @@ def fig_viirs_llc_variability(
     print(f"Wrote: {outfile}")
 
 def fig_med_LL_diff_head_vs_tail(
-    outfile='med_LL_diff_head_vs_tail.png'):
+    outfile='med_LL_diff_head_vs_tail.png',
+                         min_counts=10):
 
     # Load
     evts_head, meds_head, hp_lons_head, hp_lats_head = load_hp_files('heads', '_v98')
@@ -371,7 +372,7 @@ def fig_med_LL_diff_head_vs_tail(
 
     cm = plt.get_cmap('coolwarm')
     # Cut
-    good = np.invert(evts_head.mask)
+    good = np.invert(evts_head.mask) & (evts_head > min_counts) & (evts_tail > min_counts)
     img = plt.scatter(x=hp_lons_tail[good],
         y=hp_lats_tail[good],
         c=meds_head[good]- meds_tail[good], vmin = -300, vmax = 300, 
@@ -406,6 +407,64 @@ def fig_med_LL_diff_head_vs_tail(
     plt.savefig(outfile, dpi=300) 
     print(f"Wrote: {outfile}")
 
+
+def fig_gulfstream(outfile='fig_gulfstream.png'):
+
+    # Load
+    evts_v98, meds_v98, hp_lons_v98, hp_lats_v98 = load_hp_files('all', '_v98')
+    evts_llc, meds_llc, hp_lons_llc, hp_lats_llc = load_hp_files('all', '_llc_match')
+
+    mean = pandas.read_csv('../Analysis/12yrmean.ml'   ,names=['lon','lat'], header=None)
+    north= pandas.read_csv('../Analysis/82to86north.ml',names=['lon','lat'], header=None)
+    south= pandas.read_csv('../Analysis/82to86south.ml',names=['lon','lat'], header=None)
+
+    fig = plt.figure(figsize=(12,8))
+    plt.clf()
+
+    tformM = ccrs.Mollweide()
+    tformP = ccrs.PlateCarree()
+
+    ax = plt.axes(projection=tformM)
+
+    cm = plt.get_cmap('coolwarm')
+    # Cut
+    good = np.invert(meds_v98.mask)
+    img = plt.scatter(x=hp_lons_llc[good],
+        y=hp_lats_llc[good],
+        c=meds_v98[good]- meds_llc[good], vmin = -300, vmax = 300, 
+        cmap=cm,
+        s=500,
+        transform=tformP)
+    img1 = plt.plot(mean.lon.values,  mean.lat.values,  'k-', transform=tformP)
+    img2 = plt.plot(north.lon.values, north.lat.values, 'k-', transform=tformP)
+    img3 = plt.plot(south.lon.values, south.lat.values, 'k-', transform=tformP)
+
+    # Colorbar
+    cb = plt.colorbar(img, orientation='horizontal', pad=0.1)
+    clbl = r'$LL_{VIIRS} - LL_{LLC}$'
+    cb.set_label(clbl, fontsize=20.)
+    cb.ax.tick_params(labelsize=17)
+
+    # Coast lines
+
+    ax.coastlines(zorder=10)
+    ax.set_extent([-80, -45, 30, 45], ccrs.PlateCarree())
+    #ax.set_global()
+
+    gl = ax.gridlines(crs=ccrs.PlateCarree(), linewidth=2, x_inline=False, y_inline=False, 
+            color='black', alpha=0.5, linestyle=':', draw_labels=True)
+    gl.top_labels=False
+    gl.bottom_labels=True
+    gl.left_labels=True
+    gl.right_labels=False
+    #gl.xformatter = LONGITUDE_FORMATTER
+    #gl.yformatter = LATITUDE_FORMATTER
+    gl.xlabel_style = {'color': 'black', 'size': 14, 'weight': 'bold'}
+    gl.ylabel_style = {'color': 'black', 'size': 14, 'weight': 'bold'}
+
+    plt.savefig(outfile, dpi=300)
+    print(f"Wrote: {outfile}")
+
 #### ########################## #########################
 def main(pargs):
 
@@ -437,6 +496,9 @@ def main(pargs):
     if pargs.figure == 'med_heads_tails':
         fig_med_LL_diff_head_vs_tail()
 
+    # Gulfstream
+    if pargs.figure == 'gulfstream':
+        fig_gulfstream()
 
 def parse_option():
     """
@@ -488,3 +550,6 @@ if __name__ == '__main__':
 
 # VIIRS heads/tails
 # python py/figs_llc_viirs.py med_heads_tails
+
+# Gulfstream
+# python py/figs_llc_viirs.py gulfstream
