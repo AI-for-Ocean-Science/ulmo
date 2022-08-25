@@ -184,17 +184,9 @@ def fig_temporal_clouds(outfile='fig_temporal_clouds.png', nside=64, local=True,
 
     """
     # Load
-    modis_tbl = ssl_paper_analy.load_modis_tbl(
-        local=local, table=table)
-
-    # Cut to speed up
-    lons = ssl_paper_analy.geo_regions['baybengal']['lons']
-    lats = ssl_paper_analy.geo_regions['baybengal']['lats']
-    geo = ( (modis_tbl.lon > lons[0]) &
-        (modis_tbl.lon < lons[1]) &
-        (modis_tbl.lat > lats[0]) &
-        (modis_tbl.lat < lats[1]) )
-    geo_tbl = modis_tbl[geo].copy()
+    geo_tbl = ssl_paper_analy.load_modis_tbl(
+        local=local, table=table,
+        region='baybengal')
 
     # Dates
     pdates = pandas.DatetimeIndex(geo_tbl.datetime)
@@ -299,18 +291,9 @@ def fig_DT_month(outfile='fig_DT_month.png', nside=64, local=True,
 
     """
     # Load
-    modis_tbl = ssl_paper_analy.load_modis_tbl(
-        local=local, table=table)
-
-    # Cut to speed up
-    lons = ssl_paper_analy.geo_regions['baybengal']['lons']
-    lats = ssl_paper_analy.geo_regions['baybengal']['lats']
-    geo = ( (modis_tbl.lon > lons[0]) &
-        (modis_tbl.lon < lons[1]) &
-        (modis_tbl.lat > lats[0]) &
-        (modis_tbl.lat < lats[1]) )
-    geo_tbl = modis_tbl[geo].copy()
-
+    geo_tbl = ssl_paper_analy.load_modis_tbl(
+        local=local, table=table,
+        region='baybengal')
     pdates = pandas.DatetimeIndex(geo_tbl.datetime)
 
     bins_DT = np.linspace(0., 6., 12)
@@ -343,6 +326,17 @@ def fig_DT_month(outfile='fig_DT_month.png', nside=64, local=True,
     plt.savefig(outfile, dpi=300)
     plt.close()
     print('Wrote {:s}'.format(outfile))
+
+def fig_UMAP_dist(outfile='fig_UMAP_dist.png', nside=64, local=True,
+                    table='96_DTall', nxy=16, umap_dim=2):
+
+    # Load
+    geo_tbl = ssl_paper_analy.load_modis_tbl(
+        local=local, table=table, region='baybengal')
+
+    # UMAP
+    umap_keys = gen_umap_keys(umap_dim, umap_comp)
+
 
 def fig_bob_gallery(outfile='fig_bob_gallery_w_latent.png', 
                     geo_region='baybengal',
