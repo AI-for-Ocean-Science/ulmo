@@ -54,6 +54,7 @@ metric_lbls = dict(min_slope=r'$\alpha_{\rm min}$',
 
 sys.path.append(os.path.abspath("../../SSL/Analysis/py"))
 import ssl_paper_analy
+import ssl_defs
 
 def fig_spatial(outfile='fig_spatial.png', nside=64, local=True,
                     table='96_DTall'):
@@ -80,7 +81,7 @@ def fig_spatial(outfile='fig_spatial.png', nside=64, local=True,
     geo = ( (modis_tbl.lon > lons[0]-10) &
         (modis_tbl.lon < lons[1]+10) &
         (modis_tbl.lat > lats[0]) &
-        (modis_tbl.lat < lats[1]) )
+        (modis_tbl.lat < (lats[1]+10)) )
     modis_tbl = modis_tbl[geo].copy()
 
     lbl = 'evals'
@@ -91,6 +92,10 @@ def fig_spatial(outfile='fig_spatial.png', nside=64, local=True,
     hp_events, hp_lons, hp_lats = image_utils.evals_to_healpix(
         modis_tbl, nside, log=use_log, mask=use_mask)
 
+    if use_log:
+        vmin = 1.
+    else:
+        vmin = 10.
 
    # Figure
     fig = plt.figure(figsize=(12,8))
@@ -101,13 +106,15 @@ def fig_spatial(outfile='fig_spatial.png', nside=64, local=True,
 
     ax = plt.axes(projection=tformM)
 
-    cm = plt.get_cmap('Blues')
+    #cm = plt.get_cmap('Blues')
+    cm = plt.get_cmap('YlGn')
     # Cut
     good = np.invert(hp_events.mask)
     img = plt.scatter(x=hp_lons[good],
         y=hp_lats[good],
         c=hp_events[good], 
         cmap=cm,
+        vmin=vmin, 
         #vmax=vmax, 
         s=30,
         marker='s',
@@ -115,7 +122,10 @@ def fig_spatial(outfile='fig_spatial.png', nside=64, local=True,
 
     # Colorbar
     cb = plt.colorbar(img, orientation='horizontal', pad=0.)
-    lbl = r"$\log_{10} \, N_{\rm cutouts}$"
+    if use_log:
+        lbl = r"$\log_{10} \, N_{\rm cutouts}$"
+    else:
+        lbl = r"$N_{\rm cutouts}$"
     if lbl is not None:
         cb.set_label(lbl, fontsize=20.)
     cb.ax.tick_params(labelsize=17)
@@ -125,9 +135,21 @@ def fig_spatial(outfile='fig_spatial.png', nside=64, local=True,
     # Coast lines
     ax.coastlines(zorder=10)
     ax.add_feature(cartopy.feature.LAND, 
-        facecolor='gray', edgecolor='black')
+        facecolor='lightgray', edgecolor='black')
     ax.set_extent(lons+lats)
     #ax.set_global()
+
+    true_lons = ssl_paper_analy.geo_regions['baybengal']['lons']
+    true_lats = ssl_paper_analy.geo_regions['baybengal']['lats']
+    ax.plot(true_lons, [true_lats[0]]*2, '--', color='black', lw=2,
+            transform=ccrs.PlateCarree())#, zorder=10)
+    ax.plot(true_lons, [true_lats[1]]*2, '--', color='black', lw=2,
+            transform=ccrs.PlateCarree())#, zorder=10)
+    ax.plot([true_lons[0]]*2, true_lats, '--', color='black', lw=2,
+            transform=ccrs.PlateCarree())#, zorder=10)
+    ax.plot([true_lons[1]]*2, true_lats, '--', color='black', lw=2,
+            transform=ccrs.PlateCarree())#, zorder=10)
+
 
     gl = ax.gridlines(crs=ccrs.PlateCarree(), linewidth=1, 
         color='black', alpha=0.5, linestyle=':', 
@@ -146,6 +168,181 @@ def fig_spatial(outfile='fig_spatial.png', nside=64, local=True,
     plt.close()
     print('Wrote {:s}'.format(outfile))
 
+def fig_temporal_clouds(outfile='fig_temporal_clouds.png', nside=64, local=True,
+                    table='96_DTall'):
+    """
+    Spatial distribution of the cutouts
+
+    Parameters
+    ----------
+    pproc
+    outfile
+    nside
+
+    Returns
+    -------
+
+    """
+    # Load
+    modis_tbl = ssl_paper_analy.load_modis_tbl(
+        local=local, table=table)
+
+    # Cut to speed up
+    lons = ssl_paper_analy.geo_regions['baybengal']['lons']
+    lats = ssl_paper_analy.geo_regions['baybengal']['lats']
+    geo = ( (modis_tbl.lon > lons[0]) &
+        (modis_tbl.lon < lons[1]) &
+        (modis_tbl.lat > lats[0]) &
+        (modis_tbl.lat < lats[1]) )
+    geo_tbl = modis_tbl[geo].copy()
+
+    # Dates
+    pdates = pandas.DatetimeIndex(geo_tbl.datetime)
+
+    # Loop me
+    months = 1 + np.arange(12)
+    years = np.linspace(pdates.year.min(), pdates.year.max()).astype(int)
+
+    count = {}
+    count['all'] = []
+    count_year = {}
+    count_year['all'] = []
+    for key in ssl_defs.umap_DT.keys():
+        if key in ['all', 'DT10', 'DT4', 'DT5']:
+            continue
+        count[key] = []
+        count_year[key] = []
+
+    # Seasonal
+    for month in months:
+        in_month = pdates.month == month
+        for key in count.keys():
+            if key == 'all':
+                count['all'].append(np.sum(in_month))
+            else:
+                cut = (geo_tbl.DT > (ssl_defs.umap_DT[key][0] - ssl_defs.umap_DT[key][1])) & \
+                    (geo_tbl.DT < (ssl_defs.umap_DT[key][0] + ssl_defs.umap_DT[key][1]))
+                count[key].append(np.sum(in_month & cut))
+
+    # Inter annual
+    for year in years:
+        in_year = pdates.year == year
+        for key in count_year.keys():
+            if key == 'all':
+                count_year['all'].append(np.sum(in_year))
+            else:
+                cut = (geo_tbl.DT > (ssl_defs.umap_DT[key][0] - ssl_defs.umap_DT[key][1])) & \
+                    (geo_tbl.DT < (ssl_defs.umap_DT[key][0] + ssl_defs.umap_DT[key][1]))
+                count_year[key].append(np.sum(in_year & cut))
+
+    # Plot
+    fig = plt.figure(figsize=(8, 12))
+    gs = gridspec.GridSpec(2,1)
+    plt.clf()
+
+    # Seasonal
+    ax_seasonal = plt.subplot(gs[0])
+    ax_seasonal.plot(months, count['all'], 'k', label='All')
+
+    # DT cuts
+    for key in count.keys():
+        if key == 'all':
+            continue
+        ax_seasonal.plot(months, count[key], label=key)
+
+    # Label
+    ax_seasonal.set_ylabel('Number of Cutouts')
+    ax_seasonal.set_xlabel('Month')
+
+    ax_seasonal.set_yscale('log')
+
+    ax_seasonal.legend(fontsize=17)
+
+    # Inter-annual
+    ax_year = plt.subplot(gs[1])
+    ax_year.plot(years, count_year['all'], 'k', label='All')
+
+    # DT cuts
+    for key in count_year.keys():
+        if key == 'all':
+            continue
+        ax_year.plot(years, count_year[key], label=key)
+
+    # Label
+    ax_year.set_ylabel('Number of Cutouts')
+    ax_year.set_xlabel('Year')
+
+    ax_year.set_yscale('log')
+
+
+    for ax in [ax_seasonal, ax_year]:
+        plotting.set_fontsize(ax, 19.)
+
+    # Finish
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+    
+def fig_DT_month(outfile='fig_DT_month.png', nside=64, local=True,
+                    table='96_DTall'):
+    """
+    Spatial distribution of the cutouts
+
+    Parameters
+    ----------
+    pproc
+    outfile
+    nside
+
+    Returns
+    -------
+
+    """
+    # Load
+    modis_tbl = ssl_paper_analy.load_modis_tbl(
+        local=local, table=table)
+
+    # Cut to speed up
+    lons = ssl_paper_analy.geo_regions['baybengal']['lons']
+    lats = ssl_paper_analy.geo_regions['baybengal']['lats']
+    geo = ( (modis_tbl.lon > lons[0]) &
+        (modis_tbl.lon < lons[1]) &
+        (modis_tbl.lat > lats[0]) &
+        (modis_tbl.lat < lats[1]) )
+    geo_tbl = modis_tbl[geo].copy()
+
+    pdates = pandas.DatetimeIndex(geo_tbl.datetime)
+
+    bins_DT = np.linspace(0., 6., 12)
+    bins_month = np.arange(12)+1
+
+    counts, xedges, yedges = np.histogram2d(pdates.month, geo_tbl.DT, 
+                                            bins=[bins_month, bins_DT])
+
+    # Figure
+    fig = plt.figure(figsize=(8, 8))
+    plt.clf()
+    ax = plt.gca()
+
+    cm = plt.get_cmap('jet')
+    values = np.log10(counts.transpose())
+    lbl = 'log10 Counts'
+    mplt = ax.pcolormesh(xedges, yedges, values, 
+                         cmap=cm, 
+                         vmax=None) 
+
+    # Color bar
+    cbaxes = plt.colorbar(mplt, pad=0., fraction=0.030)
+    cbaxes.set_label(lbl, fontsize=15.)
+
+    ax.set_xlabel('Month')
+    ax.set_ylabel(r'$\Delta T$')
+    plotting.set_fontsize(ax, 19.)
+
+    plt.tight_layout(pad=0.5, h_pad=0.5, w_pad=0.5)
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
 
 def fig_bob_gallery(outfile='fig_bob_gallery_w_latent.png', 
                     geo_region='baybengal',
@@ -492,6 +689,15 @@ def main(pargs):
     if pargs.figure == 'spatial':
         fig_spatial()
 
+    # Spatial distribution
+    if pargs.figure == 'temporal':
+        fig_temporal_clouds()
+
+    # DT vs month
+    if pargs.figure == 'DT_month':
+        fig_DT_month()
+
+
     # BoB gallery
     if pargs.figure == 'gallery':
         #fig_bob_gallery(outfile='fig_bob_gallery_wo_latent.png', skip_latent=True)
@@ -536,6 +742,13 @@ if __name__ == '__main__':
 
 # Spatial distribution
 # python py/fig_bay_of_bengal.py spatial
+
+# Temporal distribution
+# python py/fig_bay_of_bengal.py temporal
+
+# DT vs month
+# python py/fig_bay_of_bengal.py DT_month
+
 
 # Gallery
 # python py/fig_bay_of_bengal.py gallery
