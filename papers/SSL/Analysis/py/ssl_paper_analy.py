@@ -416,3 +416,23 @@ def time_series(df, metric, show=False):
 
     # Return
     return glm_model, result_dict
+
+def gen_umap_keys(umap_dim:int, umap_comp:str):
+    """ Generate the keys for UMAP 
+
+    Args:
+        umap_dim (int): dimension of UMAP
+        umap_comp (str): 
+
+    Returns:
+        umap_keys (tuple): tuple of keys for UMAP
+    """
+    if umap_dim == 2:
+        if 'T1' in umap_comp:
+            umap_keys = ('UT1_'+umap_comp[0], 'UT1_'+umap_comp[-1])
+        else:
+            ps = umap_comp.split(',')
+            umap_keys = ('U'+ps[0], 'U'+ps[-1])
+    elif umap_dim == 3:
+        umap_keys = ('U3_'+umap_comp[0], 'U3_'+umap_comp[-1])
+    return umap_keys
