@@ -328,15 +328,18 @@ def fig_DT_month(outfile='fig_DT_month.png', nside=64, local=True,
     print('Wrote {:s}'.format(outfile))
 
 def fig_UMAP_dist(outfile='fig_UMAP_dist.png', nside=64, local=True,
-                    table='96_DTall', nxy=16, umap_dim=2):
+                    table='96_DTall', nxy=16, umap_dim=2,
+                    umap_comp='S0,S1'):
 
     # Load
     geo_tbl = ssl_paper_analy.load_modis_tbl(
         local=local, table=table, region='baybengal')
 
     # UMAP
-    umap_keys = gen_umap_keys(umap_dim, umap_comp)
+    umap_keys = ssl_paper_analy.gen_umap_keys(umap_dim, umap_comp)
 
+        grid_umap(modis_tbl[umap_keys[0]].values, modis_tbl[umap_keys[0]].values,
+                  nxy=nxy)
 
 def fig_bob_gallery(outfile='fig_bob_gallery_w_latent.png', 
                     geo_region='baybengal',
