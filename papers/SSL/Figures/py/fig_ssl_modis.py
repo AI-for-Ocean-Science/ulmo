@@ -71,28 +71,6 @@ metric_lbls = dict(min_slope=r'$\alpha_{\rm min}$',
                    merid_slope=r'$\alpha_{\rm AT}}$',
                    )
 
-def grid_umap(U0, U1, nxy=16, percent=[0.1, 99.9]):
-
-    # Boundaries of the grid
-    xmin, xmax = np.percentile(U0, percent)
-    ymin, ymax = np.percentile(U1, percent)
-    dxv = (xmax-xmin)/nxy
-    dyv = (ymax-ymin)/nxy
-
-    # Edges
-    xmin -= dxv
-    xmax += dxv
-    ymin -= dyv
-    ymax += dyv
-
-    # Grid
-    xval = np.arange(xmin, xmax+dxv, dxv)
-    yval = np.arange(ymin, ymax+dyv, dyv)
-
-    # Return
-    grid = dict(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax,
-                xval=xval, yval=yval, dxv=dxv, dyv=dyv)
-    return grid
 
 
 # Local
@@ -346,14 +324,14 @@ def fig_umap_density(outfile='fig_umap_density.png',
     if modis_tbl is None:
         modis_tbl = ssl_paper_analy.load_modis_tbl(local=local, table=table)
 
-    umap_keys = gen_umap_keys(umap_dim, umap_comp)
+    umap_keys = ssl_paper_analy.gen_umap_keys(umap_dim, umap_comp)
     if outfile is not None:
         outfile = update_outfile(outfile, table, umap_dim,
                              umap_comp=umap_comp)
 
     # Boundaries of the box
     if umap_grid is None:
-        grid_umap(modis_tbl[umap_keys[0]].values, modis_tbl[umap_keys[0]].values,
+        umap_grid = grid_umap(modis_tbl[umap_keys[0]].values, modis_tbl[umap_keys[0]].values,
                   nxy=nxy)
 
     xmin, xmax = umap_grid['xmin'], umap_grid['xmax']
