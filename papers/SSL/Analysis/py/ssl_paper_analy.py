@@ -436,3 +436,30 @@ def gen_umap_keys(umap_dim:int, umap_comp:str):
     elif umap_dim == 3:
         umap_keys = ('U3_'+umap_comp[0], 'U3_'+umap_comp[-1])
     return umap_keys
+
+
+def grid_umap(U0, U1, nxy:int=16, 
+              percent:list=[0.1, 99.9]):
+    """ 
+    """
+
+    # Boundaries of the grid
+    xmin, xmax = np.percentile(U0, percent)
+    ymin, ymax = np.percentile(U1, percent)
+    dxv = (xmax-xmin)/nxy
+    dyv = (ymax-ymin)/nxy
+
+    # Edges
+    xmin -= dxv
+    xmax += dxv
+    ymin -= dyv
+    ymax += dyv
+
+    # Grid
+    xval = np.arange(xmin, xmax+dxv, dxv)
+    yval = np.arange(ymin, ymax+dyv, dyv)
+
+    # Return
+    grid = dict(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax,
+                xval=xval, yval=yval, dxv=dxv, dyv=dyv)
+    return grid
