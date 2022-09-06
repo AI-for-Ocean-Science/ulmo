@@ -338,8 +338,9 @@ def fig_UMAP_dist(outfile='fig_UMAP_dist.png', nside=64, local=True,
     # UMAP
     umap_keys = ssl_paper_analy.gen_umap_keys(umap_dim, umap_comp)
 
-        grid_umap(modis_tbl[umap_keys[0]].values, modis_tbl[umap_keys[0]].values,
-                  nxy=nxy)
+    umap_grid = ssl_paper_analy.grid_umap(
+        geo_tbl[umap_keys[0]].values, 
+        geo_tbl[umap_keys[0]].values, nxy=nxy)
 
 def fig_bob_gallery(outfile='fig_bob_gallery_w_latent.png', 
                     geo_region='baybengal',
