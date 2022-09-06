@@ -153,7 +153,7 @@ def fig_augmenting(outfile='fig_augmenting.png', use_s3=False):
     print(f'Temperature range: {Trange}')
     
     # Augment me
-    embed(header='187 of figs -- YOU NEED TO NOW UPDATE THE ANGLES IN THE TEXT')
+    embed(header='156 of figs -- YOU NEED TO NOW UPDATE THE ANGLES IN THE TEXT')
     loader = ssl_simage.image_loader(img)
     test_batch = iter(loader).next()
     img1, img2 = test_batch
@@ -1197,6 +1197,7 @@ def fig_LLvsDT(outfile='fig_LLvsDT.png', local=False, vmax=None,
                        cmap=plt.get_cmap('autumn'), mincnt=1,
                        marginal_kws=dict(fill=False, color='black', 
                                          bins=100)) 
+    plt.colorbar()
     # Axes                                 
     jg.ax_joint.set_xlabel(r'$\Delta T$')
     jg.ax_joint.set_ylim(ymnx)
@@ -1245,6 +1246,7 @@ def fig_slopevsDT(outfile='fig_slopevsDT.png', table=None,
                        marginal_kws=dict(fill=False, color='black', bins=100)) 
     jg.ax_joint.set_xlabel(r'$\Delta T$')
     jg.ax_joint.set_ylabel(metric_lbls['min_slope'])
+    plt.colorbar()
 
     plotting.set_fontsize(jg.ax_joint, 15.)
     plt.savefig(outfile, dpi=300)
@@ -1286,6 +1288,7 @@ def fig_slopes(outfile='fig_slopes.png',
                                          color='black', bins=100),
                        cmap=plt.get_cmap('YlGnBu')) 
                        #mincnt=1,
+    plt.colorbar()
     
     jg.ax_joint.set_xlabel(metric_lbls['zonal_slope'])
     jg.ax_joint.set_ylabel(metric_lbls['merid_slope'])
@@ -1902,13 +1905,16 @@ if __name__ == '__main__':
 
 # ###########################################################
 # 96% CF
+# FIGURE 1
 # LL vs DT -- python py/fig_ssl_modis.py LLvsDT --local --table 96
 
 # DT -- python py/fig_ssl_modis.py fit_metric --metric DT --distr lognorm --local --table 96
 # LL -- python py/fig_ssl_modis.py fit_metric --metric LL --distr normal --local --table 96
 # zonal_slope -- python py/fig_ssl_modis.py fit_metric --metric zonal_slope --distr normal --local --table 96
 
+# FIGURE 2
 # Slopes -- python py/fig_ssl_modis.py slopes --local --table 96
+# FIGURE 3
 # Slope vs DT -- python py/fig_ssl_modis.py slopevsDT --local --table 96
 
 # UMAP colored by LL -- python py/fig_ssl_modis.py umap_LL --local --table 96
@@ -1944,4 +1950,5 @@ if __name__ == '__main__':
 
 # MISC
 #  python py/fig_ssl_modis.py learning_curve
+# FIGURE 4
 #  python py/fig_ssl_modis.py augment
