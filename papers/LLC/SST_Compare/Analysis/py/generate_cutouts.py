@@ -8,20 +8,20 @@ from ulmo.utils import image_utils
 
 from IPython import embed
 
-def equatorial_cutouts(nside=64, local_file='equatorial_cutouts.h5'):
+def equatorial_cutouts(nside=64, local_file='equatorial_cutouts.h5',
+    lon=-120.,  # Define the equator
+    lat = 0.):
 
     # Load table
     table_file = 's3://viirs/Tables/VIIRS_all_98clear_std.parquet'
     eval_tbl = ulmo_io.load_main_table(table_file)
 
-    # Define the equator
-    lon=-120.
-    lat = 0.
 
     # Healpix coord
     theta = (90 - lat) * np.pi / 180.  # convert into radians
     phi = lon * np.pi / 180.
     idx = hp.pixelfunc.ang2pix(nside, theta, phi) 
+    print(f"Healpix: {idx} at lon={lon}, lat={lat}")
 
     # Now grab them all
     lats = eval_tbl.lat.values
@@ -41,6 +41,9 @@ def equatorial_cutouts(nside=64, local_file='equatorial_cutouts.h5'):
     # Cutouts
     cut_tbl = eval_tbl[gd]
 
+    # 
+    embed(header='59 of generate_cutouts.py')
+
     images = []
     ii = 0
     for idx in cut_tbl.index:
@@ -54,6 +57,7 @@ def equatorial_cutouts(nside=64, local_file='equatorial_cutouts.h5'):
 
     # Write to disk
     clms = list(cut_tbl.keys())
+
     
     print("Writing: {}".format(local_file))
     with h5py.File(local_file, 'w') as f:
@@ -68,5 +72,9 @@ def equatorial_cutouts(nside=64, local_file='equatorial_cutouts.h5'):
 
 # Command line execution
 if __name__ == '__main__':
-    equatorial_cutouts()
+    # Mine
+    #equatorial_cutouts()
+
+    # PMC
+    equatorial_cutouts(lon=-112.5, lat=0.5, local_file='equatorial_cutouts_pmc.h5')
 
