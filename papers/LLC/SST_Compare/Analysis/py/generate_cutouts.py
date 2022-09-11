@@ -8,12 +8,21 @@ from ulmo.utils import image_utils
 
 from IPython import embed
 
-def equatorial_cutouts(nside=64, local_file='equatorial_cutouts.h5',
-    lon=-120.,  # Define the equator
-    lat = 0.):
+def equatorial_cutouts(nside=64, 
+                       local_file='equatorial_cutouts.h5', 
+                       llc=False,
+                       lon=-120.,  # Define the equator 
+                       lat = 0.,
+                       local=False):
 
     # Load table
-    table_file = 's3://viirs/Tables/VIIRS_all_98clear_std.parquet'
+    if not llc:
+        table_file = 's3://viirs/Tables/VIIRS_all_98clear_std.parquet'
+    else:
+        if local:
+            table_file = '/home/xavier/Projects/Oceanography/SST/LLC/Tables/llc_viirs_match.parquet'
+        else:
+            table_file = 's3://llc/Tables/llc_viirs_match.parquet'
     eval_tbl = ulmo_io.load_main_table(table_file)
 
 
@@ -26,9 +35,6 @@ def equatorial_cutouts(nside=64, local_file='equatorial_cutouts.h5',
     # Now grab them all
     lats = eval_tbl.lat.values
     lons = eval_tbl.lon.values
-
-    # Grab LL values
-    vals = eval_tbl.LL.values
 
     # Healpix coords
     theta = (90 - lats) * np.pi / 180.  # convert into radians
@@ -47,7 +53,7 @@ def equatorial_cutouts(nside=64, local_file='equatorial_cutouts.h5',
     images = []
     ii = 0
     for idx in cut_tbl.index:
-        print(ii)
+        print(f'{ii} of {len(cut_tbl)}')
         cutout = cut_tbl.loc[idx]
         # Grab it
         img = image_utils.grab_image(cutout)
@@ -75,6 +81,10 @@ if __name__ == '__main__':
     # Mine
     #equatorial_cutouts()
 
-    # PMC
-    equatorial_cutouts(lon=-112.5, lat=0.5, local_file='equatorial_cutouts_pmc.h5')
+    # PMC -- VIIRS
+    #equatorial_cutouts(lon=-112.5, lat=0.5, local_file='equatorial_cutouts_pmc.h5')
+
+    # PMC -- LLC
+    equatorial_cutouts(lon=-112.5, lat=0.5, local_file='equatorial_cutouts_pmc_llc.h5',
+                       llc=True, local=True)
 
