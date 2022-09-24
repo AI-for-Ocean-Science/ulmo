@@ -29,8 +29,8 @@ class ImageDataset(Dataset):
 def image_loader(image, version='v4'):
     if version == 'v3':
         transforms_compose = transforms.Compose(
-            [train_util.RandomRotate(), 
-            train_util.JitterCrop(), 
+            [train_util.RandomRotate(verbose=True), 
+            train_util.JitterCrop(verbose=True), 
             train_util.GaussianNoise(), 
             transforms.ToTensor()])
     elif version == 'v4':
@@ -46,6 +46,7 @@ def image_loader(image, version='v4'):
                                        jitter_lim=opt.random_jitter[1],
                                        rescale=0, verbose=True),
              train_util.Demean(), 
+             train_util.ThreeChannel(), 
              transforms.ToTensor()])
     else:
         raise IOError("Not ready for this version: {}".format(version))

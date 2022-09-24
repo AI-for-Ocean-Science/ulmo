@@ -156,6 +156,7 @@ def fig_augmenting(outfile='fig_augmenting.png', use_s3=False):
     loader = ssl_simage.image_loader(img, version='v4')
     test_batch = iter(loader).next()
     img1, img2 = test_batch
+    # Should be: Out[2]: torch.Size([1, 3, 64, 64])
 
     # Numpy
     img1 = img1.cpu().detach().numpy()
@@ -163,6 +164,7 @@ def fig_augmenting(outfile='fig_augmenting.png', use_s3=False):
 
     print(f'Mean of img1: {img1.mean()}')
     print(f'Mean of img2: {img2.mean()}')
+    #embed(header='159 of figs')
 
     # Plot
     ax1 = plt.subplot(gs[1])

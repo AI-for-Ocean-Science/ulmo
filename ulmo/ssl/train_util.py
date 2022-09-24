@@ -109,7 +109,8 @@ class ThreeChannel:
             np.ndarray: Demeaned image, 3D
         """
         # 3 channels
-        image = np.repeat(np.expand_dims(image, axis=-1), 3, axis=-1)
+        image = np.repeat(image, 3, axis=-1)
+        #
         return image
     
 class RandomRotate:
@@ -126,6 +127,8 @@ class RandomRotate:
         Returns:
             np.ndarray: Randomly rotated image, 2D
         """
+        #if self.verbose:
+        #    print(f'Shape of image: {image.shape}')
         rang = np.float32(360*np.random.rand(1))
         if self.verbose:
             print(f'RandomRotate: {rang}')
@@ -141,18 +144,20 @@ class RandomFlip:
     def __call__(self, image):
         """ 
         Args:
-            image (np.ndarray): Expected to be a 2D image
+            image (np.ndarray): Expected to be a 3D image 
 
         Returns:
-            np.ndarray: Randomly flipped image, 2D
+            np.ndarray: Randomly flipped image, 3D
         """
+        if self.verbose:
+            print(f'Shape of image: {image.shape}')
         # Left/right
         rflips = np.random.randint(2, size=2)
         if rflips[0] == 1:
-            image = np.fliplr(image)
+            image = image[:, ::-1]
         # Up/down
         if rflips[1] == 1:
-            image = np.flipud(image)
+            image = image[::-1, :]
         if self.verbose:
             print(f'RandomFlip: {rflips}')
         # Return
@@ -177,6 +182,8 @@ class JitterCrop:
         Returns:
             np.ndarray: Jittered + Cropped image, 2D
         """
+        if self.verbose:
+            print(f'Shape of image input to JitterCrop: {image.shape}')
         center_x = image.shape[0]//2
         center_y = image.shape[0]//2
         if self.jitter_lim:
@@ -187,13 +194,18 @@ class JitterCrop:
                               (center_y-self.offset):(center_y+self.offset), 
                               0]
         if self.rescale > 0:
-            image = skimage.transform.rescale(image_cropped, self.rescale)
+            # THIS WILL PROBABLY BREAK
+            #image = skimage.transform.rescale(image_cropped, self.rescale)
+            image = np.expand_dims(skimage.transform.rescale(image_cropped, self.rescale), axis=-1)
+            # 3 channels (only )
+            image = np.repeat(image, 3, axis=-1)
         else:
             image = skimage.transform.resize(image_cropped, image.shape)
 
         # Verbose?
         if self.verbose:
             print(f'JitterCrop: {center_x, center_y}')
+            print(f'Shape exiting JitterCrop: {image.shape}')
 
         # Return 
         return image
