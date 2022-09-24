@@ -1,0 +1,13 @@
+Dataset:
+
+MODIS + 96% clear
+
+Augmentations:
+
+1. RandomFlip()
+2. RandomRotate()
+3. JitterCrop()
+  Inner 40x40 with up to 5 pixels of Jitter
+4. Demean()
+
+No Gaussian noise
