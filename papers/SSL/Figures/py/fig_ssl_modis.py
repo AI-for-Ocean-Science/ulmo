@@ -153,11 +153,18 @@ def fig_augmenting(outfile='fig_augmenting.png', use_s3=False):
     print(f'Temperature range: {Trange}')
     
     # Augment me
-    embed(header='156 of figs -- YOU NEED TO NOW UPDATE THE ANGLES IN THE TEXT')
-    loader = ssl_simage.image_loader(img)
+    loader = ssl_simage.image_loader(img, version='v4')
     test_batch = iter(loader).next()
     img1, img2 = test_batch
 
+    # Numpy
+    img1 = img1.cpu().detach().numpy()
+    img2 = img2.cpu().detach().numpy()
+
+    print(f'Mean of img1: {img1.mean()}')
+    print(f'Mean of img2: {img2.mean()}')
+
+    # Plot
     ax1 = plt.subplot(gs[1])
     sns.heatmap(img1[0,0,...], ax=ax1, xticklabels=[], 
                 yticklabels=[], cbar=False, cmap=cm,

@@ -26,7 +26,7 @@
     "syncBN": false,
     "warm": true,
     "trial": 5,
-    "random_jitter": [5,5],
+    "random_jitter": 0,
     "gauss_noise": 0.05,
     "modis_data": true,
     "cuda_use": true

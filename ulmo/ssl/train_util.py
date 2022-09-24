@@ -77,27 +77,59 @@ def option_preprocess(opt:ulmo_io.Params):
                                     opt.model_name)
 
     return opt
+
+class Demean:
+    """
+    Remove the mean of the image
+    """
+    def __call__(self, image):
+        image -= image.mean()
+        # Return
+        return image
+
     
 class RandomRotate:
     """
     Random Rotation Augmentation of the training samples.
     """
+    def __init__(self, verbose=False):
+        self.verbose = verbose
     def __call__(self, image):
-    # print("RR", image.shape, image.dtype)
         rang = np.float32(360*np.random.rand(1))
-        #print('random angle = {}'.format(rang))
+        if self.verbose:
+            print(f'RandomRotate: {rang}')
+        # Return
         return (skimage.transform.rotate(image, rang[0])).astype(np.float32)
-        #return (skimage.transform.rotate(image, np.float32(360*np.random.rand(1)))).astype(np.float32)
+
+class RandomFlip:
+    """
+    Random Rotation Augmentation of the training samples.
+    """
+    def __init__(self, verbose=False):
+        self.verbose = verbose
+    def __call__(self, image):
+        # Left/right
+        rflips = np.random.randint(2, size=2)
+        if rflips[0] == 1:
+            image = np.fliplr(image)
+        # Up/down
+        if rflips[1] == 1:
+            image = np.flipud(image)
+        if self.verbose:
+            print(f'RandomFlip: {rflips}')
+        # Return
+        return image
     
 class JitterCrop:
     """
     Random Jitter and Crop augmentaion of the training samples.
     """
-    def __init__(self, crop_dim=32, rescale=2, jitter_lim=0):
+    def __init__(self, crop_dim=32, rescale=2, jitter_lim=0, verbose=False):
         self.crop_dim = crop_dim
         self.offset = self.crop_dim//2
         self.jitter_lim = jitter_lim
         self.rescale = rescale
+        self.verbose = verbose
         
     def __call__(self, image):
         center_x = image.shape[0]//2
@@ -106,42 +138,27 @@ class JitterCrop:
             center_x += int(np.random.randint(-self.jitter_lim, self.jitter_lim+1, 1))
             center_y += int(np.random.randint(-self.jitter_lim, self.jitter_lim+1, 1))
 
-        image_cropped = image[(center_x-self.offset):(center_x+self.offset), (center_y-self.offset):(center_y+self.offset), 0]
-        image = np.expand_dims(skimage.transform.rescale(image_cropped, self.rescale), axis=-1)
+        image_cropped = image[(center_x-self.offset):(center_x+self.offset), 
+                              (center_y-self.offset):(center_y+self.offset), 
+                              0]
+        if self.rescale > 0:
+            image = np.expand_dims(skimage.transform.rescale(image_cropped, self.rescale), axis=-1)
+        else:
+            image = skimage.transform.resize(image_cropped, image.shape)
+
+        # 3 channels
         image = np.repeat(image, 3, axis=-1)
-        
+
+        # Verbose?
+        if self.verbose:
+            print(f'JitterCrop: {center_x, center_y}')
+
+        # Return 
         return image
-    
-#class RandomJitterCrop:
-#    def __init__(self, crop_lim=5, jitter_lim=5):
-#        self.crop_lim = crop_lim
-#        self.offset = 0
-#        self.jitter_lim = jitter_lim
-#        
-#    def __call__(self, image):
-#        center_x = image.shape[0]//2
-#        center_y = image.shape[0]//2
-#        # Get a random crop
-#        rand_crop = int(np.random.randint(0, self.crop_lim, 1))
-#        self.offset = image.shape[0]//2 - rand_crop  # Assumes image is square#
-#
-#        # Now jitter
-#        if self.jitter_lim > 0:
-#            rand_x = int(np.random.randint(-rand_crop, rand_crop, 1))
-#            rand_y = int(np.random.randint(-rand_crop, rand_crop, 1))
-#            center_y += rand_x
-#            center_x += rand_y
-#
-#        image_cropped = image[(center_x-self.offset):(center_x+self.offset), (center_y-self.offset):(center_y+self.offset), 0]
-#        #image = np.expand_dims(skimage.transform.rescale(image_cropped, self.rescale), axis=-1)
-#        image = skimage.transform.resize(image_cropped, image.shape)
-#        image = np.repeat(image, 3, axis=-1)
-#        
-#        return image
     
 class RandomJitterCrop:
     """
-    Random Jitter and Crop Augmentation used in SSL_v2. 
+    Random Jitter and Crop Augmentation used in v2 
     """
     def __init__(self, crop_lim=5, jitter_lim=5):
         self.crop_lim = crop_lim
@@ -250,10 +267,28 @@ def modis_loader(opt, valid=False):
     Returns:
         loader: (Dataloader) Modis Dataloader.
     """
-    transforms_compose = transforms.Compose([RandomRotate(),
-                                             JitterCrop(),
-                                             GaussianNoise(),
-                                             transforms.ToTensor()])
+    # Construct the Augmentations
+    augment_list = []
+    if opt.flip:
+        augment_list.append(RandomFlip())
+    if opt.rotate:
+        augment_list.append(RandomRotate())
+    if opt.random_jitter == 0:
+        augment_list.append(JitterCrop())
+    else:
+        augment_list.append(JitterCrop(crop_dim=opt.random_jitter[0],
+                                       jitter_lim=opt.random_jitter[1],
+                                       rescale=0))
+    if opt.demean:
+        augment_list.append(Demean())
+
+    # Do it
+    transforms_compose = transforms.Compose(augment_list)
+        #[RandomRotate(),
+        #                                     JitterCrop(),
+        #                                     GaussianNoise(),
+        #                                     transforms.ToTensor()])
+
     if not valid:
         data_key = opt.train_key
         batch_size = opt.batch_size_train
