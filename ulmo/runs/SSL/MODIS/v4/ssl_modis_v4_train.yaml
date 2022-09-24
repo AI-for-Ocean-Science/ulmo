@@ -28,13 +28,13 @@ spec:
         resources:
           requests:
             cpu: "4"   # Using at least 4
-            memory: "15Gi"  # Using 15
+            memory: "24Gi"  # Using 15
             ephemeral-storage: 50Gi
           limits:
             cpu: "8"
-            memory: "25Gi"
+            memory: "32Gi"
             ephemeral-storage: 100Gi
-            nvidia.com/gpu:  "4"  # See docs to exlude certain types
+            nvidia.com/gpu:  "6"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]
             #command: ["sh", "-c", "sleep infinity"]
         args:
