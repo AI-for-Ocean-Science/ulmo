@@ -5,7 +5,7 @@
     "batch_size_train": 512,
     "batch_size_valid": 128, 
     "num_workers": 16,
-    "epochs": 30,
+    "epochs": 50,
     "learning_rate": 0.05,
     "lr_decay_epochs": "700, 800, 900",
     "lr_decay_rate": 0.1,

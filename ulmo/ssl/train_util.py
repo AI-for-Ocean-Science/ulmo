@@ -83,10 +83,34 @@ class Demean:
     Remove the mean of the image
     """
     def __call__(self, image):
+        """ Demean
+
+        Args:
+            image (np.ndarray): Expected to be a 2D image
+
+        Returns:
+            np.ndarray: Demeaned image, 2D
+        """
         image -= image.mean()
         # Return
         return image
 
+class ThreeChannel:
+    """
+    Turn into 3 channel
+    """
+    def __call__(self, image):
+        """ 
+
+        Args:
+            image (np.ndarray): Expected to be a 2D image
+
+        Returns:
+            np.ndarray: Demeaned image, 3D
+        """
+        # 3 channels
+        image = np.repeat(np.expand_dims(image, axis=-1), 3, axis=-1)
+        return image
     
 class RandomRotate:
     """
@@ -95,6 +119,13 @@ class RandomRotate:
     def __init__(self, verbose=False):
         self.verbose = verbose
     def __call__(self, image):
+        """ 
+        Args:
+            image (np.ndarray): Expected to be a 2D image
+
+        Returns:
+            np.ndarray: Randomly rotated image, 2D
+        """
         rang = np.float32(360*np.random.rand(1))
         if self.verbose:
             print(f'RandomRotate: {rang}')
@@ -108,6 +139,13 @@ class RandomFlip:
     def __init__(self, verbose=False):
         self.verbose = verbose
     def __call__(self, image):
+        """ 
+        Args:
+            image (np.ndarray): Expected to be a 2D image
+
+        Returns:
+            np.ndarray: Randomly flipped image, 2D
+        """
         # Left/right
         rflips = np.random.randint(2, size=2)
         if rflips[0] == 1:
@@ -132,6 +170,13 @@ class JitterCrop:
         self.verbose = verbose
         
     def __call__(self, image):
+        """ 
+        Args:
+            image (np.ndarray): Expected to be a 2D image
+
+        Returns:
+            np.ndarray: Jittered + Cropped image, 2D
+        """
         center_x = image.shape[0]//2
         center_y = image.shape[0]//2
         if self.jitter_lim:
@@ -142,12 +187,9 @@ class JitterCrop:
                               (center_y-self.offset):(center_y+self.offset), 
                               0]
         if self.rescale > 0:
-            image = np.expand_dims(skimage.transform.rescale(image_cropped, self.rescale), axis=-1)
+            image = skimage.transform.rescale(image_cropped, self.rescale)
         else:
             image = skimage.transform.resize(image_cropped, image.shape)
-
-        # 3 channels
-        image = np.repeat(image, 3, axis=-1)
 
         # Verbose?
         if self.verbose:
@@ -281,6 +323,12 @@ def modis_loader(opt, valid=False):
                                        rescale=0))
     if opt.demean:
         augment_list.append(Demean())
+
+    # 3-chanel augmentation
+    augment_list.append(ThreeChannel())
+
+    # Tensor
+    augment_list.append(transforms.ToTensor())
 
     # Do it
     transforms_compose = transforms.Compose(augment_list)
