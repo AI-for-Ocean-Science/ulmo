@@ -436,4 +436,6 @@ if __name__ == "__main__":
         print("Training Starts.")
         main_train(args.opt_path, debug=args.debug)
         print("Training Ends.")
+
+    if args.func_flag == 'DT40':
     
