@@ -1,5 +1,6 @@
 # Script to train an SSL model on the 96% cloud free MODIS data
 #  using v4 model
+# kubectl exec -it test-pod -- /bin/bash
 apiVersion: batch/v1
 kind: Job
 metadata:

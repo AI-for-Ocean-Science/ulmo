@@ -24,7 +24,8 @@ setup_keywords['install_requires'] = [
     'torch==1.11.0',  # This could be an issue..
     'torchvision', 'seaborn', 'smart-open[s3]==5.1.0', 'pyarrow',
     'scikit-learn', 'scikit-image', 'tqdm', 'astropy', 'astropy-healpix',
-    'healpy', 'cftime', 'bokeh', 'umap-learn', 'llvmlite', 'boto3']
+    'healpy', 'cftime', 'bokeh', 'umap-learn', 'llvmlite', 'boto3',
+    'importlib-metadata']
 setup_keywords['zip_safe'] = False
 setup_keywords['use_2to3'] = False
 setup_keywords['packages'] = find_packages()
