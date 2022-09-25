@@ -3,7 +3,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-ssl-modis-96cf-train
+  name: xavier-ssl-modis-v4-256-train
 spec:
   backoffLimit: 0
   template:
@@ -34,7 +34,7 @@ spec:
             cpu: "8"
             memory: "32Gi"
             ephemeral-storage: 100Gi
-            nvidia.com/gpu:  "6"  # See docs to exlude certain types
+            nvidia.com/gpu:  "4"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]
             #command: ["sh", "-c", "sleep infinity"]
         args:
@@ -43,6 +43,7 @@ spec:
             git checkout ssl_paper; 
             git pull; 
             pip install torch==1.11.0;
+            sleep 900;
             python setup.py develop;
             cd ulmo/runs/SSL/MODIS/v4;
             aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp s3://modis-l2/SSL/preproc/MODIS_SSL_96clear_images.h5 ./;
