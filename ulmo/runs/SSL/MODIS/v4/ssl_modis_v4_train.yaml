@@ -21,7 +21,7 @@ spec:
               - key: nvidia.com/gpu.product
                 operator: In
                 values:
-                  - NVIDIA-GeForce-RTX-3090
+                  - NVIDIA-GeForce-GTX-1080-Ti
       containers:
       - name: container
         image: localhost:30081/profxj/ulmo_nvidia:latest  # UPDATE
@@ -35,7 +35,7 @@ spec:
             cpu: "8"
             memory: "32Gi"
             ephemeral-storage: 100Gi
-            nvidia.com/gpu:  "4"  # See docs to exlude certain types
+            nvidia.com/gpu:  "8"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]
             #command: ["sh", "-c", "sleep infinity"]
         args:
