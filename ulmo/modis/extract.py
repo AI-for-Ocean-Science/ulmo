@@ -109,7 +109,7 @@ def extract_file(ifile:str, load_path:str,
         row, col = r, c + lb
         lat = latitude[row + field_size[0] // 2, col + field_size[1] // 2]
         lon = longitude[row + field_size[0] // 2, col + field_size[1] // 2]
-        metadata.append([ifile, str(row), str(col), str(lat), str(lon), str(clear_frac)])
+        metadata.append([os.path.basename(ifile), str(row), str(col), str(lat), str(lon), str(clear_frac)])
 
     del sst, masks
 

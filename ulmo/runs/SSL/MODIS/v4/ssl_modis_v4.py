@@ -522,9 +522,10 @@ def extract_modis(debug=False, n_cores=10,
             f_h5['inpainted_masks'][-fields.shape[0]:] = inpainted_masks
     
         # Remove em
-        for ifile in sub_files:
-            basename = os.path.basename(ifile)
-            os.remove(basename)
+        if not debug:
+            for ifile in sub_files:
+                basename = os.path.basename(ifile)
+                os.remove(basename)
 
     # Metadata
     columns = ['filename', 'row', 'column', 'latitude', 'longitude', 
@@ -544,7 +545,9 @@ def extract_modis(debug=False, n_cores=10,
     modis_table['clear_fraction'] = [float(item[5]) for item in metadata]
     modis_table['field_size'] = pdict['field_size']
     basefiles = [os.path.basename(ifile) for ifile in modis_table.filename.values]
-    modis_table['datetime'] = modis_utils.times_from_filenames(basefiles, ioff=-1, toff=0)
+    embed(header='547 of v4')
+    modis_table['datetime'] = modis_utils.times_from_filenames(
+        basefiles, ioff=-1, toff=0)
     modis_table['ex_filename'] = s3_filename
 
     # Vet
