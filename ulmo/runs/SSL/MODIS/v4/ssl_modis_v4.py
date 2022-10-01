@@ -411,41 +411,11 @@ def extract_modis(debug=False, n_cores=10,
     # 20 cores took 3hrs
 
     if debug:
-        tbl_file = 's3://modis-l2/Tables/MODIS_L2_std_debug.parquet'
+        tbl_file = 's3://modis-l2/Tables/MODIS_L2_20202021_debug.parquet'
     else:
-        tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
+        tbl_file = 's3://modis-l2/Tables/MODIS_L2_20202021.parquet'
     # Pre-processing (and extraction) settings
     pdict = pp_io.load_options('standard')
-    
-    # 2013 
-    print("Grabbing the file list")
-    all_modis_files = ulmo_io.list_of_bucket_files('modis-l2')
-    files = []
-    bucket = 's3://modis-l2/'
-    for ifile in all_modis_files:
-        if ('data/2020' in ifile) or ('data/2021' in ifile):
-            if ifile.endswith('.nc'):
-                files.append(bucket+ifile)
-
-    # Output
-    if debug:
-        save_path = ('MODIS_2019'
-                 '_{}clear_{}x{}_tst_inpaint.h5'.format(pdict['clear_threshold'],
-                                                    pdict['field_size'],
-                                                    pdict['field_size']))
-    else:                                                
-        save_path = ('MODIS_R2019'
-                 '_{}clear_{}x{}_inpaint.h5'.format(pdict['clear_threshold'],
-                                                    pdict['field_size'],
-                                                    pdict['field_size']))
-    s3_filename = 's3://modis-l2/Extractions/{}'.format(save_path)
-
-    if debug:
-        # Grab 100 random
-        #files = shuffle(files, random_state=1234)
-        files = files[:ndebug_files]  # 10%
-        n_cores = 4
-        #files = files[:100]
 
     # Setup for preproc
     map_fn = partial(modis_extract.extract_file,
@@ -455,100 +425,147 @@ def extract_modis(debug=False, n_cores=10,
                      temp_bounds=tuple(pdict['temp_bounds']),
                      nrepeat=pdict['nrepeat'],
                      inpaint=True)
-
-    # Local file for writing
-    f_h5 = h5py.File(save_path, 'w')
-    print("Opened local file: {}".format(save_path))
     
-    nloop = len(files) // nsub_files + ((len(files) % nsub_files) > 0)
-    metadata = None
-    #if debug:
-    #    embed(header='464 of v4')
-    for kk in range(nloop):
-        # Zero out
-        fields, inpainted_masks = None, None
-        #
-        i0 = kk*nsub_files
-        i1 = min((kk+1)*nsub_files, len(files))
-        print('Files: {}:{} of {}'.format(i0, i1, len(files)))
-        sub_files = files[i0:i1]
+    # Loop on year
+    modis_tables = []
+    for year in [2020, 2021]:
+        print("Grabbing the file list")
+        all_modis_files = ulmo_io.list_of_bucket_files('modis-l2')
+        files = []
+        bucket = 's3://modis-l2/'
+        for ifile in all_modis_files:
+            if ('data/'+str(year) in ifile): 
+                if ifile.endswith('.nc'):
+                    files.append(bucket+ifile)
 
-        # Download
-        basefiles = []
-        print("Downloading files from s3...")
-        for ifile in sub_files:
-            basename = os.path.basename(ifile)
-            basefiles.append(basename)
-            # Already here?
-            if os.path.isfile(basename):
-                continue
-            ulmo_io.download_file_from_s3(basename, ifile)
-        print("All Done!")
+        # Output
+        if debug:
+            save_path = ('MODIS_R2019'
+                    '_{}clear_{}x{}_tst_inpaint.h5'.format(pdict['clear_threshold'],
+                                                        pdict['field_size'],
+                                                        pdict['field_size']))
+        else:                                                
+            save_path = ('MODIS_R2019'
+                    '_{}_{}clear_{}x{}_inpaint.h5'.format(
+                        year,
+                        pdict['clear_threshold'],
+                        pdict['field_size'],
+                        pdict['field_size']))
+        s3_filename = 's3://modis-l2/Extractions/{}'.format(save_path)
 
-        with ProcessPoolExecutor(max_workers=n_cores) as executor:
-            chunksize = len(sub_files) // n_cores if len(sub_files) // n_cores > 0 else 1
-            answers = list(tqdm(executor.map(map_fn, basefiles,
-                                             chunksize=chunksize), 
-                                total=len(sub_files)))
+        if debug:
+            # Grab 100 random
+            #files = shuffle(files, random_state=1234)
+            files = files[:ndebug_files]  # 10%
+            n_cores = 4
+            #files = files[:100]
 
-        # Trim None's
-        answers = [f for f in answers if f is not None]
-        try:
-            fields = np.concatenate([item[0] for item in answers])
-        except:
-            import pdb; pdb.set_trace()
+
+        # Local file for writing
+        f_h5 = h5py.File(save_path, 'w')
+        print("Opened local file: {}".format(save_path))
         
-        inpainted_masks = np.concatenate([item[1] for item in answers])
-        if metadata is None:
-            metadata = np.concatenate([item[2] for item in answers])
-        else:
-            metadata = np.concatenate([metadata]+[item[2] for item in answers], axis=0)
-        del answers
+        nloop = len(files) // nsub_files + ((len(files) % nsub_files) > 0)
+        metadata = None
+        #if debug:
+        #    embed(header='464 of v4')
+        for kk in range(nloop):
+            # Zero out
+            fields, inpainted_masks = None, None
+            #
+            i0 = kk*nsub_files
+            i1 = min((kk+1)*nsub_files, len(files))
+            print('Files: {}:{} of {}'.format(i0, i1, len(files)))
+            sub_files = files[i0:i1]
 
-        # Write
-        if kk == 0:
-            f_h5.create_dataset('fields', data=fields, 
-                                compression="gzip", chunks=True,
-                                maxshape=(None, fields.shape[1], fields.shape[2]))
-            f_h5.create_dataset('inpainted_masks', data=inpainted_masks,
-                                compression="gzip", chunks=True,
-                                maxshape=(None, inpainted_masks.shape[1], inpainted_masks.shape[2]))
-        else:
-            # Resize
-            for key in ['fields', 'inpainted_masks']:
-                f_h5[key].resize((f_h5[key].shape[0] + fields.shape[0]), axis=0)
-            # Fill
-            f_h5['fields'][-fields.shape[0]:] = fields
-            f_h5['inpainted_masks'][-fields.shape[0]:] = inpainted_masks
-    
-        # Remove em
-        if not debug:
+            # Download
+            basefiles = []
+            print("Downloading files from s3...")
             for ifile in sub_files:
                 basename = os.path.basename(ifile)
-                os.remove(basename)
+                basefiles.append(basename)
+                # Already here?
+                if os.path.isfile(basename):
+                    continue
+                ulmo_io.download_file_from_s3(basename, ifile)
+            print("All Done!")
 
-    # Metadata
-    columns = ['filename', 'row', 'column', 'latitude', 'longitude', 
-               'clear_fraction']
-    dset = f_h5.create_dataset('metadata', data=metadata.astype('S'))
-    dset.attrs['columns'] = columns
-    # Close
-    f_h5.close() 
+            with ProcessPoolExecutor(max_workers=n_cores) as executor:
+                chunksize = len(sub_files) // n_cores if len(sub_files) // n_cores > 0 else 1
+                answers = list(tqdm(executor.map(map_fn, basefiles,
+                                                chunksize=chunksize), 
+                                    total=len(sub_files)))
 
-    # Table time
-    modis_table = pandas.DataFrame()
-    modis_table['filename'] = [item[0] for item in metadata]
-    modis_table['row'] = [int(item[1]) for item in metadata]
-    modis_table['col'] = [int(item[2]) for item in metadata]
-    modis_table['lat'] = [float(item[3]) for item in metadata]
-    modis_table['lon'] = [float(item[4]) for item in metadata]
-    modis_table['clear_fraction'] = [float(item[5]) for item in metadata]
-    modis_table['field_size'] = pdict['field_size']
-    basefiles = [os.path.basename(ifile) for ifile in modis_table.filename.values]
-    embed(header='547 of v4')
-    modis_table['datetime'] = modis_utils.times_from_filenames(
-        basefiles, ioff=10, toff=1)
-    modis_table['ex_filename'] = s3_filename
+            # Trim None's
+            answers = [f for f in answers if f is not None]
+            try:
+                fields = np.concatenate([item[0] for item in answers])
+            except:
+                import pdb; pdb.set_trace()
+            
+            inpainted_masks = np.concatenate([item[1] for item in answers])
+            if metadata is None:
+                metadata = np.concatenate([item[2] for item in answers])
+            else:
+                metadata = np.concatenate([metadata]+[item[2] for item in answers], axis=0)
+            del answers
+
+            # Write
+            if kk == 0:
+                f_h5.create_dataset('fields', data=fields, 
+                                    compression="gzip", chunks=True,
+                                    maxshape=(None, fields.shape[1], fields.shape[2]))
+                f_h5.create_dataset('inpainted_masks', data=inpainted_masks,
+                                    compression="gzip", chunks=True,
+                                    maxshape=(None, inpainted_masks.shape[1], inpainted_masks.shape[2]))
+            else:
+                # Resize
+                for key in ['fields', 'inpainted_masks']:
+                    f_h5[key].resize((f_h5[key].shape[0] + fields.shape[0]), axis=0)
+                # Fill
+                f_h5['fields'][-fields.shape[0]:] = fields
+                f_h5['inpainted_masks'][-fields.shape[0]:] = inpainted_masks
+        
+            # Remove em
+            if not debug:
+                for ifile in sub_files:
+                    basename = os.path.basename(ifile)
+                    os.remove(basename)
+
+            # Push to s3
+            print("Pushing to s3")
+            ulmo_io.upload_file_to_s3(save_path, s3_filename)
+
+        # Metadata
+        columns = ['filename', 'row', 'column', 'latitude', 'longitude', 
+                'clear_fraction']
+        dset = f_h5.create_dataset('metadata', data=metadata.astype('S'))
+        dset.attrs['columns'] = columns
+        # Close
+        f_h5.close() 
+
+        # Table time
+        modis_table = pandas.DataFrame()
+        modis_table['filename'] = [item[0] for item in metadata]
+        modis_table['row'] = [int(item[1]) for item in metadata]
+        modis_table['col'] = [int(item[2]) for item in metadata]
+        modis_table['lat'] = [float(item[3]) for item in metadata]
+        modis_table['lon'] = [float(item[4]) for item in metadata]
+        modis_table['clear_fraction'] = [float(item[5]) for item in metadata]
+        modis_table['field_size'] = pdict['field_size']
+        basefiles = [os.path.basename(ifile) for ifile in modis_table.filename.values]
+        modis_table['datetime'] = modis_utils.times_from_filenames(
+            basefiles, ioff=10, toff=1)
+        modis_table['ex_filename'] = s3_filename
+
+        # Vet
+        assert cat_utils.vet_main_table(modis_table)
+
+        # Save
+        modis_tables.append(modis_table)
+
+    # Concat
+    modis_table = pandas.concat(modis_tables)
 
     # Vet
     assert cat_utils.vet_main_table(modis_table)
@@ -556,9 +573,6 @@ def extract_modis(debug=False, n_cores=10,
     # Final write
     ulmo_io.write_main_table(modis_table, tbl_file)
     
-    # Push to s3
-    print("Pushing to s3")
-    ulmo_io.upload_file_to_s3(save_path, s3_filename)
     #print("Run this:  s3 put {} s3://modis-l2/Extractions/{}".format(
     #    save_path, save_path))
     #process = subprocess.run(['s4cmd', '--force', '--endpoint-url',
