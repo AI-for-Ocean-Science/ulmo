@@ -442,6 +442,7 @@ def extract_modis(debug=False, n_cores=20,
         # Grab 100 random
         files = shuffle(files, random_state=1234)
         files = files[:ndebug_files]  # 10%
+        n_cores = 4
         #files = files[:100]
 
     # Setup for preproc
