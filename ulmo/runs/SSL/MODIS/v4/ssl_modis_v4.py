@@ -441,7 +441,7 @@ def extract_modis(debug=False, n_cores=20,
 
     if debug:
         # Grab 100 random
-        files = shuffle(files, random_state=1234)
+        #files = shuffle(files, random_state=1234)
         files = files[:ndebug_files]  # 10%
         n_cores = 4
         #files = files[:100]
@@ -482,7 +482,7 @@ def extract_modis(debug=False, n_cores=20,
             if os.path.isfile(basename):
                 continue
             ulmo_io.download_file_from_s3(basename, ifile)
-        print("Done!")
+        print("All Done!")
 
         with ProcessPoolExecutor(max_workers=n_cores) as executor:
             chunksize = len(sub_files) // n_cores if len(sub_files) // n_cores > 0 else 1
