@@ -441,9 +441,11 @@ def extract_modis(debug=False, n_cores=10,
         # Output
         if debug:
             save_path = ('MODIS_R2019'
-                    '_{}clear_{}x{}_tst_inpaint.h5'.format(pdict['clear_threshold'],
-                                                        pdict['field_size'],
-                                                        pdict['field_size']))
+                    '_{}_{}clear_{}x{}_tst_inpaint.h5'.format(
+                        year,
+                        pdict['clear_threshold'], 
+                        pdict['field_size'], 
+                        pdict['field_size']))
         else:                                                
             save_path = ('MODIS_R2019'
                     '_{}_{}clear_{}x{}_inpaint.h5'.format(
@@ -467,8 +469,8 @@ def extract_modis(debug=False, n_cores=10,
         
         nloop = len(files) // nsub_files + ((len(files) % nsub_files) > 0)
         metadata = None
-        #if debug:
-        #    embed(header='464 of v4')
+        if debug:
+            embed(header='464 of v4')
         for kk in range(nloop):
             # Zero out
             fields, inpainted_masks = None, None
