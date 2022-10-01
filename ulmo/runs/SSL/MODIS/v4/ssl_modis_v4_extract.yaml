@@ -4,7 +4,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-ssl-modis-v4-256-train
+  name: xavier-ssl-modis-v4-extract
 spec:
   backoffLimit: 0
   template:
@@ -46,8 +46,7 @@ spec:
             pip install torch==1.11.0;
             python setup.py develop;
             cd ulmo/runs/SSL/MODIS/v4;
-            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp s3://modis-l2/SSL/preproc/MODIS_SSL_96clear_images.h5 ./;
-            python ./ssl_modis_v4.py --func_flag train;
+            python ./ssl_modis_v4.py --func_flag extract;
             aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp models s3://modis-l2/SSL/models --recursive --force;
         env:
           - name: "ENDPOINT_URL"
