@@ -396,7 +396,7 @@ def prep_cloud_free(clear_fraction=96, local=True,
 #% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-def extract_modis(debug=False, n_cores=20, 
+def extract_modis(debug=False, n_cores=10, 
                        nsub_files=1000,
                        ndebug_files=100):
     """Extract "cloud free" images for 2020 and 2021
@@ -424,7 +424,8 @@ def extract_modis(debug=False, n_cores=20,
     bucket = 's3://modis-l2/'
     for ifile in all_modis_files:
         if ('data/2020' in ifile) or ('data/2021' in ifile):
-            files.append(bucket+ifile)
+            if ifile.endswith('.nc'):
+                files.append(bucket+ifile)
 
     # Output
     if debug:
@@ -486,7 +487,7 @@ def extract_modis(debug=False, n_cores=20,
 
         with ProcessPoolExecutor(max_workers=n_cores) as executor:
             chunksize = len(sub_files) // n_cores if len(sub_files) // n_cores > 0 else 1
-            answers = list(tqdm(executor.map(map_fn, sub_files,
+            answers = list(tqdm(executor.map(map_fn, basefiles,
                                              chunksize=chunksize), 
                                 total=len(sub_files)))
 
