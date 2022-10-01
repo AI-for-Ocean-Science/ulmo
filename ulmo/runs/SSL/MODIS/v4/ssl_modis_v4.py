@@ -460,8 +460,8 @@ def extract_modis(debug=False, n_cores=20,
     
     nloop = len(files) // nsub_files + ((len(files) % nsub_files) > 0)
     metadata = None
-    if debug:
-        embed(header='464 of v4')
+    #if debug:
+    #    embed(header='464 of v4')
     for kk in range(nloop):
         # Zero out
         fields, inpainted_masks = None, None
@@ -471,10 +471,18 @@ def extract_modis(debug=False, n_cores=20,
         print('Files: {}:{} of {}'.format(i0, i1, len(files)))
         sub_files = files[i0:i1]
 
+        # Download
+        print("Downloading files from s3...")
+        for ifile in sub_files:
+            basename = os.path.basename(ifile)
+            ulmo_io.download_file_from_s3(basename, ifile)
+        print("Done!")
+
         with ProcessPoolExecutor(max_workers=n_cores) as executor:
             chunksize = len(sub_files) // n_cores if len(sub_files) // n_cores > 0 else 1
             answers = list(tqdm(executor.map(map_fn, sub_files,
-                                             chunksize=chunksize), total=len(sub_files)))
+                                             chunksize=chunksize), 
+                                total=len(sub_files)))
 
         # Trim None's
         answers = [f for f in answers if f is not None]
@@ -506,6 +514,10 @@ def extract_modis(debug=False, n_cores=20,
             f_h5['fields'][-fields.shape[0]:] = fields
             f_h5['inpainted_masks'][-fields.shape[0]:] = inpainted_masks
     
+        # Remove em
+        for ifile in sub_files:
+            basename = os.path.basename(ifile)
+            os.remove(basename)
 
     # Metadata
     columns = ['filename', 'row', 'column', 'latitude', 'longitude', 

@@ -42,26 +42,19 @@ def extract_file(ifile:str, load_path:str,
     filename = os.path.join(load_path, ifile)
 
     if filename[0:5] == 's3://':
+        raise IOError("Not ready for s3 files yet. Multi-process is not working")
         #inp = ulmo_io.load_to_bytes(filename)
-        basename = os.path.basename(filename)
-        ulmo_io.download_file_from_s3(basename, filename)
+    else:
         geo = xarray.open_dataset(
-                filename_or_obj=basename,
+                filename_or_obj=filename,
                 group='geophysical_data',
                 engine='h5netcdf',
                 mask_and_scale=True)
         nav = xarray.open_dataset(
-                filename_or_obj=basename,
+                filename_or_obj=filename,
                 group='navigation_data',
                 engine='h5netcdf',
                 mask_and_scale=True)
-        os.remove(basename)
-    else:
-        raise IOError("Not ready for local files yet")
-        inp = filename
-        ds = xarray.open_dataset(filename_or_obj=inp,
-            engine='h5netcdf',
-            mask_and_scale=True)
 
     # Translate user field to MODIS
     mfields = dict(SST='sst', aph_443='aph_443_giop')
