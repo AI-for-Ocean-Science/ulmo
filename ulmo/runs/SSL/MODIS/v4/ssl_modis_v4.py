@@ -397,7 +397,7 @@ def prep_cloud_free(clear_fraction=96, local=True,
 
 def extract_modis(debug=False, n_cores=20, 
                        nsub_files=5000,
-                       ndebug_files=0):
+                       ndebug_files=100):
     """Extract "cloud free" images for 2020 and 2021
 
     Args:

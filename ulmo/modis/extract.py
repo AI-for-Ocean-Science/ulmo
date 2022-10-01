@@ -19,7 +19,8 @@ def extract_file(ifile:str, load_path:str,
 
     Args:
         ifile (str): MODIS datafile
-        load_path (str): [description]
+        load_path (str): Path to the MODIS datafile
+            Use '' for it to be ignored
         field_size (tuple, optional): [description]. Defaults to (128,128).
         nadir_offset (int, optional): [description]. Defaults to 480.
         CC_max (float, optional): [description]. Defaults to 0.05.
