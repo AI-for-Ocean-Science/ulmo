@@ -478,7 +478,11 @@ def extract_modis(debug=False, n_cores=20,
 
         # Trim None's
         answers = [f for f in answers if f is not None]
-        fields = np.concatenate([item[0] for item in answers])
+        try:
+            fields = np.concatenate([item[0] for item in answers])
+        except:
+            import pdb; pdb.set_trace()
+        
         inpainted_masks = np.concatenate([item[1] for item in answers])
         if metadata is None:
             metadata = np.concatenate([item[2] for item in answers])
