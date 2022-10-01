@@ -448,7 +448,7 @@ def extract_modis(debug=False, n_cores=10,
         #files = files[:100]
 
     # Setup for preproc
-    map_fn = partial(modis_extract.extract_file, '',
+    map_fn = partial(modis_extract.extract_file,
                      field_size=(pdict['field_size'], pdict['field_size']),
                      CC_max=1.-pdict['clear_threshold'] / 100.,
                      nadir_offset=pdict['nadir_offset'],
@@ -547,7 +547,7 @@ def extract_modis(debug=False, n_cores=10,
     basefiles = [os.path.basename(ifile) for ifile in modis_table.filename.values]
     embed(header='547 of v4')
     modis_table['datetime'] = modis_utils.times_from_filenames(
-        basefiles, ioff=-1, toff=0)
+        basefiles, ioff=10, toff=1)
     modis_table['ex_filename'] = s3_filename
 
     # Vet

@@ -11,7 +11,7 @@ from ulmo import io as ulmo_io
 
 from IPython import embed
 
-def extract_file(ifile:str, load_path:str, 
+def extract_file(filename:str, 
                  field='SST',
                  field_size=(128,128),
                  nadir_offset=480,
@@ -24,8 +24,6 @@ def extract_file(ifile:str, load_path:str,
 
     Args:
         ifile (str): MODIS datafile
-        load_path (str): Path to the MODIS datafile
-            Use '' for it to be ignored
         field_size (tuple, optional): [description]. Defaults to (128,128).
         nadir_offset (int, optional): [description]. Defaults to 480.
         CC_max (float, optional): [description]. Defaults to 0.05.
@@ -38,9 +36,6 @@ def extract_file(ifile:str, load_path:str,
     Returns:
         tuple: fields, field_masks, metadata
     """
-
-    filename = os.path.join(load_path, ifile)
-
     if filename[0:5] == 's3://':
         raise IOError("Not ready for s3 files yet. Multi-process is not working")
         #inp = ulmo_io.load_to_bytes(filename)
@@ -109,7 +104,7 @@ def extract_file(ifile:str, load_path:str,
         row, col = r, c + lb
         lat = latitude[row + field_size[0] // 2, col + field_size[1] // 2]
         lon = longitude[row + field_size[0] // 2, col + field_size[1] // 2]
-        metadata.append([os.path.basename(filename), str(row), str(col), str(lat), str(lon), str(clear_frac)])
+        metadata.append([filename, str(row), str(col), str(lat), str(lon), str(clear_frac)])
 
     del sst, masks
 
