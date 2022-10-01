@@ -37,7 +37,6 @@ spec:
             ephemeral-storage: 100Gi
             nvidia.com/gpu:  "4"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]
-            #command: ["sh", "-c", "sleep infinity"]
         args:
           - cd ulmo; 
             git fetch;
@@ -47,6 +46,7 @@ spec:
             python setup.py develop;
             cd ulmo/runs/SSL/MODIS/v4;
             aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp s3://modis-l2/SSL/preproc/MODIS_SSL_96clear_images.h5 ./;
+            sleep 900;
             python ./ssl_modis_v4.py --func_flag train;
             aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp models s3://modis-l2/SSL/models --recursive --force;
         env:

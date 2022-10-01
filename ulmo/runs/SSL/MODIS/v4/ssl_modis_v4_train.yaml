@@ -29,7 +29,7 @@ spec:
         resources:
           requests:
             cpu: "8"   # Using at least 4
-            memory: "24Gi"  # Using 15
+            memory: "24Gi"  # Using 19
             ephemeral-storage: 50Gi
           limits:
             cpu: "16"
