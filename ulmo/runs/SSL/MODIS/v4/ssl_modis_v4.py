@@ -2,6 +2,7 @@
 96% clear 
 New set of Augmentations
 """
+from genericpath import isfile
 import os
 from typing import IO
 import numpy as np
@@ -396,7 +397,7 @@ def prep_cloud_free(clear_fraction=96, local=True,
 #% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 def extract_modis(debug=False, n_cores=20, 
-                       nsub_files=5000,
+                       nsub_files=1000,
                        ndebug_files=100):
     """Extract "cloud free" images for 2020 and 2021
 
@@ -472,9 +473,14 @@ def extract_modis(debug=False, n_cores=20,
         sub_files = files[i0:i1]
 
         # Download
+        basefiles = []
         print("Downloading files from s3...")
         for ifile in sub_files:
             basename = os.path.basename(ifile)
+            basefiles.append(basename)
+            # Already here?
+            if os.path.isfile(basename):
+                continue
             ulmo_io.download_file_from_s3(basename, ifile)
         print("Done!")
 
