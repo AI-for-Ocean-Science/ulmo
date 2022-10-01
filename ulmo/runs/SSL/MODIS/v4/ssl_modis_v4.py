@@ -543,6 +543,8 @@ def extract_modis(debug=False, n_cores=20,
     #    'https://s3.nautilus.optiputer.net', 'put', save_path, 
     #    s3_filename])
 
+def calc_dt40(debug=False):
+    pass
 
 def parse_option():
     """
@@ -588,7 +590,7 @@ if __name__ == "__main__":
 
     # python ssl_modis_v4.py --func_flag DT40 --debug
     if args.func_flag == 'DT40':
-        main_train(args.opt_path, debug=args.debug)
+        calc_dt40(debug=args.debug)
 
     # python ssl_modis_v4.py --func_flag extract_new --debug
     if args.func_flag == 'extract_new':

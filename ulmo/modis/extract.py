@@ -3,11 +3,16 @@
 import os
 import numpy as np
 
-from ulmo import io as ulmo_io
+import xarray
+
 from ulmo.preproc import utils as pp_utils
 from ulmo.preproc import extract
+from ulmo import io as ulmo_io
+
+from IPython import embed
 
 def extract_file(ifile:str, load_path:str, 
+                 field='SST',
                  field_size=(128,128),
                  nadir_offset=480,
                  CC_max=0.05, qual_thresh=2,
@@ -36,9 +41,40 @@ def extract_file(ifile:str, load_path:str,
 
     filename = os.path.join(load_path, ifile)
 
+    if filename[0:5] == 's3://':
+        #inp = ulmo_io.load_to_bytes(filename)
+        basename = os.path.basename(filename)
+        ulmo_io.download_file_from_s3(basename, filename)
+        geo = xarray.open_dataset(
+                filename_or_obj=basename,
+                group='geophysical_data',
+                engine='h5netcdf',
+                mask_and_scale=True)
+        nav = xarray.open_dataset(
+                filename_or_obj=basename,
+                group='navigation_data',
+                engine='h5netcdf',
+                mask_and_scale=True)
+        os.remove(basename)
+    else:
+        raise IOError("Not ready for local files yet")
+        inp = filename
+        ds = xarray.open_dataset(filename_or_obj=inp,
+            engine='h5netcdf',
+            mask_and_scale=True)
+
+    # Translate user field to MODIS
+    mfields = dict(SST='sst', aph_443='aph_443_giop')
+
+    # Flags
+    mflags = dict(SST='qual_sst', aph_443='l2_flags')
+
     # Load the image
     try:
-        sst, qual, latitude, longitude = ulmo_io.load_nc(filename, verbose=False)
+        sst = np.array(geo[mfields[field]])
+        qual = np.array(geo[mflags[field]])
+        latitude = np.array(nav['latitude'])
+        longitude = np.array(nav['longitude'])
     except:
         print("File {} is junk".format(filename))
         return

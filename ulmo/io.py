@@ -1,6 +1,7 @@
 """ Basic I/O methods"""
 
 import os
+from importlib_metadata import Deprecated
 import numpy as np
 import xarray as xr
 
@@ -131,6 +132,7 @@ def load_nc(filename, field='SST', verbose=True):
     or None's if the data is corrupt!
 
     """
+    raise Deprecated("Use ulmo.modis.io.load_nc instead")
     geo = xr.open_dataset(
         filename_or_obj=filename,
         group='geophysical_data',
