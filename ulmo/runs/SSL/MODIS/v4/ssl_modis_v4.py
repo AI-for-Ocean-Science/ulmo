@@ -425,12 +425,13 @@ def extract_modis(debug=False, n_cores=10,
                      temp_bounds=tuple(pdict['temp_bounds']),
                      nrepeat=pdict['nrepeat'],
                      inpaint=True)
+
+    print("Grabbing the file list")
+    all_modis_files = ulmo_io.list_of_bucket_files('modis-l2')
     
     # Loop on year
     modis_tables = []
     for year in [2020, 2021]:
-        print("Grabbing the file list")
-        all_modis_files = ulmo_io.list_of_bucket_files('modis-l2')
         files = []
         bucket = 's3://modis-l2/'
         for ifile in all_modis_files:
