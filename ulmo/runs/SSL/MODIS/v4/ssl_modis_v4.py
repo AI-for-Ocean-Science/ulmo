@@ -268,130 +268,6 @@ def sub_tbl_2010():
     ulmo_io.write_main_table(valid_tbl, 'MODIS_2010_valid_SSLv2.parquet', to_s3=False)
     
 
-def prep_cloud_free(clear_fraction=96, local=True, 
-                    img_shape=(64,64), debug=False, 
-                    outfile='MODIS_SSL_96clear_images.h5',
-                    new_tbl_file='s3://modis-l2/Tables/MODIS_SSL_96clear.parquet'): 
-    """ Generate a data file for SSL traiing on a subset of 
-    MODIS L2 that are "cloud free"  (>= 96% clear)
-
-    Args:
-        clear_fraction (float, optional): [description]. Defaults to 96
-        local (bool, optional): [description]. Defaults to True.
-        img_shape (tuple, optional): [description]. Defaults to (64,64).
-        debug (bool, optional): [description]. Defaults to False.
-        outfile (str, optional): [description]. Defaults to 'MODIS_SSL_cloud_free_images.h5'.
-    """
-
-    # Load table
-    if local:
-        tbl_file = os.path.join(os.getenv('SST_OOD'), 'MODIS_L2', 'Tables', 
-                            'MODIS_L2_std.parquet')
-    else:
-        tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
-    print("Loading the table..")
-    modis_tbl = ulmo_io.load_main_table(tbl_file)
-
-    # Restrict to cloud free
-    cloud_free = modis_tbl.clear_fraction < (1-clear_fraction/100)
-    cfree_tbl = modis_tbl[cloud_free].copy()
-    print(f"We have {len(cfree_tbl)} images satisfying the clear_fraction={clear_fraction} criterion")
-
-    # Save Ulmo pp_type
-    cfree_tbl['ulmo_pp_type'] = cfree_tbl.pp_type.values.copy()
-
-    # Keep it simple and avoid 2010 train images
-    all_ulmo_valid = cfree_tbl.ulmo_pp_type == 0
-    all_ulmo_valid_idx = np.where(all_ulmo_valid)[0]
-    nulmo_valid = np.sum(all_ulmo_valid)
-
-    # Choose 600,000 random for train and 150,000 for valid
-    nSSL_train = 600000
-    nSSL_valid = 150000
-
-    # Prepare
-    train_imgs = np.zeros((nSSL_train, img_shape[0], img_shape[1])).astype(np.float32)
-    valid_imgs = np.zeros((nSSL_valid, img_shape[0], img_shape[1])).astype(np.float32)
-
-    indices = np.random.choice(np.arange(nulmo_valid),
-                               size=nSSL_train+nSSL_valid,
-                               replace=False)
-    train = indices[0:nSSL_train]
-    valid = indices[nSSL_train:]
-
-    # Set cfree pp_type (for SSL)
-    pp_types = np.ones(len(cfree_tbl)).astype(int)*-1
-    pp_types[train] = 1
-    pp_types[valid] = 0
-    cfree_tbl.pp_type = pp_types
-
-    # This needs to be a copy
-    img_tbl = cfree_tbl[all_ulmo_valid].copy()
-    train_img_pp = img_tbl.pp_type == 1
-    valid_img_pp = img_tbl.pp_type == 0
-    
-    # Loop on PreProc files
-    print("Building the file for SSL training and validation")
-    pp_files = np.unique(img_tbl.pp_file)
-    ivalid, itrain = 0, 0
-    for pp_file in pp_files:
-        ipp = img_tbl.pp_file == pp_file
-        # Local?
-        if local:
-            dpath = os.path.join(os.getenv('SST_OOD'), 'MODIS_L2', 'PreProc')
-            ifile = os.path.join(dpath, os.path.basename(pp_file))
-        else:
-            embed(header='Not setup for this')
-        # Open
-        print(f"Working on: {ifile}")
-        hf = h5py.File(ifile, 'r')
-        all_ulmo_valid = hf['valid'][:]
-
-        # Valid (Ulmo)
-        if np.any(valid_img_pp & ipp):
-            # Fastest to grab em all
-            iidx = np.where(valid_img_pp & ipp)[0]
-            idx = img_tbl.pp_idx.values[iidx]
-            n_new = len(idx)
-            valid_imgs[ivalid:ivalid+n_new, ...] = all_ulmo_valid[idx, 0, :, :]
-            ivalid += n_new
-
-        # Train (Ulmo)
-        if np.any(train_img_pp & ipp):
-            # Fastest to grab em all
-            iidx = np.where(train_img_pp & ipp)[0]
-            idx = img_tbl.pp_idx.values[iidx]
-            n_new = len(idx)
-            train_imgs[itrain:itrain+n_new, ...] = all_ulmo_valid[idx, 0, :, :]
-            itrain += n_new
-
-        del all_ulmo_valid
-
-        hf.close()
-        # 
-        if debug:
-            break
-
-    # Write
-    out_h5 = h5py.File(outfile, 'w')
-    out_h5.create_dataset('train', data=train_imgs.reshape((train_imgs.shape[0],1,img_shape[0], img_shape[1]))) 
-    out_h5.create_dataset('train_indices', data=all_ulmo_valid_idx[train])  # These are the cloud free indices
-    out_h5.create_dataset('valid', data=valid_imgs.reshape((valid_imgs.shape[0],1, img_shape[0], img_shape[1])))
-    out_h5.create_dataset('valid_indices', data=all_ulmo_valid_idx[valid])  # These are the cloud free indices
-    out_h5.close()
-    print(f"Wrote: {outfile}")
-
-    # Push to s3
-    print("Uploading to s3")
-    ulmo_io.upload_file_to_s3(
-        outfile, 's3://modis-l2/SSL/preproc/'+outfile)
-    
-    # Table
-    assert cat_utils.vet_main_table(
-        cfree_tbl, cut_prefix='ulmo_')
-    ulmo_io.write_main_table(cfree_tbl, new_tbl_file)
-
-
 #% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -582,8 +458,33 @@ def extract_modis(debug=False, n_cores=10,
     #    'https://s3.nautilus.optiputer.net', 'put', save_path, 
     #    s3_filename])
 
-def calc_dt40(debug=False):
-    pass
+def calc_dt40(debug=False, local=False):
+
+    # Table
+    if local:
+        tbl_file = os.path.join(os.getenv('SST_OOD'),
+                                'MODIS_L2', 'Tables', 
+                                'MODIS_SSL_96clear.parquet')
+    else:
+        tbl_file = 's3://modis-l2/Tables/MODIS_SSL_96clear.parquet'
+    modis_tbl = ulmo_io.load_main_table(tbl_file)
+    
+    # Grab the list
+    preproc_files = np.unique(modis_tbl.pp_file.values)
+
+    # Loop on files
+    for pfile in preproc_files:
+        basename = os.path.basename(pfile)
+        # Download
+        if not os.path.isfile(basename):
+            ulmo_io.download_file_from_s3(basename, pfile)
+
+        # Open me
+        f = h5py.File(basename, 'r')
+
+        # Loop on cutouts
+        sub_tbl = modis_tbl[modis_tbl.pp_file == pfile].copy()
+
 
 def parse_option():
     """
@@ -602,6 +503,8 @@ def parse_option():
                         default='2010', help="Short name of the model used [2010,CF]")
     parser.add_argument('--debug', default=False, action='store_true',
                         help='Debug?')
+    parser.add_argument('--local', default=False, action='store_true',
+                        help='Local?')
     parser.add_argument('--clobber', default=False, action='store_true',
                         help='Clobber existing files')
     parser.add_argument("--outfile", type=str, 
@@ -629,7 +532,7 @@ if __name__ == "__main__":
 
     # python ssl_modis_v4.py --func_flag DT40 --debug
     if args.func_flag == 'DT40':
-        calc_dt40(debug=args.debug)
+        calc_dt40(debug=args.debug, local=args.local)
 
     # python ssl_modis_v4.py --func_flag extract_new --debug
     if args.func_flag == 'extract_new':
