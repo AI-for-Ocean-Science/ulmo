@@ -486,12 +486,12 @@ def calc_dt40(debug=False, local=False):
         idx = modis_tbl.pp_file == pfile
         DT_40 = []
         sub_tbl = modis_tbl[idx].copy()
-        embed(header='489 of v4') 
         for kk,row in sub_tbl.iterrows():
+            key = 'valid' if row.pp_type == 0 else 'train'
             # Grab
-            field = f['fields'][row.pp_idx, ...]
+            field = f[key][row.pp_idx, ...]
             # Calc
-            DT = np.mean(field[32-20:32+20, 
+            DT = np.mean(field[1, 32-20:32+20, 
                                32-20:32+20]) 
             DT_40.append(DT)
         # Fill in
