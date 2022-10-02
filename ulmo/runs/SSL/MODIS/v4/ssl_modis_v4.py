@@ -483,7 +483,21 @@ def calc_dt40(debug=False, local=False):
         f = h5py.File(basename, 'r')
 
         # Loop on cutouts
-        sub_tbl = modis_tbl[modis_tbl.pp_file == pfile].copy()
+        idx = modis_tbl.pp_file == pfile
+        DT_40 = []
+        sub_tbl = modis_tbl[idx].copy()
+        for kk,row in sub_tbl.iterrows():
+            # Grab
+            field = f['fields'][row.pp_idx, ...]
+            # Calc
+            DT = np.mean(field[32-20:32+20, 
+                               32-20:32+20]) 
+            DT_40.append(DT)
+        # Fill in
+        embed(header='497 of v4') 
+
+    # Save
+    embed(header='498 of v4') 
 
 
 def parse_option():
