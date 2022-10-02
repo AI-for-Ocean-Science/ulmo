@@ -497,6 +497,10 @@ def calc_dt40(debug=False, local=False):
         # Fill in
         embed(header='497 of v4') 
 
+        # Remove 
+        if not debug:
+            os.remove(basename)
+
     # Save
     embed(header='498 of v4') 
 
