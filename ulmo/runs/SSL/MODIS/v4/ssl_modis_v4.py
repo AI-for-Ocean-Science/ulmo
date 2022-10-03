@@ -12,6 +12,7 @@ import numpy as np
 import time
 import h5py
 import numpy as np
+from sympy import evaluate
 from tqdm.auto import trange
 import argparse
 
@@ -58,10 +59,6 @@ def main_train(opt_path: str, debug=False, restore=False, save_file=None):
     if debug:
         opt.epochs = 2
     opt = option_preprocess(opt)
-
-    # Vet
-    #assert cat_utils.vet_main_table(opt.__dict__, 
-    #                                data_model=ssl_defs.ssl_opt_dmodel)
 
     # Save opts                                    
     opt.save(os.path.join(opt.model_folder, 
@@ -151,8 +148,7 @@ def main_train(opt_path: str, debug=False, restore=False, save_file=None):
         f.create_dataset('loss_avg_valid', data=np.array(loss_avg_valid))
         
 
-def main_evaluate(opt_path, model_name, 
-                  preproc='_std', debug=False, 
+def main_evaluate(opt_path, preproc='_std', debug=False, 
                   clobber=False):
     """
     This function is used to obtain the latents of the trained models
@@ -170,10 +166,6 @@ def main_evaluate(opt_path, model_name,
     opt = option_preprocess(ulmo_io.Params(opt_path))
     model_file = os.path.join(opt.s3_outdir,
         opt.model_folder, 'last.pth')
-
-    # Load up the table
-    print(f"Grabbing table: {opt.tbl_file}")
-    modis_tbl = ulmo_io.load_main_table(opt.tbl_file)
 
     # Grab the model
     print(f"Grabbing model: {model_file}")
@@ -255,20 +247,6 @@ def main_evaluate(opt_path, model_name,
             os.remove(data_file)
             print(f'{data_file} removed')
 
-def sub_tbl_2010():
-
-    # Load table
-    tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
-    modis_tbl = ulmo_io.load_main_table(tbl_file)
-
-    # Split
-    valid = modis_tbl.pp_type == 0
-    y2010 = modis_tbl.pp_file == 's3://modis-l2/PreProc/MODIS_R2019_2010_95clear_128x128_preproc_std.h5'
-    valid_tbl = modis_tbl[valid & y2010].copy()
-
-    # Write
-    ulmo_io.write_main_table(valid_tbl, 'MODIS_2010_valid_SSLv2.parquet', to_s3=False)
-    
 
 #% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -578,4 +556,9 @@ if __name__ == "__main__":
     # python ssl_modis_v4.py --func_flag extract_new --debug
     if args.func_flag == 'extract_new':
         extract_modis(debug=args.debug)
+
+    # python ssl_modis_v4.py --func_flag evaluate --debug
+    if args.func_flag == 'evaluate':
+        main_evaluate(args.opt_path, debug=args.debug)
+        
     
