@@ -4,7 +4,9 @@ New set of Augmentations
 """
 from genericpath import isfile
 import os
+import shutil
 from typing import IO
+from attr import fields
 import numpy as np
 
 import time
@@ -468,6 +470,7 @@ def calc_dt40(debug=False, local=False):
     else:
         tbl_file = 's3://modis-l2/Tables/MODIS_SSL_96clear.parquet'
     modis_tbl = ulmo_io.load_main_table(tbl_file)
+    modis_tbl['DT40'] = 0.
     
     # Grab the list
     preproc_files = np.unique(modis_tbl.pp_file.values)
@@ -475,35 +478,50 @@ def calc_dt40(debug=False, local=False):
     # Loop on files
     for pfile in preproc_files:
         basename = os.path.basename(pfile)
-        # Download
-        if not os.path.isfile(basename):
-            ulmo_io.download_file_from_s3(basename, pfile)
+        if local:
+            basename = os.path.join(os.getenv('SST_OOD'),
+                                'MODIS_L2', 'PreProc', basename) 
+        else:
+            # Download?
+            if not os.path.isfile(basename):
+                ulmo_io.download_file_from_s3(basename, pfile)
 
         # Open me
+        print(f"Starting on: {basename}")
         f = h5py.File(basename, 'r')
 
-        # Loop on cutouts
-        idx = modis_tbl.pp_file == pfile
-        DT_40 = []
-        sub_tbl = modis_tbl[idx].copy()
-        for kk,row in sub_tbl.iterrows():
-            key = 'valid' if row.pp_type == 0 else 'train'
-            # Grab
-            field = f[key][row.pp_idx, ...]
-            # Calc
-            DT = np.mean(field[1, 32-20:32+20, 
-                               32-20:32+20]) 
-            DT_40.append(DT)
-        # Fill in
-        embed(header='497 of v4') 
+        # Load it all
+        DT40(f, modis_tbl, pfile, itype='valid')
+        if 'train' in f.keys():
+            DT40(f, modis_tbl, pfile, itype='train')
 
         # Remove 
-        if not debug:
+        if not debug and not local:
             os.remove(basename)
 
-    # Save
-    embed(header='498 of v4') 
+        if debug:
+            break
 
+    # Vet
+    assert cat_utils.vet_main_table(modis_tbl)
+
+    # Save
+    if not debug:
+        ulmo_io.write_main_table(modis_tbl, tbl_file)
+
+def DT40(f, modis_tbl, pfile, itype='train'):
+    fields = f[itype][:]
+    T_90 = np.percentile(fields[:, 0, 32-20:32+20, 32-20:32+20], 
+        90., axis=(1,2))
+    T_10 = np.percentile(fields[:, 0, 32-20:32+20, 32-20:32+20], 
+        90., axis=(1,2))
+    DT_40 = T_90 - T_10
+    # Fill
+    ppt = 0 if itype == 'valid' else 1
+    idx = (modis_tbl.pp_file == pfile) & (modis_tbl.pp_type == ppt)
+    pp_idx = modis_tbl[idx].pp_idx.values
+    modis_tbl.loc[idx, 'DT40'] = DT_40[pp_idx]
+    return 
 
 def parse_option():
     """
