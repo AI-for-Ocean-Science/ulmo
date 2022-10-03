@@ -503,11 +503,15 @@ def calc_dt40(debug=False, local=False):
             break
 
     # Vet
-    assert cat_utils.vet_main_table(modis_tbl)
+    assert cat_utils.vet_main_table(modis_tbl, cut_prefix='ulmo_')
 
     # Save
     if not debug:
+        # To s3
+        tbl_file = 's3://modis-l2/Tables/MODIS_SSL_96clear.parquet'
         ulmo_io.write_main_table(modis_tbl, tbl_file)
+
+    print("All done")
 
 def DT40(f, modis_tbl, pfile, itype='train'):
     fields = f[itype][:]
