@@ -2,22 +2,17 @@
 96% clear 
 New set of Augmentations
 """
-from genericpath import isfile
 import os
-import shutil
 from typing import IO
-from attr import fields
 import numpy as np
 
 import time
 import h5py
 import numpy as np
-from sympy import evaluate
 from tqdm.auto import trange
 import argparse
 
 import pandas
-from sklearn.utils import shuffle
 from functools import partial
 from concurrent.futures import ProcessPoolExecutor
 from tqdm import tqdm
@@ -26,13 +21,10 @@ import h5py
 
 from ulmo import io as ulmo_io
 from ulmo.utils import catalog as cat_utils
-from ulmo.scripts import collect_images
 
-from ulmo.ssl import analysis as ssl_analysis
 from ulmo.ssl.util import adjust_learning_rate
 from ulmo.ssl.util import set_optimizer, save_model
 from ulmo.ssl import latents_extraction
-from ulmo.ssl import defs as ssl_defs
 
 from ulmo.ssl.train_util import option_preprocess
 from ulmo.ssl.train_util import modis_loader, set_model
