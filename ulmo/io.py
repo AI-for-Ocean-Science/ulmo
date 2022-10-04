@@ -1,7 +1,6 @@
 """ Basic I/O methods"""
 
 import os
-from importlib_metadata import Deprecated
 import numpy as np
 import xarray as xr
 
