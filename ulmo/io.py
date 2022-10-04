@@ -132,7 +132,7 @@ def load_nc(filename, field='SST', verbose=True):
     or None's if the data is corrupt!
 
     """
-    raise Deprecated("Use ulmo.modis.io.load_nc instead")
+    raise DeprecationWarning("Use ulmo.modis.io.load_nc instead")
     geo = xr.open_dataset(
         filename_or_obj=filename,
         group='geophysical_data',
