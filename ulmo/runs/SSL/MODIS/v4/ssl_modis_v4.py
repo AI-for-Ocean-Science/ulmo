@@ -317,6 +317,7 @@ def extract_modis(debug=False, n_cores=10,
         # Load previous?
         if os.path.isfile(save_path.replace('inpaint', 'inpaint_prev')):
             f_prev = h5py.File(save_path.replace('inpaint', 'inpaint_prev'), 'r')
+            print(f"Found: {save_path.replace('inpaint', 'inpaint_prev')}")
         else:
             f_prev = None
 
