@@ -276,8 +276,8 @@ def extract_modis(debug=False, n_cores=10,
 
     print("Grabbing the file list")
     all_modis_files = ulmo_io.list_of_bucket_files('modis-l2')
+
     
-    # Loop on year
     modis_tables = []
     for year in [2020, 2021]:
         files = []
@@ -286,6 +286,9 @@ def extract_modis(debug=False, n_cores=10,
             if ('data/'+str(year) in ifile): 
                 if ifile.endswith('.nc'):
                     files.append(bucket+ifile)
+
+        nfiles = len(files)
+        print(f'We have {nfiles} files for {year}')
 
         # Output
         if debug:
@@ -338,7 +341,7 @@ def extract_modis(debug=False, n_cores=10,
                 # Already here?
                 if os.path.isfile(basename):
                     continue
-                ulmo_io.download_file_from_s3(basename, ifile)
+                ulmo_io.download_file_from_s3(basename, ifile, verbose=False)
             print("All Done!")
 
             with ProcessPoolExecutor(max_workers=n_cores) as executor:
