@@ -314,6 +314,11 @@ def extract_modis(debug=False, n_cores=10,
             n_cores = 4
             #files = files[:100]
 
+        # Load previous?
+        if os.path.isfile(save_path.replace('inpaint', 'inpaint_prev')):
+            f_prev = h5py.File(save_path.replace('inpaint', 'inpaint_prev'), 'r')
+        else:
+            f_prev = None
 
         # Local file for writing
         f_h5 = h5py.File(save_path, 'w')
@@ -389,6 +394,11 @@ def extract_modis(debug=False, n_cores=10,
             # Push to s3
             print("Pushing to s3")
             ulmo_io.upload_file_to_s3(save_path, s3_filename)
+
+            # Save where we are at
+            df = pandas.DataFrame(metadata)
+            df['kk'] = kk
+            df.to_csv('curr_metadata_{}.csv'.format(year))
 
         # Metadata
         columns = ['filename', 'row', 'column', 'latitude', 'longitude', 
