@@ -353,7 +353,11 @@ def extract_modis(debug=False, n_cores=10,
                 # Already here?
                 if os.path.isfile(basename):
                     continue
-                ulmo_io.download_file_from_s3(basename, ifile, verbose=False)
+                try:
+                    ulmo_io.download_file_from_s3(basename, ifile, verbose=False)
+                except:
+                    raise ValueError("Failed on {}".format(ifile))
+                    
             print("All Done!")
 
             with ProcessPoolExecutor(max_workers=n_cores) as executor:
