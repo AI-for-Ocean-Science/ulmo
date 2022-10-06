@@ -2,13 +2,14 @@
 import healpy as hp
 import h5py
 import numpy as np
+import os
 
 from ulmo import io as ulmo_io
 from ulmo.utils import image_utils 
 
 from IPython import embed
 
-def equatorial_cutouts(nside=64, 
+def grab_cutouts(nside=64, 
                        local_file='equatorial_cutouts.h5', 
                        llc=False,
                        lon=-120.,  # Define the equator 
@@ -20,7 +21,8 @@ def equatorial_cutouts(nside=64,
         table_file = 's3://viirs/Tables/VIIRS_all_98clear_std.parquet'
     else:
         if local:
-            table_file = '/home/xavier/Projects/Oceanography/SST/LLC/Tables/llc_viirs_match.parquet'
+            table_file = os.path.join(
+                os.getenv('SST_OOD'), 'LLC/Tables/llc_viirs_match.parquet')
         else:
             table_file = 's3://llc/Tables/llc_viirs_match.parquet'
     eval_tbl = ulmo_io.load_main_table(table_file)
@@ -43,12 +45,10 @@ def equatorial_cutouts(nside=64,
 
     # Match
     gd = idx_all == idx
+    print(f'There are {np.sum(gd)} cutouts')
 
     # Cutouts
     cut_tbl = eval_tbl[gd]
-
-    # 
-    embed(header='59 of generate_cutouts.py')
 
     images = []
     ii = 0
@@ -79,12 +79,37 @@ def equatorial_cutouts(nside=64,
 # Command line execution
 if __name__ == '__main__':
     # Mine
-    #equatorial_cutouts()
+    #grab_cutouts()
 
-    # PMC -- VIIRS
-    #equatorial_cutouts(lon=-112.5, lat=0.5, local_file='equatorial_cutouts_pmc.h5')
+    # PMC Equitorial -- VIIRS
+    #grab_cutouts(lon=-112.5, lat=0.5, local_file='equatorial_cutouts_pmc.h5')
 
-    # PMC -- LLC
-    equatorial_cutouts(lon=-112.5, lat=0.5, local_file='equatorial_cutouts_pmc_llc.h5',
-                       llc=True, local=True)
+    # PMC Equitorial -- LLC
+    #grab_cutouts(lon=112.5, lat=0.5, local_file='equatorial_cutouts_pmc_llc.h5',
+    #                   llc=True, local=True)
 
+    # PMC ACC A 
+    #grab_cutouts(lon=120.31, lat=-53.57, local_file='ACC_cutouts_44318_VIIRS.h5')
+    #grab_cutouts(lon=120.31, lat=-53.57, local_file='ACC_cutouts_44318_LLC.h5',
+    #             llc=True, local=True)
+
+    # PMC ACC B 
+    #grab_cutouts(lon=122.14, lat=-53.57, 
+    #             local_file='ACC_cutouts_44319_VIIRS.h5')
+    #grab_cutouts(lon=122.14, lat=-53.57, 
+    #             local_file='ACC_cutouts_44319_LLC.h5',
+    #             llc=True, local=True)
+
+    # PMC ACC C 
+    #grab_cutouts(lon=120.94, lat=-54.34, 
+    #             local_file='ACC_cutouts_44513_VIIRS.h5')
+    #grab_cutouts(lon=120.94, lat=-54.34, 
+    #             local_file='ACC_cutouts_44513_LLC.h5',
+    #             llc=True, local=True)
+
+    # PMC ACC D 
+    grab_cutouts(lon=122.81, lat=-54.34, 
+                 local_file='ACC_cutouts_44514_VIIRS.h5')
+    grab_cutouts(lon=122.81, lat=-54.34, 
+                 local_file='ACC_cutouts_44514_LLC.h5',
+                 llc=True, local=True)
