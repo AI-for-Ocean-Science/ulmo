@@ -318,6 +318,8 @@ def extract_modis(debug=False, n_cores=10,
         if os.path.isfile(save_path.replace('inpaint', 'inpaint_prev')):
             f_prev = h5py.File(save_path.replace('inpaint', 'inpaint_prev'), 'r')
             print(f"Found: {save_path.replace('inpaint', 'inpaint_prev')}")
+            # Load CSV file
+            prev_meta = pandas.read_csv('curr_metadata_{}.csv'.format(year))
         else:
             f_prev = None
 
@@ -330,6 +332,10 @@ def extract_modis(debug=False, n_cores=10,
         if debug:
             embed(header='464 of v4')
         for kk in range(nloop):
+            if f_prev is not None:
+                if kk <= int(prev_meta['kk'].max()):
+                    print(f"Skipping kk={kk}")
+                    continue
             # Zero out
             fields, inpainted_masks = None, None
             #
@@ -379,6 +385,13 @@ def extract_modis(debug=False, n_cores=10,
                                     compression="gzip", chunks=True,
                                     maxshape=(None, inpainted_masks.shape[1], inpainted_masks.shape[2]))
             else:
+                if f_prev is not None and kk == int(prev_meta['kk'].max())+1:
+                    f_h5.create_dataset('fields', data=f_prev['fields'][:], 
+                                        compression="gzip", chunks=True,
+                                        maxshape=(None, fields.shape[1], fields.shape[2]))
+                    f_h5.create_dataset('inpainted_masks', data=f_prev['inpainted_masks'][:],
+                                        compression="gzip", chunks=True,
+                                        maxshape=(None, inpainted_masks.shape[1], inpainted_masks.shape[2]))
                 # Resize
                 for key in ['fields', 'inpainted_masks']:
                     f_h5[key].resize((f_h5[key].shape[0] + fields.shape[0]), axis=0)
