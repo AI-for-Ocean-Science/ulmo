@@ -390,9 +390,12 @@ def extract_modis(debug=False, n_cores=10,
                                     maxshape=(None, inpainted_masks.shape[1], inpainted_masks.shape[2]))
             else:
                 if f_prev is not None and kk == int(prev_meta['kk'].max())+1:
-                    f_h5.create_dataset('fields', data=f_prev['fields'][:], 
+                    try:
+                        f_h5.create_dataset('fields', data=f_prev['fields'][:], 
                                         compression="gzip", chunks=True,
                                         maxshape=(None, fields.shape[1], fields.shape[2]))
+                    except:
+                        embed(header='398 of v4')
                     f_h5.create_dataset('inpainted_masks', data=f_prev['inpainted_masks'][:],
                                         compression="gzip", chunks=True,
                                         maxshape=(None, inpainted_masks.shape[1], inpainted_masks.shape[2]))
