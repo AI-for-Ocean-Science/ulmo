@@ -481,6 +481,10 @@ def fig_eq_pacific(outfile='fig_equator_histograms.png',
             os.getenv('SST_OOD'), 'LLC', 'Tables', 
             'LLC_uniform144_r0.5.parquet'))
 
+    # DT
+    v98['DT'] = v98.T90 - v98.T10
+    llc['DT'] = llc.T90 - llc.T10
+
     # Coords?
     south=0
     north=2
@@ -490,52 +494,77 @@ def fig_eq_pacific(outfile='fig_equator_histograms.png',
     # Build it
     rect = (v98.lat > south ) & (v98.lat < north) & (
         np.abs(v98.lon + mid_lon) < dlon)
-    viirs_np = v98[ rect ]
+    viirs_np = v98[ rect ].copy()
 
     rect = (llc.lat > south ) & (llc.lat < north) & (
         np.abs(llc.lon + mid_lon) < dlon)
-    llc_np = llc[ rect ]
+    llc_np = llc[ rect ].copy()
 
+    # South
+    south=-2
+    north=0
+    mid_lon=100
+    dlon=5
+
+    rect = (v98.lat > south ) & (v98.lat < north) & (
+        np.abs(v98.lon + mid_lon) < dlon)
+    viirs_sp = v98[ rect ].copy()
+
+    rect = (llc.lat > south ) & (llc.lat < north) & (
+        np.abs(llc.lon + mid_lon) < dlon)
+    llc_sp = llc[ rect ].copy()
+
+    # Figure
     fig = plt.figure(figsize=(12,8))
     gs = gridspec.GridSpec(2,2)
 
     # Above LL
-    ax_a = plt.subplot(gs[0])
-
+    axI = 0
+    axes = []
     sns.set(font_scale = 2)
-    sns.histplot(data = viirs_np, 
-                      x='LL', 
-                      binwidth= 20, 
-                      color='orange', stat='density', 
-                      label='VIIRS', ax=ax_a)
-    sns.histplot(data=llc_np, 
-                      x='LL', 
-                      binwidth=20, 
-                      color='seagreen', 
-                      stat='density', label='LLC',
-                      ax=ax_a)
+    for viirs, llc in zip([viirs_np, viirs_sp], [llc_np, llc_sp]):
+        for key in ['LL', 'DT']:
+            ax = plt.subplot(gs[axI])
+            axI += 1
+            axes.append(ax)
 
-    # Median lines
-    med_viirs = viirs_np.LL.median()
-    med_llc = llc_np.LL.median()
-    ax_a.axvline(med_viirs, color='orange', 
-                 linestyle='--', linewidth=3)
-    xoff = 20
-    ax_a.text(med_viirs-xoff, 
-             0.0025, r'$\widetilde{LL}_{\rm VIIRS}$'+f'={int(med_viirs)}',
-              fontsize=15, ha='right', color='orange')
-    ax_a.text(med_llc-xoff, 
-             0.0033, r'$\widetilde{LL}_{\rm LLC}$'+f'={int(med_llc)}',
-              fontsize=15, ha='right', color='seagreen')
+            sns.histplot(data = viirs, 
+                            x=key,
+                            binwidth= 20 if key == 'LL' else 0.1, 
+                            color='orange', stat='density', 
+                            label='VIIRS', ax=ax)
+            sns.histplot(data=llc, 
+                            x=key,
+                            binwidth=20 if key == 'LL' else 0.1, 
+                            color='seagreen', 
+                            stat='density', label='LLC',
+                            ax=ax)
 
-    ax_a.axvline(med_llc, color='seagreen', 
-                 linestyle='--', linewidth=3)
-                    
-    ax_a.legend(fontsize=17.)
-    #ax_a.suptitle('Above the Equator')
+            # Median lines
+            if key == 'LL':
+                med_viirs = viirs.LL.median()
+                med_llc = llc.LL.median()
+                ax.axvline(med_viirs, color='orange', 
+                            linestyle='--', linewidth=3)
+                xoff = 20
+
+                ax.text(med_viirs-xoff, 
+                        0.0025, r'$\widetilde{LL}_{\rm VIIRS}$'+f'={int(med_viirs)}',
+                        fontsize=15, ha='right', color='orange')
+                ax.text(med_llc-xoff, 
+                        0.0033, r'$\widetilde{LL}_{\rm LLC}$'+f'={int(med_llc)}',
+                        fontsize=15, ha='right', color='seagreen')
+
+                ax.axvline(med_llc, color='seagreen', 
+                            linestyle='--', linewidth=3)
+            elif key == 'DT':
+                ax.set_xlabel(r'$\Delta T$ [K]')
+                                
+            if axI == 3:
+                ax.legend(fontsize=17.)
 
     fsz = 17.
-    for ax in [ax_a]:
+    for ax in axes:
         plotting.set_fontsize(ax, fsz)
 
     plt.tight_layout(pad=0.5, h_pad=0.5, w_pad=0.5)
