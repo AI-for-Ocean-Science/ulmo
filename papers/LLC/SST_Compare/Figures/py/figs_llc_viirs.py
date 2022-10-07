@@ -22,8 +22,9 @@ import seaborn as sns
 
 import h5py
 
-from ulmo import plotting
 from ulmo.utils import utils as utils
+from ulmo import io as ulmo_io
+from ulmo.plotting import plotting 
 
 from ulmo.ssl import single_image as ssl_simage
 from ulmo.utils import image_utils
@@ -465,6 +466,84 @@ def fig_gulfstream(outfile='fig_gulfstream.png'):
     plt.savefig(outfile, dpi=300)
     print(f"Wrote: {outfile}")
 
+def fig_eq_pacific(outfile='fig_equator_histograms.png',
+                   local=False):
+
+    # Load
+    if not local:
+        v98 = ulmo_io.load_main_table('s3://viirs/Tables/VIIRS_all_98clear_std.parquet')
+        llc = ulmo_io.load_main_table('s3://llc/Tables/LLC_uniform144_r0.5.parquet')
+    else:
+        v98 = ulmo_io.load_main_table(os.path.join(
+            os.getenv('SST_OOD'), 'VIIRS', 'Tables', 
+            'VIIRS_all_98clear_std.parquet'))
+        llc = ulmo_io.load_main_table(os.path.join(
+            os.getenv('SST_OOD'), 'LLC', 'Tables', 
+            'LLC_uniform144_r0.5.parquet'))
+
+    # Coords?
+    south=0
+    north=2
+    mid_lon=100
+    dlon=5
+
+    # Build it
+    rect = (v98.lat > south ) & (v98.lat < north) & (
+        np.abs(v98.lon + mid_lon) < dlon)
+    viirs_np = v98[ rect ]
+
+    rect = (llc.lat > south ) & (llc.lat < north) & (
+        np.abs(llc.lon + mid_lon) < dlon)
+    llc_np = llc[ rect ]
+
+    fig = plt.figure(figsize=(12,8))
+    gs = gridspec.GridSpec(2,2)
+
+    # Above LL
+    ax_a = plt.subplot(gs[0])
+
+    sns.set(font_scale = 2)
+    sns.histplot(data = viirs_np, 
+                      x='LL', 
+                      binwidth= 20, 
+                      color='orange', stat='density', 
+                      label='VIIRS', ax=ax_a)
+    sns.histplot(data=llc_np, 
+                      x='LL', 
+                      binwidth=20, 
+                      color='seagreen', 
+                      stat='density', label='LLC',
+                      ax=ax_a)
+
+    # Median lines
+    med_viirs = viirs_np.LL.median()
+    med_llc = llc_np.LL.median()
+    ax_a.axvline(med_viirs, color='orange', 
+                 linestyle='--', linewidth=3)
+    xoff = 20
+    ax_a.text(med_viirs-xoff, 
+             0.0025, r'$\widetilde{LL}_{\rm VIIRS}$'+f'={int(med_viirs)}',
+              fontsize=15, ha='right', color='orange')
+    ax_a.text(med_llc-xoff, 
+             0.0033, r'$\widetilde{LL}_{\rm LLC}$'+f'={int(med_llc)}',
+              fontsize=15, ha='right', color='seagreen')
+
+    ax_a.axvline(med_llc, color='seagreen', 
+                 linestyle='--', linewidth=3)
+                    
+    ax_a.legend(fontsize=17.)
+    #ax_a.suptitle('Above the Equator')
+
+    fsz = 17.
+    for ax in [ax_a]:
+        plotting.set_fontsize(ax, fsz)
+
+    plt.tight_layout(pad=0.5, h_pad=0.5, w_pad=0.5)
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
+
 #### ########################## #########################
 def main(pargs):
 
@@ -499,6 +578,10 @@ def main(pargs):
     # Gulfstream
     if pargs.figure == 'gulfstream':
         fig_gulfstream()
+
+    # Equatorial Pacific
+    if pargs.figure == 'eq_pacific':
+        fig_eq_pacific(local=pargs.local)
 
 def parse_option():
     """
@@ -553,3 +636,6 @@ if __name__ == '__main__':
 
 # Gulfstream
 # python py/figs_llc_viirs.py gulfstream
+
+# Equatorial Pacific
+# python py/figs_llc_viirs.py eq_pacific --local
