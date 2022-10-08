@@ -426,9 +426,11 @@ def extract_modis(debug=False, n_cores=10,
             print("Pushing to s3")
             ulmo_io.upload_file_to_s3(save_path, s3_filename)
 
-            # Save where we are at
+            # Metadata
             df = pandas.DataFrame(metadata)
             df['kk'] = kk
+            df['nimgs'] = f_h5['fields'].shape[0]
+            # Save where we are at
             csv_filename = 'curr_metadata_{}.csv'.format(year)
             df.to_csv(csv_filename, index=False)
             s3_csv_filename = 's3://modis-l2/TMP/curr_metadata_{}.csv'.format(year)
