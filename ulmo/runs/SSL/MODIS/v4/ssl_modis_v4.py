@@ -246,7 +246,8 @@ def main_evaluate(opt_path, preproc='_std', debug=False,
 
 def extract_modis(debug=False, n_cores=10, 
                        nsub_files=1000,
-                       ndebug_files=100):
+                       ndebug_files=100,
+                       use_prev=True):
     """Extract "cloud free" images for 2020 and 2021
 
     Args:
@@ -315,11 +316,20 @@ def extract_modis(debug=False, n_cores=10,
             #files = files[:100]
 
         # Load previous?
-        if os.path.isfile(save_path.replace('inpaint', 'inpaint_prev')):
+        if use_prev and ulmo_io.urlparse(s3_filename).path[1:] in all_modis_files:
+            # Download
+            prev_file = os.path.isfile(save_path.replace('inpaint', 'inpaint_prev'))
+            ulmo_io.download_file_from_s3(prev_file, s3_filename, 
+                                          clobber_local=True)
+            # Load
             f_prev = h5py.File(save_path.replace('inpaint', 'inpaint_prev'), 'r')
-            print(f"Found: {save_path.replace('inpaint', 'inpaint_prev')}")
+            print(f"Using: {save_path.replace('inpaint', 'inpaint_prev')}")
             # Load CSV file
+            s3_csv_filename = 's3://modis-l2/TMP/curr_metadata_{}.csv'.format(year)
+            csv_filename = 'curr_metadata_{}.csv'.format(year)
+            ulmo_io.download_file_from_s3(csv_filename, s3_csv_filename, clobber_local=True)
             prev_meta = pandas.read_csv('curr_metadata_{}.csv'.format(year))
+            embed(header='332 of v4')
         else:
             f_prev = None
 
@@ -419,7 +429,10 @@ def extract_modis(debug=False, n_cores=10,
             # Save where we are at
             df = pandas.DataFrame(metadata)
             df['kk'] = kk
-            df.to_csv('curr_metadata_{}.csv'.format(year))
+            csv_filename = 'curr_metadata_{}.csv'.format(year)
+            df.to_csv(csv_filename, index=False)
+            s3_csv_filename = 's3://modis-l2/TMP/curr_metadata_{}.csv'.format(year)
+            ulmo_io.upload_file_to_s3(csv_filename, s3_csv_filename)
 
         # Metadata
         columns = ['filename', 'row', 'column', 'latitude', 'longitude', 
