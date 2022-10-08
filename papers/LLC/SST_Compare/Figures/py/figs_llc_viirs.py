@@ -22,8 +22,9 @@ import seaborn as sns
 
 import h5py
 
-from ulmo import plotting
 from ulmo.utils import utils as utils
+from ulmo import io as ulmo_io
+from ulmo.plotting import plotting 
 
 from ulmo.ssl import single_image as ssl_simage
 from ulmo.utils import image_utils
@@ -465,6 +466,113 @@ def fig_gulfstream(outfile='fig_gulfstream.png'):
     plt.savefig(outfile, dpi=300)
     print(f"Wrote: {outfile}")
 
+def fig_eq_pacific(outfile='fig_equator_histograms.png',
+                   local=False):
+
+    # Load
+    if not local:
+        v98 = ulmo_io.load_main_table('s3://viirs/Tables/VIIRS_all_98clear_std.parquet')
+        llc = ulmo_io.load_main_table('s3://llc/Tables/LLC_uniform144_r0.5.parquet')
+    else:
+        v98 = ulmo_io.load_main_table(os.path.join(
+            os.getenv('SST_OOD'), 'VIIRS', 'Tables', 
+            'VIIRS_all_98clear_std.parquet'))
+        llc = ulmo_io.load_main_table(os.path.join(
+            os.getenv('SST_OOD'), 'LLC', 'Tables', 
+            'LLC_uniform144_r0.5.parquet'))
+
+    # DT
+    v98['DT'] = v98.T90 - v98.T10
+    llc['DT'] = llc.T90 - llc.T10
+
+    # Coords?
+    south=0
+    north=2
+    mid_lon=100
+    dlon=5
+
+    # Build it
+    rect = (v98.lat > south ) & (v98.lat < north) & (
+        np.abs(v98.lon + mid_lon) < dlon)
+    viirs_np = v98[ rect ].copy()
+
+    rect = (llc.lat > south ) & (llc.lat < north) & (
+        np.abs(llc.lon + mid_lon) < dlon)
+    llc_np = llc[ rect ].copy()
+
+    # South
+    south=-2
+    north=0
+    mid_lon=100
+    dlon=5
+
+    rect = (v98.lat > south ) & (v98.lat < north) & (
+        np.abs(v98.lon + mid_lon) < dlon)
+    viirs_sp = v98[ rect ].copy()
+
+    rect = (llc.lat > south ) & (llc.lat < north) & (
+        np.abs(llc.lon + mid_lon) < dlon)
+    llc_sp = llc[ rect ].copy()
+
+    # Figure
+    fig = plt.figure(figsize=(12,8))
+    gs = gridspec.GridSpec(2,2)
+
+    # Above LL
+    axI = 0
+    axes = []
+    sns.set(font_scale = 2)
+    for viirs, llc in zip([viirs_np, viirs_sp], [llc_np, llc_sp]):
+        for key in ['LL', 'DT']:
+            ax = plt.subplot(gs[axI])
+            axI += 1
+            axes.append(ax)
+
+            sns.histplot(data = viirs, 
+                            x=key,
+                            binwidth= 20 if key == 'LL' else 0.1, 
+                            color='orange', stat='density', 
+                            label='VIIRS', ax=ax)
+            sns.histplot(data=llc, 
+                            x=key,
+                            binwidth=20 if key == 'LL' else 0.1, 
+                            color='seagreen', 
+                            stat='density', label='LLC',
+                            ax=ax)
+
+            # Median lines
+            if key == 'LL':
+                med_viirs = viirs.LL.median()
+                med_llc = llc.LL.median()
+                ax.axvline(med_viirs, color='orange', 
+                            linestyle='--', linewidth=3)
+                xoff = 20
+
+                ax.text(med_viirs-xoff, 
+                        0.0025, r'$\widetilde{LL}_{\rm VIIRS}$'+f'={int(med_viirs)}',
+                        fontsize=15, ha='right', color='orange')
+                ax.text(med_llc-xoff, 
+                        0.0033, r'$\widetilde{LL}_{\rm LLC}$'+f'={int(med_llc)}',
+                        fontsize=15, ha='right', color='seagreen')
+
+                ax.axvline(med_llc, color='seagreen', 
+                            linestyle='--', linewidth=3)
+            elif key == 'DT':
+                ax.set_xlabel(r'$\Delta T$ [K]')
+                                
+            if axI == 3:
+                ax.legend(fontsize=17.)
+
+    fsz = 17.
+    for ax in axes:
+        plotting.set_fontsize(ax, fsz)
+
+    plt.tight_layout(pad=0.5, h_pad=0.5, w_pad=0.5)
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
+
 #### ########################## #########################
 def main(pargs):
 
@@ -499,6 +607,10 @@ def main(pargs):
     # Gulfstream
     if pargs.figure == 'gulfstream':
         fig_gulfstream()
+
+    # Equatorial Pacific
+    if pargs.figure == 'eq_pacific':
+        fig_eq_pacific(local=pargs.local)
 
 def parse_option():
     """
@@ -553,3 +665,6 @@ if __name__ == '__main__':
 
 # Gulfstream
 # python py/figs_llc_viirs.py gulfstream
+
+# Equatorial Pacific
+# python py/figs_llc_viirs.py eq_pacific --local
