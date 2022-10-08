@@ -108,8 +108,22 @@ if __name__ == '__main__':
     #             llc=True, local=True)
 
     # PMC ACC D 
-    grab_cutouts(lon=122.81, lat=-54.34, 
-                 local_file='ACC_cutouts_44514_VIIRS.h5')
-    grab_cutouts(lon=122.81, lat=-54.34, 
-                 local_file='ACC_cutouts_44514_LLC.h5',
+    #grab_cutouts(lon=122.81, lat=-54.34, 
+    #             local_file='ACC_cutouts_44514_VIIRS.h5')
+    #grab_cutouts(lon=122.81, lat=-54.34, 
+    #             local_file='ACC_cutouts_44514_LLC.h5',
+    #             llc=True, local=True)
+
+    # PMC ACC E -- Same 
+    #grab_cutouts(lon=115.83333, lat=-49.70239,
+    #             local_file='ACC_cutouts_43282_VIIRS.h5')
+    #grab_cutouts(lon=115.83333, lat=-49.70239,
+    #             local_file='ACC_cutouts_43282_LLC.h5',
+    #             llc=True, local=True)
+
+    # PMC ACC 43497 -- Same 
+    grab_cutouts(lat=-50.4800445, lon=116.32075,
+                 local_file='ACC_cutouts_43497_VIIRS.h5')
+    grab_cutouts(lat=-50.4800445, lon=116.32075,
+                 local_file='ACC_cutouts_43497_LLC.h5',
                  llc=True, local=True)
