@@ -368,7 +368,8 @@ def extract_modis(debug=False, n_cores=10,
                 try:
                     ulmo_io.download_file_from_s3(basename, ifile, verbose=False)
                 except:
-                    bad_files.append(ifile)
+                    print(f'Downloading {basename} failed')
+                    bad_files.append(basename)
                     continue
                     
             print("All Done!")
