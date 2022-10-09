@@ -318,12 +318,12 @@ def extract_modis(debug=False, n_cores=10,
         # Load previous?
         if use_prev and ulmo_io.urlparse(s3_filename).path[1:] in all_modis_files:
             # Download
-            prev_file = os.path.isfile(save_path.replace('inpaint', 'inpaint_prev'))
+            prev_file = save_path.replace('inpaint', 'inpaint_prev')
             ulmo_io.download_file_from_s3(prev_file, s3_filename, 
                                           clobber_local=True)
             # Load
-            f_prev = h5py.File(save_path.replace('inpaint', 'inpaint_prev'), 'r')
-            print(f"Using: {save_path.replace('inpaint', 'inpaint_prev')}")
+            f_prev = h5py.File(prev_file, 'r')
+            print(f"Using: {prev_file}")
             # Load CSV file
             s3_csv_filename = 's3://modis-l2/TMP/curr_metadata_{}.csv'.format(year)
             csv_filename = 'curr_metadata_{}.csv'.format(year)
