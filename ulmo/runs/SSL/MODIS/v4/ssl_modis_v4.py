@@ -247,7 +247,8 @@ def main_evaluate(opt_path, preproc='_std', debug=False,
 def extract_modis(debug=False, n_cores=10, 
                        nsub_files=1000,
                        ndebug_files=100,
-                       use_prev=True):
+                       intermediate_s3=False,
+                       use_prev=False):
     """Extract "cloud free" images for 2020 and 2021
 
     Args:
@@ -341,6 +342,7 @@ def extract_modis(debug=False, n_cores=10,
         metadata = None
         if debug:
             embed(header='464 of v4')
+        bad_files = []
         for kk in range(nloop):
             if f_prev is not None:
                 if kk <= int(prev_meta['kk'].max()):
@@ -366,7 +368,8 @@ def extract_modis(debug=False, n_cores=10,
                 try:
                     ulmo_io.download_file_from_s3(basename, ifile, verbose=False)
                 except:
-                    raise ValueError("Failed on {}".format(ifile))
+                    bad_files.append(ifile)
+                    continue
                     
             print("All Done!")
 
@@ -422,9 +425,10 @@ def extract_modis(debug=False, n_cores=10,
                     basename = os.path.basename(ifile)
                     os.remove(basename)
 
-            # Push to s3
-            print("Pushing to s3")
-            ulmo_io.upload_file_to_s3(save_path, s3_filename)
+            # Push to s3?
+            if intermediate_s3:
+                print("Pushing to s3")
+                ulmo_io.upload_file_to_s3(save_path, s3_filename)
 
             # Metadata
             df = pandas.DataFrame(metadata)
@@ -436,6 +440,7 @@ def extract_modis(debug=False, n_cores=10,
             s3_csv_filename = 's3://modis-l2/TMP/curr_metadata_{}.csv'.format(year)
             ulmo_io.upload_file_to_s3(csv_filename, s3_csv_filename)
 
+
         # Metadata
         columns = ['filename', 'row', 'column', 'latitude', 'longitude', 
                 'clear_fraction']
@@ -443,6 +448,10 @@ def extract_modis(debug=False, n_cores=10,
         dset.attrs['columns'] = columns
         # Close
         f_h5.close() 
+
+        # Save me
+        print("Pushing to s3")
+        ulmo_io.upload_file_to_s3(save_path, s3_filename)
 
         # Table time
         modis_table = pandas.DataFrame()
@@ -458,11 +467,22 @@ def extract_modis(debug=False, n_cores=10,
             basefiles, ioff=10, toff=1)
         modis_table['ex_filename'] = s3_filename
 
+        # Bad files
+        bad_csv_file = f'bad_{year}.csv'
+        df_bad = pandas.DataFrame()
+        df_bad['filename'] = bad_files
+        df_bad.to_csv(bad_csv_file, index=False)
+        # s3
+        s3_bad_file = 's3://modis-l2/TMP/'+bad_csv_file
+        ulmo_io.upload_file_to_s3(bad_csv_file, s3_bad_file)
+
         # Vet
         assert cat_utils.vet_main_table(modis_table)
 
         # Save
         modis_tables.append(modis_table)
+
+        # End loop on year
 
     # Concat
     modis_table = pandas.concat(modis_tables)
