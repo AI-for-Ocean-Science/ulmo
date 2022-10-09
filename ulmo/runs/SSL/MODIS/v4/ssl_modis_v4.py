@@ -596,6 +596,8 @@ def parse_option():
                         help="Path to UMAP pickle file for analysis")
     parser.add_argument("--table_file", type=str, 
                         help="Path to Table file")
+    parser.add_argument("--ncpu", type=int, 
+                        help="Number of CPUs")
     parser.add_argument("--cf", type=float, 
                         help="Clear fraction (e.g. 96)")
     args = parser.parse_args()
@@ -619,7 +621,8 @@ if __name__ == "__main__":
 
     # python ssl_modis_v4.py --func_flag extract_new --debug
     if args.func_flag == 'extract_new':
-        extract_modis(debug=args.debug)
+        ncpu = args.ncpu if args.ncpu is not None else 10
+        extract_modis(debug=args.debug, n_cores=ncpu)
 
     # python ssl_modis_v4.py --func_flag evaluate --debug
     if args.func_flag == 'evaluate':

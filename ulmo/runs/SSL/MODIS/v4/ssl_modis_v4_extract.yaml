@@ -28,12 +28,12 @@ spec:
         imagePullPolicy: Always
         resources:
           requests:
-            cpu: "10"   # 
-            memory: "10Gi"  #
-            ephemeral-storage: 50Gi
+            cpu: "2"   # 
+            memory: "16Gi"  #
+            ephemeral-storage: 70Gi
           limits:
-            cpu: "12"
-            memory: "20Gi"
+            cpu: "4"
+            memory: "24Gi"
             ephemeral-storage: 100Gi
             #nvidia.com/gpu:  "8"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]
@@ -46,7 +46,7 @@ spec:
             pip install torch==1.11.0;
             python setup.py develop;
             cd ulmo/runs/SSL/MODIS/v4;
-            python ./ssl_modis_v4.py --func_flag extract_new;
+            python ./ssl_modis_v4.py --func_flag extract_new --ncpu 2;
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"
