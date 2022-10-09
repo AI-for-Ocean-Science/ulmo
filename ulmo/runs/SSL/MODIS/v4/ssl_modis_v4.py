@@ -370,6 +370,8 @@ def extract_modis(debug=False, n_cores=10,
                 except:
                     print(f'Downloading {basename} failed')
                     bad_files.append(basename)
+                    # Remove from sub_files
+                    sub_files.remove(ifile)
                     continue
                     
             print("All Done!")
