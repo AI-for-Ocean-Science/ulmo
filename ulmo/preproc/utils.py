@@ -206,7 +206,7 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
     if inpaint:
         if mask.dtype.name != 'uint8':
             mask = np.uint8(mask)
-        field = sk_inpaint.inpaint_biharmonic(field, mask, multichannel=False)
+        field = sk_inpaint.inpaint_biharmonic(field, mask, channel_axis=None)
 
     if only_inpaint:
         if np.any(np.isnan(field)):

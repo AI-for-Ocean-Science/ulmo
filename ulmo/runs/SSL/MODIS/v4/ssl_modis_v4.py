@@ -244,7 +244,7 @@ def main_evaluate(opt_path, preproc='_std', debug=False,
 #% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-def extract_modis(debug=False, n_cores=10, 
+def extract_modis(debug=False, n_cores=10, local=False, 
                        nsub_files=1000,
                        ndebug_files=100,
                        intermediate_s3=False,
@@ -277,17 +277,25 @@ def extract_modis(debug=False, n_cores=10,
                      inpaint=True)
 
     print("Grabbing the file list")
-    all_modis_files = ulmo_io.list_of_bucket_files('modis-l2')
+    if not local:
+        all_modis_files = ulmo_io.list_of_bucket_files('modis-l2')
 
     
     modis_tables = []
     for year in [2020, 2021]:
         files = []
-        bucket = 's3://modis-l2/'
-        for ifile in all_modis_files:
-            if ('data/'+str(year) in ifile): 
-                if ifile.endswith('.nc'):
-                    files.append(bucket+ifile)
+        # Grab em
+        if local:
+            local_path = os.path.join(os.getenv('MODIS_DATA'), 'night', f'{year}') 
+            for root, dirs, ifiles in os.walk(os.path.abspath(local_path)):
+                for ifile in ifiles:
+                    files.append(os.path.join(root,ifile))
+        else:
+            bucket = 's3://modis-l2/'
+            for ifile in all_modis_files:
+                if ('data/'+str(year) in ifile): 
+                    if ifile.endswith('.nc'):
+                        files.append(bucket+ifile)
 
         nfiles = len(files)
         print(f'We have {nfiles} files for {year}')
@@ -358,23 +366,28 @@ def extract_modis(debug=False, n_cores=10,
 
             # Download
             basefiles = []
-            print("Downloading files from s3...")
+            if not local:
+                print("Downloading files from s3...")
             for ifile in sub_files:
-                basename = os.path.basename(ifile)
-                basefiles.append(basename)
-                # Already here?
-                if os.path.isfile(basename):
-                    continue
-                try:
-                    ulmo_io.download_file_from_s3(basename, ifile, verbose=False)
-                except:
-                    print(f'Downloading {basename} failed')
-                    bad_files.append(basename)
-                    # Remove from sub_files
-                    sub_files.remove(ifile)
-                    continue
+                if local:
+                    basefiles = sub_files
+                else:
+                    basename = os.path.basename(ifile)
+                    basefiles.append(basename)
+                    # Already here?
+                    if os.path.isfile(basename):
+                        continue
+                    try:
+                        ulmo_io.download_file_from_s3(basename, ifile, verbose=False)
+                    except:
+                        print(f'Downloading {basename} failed')
+                        bad_files.append(basename)
+                        # Remove from sub_files
+                        sub_files.remove(ifile)
+                        continue
                     
-            print("All Done!")
+            if not local:
+                print("All Done!")
 
             with ProcessPoolExecutor(max_workers=n_cores) as executor:
                 chunksize = len(sub_files) // n_cores if len(sub_files) // n_cores > 0 else 1
@@ -619,10 +632,10 @@ if __name__ == "__main__":
     if args.func_flag == 'DT40':
         calc_dt40(debug=args.debug, local=args.local)
 
-    # python ssl_modis_v4.py --func_flag extract_new --ncpu 4 --debug
+    # python ssl_modis_v4.py --func_flag extract_new --ncpu 20 --local --debug
     if args.func_flag == 'extract_new':
         ncpu = args.ncpu if args.ncpu is not None else 10
-        extract_modis(debug=args.debug, n_cores=ncpu)
+        extract_modis(debug=args.debug, n_cores=ncpu, local=args.local)
 
     # python ssl_modis_v4.py --func_flag evaluate --debug
     if args.func_flag == 'evaluate':
