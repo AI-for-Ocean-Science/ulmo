@@ -619,7 +619,7 @@ if __name__ == "__main__":
     if args.func_flag == 'DT40':
         calc_dt40(debug=args.debug, local=args.local)
 
-    # python ssl_modis_v4.py --func_flag extract_new --debug
+    # python ssl_modis_v4.py --func_flag extract_new --ncpu 4 --debug
     if args.func_flag == 'extract_new':
         ncpu = args.ncpu if args.ncpu is not None else 10
         extract_modis(debug=args.debug, n_cores=ncpu)
