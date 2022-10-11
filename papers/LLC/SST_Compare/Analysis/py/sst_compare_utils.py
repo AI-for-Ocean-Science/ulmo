@@ -8,9 +8,25 @@ from ulmo import io as ulmo_io
 s3_llc_match_table_file = 's3://llc/Tables/llc_viirs_match.parquet'
 s3_llc_uniform_table_file = 's3://llc/Tables/LLC_uniform144_r0.5.parquet'
 s3_viirs_table_file = 's3://viirs/Tables/VIIRS_all_98clear_std.parquet'
+s3_modis_table_file = 's3://modis-l2/Tables/MODIS_SSL_96clear.parquet'
 
-def load_table(dataset, local=False, cut_lat=57.):
+def load_table(dataset:str, local:bool=False, cut_lat:float=57.):
+    """ Load the output table
 
+    Args:
+        dataset (str): 
+            Dataset. Either [viirs, modis, llc_match or llc_uniform]
+        local (bool, optional): 
+            Load from local. Defaults to False.
+        cut_lat (float, optional): 
+            Cut on latitude. Defaults to 57..
+
+
+    Returns:
+        pandas.DataFrame: data
+    """
+
+    # Which flavor? 
     if dataset[0:3] == 'llc':
         if dataset == 'llc_match':
             s3_file = s3_llc_match_table_file
@@ -29,6 +45,11 @@ def load_table(dataset, local=False, cut_lat=57.):
                 'VIIRS', 'Tables', os.path.basename(s3_viirs_table_file))
         else:
             tbl_file = s3_viirs_table_file
+    elif dataset == 'modis_all':
+        tbl_file = s3_modis_table_file
+    else:
+        raise IOError("Bad Dataset")
+
     # Load
     tbl = ulmo_io.load_main_table(tbl_file)
 

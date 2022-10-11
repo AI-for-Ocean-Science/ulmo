@@ -66,5 +66,8 @@ if __name__ == '__main__':
     #generate_all('llc_uniform', '_llc_uniform')
 
     # All for LLC matched
-    generate_all('llc_match', '_llc_match')
+    #generate_all('llc_match', '_llc_match')
+
+    # MODIS, unmatched
+    generate_all('modis_all', '_modis_all')
 
