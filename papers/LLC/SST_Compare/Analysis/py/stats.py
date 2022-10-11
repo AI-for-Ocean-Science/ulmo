@@ -6,22 +6,15 @@ import pandas
 
 from ulmo import io as ulmo_io
 
+import sst_compare_utils
+
 from IPython import embed
 
-def healpix_stats(outfile:str, local=False, debug:bool=False,
-                  nside:int=64, cut:str=None, llc:bool=False):
+def healpix_stats(dataset:str, outfile:str, local=False, debug:bool=False,
+                  nside:int=64, cut:str=None):
 
     # Load table
-    if not llc:
-        if local:
-            table_file = '/home/xavier/Projects/Oceanography/SST/VIIRS/Tables/VIIRS_all_98clear_std.parquet'
-        else:
-            table_file = 's3://viirs/Tables/VIIRS_all_98clear_std.parquet'
-    else:
-        if local:
-            table_file = '/home/xavier/Projects/Oceanography/SST/LLC/Tables/llc_viirs_match.parquet'
-        
-    eval_tbl = ulmo_io.load_main_table(table_file)
+    eval_tbl = sst_compare_utils.load_table(dataset, local=local)
 
     # Heads
     if cut is not None:
@@ -88,4 +81,7 @@ if __name__ == '__main__':
     #healpix_stats('tail_viirs.csv', local=True, cut='tail')
 
     # LLC
-    healpix_stats('all_llc.csv', local=True, llc=True)
+    #healpix_stats('all_llc.csv', local=True, llc=True)
+
+    # MODIS
+    healpix_stats('modis_all', 'all_modis.csv')
