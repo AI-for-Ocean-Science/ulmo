@@ -515,6 +515,16 @@ def extract_modis(debug=False, n_cores=10, local=False,
     #    'https://s3.nautilus.optiputer.net', 'put', save_path, 
     #    s3_filename])
 
+def slurp_tables(debug=False):
+    tbl_20s_file = 's3://modis-l2/Tables/MODIS_L2_20202021.parquet'
+    full_tbl_file = 's3://modis-l2/Tables/MODIS_L2_20202021.parquet'
+
+    # Load
+    modis_20s_tbl = ulmo_io.load_main_table(tbl_20s_file)
+    modis_full = ulmo_io.load_main_table(full_tbl_file)
+
+    embed(header='526 of v4')
+
 def calc_dt40(debug=False, local=False):
 
     # Table
@@ -637,6 +647,10 @@ if __name__ == "__main__":
         ncpu = args.ncpu if args.ncpu is not None else 10
         years = [int(item) for item in args.years.split(',')] if args.years is not None else [2020,2021]
         extract_modis(debug=args.debug, n_cores=ncpu, local=args.local, years=years)
+
+    # python ssl_modis_v4.py --func_flag slurp_tables --debug
+    if args.func_flag == 'slurp_tables':
+        slurp_tables(debug=args.debug)
 
     # python ssl_modis_v4.py --func_flag evaluate --debug
     if args.func_flag == 'evaluate':
