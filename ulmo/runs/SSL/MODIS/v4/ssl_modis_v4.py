@@ -247,7 +247,7 @@ def main_evaluate(opt_path, preproc='_std', debug=False,
 def extract_modis(debug=False, n_cores=10, local=False, 
                        nsub_files=1000,
                        ndebug_files=100,
-                       intermediate_s3=False,
+                       intermediate_s3=False, years=[2020, 2021],
                        use_prev=False):
     """Extract "cloud free" images for 2020 and 2021
 
@@ -282,7 +282,7 @@ def extract_modis(debug=False, n_cores=10, local=False,
 
     
     modis_tables = []
-    for year in [2020, 2021]:
+    for year in years:
         files = []
         # Grab em
         if local:
@@ -436,7 +436,7 @@ def extract_modis(debug=False, n_cores=10, local=False,
                 f_h5['inpainted_masks'][-fields.shape[0]:] = inpainted_masks
         
             # Remove em
-            if not debug:
+            if not debug and not local:
                 for ifile in sub_files:
                     basename = os.path.basename(ifile)
                     os.remove(basename)
@@ -609,8 +609,8 @@ def parse_option():
                         help="Path to UMAP pickle file for analysis")
     parser.add_argument("--table_file", type=str, 
                         help="Path to Table file")
-    parser.add_argument("--ncpu", type=int, 
-                        help="Number of CPUs")
+    parser.add_argument("--ncpu", type=int, help="Number of CPUs")
+    parser.add_argument("--years", type=str, help="Years to analyze")
     parser.add_argument("--cf", type=float, 
                         help="Clear fraction (e.g. 96)")
     args = parser.parse_args()
@@ -632,10 +632,11 @@ if __name__ == "__main__":
     if args.func_flag == 'DT40':
         calc_dt40(debug=args.debug, local=args.local)
 
-    # python ssl_modis_v4.py --func_flag extract_new --ncpu 20 --local --debug
+    # python ssl_modis_v4.py --func_flag extract_new --ncpu 20 --local --years 2020 --debug
     if args.func_flag == 'extract_new':
         ncpu = args.ncpu if args.ncpu is not None else 10
-        extract_modis(debug=args.debug, n_cores=ncpu, local=args.local)
+        years = [int(item) for item in args.years.split(',')] if args.years is not None else [2020,2021]
+        extract_modis(debug=args.debug, n_cores=ncpu, local=args.local, years=years)
 
     # python ssl_modis_v4.py --func_flag evaluate --debug
     if args.func_flag == 'evaluate':
