@@ -11,7 +11,7 @@ import sst_compare_utils
 from IPython import embed
 
 def healpix_stats(dataset:str, outfile:str, local=False, debug:bool=False,
-                  nside:int=64, cut:str=None):
+                  nside:int=64, cut:str=None, CC=None):
 
     # Load table
     eval_tbl = sst_compare_utils.load_table(dataset, local=local)
@@ -27,6 +27,11 @@ def healpix_stats(dataset:str, outfile:str, local=False, debug:bool=False,
         else:
             raise IOError("Bad cut")
         eval_tbl = eval_tbl[cutt].copy()
+
+    # Clouds?
+    if CC is not None:
+        CC_cut = eval_tbl.clear_fraction < (1-CC)
+        eval_tbl = eval_tbl[CC_cut].copy()
 
     # Healpix
     lats = eval_tbl.lat.values
@@ -84,4 +89,5 @@ if __name__ == '__main__':
     #healpix_stats('all_llc.csv', local=True, llc=True)
 
     # MODIS
-    healpix_stats('modis_all', 'all_modis.csv')
+    #healpix_stats('modis_all', 'all_modis.csv')
+    healpix_stats('modis_all', '98_modis.csv', CC=0.98)
