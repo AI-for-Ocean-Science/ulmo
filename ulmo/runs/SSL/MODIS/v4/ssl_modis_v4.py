@@ -529,6 +529,7 @@ def modis_20s_preproc(debug=False, n_cores=20):
                                      preproc_root='standard',
                                      inpainted_mask=True,
                                      use_mask=True,
+                                     remove_local=False,
                                      nsub_fields=10000,
                                      n_cores=n_cores)
     # Vet

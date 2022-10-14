@@ -303,6 +303,7 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
                 preproc_folder='PreProc',
                 nsub_fields=10000, 
                 use_mask=True,
+                remove_local=True,
                 clobber=False, 
                 inpainted_mask=False,
                 n_cores=10):
@@ -325,6 +326,7 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
         inpainted_mask (bool, optional): _description_. Defaults to False.
         n_cores (int, optional): _description_. Defaults to 10.
         clobber (bool, optional): Defaults to False.
+        remove_local (bool, optional): If True, remove the local extraction file.  Defaults to True.
 
     Returns:
         _type_: _description_
@@ -421,7 +423,8 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
             f.close()
 
         # Remove local_file
-        os.remove(local_file)
+        if remove_local:
+            os.remove(local_file)
         print("Removed: {}".format(local_file))
 
         # Write
