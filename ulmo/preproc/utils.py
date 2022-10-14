@@ -343,7 +343,7 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
     # Prep table
     data_tbl = prep_table_for_preproc(data_tbl, preproc_root)
     
-    # Folders
+    # Folders    mai    main_tbl['mean_temperature'] = [imeta['mu'] for imeta in meta]n_tbl['mean_temperature'] = [imeta['mu'] for imeta in meta]
     if not os.path.isdir(extract_folder):
         os.mkdir(extract_folder)                                            
     if not os.path.isdir(preproc_folder):
@@ -425,9 +425,10 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
         # Remove local_file
         if remove_local:
             os.remove(local_file)
-        print("Removed: {}".format(local_file))
+            print("Removed: {}".format(local_file))
 
         # Write
+        embed(header='431 of utils of preproc')
         data_tbl = write_pp_fields(pp_fields, 
                                  meta, 
                                  data_tbl, 
