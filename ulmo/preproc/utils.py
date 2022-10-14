@@ -496,7 +496,10 @@ def write_pp_fields(pp_fields:list, meta:list,
                 if ikey not in clms:
                     main_tbl[ikey] = 0.
                 # Set
-                main_tbl.loc[idx_idx, ikey] = [imeta[key] for imeta in meta]
+                try:
+                    main_tbl.loc[idx_idx, ikey] = [imeta[key] for imeta in meta]
+                except:
+                    embed(header='502 of trouble')
                 # Add to clms
                 if key not in clms:
                     clms += [key]
