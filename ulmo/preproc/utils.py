@@ -379,6 +379,8 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
         # Process them all, then deal with train/validation
         pp_fields, meta, img_idx = [], [], []
         for kk in range(nloop):
+            if debug and kk > 0:
+                continue
             f = h5py.File(local_file, mode='r')
 
             # Load the images into memory
@@ -428,7 +430,6 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
             print("Removed: {}".format(local_file))
 
         # Write
-        embed(header='431 of utils of preproc')
         data_tbl = write_pp_fields(pp_fields, 
                                  meta, 
                                  data_tbl, 
@@ -485,6 +486,7 @@ def write_pp_fields(pp_fields:list, meta:list,
     # Mu
     clms = list(main_tbl.keys())
     if not skip_meta:
+        embed(header='487 of utils of preproc')
         #main_tbl['mean_temperature'] = [imeta['mu'] for imeta in meta]
         #clms += ['mean_temperature']
         # Others
