@@ -440,7 +440,8 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
                                  local_outfile)
 
         # Write to s3
-        ulmo_io.upload_file_to_s3(local_outfile, s3_file)
+        if not debug:
+            ulmo_io.upload_file_to_s3(local_outfile, s3_file)
 
     print("Done with generating pre-processed files..")
     return data_tbl
