@@ -524,6 +524,10 @@ def modis_20s_preproc(debug=False, n_cores=20):
     """
     tbl_20s_file = 's3://modis-l2/Tables/MODIS_L2_20202021.parquet'
     modis_tbl = ulmo_io.load_main_table(tbl_20s_file)
+    # Reset index
+    modis_tbl.reset_index(drop=True, inplace=True)
+
+    # Pre-process 
     modis_tbl = pp_utils.preproc_tbl(modis_tbl, 1., 
                                      's3://modis-l2',
                                      preproc_root='standard',
