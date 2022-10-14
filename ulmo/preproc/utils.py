@@ -488,9 +488,10 @@ def write_pp_fields(pp_fields:list, meta:list,
         #main_tbl['mean_temperature'] = [imeta['mu'] for imeta in meta]
         #clms += ['mean_temperature']
         # Others
-        for key in ['mean_temperature', 'Tmin', 'Tmax', 'T90', 'T10']:
+        for key in ['mu', 'Tmin', 'Tmax', 'T90', 'T10']:
+            ikey = 'mean_temperature' if key == 'mu' else key
             if key in meta[0].keys():
-                main_tbl.loc[idx_idx, key] = [imeta[key] for imeta in meta]
+                main_tbl.loc[idx_idx, ikey] = [imeta[key] for imeta in meta]
                 # Add to clms
                 if key not in clms:
                     clms += [key]
