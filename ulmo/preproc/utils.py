@@ -489,18 +489,21 @@ def write_pp_fields(pp_fields:list, meta:list,
         #main_tbl['mean_temperature'] = [imeta['mu'] for imeta in meta]
         #clms += ['mean_temperature']
         # Others
+        all_tf = np.array([False]*len(main_tbl))
+        all_tf[idx_idx] = True
         for key in ['mu', 'Tmin', 'Tmax', 'T90', 'T10']:
             ikey = 'mean_temperature' if key == 'mu' else key
+
             if key in meta[0].keys():
                 # Init?
                 if ikey not in clms:
                     main_tbl[ikey] = 0.
-                # Set
-                mvalues = [imeta[key] for imeta in meta]
-                try:
-                    main_tbl.loc[idx_idx, ikey] = mvalues
-                except:
-                    embed(header='502 of trouble')
+                # unravel em
+                mvalues = []
+                for jj in ppf_idx:
+                    mvalues.append(meta[jj][key])
+                # Assign
+                main_tbl.loc[all_tf, ikey] = mvalues
                 # Add to clms
                 if key not in clms:
                     clms += [key]
@@ -511,8 +514,15 @@ def write_pp_fields(pp_fields:list, meta:list,
     valid_idx, train_idx = idx[:n], idx[n:]
 
     # Update table
-    main_tbl.loc[idx_idx[valid_idx], 'pp_idx'] = np.arange(valid_idx.size)
-    main_tbl.loc[idx_idx[train_idx], 'pp_idx'] = np.arange(train_idx.size)
+    all_tf = np.array([False]*len(main_tbl))
+    all_tf[idx_idx[valid_idx]] = True
+    main_tbl.loc[all_tf, 'pp_idx'] = np.arange(valid_idx.size)
+    #main_tbl.loc[idx_idx[valid_idx], 'pp_idx'] = np.arange(valid_idx.size)
+    all_tf = np.array([False]*len(main_tbl))
+    all_tf[idx_idx[train_idx]] = True
+    main_tbl.loc[all_tf, 'pp_idx'] = np.arange(train_idx.size)
+    #main_tbl.loc[idx_idx[train_idx], 'pp_idx'] = np.arange(train_idx.size)
+
     main_tbl.loc[idx_idx[valid_idx], 'pp_type'] = ulmo_defs.mtbl_dmodel['pp_type']['valid']
     main_tbl.loc[idx_idx[train_idx], 'pp_type'] = ulmo_defs.mtbl_dmodel['pp_type']['train']
 
