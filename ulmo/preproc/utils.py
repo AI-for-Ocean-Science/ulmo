@@ -430,6 +430,8 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
             print("Removed: {}".format(local_file))
 
         # Write
+        if debug:
+            embed(header='434 of preproc')
         data_tbl = write_pp_fields(pp_fields, 
                                  meta, 
                                  data_tbl, 
