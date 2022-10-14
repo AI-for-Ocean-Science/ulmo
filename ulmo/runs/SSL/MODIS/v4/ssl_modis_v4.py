@@ -21,6 +21,7 @@ import h5py
 
 from ulmo import io as ulmo_io
 from ulmo.utils import catalog as cat_utils
+from ulmo.preproc import utils as pp_utils
 
 from ulmo.ssl.util import adjust_learning_rate
 from ulmo.ssl.util import set_optimizer, save_model
@@ -515,9 +516,31 @@ def extract_modis(debug=False, n_cores=10, local=False,
     #    'https://s3.nautilus.optiputer.net', 'put', save_path, 
     #    s3_filename])
 
+def modis_20s_preproc(debug=False, n_cores=20):
+    """Pre-process the files
+
+    Args:
+        n_cores (int, optional): Number of cores to use
+    """
+    tbl_20s_file = 's3://modis-l2/Tables/MODIS_L2_20202021.parquet'
+    modis_tbl = ulmo_io.load_main_table(tbl_20s_file)
+    modis_tbl = pp_utils.preproc_tbl(modis_tbl, 1., 
+                                     's3://modis-l2',
+                                     preproc_root='standard',
+                                     inpainted_mask=True,
+                                     use_mask=True,
+                                     nsub_fields=10000,
+                                     n_cores=n_cores)
+    # Vet
+    assert cat_utils.vet_main_table(modis_tbl)
+
+    # Final write
+    if not debug:
+        ulmo_io.write_main_table(modis_tbl, tbl_20s_file)
+
 def slurp_tables(debug=False):
     tbl_20s_file = 's3://modis-l2/Tables/MODIS_L2_20202021.parquet'
-    full_tbl_file = 's3://modis-l2/Tables/MODIS_L2_20202021.parquet'
+    full_tbl_file = 's3://modis-l2/Tables/MODIS_SSL_96clear.parquet'
 
     # Load
     modis_20s_tbl = ulmo_io.load_main_table(tbl_20s_file)
@@ -647,6 +670,10 @@ if __name__ == "__main__":
         ncpu = args.ncpu if args.ncpu is not None else 10
         years = [int(item) for item in args.years.split(',')] if args.years is not None else [2020,2021]
         extract_modis(debug=args.debug, n_cores=ncpu, local=args.local, years=years)
+
+    # python ssl_modis_v4.py --func_flag preproc --debug
+    if args.func_flag == 'preproc':
+        modis_20s_preproc(debug=args.debug)
 
     # python ssl_modis_v4.py --func_flag slurp_tables --debug
     if args.func_flag == 'slurp_tables':

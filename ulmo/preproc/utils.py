@@ -303,8 +303,32 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
                 preproc_folder='PreProc',
                 nsub_fields=10000, 
                 use_mask=True,
+                clobber=False, 
                 inpainted_mask=False,
                 n_cores=10):
+    """ PreProcess a set of images
+
+    Args:
+        data_tbl (pandas.DataFrame): 
+            Table of input images
+        valid_fraction (float): 
+            Proportion of the data to select for the validation set
+        s3_bucket (str): 
+            Name of the S3 bucket (used to head for the Compute Node)
+        preproc_root (str, optional): 
+            Options for preproc
+        debug (bool, optional): Defaults to False.
+        extract_folder (str, optional): _description_. Defaults to 'Extract'.
+        preproc_folder (str, optional): _description_. Defaults to 'PreProc'.
+        nsub_fields (int, optional): _description_. Defaults to 10000.
+        use_mask (bool, optional): _description_. Defaults to True.
+        inpainted_mask (bool, optional): _description_. Defaults to False.
+        n_cores (int, optional): _description_. Defaults to 10.
+        clobber (bool, optional): Defaults to False.
+
+    Returns:
+        _type_: _description_
+    """
 
     # Preprocess options
     pdict = pp_io.load_options(preproc_root)
@@ -331,7 +355,8 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
 
         # Download to local
         local_file = os.path.join(extract_folder, os.path.basename(ex_file))
-        ulmo_io.download_file_from_s3(local_file, ex_file)
+        if not os.path.isfile(local_file) or clobber:
+            ulmo_io.download_file_from_s3(local_file, ex_file)
 
         # Output file -- This is prone to crash
         local_outfile = local_file.replace('inpaint', 
