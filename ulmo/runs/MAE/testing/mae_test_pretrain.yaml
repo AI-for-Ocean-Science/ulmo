@@ -34,7 +34,7 @@ spec:
             cpu: "6"
             memory: "25Gi"
             ephemeral-storage: 100Gi
-            nvidia.com/gpu:  "1"  # See docs to exlude certain types
+            nvidia.com/gpu:  "8"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]
             #command: ["sh", "-c", "sleep infinity"]
         args:
@@ -43,9 +43,10 @@ spec:
             git checkout mae; 
             git pull; 
             python setup.py develop;
-            sleep 900;
-            cd ulmo/runs/SSL/MODIS/v4;
-            python ./ssl_modis_v3.py --func_flag evaluate
+            cp ulmo/mae/correct_helpers.py /root/miniconda3/lib/python3.8/site-packages/timm/models/layers/helpers.py;
+            cd ulmo/runs/MAE/testing;
+            python ./mae_test.py 
+            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp s3://modis-l2/SSL/preproc/MODIS_SSL_96clear_images.h5 ./;
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"
