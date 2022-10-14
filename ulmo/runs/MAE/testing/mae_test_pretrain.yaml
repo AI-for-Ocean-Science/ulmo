@@ -1,4 +1,5 @@
 # Script to evaluate an SSL model on the 96% CF MODIS data
+# kubectl exec -it test-pod -- /bin/bash
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -33,7 +34,7 @@ spec:
             cpu: "6"
             memory: "25Gi"
             ephemeral-storage: 100Gi
-            nvidia.com/gpu:  "8"  # See docs to exlude certain types
+            nvidia.com/gpu:  "1"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]
             #command: ["sh", "-c", "sleep infinity"]
         args:
@@ -42,6 +43,7 @@ spec:
             git checkout mae; 
             git pull; 
             python setup.py develop;
+            sleep 900;
             cd ulmo/runs/SSL/MODIS/v4;
             python ./ssl_modis_v3.py --func_flag evaluate
         env:
