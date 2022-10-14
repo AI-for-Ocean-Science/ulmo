@@ -430,8 +430,6 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
             print("Removed: {}".format(local_file))
 
         # Write
-        if debug:
-            embed(header='434 of preproc')
         data_tbl = write_pp_fields(pp_fields, 
                                  meta, 
                                  data_tbl, 
@@ -439,7 +437,8 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
                                  img_idx,
                                  valid_fraction, 
                                  s3_file, 
-                                 local_outfile)
+                                 local_outfile,
+                                 debug=debug)
 
         # Write to s3
         if not debug:
@@ -454,6 +453,7 @@ def write_pp_fields(pp_fields:list, meta:list,
                     ppf_idx:np.ndarray,
                     valid_fraction:float,
                     s3_file:str, local_file:str,
+                    debug:bool=False,
                     skip_meta=False):
     """Write a set of pre-processed cutouts to disk
 
@@ -472,6 +472,8 @@ def write_pp_fields(pp_fields:list, meta:list,
     Returns:
         pandas.DataFrame: Updated main table
     """
+    if debug:
+        embed(header='474 of preproc')
     
     # Recast
     pp_fields = np.stack(pp_fields)
