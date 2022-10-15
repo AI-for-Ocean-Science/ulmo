@@ -142,10 +142,10 @@ def main_train(opt_path: str, debug=False, restore=False, save_file=None):
         f.create_dataset('loss_avg_valid', data=np.array(loss_avg_valid))
         
 
-def main_evaluate(opt_path, preproc='_std', debug=False, 
+def main_ssl_evaluate(opt_path, preproc='_std', debug=False, 
                   clobber=False):
     """
-    This function is used to obtain the latents of the trained models
+    This function is used to obtain the SSL latents of the trained models
     for all of MODIS
 
     Args:
@@ -175,6 +175,7 @@ def main_evaluate(opt_path, preproc='_std', debug=False,
 
     # Loop on files
     if debug:
+        embed(header='178 of v4')
         pp_files = pp_files[0:1]
 
     latents_path = os.path.join(opt.s3_outdir, opt.latents_folder)
@@ -554,15 +555,32 @@ def slurp_tables(debug=False):
     modis_full = ulmo_io.load_main_table(full_tbl_file)
 
     # Strip original if it is there..
-    embed(header='557 of v4')
+    bad = modis_full.UID.values == modis_full.iloc[0].UID
+    bad[0] = False
+    modis_full = modis_full[~bad].copy()
 
     # Rename ulmo_pp_type
     modis_20s_tbl.rename(columns={'pp_type':'ulmo_pp_type'}, inplace=True)
+
+    # Deal with filenames
+    filenames = []
+    for ifile in modis_20s_tbl.filename:
+        filenames.append(os.path.basename(ifile))
+    modis_20s_tbl['filename'] = filenames
+
+    # Deal with pp_filenames
+    pp_filenames = []
+    for ifile in modis_20s_tbl.pp_file:
+        pp_filenames.append(os.path.basename(ifile.replace('standard', 'std')))
+    modis_20s_tbl['pp_file'] = pp_filenames
 
     # Fill up the new table with dummy values
     for key in modis_full.keys():
         if key not in modis_20s_tbl.keys():
             modis_20s_tbl[key] = modis_full[key].values[0]
+
+    # Generate new UIDs
+    modis_20s_tbl['UID'] = modis_utils.modis_uid(modis_20s_tbl)
 
     # Drop unwanted
     for key in modis_20s_tbl.keys():
@@ -574,7 +592,7 @@ def slurp_tables(debug=False):
                                ignore_index=True)
 
     if debug:
-        embed(header='573 of v4')
+        embed(header='597 of v4')
 
     # Vet
     assert cat_utils.vet_main_table(modis_full, cut_prefix='ulmo_')
