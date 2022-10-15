@@ -601,6 +601,24 @@ def slurp_tables(debug=False):
         ulmo_io.write_main_table(modis_full, full_tbl_file)
 
 
+
+def cut_96(debug=False):
+    full_tbl_file = 's3://modis-l2/Tables/MODIS_SSL_96clear.parquet'
+
+    # Load
+    modis_full = ulmo_io.load_main_table(full_tbl_file)
+
+    # Cut
+    cut = modis_full.clear_fraction < 0.04
+    modis_full = modis_full[cut].copy()
+
+    # Vet
+    assert cat_utils.vet_main_table(modis_full, cut_prefix='ulmo_')
+
+    # Final write
+    if not debug:
+        ulmo_io.write_main_table(modis_full, full_tbl_file)
+
 def modis_ulmo_evaluate(debug=False):
 
     # Load
@@ -751,6 +769,10 @@ if __name__ == "__main__":
     # python ssl_modis_v4.py --func_flag slurp_tables --debug
     if args.func_flag == 'slurp_tables':
         slurp_tables(debug=args.debug)
+
+    # python ssl_modis_v4.py --func_flag cut_96 --debug
+    if args.func_flag == 'cut_96':
+        cut_96(debug=args.debug)
 
     # python ssl_modis_v4.py --func_flag ulmo_evaluate --debug
     if args.func_flag == 'ulmo_evaluate':
