@@ -175,7 +175,6 @@ def main_ssl_evaluate(opt_path, preproc='_std', debug=False,
 
     # Loop on files
     if debug:
-        embed(header='178 of v4')
         pp_files = pp_files[0:1]
 
     latents_path = os.path.join(opt.s3_outdir, opt.latents_folder)
@@ -757,8 +756,8 @@ if __name__ == "__main__":
     if args.func_flag == 'ulmo_evaluate':
         modis_ulmo_evaluate(debug=args.debug)
 
-    # python ssl_modis_v4.py --func_flag evaluate --debug
+    # python ssl_modis_v4.py --func_flag ssl_evaluate --debug
     if args.func_flag == 'ssl_evaluate':
-        main_ssl_evaluate(debug=args.debug)
+        main_ssl_evaluate(args.opt_path, debug=args.debug)
         
     
