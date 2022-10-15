@@ -34,6 +34,7 @@ from ulmo.ssl.train_util import train_model
 from ulmo.preproc import io as pp_io 
 from ulmo.modis import utils as modis_utils
 from ulmo.modis import extract as modis_extract
+from ulmo.analysis import evaluate as ulmo_evaluate 
 
 from IPython import embed
 
@@ -552,7 +553,53 @@ def slurp_tables(debug=False):
     modis_20s_tbl = ulmo_io.load_main_table(tbl_20s_file)
     modis_full = ulmo_io.load_main_table(full_tbl_file)
 
-    embed(header='526 of v4')
+    # Rename ulmo_pp_type
+    modis_20s_tbl.rename(columns={'pp_type':'ulmo_pp_type'}, inplace=True)
+
+    # Fill up the new table with dummy values
+    for key in modis_full.keys():
+        if key not in modis_20s_tbl.keys():
+            modis_20s_tbl[key] = modis_full[key].values[0]
+
+    # Drop unwanted
+    for key in modis_20s_tbl.keys():
+        if key not in modis_full.keys():
+            modis_20s_tbl.drop(key, axis=1, inplace=True)
+
+    # Concat
+    modis_full = pandas.concat([modis_full, modis_20s_tbl],
+                               ignore_index=True)
+
+    if debug:
+        embed(header='573 of v4')
+
+    # Vet
+    assert cat_utils.vet_main_table(modis_full, cut_prefix='ulmo_')
+
+    # Final write
+    if not debug:
+        ulmo_io.write_main_table(modis_full, full_tbl_file)
+
+
+def modis_ulmo_evaluate(debug=False):
+
+    # Load
+    tbl_20s_file = 's3://modis-l2/Tables/MODIS_L2_20202021.parquet'
+    modis_tbl = ulmo_io.load_main_table(tbl_20s_file)
+
+    # Grab 2020 and 2021
+    if debug:
+        embed(header='591 of v4')
+
+    # Evaluate
+    modis_tbl = ulmo_evaluate.eval_from_main(modis_tbl)
+
+    # Write 
+    assert cat_utils.vet_main_table(modis_tbl)
+
+    if not debug:
+        ulmo_io.write_main_table(modis_tbl, tbl_20s_file)
+
 
 def calc_dt40(debug=False, local=False):
 
@@ -685,8 +732,12 @@ if __name__ == "__main__":
     if args.func_flag == 'slurp_tables':
         slurp_tables(debug=args.debug)
 
+    # python ssl_modis_v4.py --func_flag ulmo_evaluate --debug
+    if args.func_flag == 'ulmo_evaluate':
+        modis_ulmo_evaluate(debug=args.debug)
+
     # python ssl_modis_v4.py --func_flag evaluate --debug
-    if args.func_flag == 'evaluate':
-        main_evaluate(args.opt_path, debug=args.debug)
+    if args.func_flag == 'ssl_evaluate':
+        main_ssl_evaluate(debug=args.debug)
         
     
