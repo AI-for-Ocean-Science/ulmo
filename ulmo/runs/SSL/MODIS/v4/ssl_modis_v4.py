@@ -553,6 +553,9 @@ def slurp_tables(debug=False):
     modis_20s_tbl = ulmo_io.load_main_table(tbl_20s_file)
     modis_full = ulmo_io.load_main_table(full_tbl_file)
 
+    # Strip original if it is there..
+    embed(header='557 of v4')
+
     # Rename ulmo_pp_type
     modis_20s_tbl.rename(columns={'pp_type':'ulmo_pp_type'}, inplace=True)
 
