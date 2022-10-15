@@ -2,7 +2,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-ssl-modis-v4-eval
+  name: xavier-ssl-modis-v4-ssl-eval
 spec:
   backoffLimit: 0
   template:
@@ -26,11 +26,11 @@ spec:
         imagePullPolicy: Always
         resources:
           requests:
-            cpu: "4"   # Using at least 4
+            cpu: "2"   # Using at least 4
             memory: "10Gi"  # Using ~7
             ephemeral-storage: 50Gi
           limits:
-            cpu: "6"
+            cpu: "4"
             memory: "25Gi"
             ephemeral-storage: 100Gi
             nvidia.com/gpu:  "1"  # See docs to exlude certain types
@@ -45,7 +45,7 @@ spec:
             pip install -U smart-open[s3];
             python setup.py develop;
             cd ulmo/runs/SSL/MODIS/v4;
-            python ./ssl_modis_v3.py --func_flag evaluate
+            python ./ssl_modis_v4.py --func_flag ssl_evaluate
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"
