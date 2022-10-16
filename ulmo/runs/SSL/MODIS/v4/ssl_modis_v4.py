@@ -642,12 +642,7 @@ def modis_ulmo_evaluate(debug=False):
 def calc_dt40(debug=False, local=False):
 
     # Table
-    if local:
-        tbl_file = os.path.join(os.getenv('SST_OOD'),
-                                'MODIS_L2', 'Tables', 
-                                'MODIS_SSL_96clear.parquet')
-    else:
-        tbl_file = 's3://modis-l2/Tables/MODIS_SSL_96clear.parquet'
+    tbl_file = 's3://modis-l2/Tables/MODIS_SSL_96clear.parquet'
     modis_tbl = ulmo_io.load_main_table(tbl_file)
     modis_tbl['DT40'] = 0.
 
