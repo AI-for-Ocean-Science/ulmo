@@ -655,6 +655,8 @@ def calc_dt40(debug=False, local=False):
     preproc_files = np.unique(modis_tbl.pp_file.values)
 
     # Loop on files
+    if debug:
+        embed(header='659 of v4')
     for pfile in preproc_files:
         basename = os.path.basename(pfile)
         if local:
@@ -687,8 +689,8 @@ def calc_dt40(debug=False, local=False):
     # Save
     if not debug:
         # To s3
-        tbl_file = 's3://modis-l2/Tables/MODIS_SSL_96clear.parquet'
-        ulmo_io.write_main_table(modis_tbl, tbl_file)
+        s3_file = 's3://modis-l2/Tables/MODIS_SSL_96clear.parquet'
+        ulmo_io.write_main_table(modis_tbl, s3_file)
 
     print("All done")
 
@@ -752,10 +754,6 @@ if __name__ == "__main__":
         main_train(args.opt_path, debug=args.debug)
         print("Training Ends.")
 
-    # python ssl_modis_v4.py --func_flag DT40 --debug
-    if args.func_flag == 'DT40':
-        calc_dt40(debug=args.debug, local=args.local)
-
     # python ssl_modis_v4.py --func_flag extract_new --ncpu 20 --local --years 2020 --debug
     if args.func_flag == 'extract_new':
         ncpu = args.ncpu if args.ncpu is not None else 10
@@ -782,4 +780,6 @@ if __name__ == "__main__":
     if args.func_flag == 'ssl_evaluate':
         main_ssl_evaluate(args.opt_path, debug=args.debug)
         
-    
+    # python ssl_modis_v4.py --func_flag DT40 --debug
+    if args.func_flag == 'DT40':
+        calc_dt40(debug=args.debug, local=args.local)
