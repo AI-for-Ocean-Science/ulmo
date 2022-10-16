@@ -652,13 +652,24 @@ def calc_dt40(opt_path, debug:bool=False, local:bool=False):
     opt = option_preprocess(ulmo_io.Params(opt_path))
 
     # Tables
-    tbl_file = 's3://modis-l2/Tables/MODIS_SSL_96clear.parquet'
+    if not debug:
+        tbl_file = 's3://modis-l2/Tables/MODIS_SSL_96clear.parquet'
+    else:
+        tbl_file = os.path.join(os.getenv('SST_OOD'),
+                                'MODIS_L2', 'Tables', 
+                                'MODIS_SSL_96clear.parquet')
     modis_tbl = ulmo_io.load_main_table(tbl_file)
     modis_tbl['DT40'] = 0.
-    full_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
+    if debug:
+        full_file = os.path.join(os.getenv('SST_OOD'),
+                                'MODIS_L2', 'Tables', 
+                                'MODIS_L2_std.parquet')
+    else:
+        full_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
     full_modis_tbl = ulmo_io.load_main_table(full_file)
 
     # Fix ULMO crap and more
+    print("Fixing the ulmo crap")
     ulmo_pp_idx = modis_tbl.pp_idx.values
     ulmo_pp_type = modis_tbl.pp_type.values
     ulmo_pp_file = modis_tbl.pp_file.values
@@ -671,6 +682,7 @@ def calc_dt40(opt_path, debug:bool=False, local:bool=False):
     modis_tbl['ulmo_pp_idx'] = ulmo_pp_idx
     modis_tbl['ulmo_pp_type'] = ulmo_pp_type
     modis_tbl['ulmo_pp_file'] = ulmo_pp_file
+    print("Done..")
 
     # Fix s3 in 2020
     new_pp_files = []
@@ -685,8 +697,6 @@ def calc_dt40(opt_path, debug:bool=False, local:bool=False):
     preproc_files = np.unique(modis_tbl.pp_file.values)
 
     # Loop on files
-    #if debug:
-    #    embed(header='659 of v4')
     for pfile in preproc_files:
         if debug and '2010' not in pfile:
             continue
@@ -704,28 +714,33 @@ def calc_dt40(opt_path, debug:bool=False, local:bool=False):
         f = h5py.File(basename, 'r')
 
         # Load it all
-        DT40(f, modis_tbl, pfile, itype='valid')
+        DT40(f, modis_tbl, pfile, itype='valid', verbose=debug)
         if 'train' in f.keys():
-            DT40(f, modis_tbl, pfile, itype='train')
+            DT40(f, modis_tbl, pfile, itype='train', verbose=debug)
+
+        # Close
+        f.close()
+
+        # Check
+        if debug:
+            embed(header='725 of v4')
 
         # Remove 
         if not debug and not local:
             os.remove(basename)
-
-        if debug:
-            break
-
     # Vet
     assert cat_utils.vet_main_table(modis_tbl, cut_prefix='ulmo_')
 
     # Save
     if not debug:
         ulmo_io.write_main_table(modis_tbl, opt.tbl_file)
+    else:
+        embed(header='740 of v4')
 
     print("All done")
 
 def DT40(f:h5py.File, modis_tbl:pandas.DataFrame, 
-         pfile:str, itype:str='train'):
+         pfile:str, itype:str='train', verbose=False):
     """Calculate DT40 for a given file
 
     Args:
@@ -735,15 +750,20 @@ def DT40(f:h5py.File, modis_tbl:pandas.DataFrame,
         itype (str, optional): _description_. Defaults to 'train'.
     """
     fields = f[itype][:]
+    if verbose:
+        print("Calculating T90")
     T_90 = np.percentile(fields[:, 0, 32-20:32+20, 32-20:32+20], 
         90., axis=(1,2))
+    if verbose:
+        print("Calculating T10")
     T_10 = np.percentile(fields[:, 0, 32-20:32+20, 32-20:32+20], 
-        90., axis=(1,2))
+        10., axis=(1,2))
     DT_40 = T_90 - T_10
     # Fill
     ppt = 0 if itype == 'valid' else 1
     idx = (modis_tbl.pp_file == pfile) & (modis_tbl.ulmo_pp_type == ppt)
     pp_idx = modis_tbl[idx].ulmo_pp_idx.values
+    embed(header='762 of v4')
     modis_tbl.loc[idx, 'DT40'] = DT_40[pp_idx]
     return 
 
@@ -763,6 +783,7 @@ def ssl_v4_umap(opt_path:str, debug=False):
     opt = option_preprocess(ulmo_io.Params(opt_path))
 
     # Generate v4 Table?
+    embed(header='766 of v4')
     modis_tbl = ulmo_io.load_main_table(opt.tbl_file)
 
     # Base
@@ -777,16 +798,17 @@ def ssl_v4_umap(opt_path:str, debug=False):
             os.getenv('SST_OOD'), 
             f'MODIS_L2/UMAP/MODIS_SSL_{base1}_{subset}_UMAP.pkl')
 
-        if debug:
-            embed(header='754 of v4')
         # DT cut
         DT_cut = None if subset == 'DTall' else subset
+
+        if debug:
+            embed(header='786 of v4')
 
         # Run
         ssl_umap.umap_subset(modis_tbl.copy(),
                              opt_path, 
                              outfile, 
-                             DT_cut=DT_cut, debug=False, 
+                             DT_cut=DT_cut, debug=debug, 
                             umap_savefile=umap_savefile,
                             remove=False, CF=False)
 

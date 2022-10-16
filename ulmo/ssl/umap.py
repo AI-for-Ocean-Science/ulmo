@@ -12,6 +12,8 @@ from ulmo.ssl.train_util import option_preprocess
 from ulmo.utils import catalog as cat_utils
 from ulmo.ssl import defs as ssl_defs
 
+from IPython import embed
+
 def umap_subset(modis_tbl:pandas.DataFrame, 
                 opt_path:str, outfile:str, DT_cut=None, 
                 ntrain=200000, remove=True,
@@ -132,6 +134,8 @@ def umap_subset(modis_tbl:pandas.DataFrame,
     nlatents = all_latents.shape[0]
 
     # UMAP me
+    if debug:
+        embed(header='136 of umap')
     ntrain = min(ntrain, nlatents)
     print(f"Training UMAP on a random {ntrain} set of the files")
     random = np.random.choice(np.arange(nlatents), size=ntrain, 
