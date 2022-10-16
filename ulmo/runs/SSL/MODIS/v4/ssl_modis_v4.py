@@ -650,6 +650,15 @@ def calc_dt40(debug=False, local=False):
         tbl_file = 's3://modis-l2/Tables/MODIS_SSL_96clear.parquet'
     modis_tbl = ulmo_io.load_main_table(tbl_file)
     modis_tbl['DT40'] = 0.
+
+    # Fix s3 in 2020
+    new_pp_files = []
+    for pp_file in modis_tbl.pp_file:
+        if 's3' not in pp_file:
+            new_pp_files.append('s3://modis-l2/PreProc/'+pp_file)
+        else:
+            new_pp_files.append(pp_file)
+    modis_tbl['pp_file'] = new_pp_files
     
     # Grab the list
     preproc_files = np.unique(modis_tbl.pp_file.values)
@@ -780,6 +789,6 @@ if __name__ == "__main__":
     if args.func_flag == 'ssl_evaluate':
         main_ssl_evaluate(args.opt_path, debug=args.debug)
         
-    # python ssl_modis_v4.py --func_flag DT40 --debug
+    # python ssl_modis_v4.py --func_flag DT40 --debug --local
     if args.func_flag == 'DT40':
         calc_dt40(debug=args.debug, local=args.local)
