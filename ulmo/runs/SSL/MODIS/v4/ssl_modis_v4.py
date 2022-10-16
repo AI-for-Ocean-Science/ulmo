@@ -761,35 +761,34 @@ def ssl_v4_umap(opt_path:str, debug=False):
     """
     # Load up the options file
     opt = option_preprocess(ulmo_io.Params(opt_path))
-    model_file = os.path.join(opt.model_folder, 'last.pth')
 
     # Generate v4 Table?
-    try:
-        modis_tbl = ulmo_io.load_main_table(opt.tbl_file)
-    except:
-        orig_s3_file = 's3://modis-l2/Tables/MODIS_SSL_96clear.parquet'
-        orig_modis_tbl = ulmo_io.load_main_table(orig_s3_file)
-        modis_tbl = orig_modis_tbl.copy()
+    modis_tbl = ulmo_io.load_main_table(opt.tbl_file)
 
-    # Run
-
-    # Full
-    subset = 'DTall'
+    # Base
     base1 = '96clear_v4'
-    outfile = os.path.join(
-        os.getenv('SST_OOD'), 
-        f'MODIS_L2/Tables/MODIS_SSL_{base1}_{subset}.parquet')
-    umap_savefile = os.path.join(
-        os.getenv('SST_OOD'), 
-        f'MODIS_L2/UMAP/MODIS_SSL_{base1}_{subset}_UMAP.pkl')
 
-    # Run
-    if debug:
-        embed(header='754 of v4')
-    ssl_umap.umap_subset(opt_path, outfile, DT_cut=None, 
-                         debug=False, 
-                         umap_savefile=umap_savefile,
-                         remove=False, CF=False)
+    for subset in ['DT0', 'DT1', 'DT15', 'DT2', 'DT4', 'DT5', 'DTall']:
+        # Files
+        outfile = os.path.join(
+            os.getenv('SST_OOD'), 
+            f'MODIS_L2/Tables/MODIS_SSL_{base1}_{subset}.parquet')
+        umap_savefile = os.path.join(
+            os.getenv('SST_OOD'), 
+            f'MODIS_L2/UMAP/MODIS_SSL_{base1}_{subset}_UMAP.pkl')
+
+        if debug:
+            embed(header='754 of v4')
+        # DT cut
+        DT_cut = None if subset == 'DTall' else subset
+
+        # Run
+        ssl_umap.umap_subset(modis_tbl.copy(),
+                             opt_path, 
+                             outfile, 
+                             DT_cut=DT_cut, debug=False, 
+                            umap_savefile=umap_savefile,
+                            remove=False, CF=False)
 
 def parse_option():
     """
