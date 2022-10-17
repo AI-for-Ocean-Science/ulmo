@@ -423,6 +423,7 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
 
             del answers, fields, masks, items
             f.close()
+            embed(header='426 of preproc')
 
         # Remove local_file
         if remove_local:

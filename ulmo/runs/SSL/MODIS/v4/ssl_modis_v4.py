@@ -262,6 +262,7 @@ def extract_modis(debug=False, n_cores=10, local=False,
     """
     # 10 cores took 6hrs
     # 20 cores took 3hrs
+    raise ValueError("Fix mask inpainting if you run this again!!")
 
     if debug:
         tbl_file = 's3://modis-l2/Tables/MODIS_L2_20202021_debug.parquet'
@@ -517,6 +518,47 @@ def extract_modis(debug=False, n_cores=10, local=False,
     #process = subprocess.run(['s4cmd', '--force', '--endpoint-url',
     #    'https://s3.nautilus.optiputer.net', 'put', save_path, 
     #    s3_filename])
+
+def revert_mask(debug=False):
+    """ Revert the extraction mask
+
+    Args:
+        debug (bool, optional): _description_. Defaults to False.
+    """
+    tbl_20s_file = 's3://modis-l2/Tables/MODIS_L2_20202021.parquet'
+    modis_tbl = ulmo_io.load_main_table(tbl_20s_file)
+    # Reset index
+    modis_tbl.reset_index(drop=True, inplace=True)
+
+    # Loop on em
+    uni_ex_files = np.unique(modis_tbl.ex_filename)
+    for ex_file in uni_ex_files:
+        print("Working on Extraction file: {}".format(ex_file))
+        # Download to local
+        local_file = os.path.join('Extract', os.path.basename(ex_file))
+        if not os.path.isfile(local_file):
+            ulmo_io.download_file_from_s3(local_file, ex_file)
+        # New filename
+        new_exfile = local_file.replace('inpaint', 'inpaintT')
+        f_old = h5py.File(local_file, 'r')
+        with h5py.File(new_exfile, 'w') as f:
+            f.create_dataset('fields', data=f_old['fields'][:])
+            f.create_dataset('metadata', data=f_old['metadata'][:])
+            f.create_dataset('masks', data=f_old['inpainted_masks'][:])
+        print("Wrote: {}".format(new_exfile))
+
+    # Reset ex_filename
+    ex_files = []
+    for ex_file in modis_tbl.ex_filename:
+        ex_files.append(ex_file.replace('inpaint', 'inpaintT'))
+    modis_tbl['ex_filename'] = ex_files
+
+    # Vet
+    assert cat_utils.vet_main_table(modis_tbl)
+
+    # Final write
+    if not debug:
+        ulmo_io.write_main_table(modis_tbl, tbl_20s_file)
 
 def modis_20s_preproc(debug=False, n_cores=20):
     """Pre-process the files
@@ -873,6 +915,10 @@ if __name__ == "__main__":
         ncpu = args.ncpu if args.ncpu is not None else 10
         years = [int(item) for item in args.years.split(',')] if args.years is not None else [2020,2021]
         extract_modis(debug=args.debug, n_cores=ncpu, local=args.local, years=years)
+
+    # python ssl_modis_v4.py --func_flag revert_mask --debug
+    if args.func_flag == 'revert_mask':
+        revert_mask(debug=args.debug)
 
     # python ssl_modis_v4.py --func_flag preproc --debug
     if args.func_flag == 'preproc':
