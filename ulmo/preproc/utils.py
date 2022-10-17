@@ -170,7 +170,7 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
     field : np.ndarray
     mask : np.ndarray or None
         Data mask.  True = masked
-        Required for inpainting
+        Required for inpainting but otherwise ignored
     inpaint : bool, optional
         if True, inpaint masked values
     median : bool, optional
@@ -322,7 +322,7 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
         extract_folder (str, optional): _description_. Defaults to 'Extract'.
         preproc_folder (str, optional): _description_. Defaults to 'PreProc'.
         nsub_fields (int, optional): _description_. Defaults to 10000.
-        use_mask (bool, optional): _description_. Defaults to True.
+        use_mask (bool, optional): Passed to preproc_image(). Defaults to True.
         inpainted_mask (bool, optional): _description_. Defaults to False.
         n_cores (int, optional): _description_. Defaults to 10.
         clobber (bool, optional): Defaults to False.
@@ -421,9 +421,11 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
             img_idx += [item[1] for item in answers]
             meta += [item[2] for item in answers]
 
+            if debug:
+                embed(header='426 of preproc')
+            # Clean up
             del answers, fields, masks, items
             f.close()
-            embed(header='426 of preproc')
 
         # Remove local_file
         if remove_local:

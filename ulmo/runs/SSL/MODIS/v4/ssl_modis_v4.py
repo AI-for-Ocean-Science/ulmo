@@ -575,7 +575,7 @@ def modis_20s_preproc(debug=False, n_cores=20):
     modis_tbl = pp_utils.preproc_tbl(modis_tbl, 1., 
                                      's3://modis-l2',
                                      preproc_root='standard',
-                                     inpainted_mask=True,
+                                     inpainted_mask=False,
                                      use_mask=True,
                                      debug=debug,
                                      remove_local=False,
