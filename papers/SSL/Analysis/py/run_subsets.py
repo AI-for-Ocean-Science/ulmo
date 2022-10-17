@@ -80,7 +80,7 @@ def generate_full_table(outroot='MODIS_SSL_96clear_DTu.parquet'):
     print(f'Wrote: {outfile}')
     print(f'Upload to s3! s3://modis-l2/Tables/{outroot}')
 
-def run_subset(subset, remove=True, CF=False):                    
+def run_subset(subset:str, remove=True, CF=False):                    
 
     DT_cut = ssl_defs.umap_DT[subset]
 
