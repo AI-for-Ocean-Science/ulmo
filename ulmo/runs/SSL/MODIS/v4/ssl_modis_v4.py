@@ -703,7 +703,9 @@ def calc_dt40(debug=False, local=False):
 
     print("All done")
 
-def DT40(f, modis_tbl, pfile, itype='train'):
+def DT40(f:h5py.File, modis_tbl:pandas.DataFrame, 
+         pfile:str, itype:str='train'):
+    # Grab the data
     fields = f[itype][:]
     T_90 = np.percentile(fields[:, 0, 32-20:32+20, 32-20:32+20], 
         90., axis=(1,2))
