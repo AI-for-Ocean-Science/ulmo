@@ -684,7 +684,7 @@ def modis_ulmo_evaluate(debug=False):
         modis_tbl['pp_file'] = pp_filenames
 
     if debug:
-        embed(header='591 of v4')
+        embed(header='687 of v4')
 
     # Evaluate
     modis_tbl = ulmo_evaluate.eval_from_main(modis_tbl)
@@ -938,6 +938,11 @@ if __name__ == "__main__":
     if args.func_flag == 'preproc':
         modis_20s_preproc(debug=args.debug)
 
+    # python ssl_modis_v4.py --func_flag ulmo_evaluate --debug
+    #  This comes before the slurp and cut
+    if args.func_flag == 'ulmo_evaluate':
+        modis_ulmo_evaluate(debug=args.debug)
+
     # python ssl_modis_v4.py --func_flag slurp_tables --debug
     if args.func_flag == 'slurp_tables':
         slurp_tables(debug=args.debug)
@@ -945,10 +950,6 @@ if __name__ == "__main__":
     # python ssl_modis_v4.py --func_flag cut_96 --debug
     if args.func_flag == 'cut_96':
         cut_96(debug=args.debug)
-
-    # python ssl_modis_v4.py --func_flag ulmo_evaluate --debug
-    if args.func_flag == 'ulmo_evaluate':
-        modis_ulmo_evaluate(debug=args.debug)
 
     # python ssl_modis_v4.py --func_flag ssl_evaluate --debug
     if args.func_flag == 'ssl_evaluate':
