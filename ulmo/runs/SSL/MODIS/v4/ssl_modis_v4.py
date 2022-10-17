@@ -615,11 +615,6 @@ def slurp_tables(debug=False, orig_strip=False):
         filenames.append(os.path.basename(ifile))
     modis_20s_tbl['filename'] = filenames
 
-    # Deal with pp_filenames
-    pp_filenames = []
-    for ifile in modis_20s_tbl.pp_file:
-        pp_filenames.append(os.path.basename(ifile.replace('standardT', 'std')))
-    modis_20s_tbl['pp_file'] = pp_filenames
 
     # Fill up the new table with dummy values
     for key in modis_full.keys():
@@ -658,6 +653,7 @@ def cut_96(debug=False):
     # Load
     modis_full = ulmo_io.load_main_table(full_tbl_file)
 
+
     # Cut
     cut = modis_full.clear_fraction < 0.04
     modis_full = modis_full[cut].copy()
@@ -676,9 +672,16 @@ def modis_ulmo_evaluate(debug=False):
         debug (bool, optional): _description_. Defaults to False.
     """
 
-    # Load
+    # Load 2020s
     tbl_20s_file = 's3://modis-l2/Tables/MODIS_L2_20202021.parquet'
     modis_tbl = ulmo_io.load_main_table(tbl_20s_file)
+
+    # Deal with pp_filenames
+    if 'standardT' in modis_tbl.pp_file.values[0]:
+        pp_filenames = []
+        for ifile in modis_tbl.pp_file:
+            pp_filenames.append(os.path.basename(ifile.replace('standardT', 'std')))
+        modis_tbl['pp_file'] = pp_filenames
 
     if debug:
         embed(header='591 of v4')
