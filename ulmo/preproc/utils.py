@@ -361,7 +361,8 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
             ulmo_io.download_file_from_s3(local_file, ex_file)
 
         # Output file -- This is prone to crash
-        local_outfile = local_file.replace('inpaint', 
+        srep = 'inpaintT' if 'inpaintT' in local_file else 'inpaint'
+        local_outfile = local_file.replace(srep,
                                            'preproc_'+preproc_root).replace(
                                                extract_folder, preproc_folder)
         s3_file = os.path.join(s3_bucket, preproc_folder, 
