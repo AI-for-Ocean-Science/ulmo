@@ -588,7 +588,7 @@ def modis_20s_preproc(debug=False, n_cores=20):
     if not debug:
         ulmo_io.write_main_table(modis_tbl, tbl_20s_file)
 
-def slurp_tables(debug=False):
+def slurp_tables(debug=False, orig_strip=False):
     tbl_20s_file = 's3://modis-l2/Tables/MODIS_L2_20202021.parquet'
     full_tbl_file = 's3://modis-l2/Tables/MODIS_SSL_96clear.parquet'
 
@@ -597,8 +597,13 @@ def slurp_tables(debug=False):
     modis_full = ulmo_io.load_main_table(full_tbl_file)
 
     # Strip original if it is there..
-    bad = modis_full.UID.values == modis_full.iloc[0].UID
-    bad[0] = False
+    if orig_strip:
+        bad = modis_full.UID.values == modis_full.iloc[0].UID
+        bad[0] = False
+    else:
+        bad2020 = np.array(['R2019_2020' in pp_file for pp_file in modis_full.pp_file.values])
+        bad2021 = np.array(['R2019_2021' in pp_file for pp_file in modis_full.pp_file.values])
+        bad = bad2020 | bad2021
     modis_full = modis_full[~bad].copy()
 
     # Rename ulmo_pp_type
@@ -613,7 +618,7 @@ def slurp_tables(debug=False):
     # Deal with pp_filenames
     pp_filenames = []
     for ifile in modis_20s_tbl.pp_file:
-        pp_filenames.append(os.path.basename(ifile.replace('standard', 'std')))
+        pp_filenames.append(os.path.basename(ifile.replace('standardT', 'std')))
     modis_20s_tbl['pp_file'] = pp_filenames
 
     # Fill up the new table with dummy values
@@ -646,6 +651,8 @@ def slurp_tables(debug=False):
 
 
 def cut_96(debug=False):
+    """ Cut to 96% clear 
+    """
     full_tbl_file = 's3://modis-l2/Tables/MODIS_SSL_96clear.parquet'
 
     # Load
@@ -663,12 +670,16 @@ def cut_96(debug=False):
         ulmo_io.write_main_table(modis_full, full_tbl_file)
 
 def modis_ulmo_evaluate(debug=False):
+    """ Run Ulmo on the 2020s data
+
+    Args:
+        debug (bool, optional): _description_. Defaults to False.
+    """
 
     # Load
     tbl_20s_file = 's3://modis-l2/Tables/MODIS_L2_20202021.parquet'
     modis_tbl = ulmo_io.load_main_table(tbl_20s_file)
 
-    # Grab 2020 and 2021
     if debug:
         embed(header='591 of v4')
 
