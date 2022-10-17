@@ -640,7 +640,8 @@ def modis_ulmo_evaluate(debug=False):
         ulmo_io.write_main_table(modis_tbl, tbl_20s_file)
 
 
-def calc_dt40(opt_path, debug:bool=False, local:bool=False):
+def calc_dt40(opt_path, debug:bool=False, local:bool=False,
+              redo=False):
     """ Calculate DT40 in all the 96 clear data
 
     Args:
@@ -652,37 +653,41 @@ def calc_dt40(opt_path, debug:bool=False, local:bool=False):
     opt = option_preprocess(ulmo_io.Params(opt_path))
 
     # Tables
-    if not debug:
-        tbl_file = 's3://modis-l2/Tables/MODIS_SSL_96clear.parquet'
+    if redo:
+        tbl_file = 's3://modis-l2/Tables/MODIS_SSL_v4.parquet'
+        modis_tbl = ulmo_io.load_main_table(tbl_file)
     else:
-        tbl_file = os.path.join(os.getenv('SST_OOD'),
-                                'MODIS_L2', 'Tables', 
-                                'MODIS_SSL_96clear.parquet')
-    modis_tbl = ulmo_io.load_main_table(tbl_file)
-    modis_tbl['DT40'] = 0.
-    if debug:
-        full_file = os.path.join(os.getenv('SST_OOD'),
-                                'MODIS_L2', 'Tables', 
-                                'MODIS_L2_std.parquet')
-    else:
-        full_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
-    full_modis_tbl = ulmo_io.load_main_table(full_file)
+        if not debug:
+            tbl_file = 's3://modis-l2/Tables/MODIS_SSL_96clear.parquet'
+        else:
+            tbl_file = os.path.join(os.getenv('SST_OOD'),
+                                    'MODIS_L2', 'Tables', 
+                                    'MODIS_SSL_96clear.parquet')
+        modis_tbl = ulmo_io.load_main_table(tbl_file)
+        modis_tbl['DT40'] = 0.
+        if debug:
+            full_file = os.path.join(os.getenv('SST_OOD'),
+                                    'MODIS_L2', 'Tables', 
+                                    'MODIS_L2_std.parquet')
+        else:
+            full_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
+        full_modis_tbl = ulmo_io.load_main_table(full_file)
 
-    # Fix ULMO crap and more
-    print("Fixing the ulmo crap")
-    ulmo_pp_idx = modis_tbl.pp_idx.values
-    ulmo_pp_type = modis_tbl.pp_type.values
-    ulmo_pp_file = modis_tbl.pp_file.values
-    mtch = cat_utils.match_ids(modis_tbl.UID, full_modis_tbl.UID, 
-                               require_in_match=False) # 2020, 2021
-    new = mtch >= 0
-    ulmo_pp_idx[new] = full_modis_tbl.pp_idx.values[mtch[new]]
-    ulmo_pp_type[new] = full_modis_tbl.pp_type.values[mtch[new]]
-    ulmo_pp_file[new] = full_modis_tbl.pp_file.values[mtch[new]]
-    modis_tbl['ulmo_pp_idx'] = ulmo_pp_idx
-    modis_tbl['ulmo_pp_type'] = ulmo_pp_type
-    modis_tbl['ulmo_pp_file'] = ulmo_pp_file
-    print("Done..")
+        # Fix ULMO crap and more
+        print("Fixing the ulmo crap")
+        ulmo_pp_idx = modis_tbl.pp_idx.values
+        ulmo_pp_type = modis_tbl.pp_type.values
+        ulmo_pp_file = modis_tbl.pp_file.values
+        mtch = cat_utils.match_ids(modis_tbl.UID, full_modis_tbl.UID, 
+                                require_in_match=False) # 2020, 2021
+        new = mtch >= 0
+        ulmo_pp_idx[new] = full_modis_tbl.pp_idx.values[mtch[new]]
+        ulmo_pp_type[new] = full_modis_tbl.pp_type.values[mtch[new]]
+        ulmo_pp_file[new] = full_modis_tbl.pp_file.values[mtch[new]]
+        modis_tbl['ulmo_pp_idx'] = ulmo_pp_idx
+        modis_tbl['ulmo_pp_type'] = ulmo_pp_type
+        modis_tbl['ulmo_pp_file'] = ulmo_pp_file
+        print("Done..")
 
     # Fix s3 in 2020
     new_pp_files = []
@@ -695,11 +700,14 @@ def calc_dt40(opt_path, debug:bool=False, local:bool=False):
     
     # Grab the list
     preproc_files = np.unique(modis_tbl.pp_file.values)
+    if redo:
+        # Only 2020, 2021
+        preproc_files = preproc_files[-2:]
 
     # Loop on files
     for pfile in preproc_files:
-        if debug and '2010' not in pfile:
-            continue
+        #if debug and '2010' not in pfile:
+        #    continue
         basename = os.path.basename(pfile)
         if local:
             basename = os.path.join(os.getenv('SST_OOD'),
@@ -763,6 +771,7 @@ def DT40(f:h5py.File, modis_tbl:pandas.DataFrame,
     ppt = 0 if itype == 'valid' else 1
     idx = (modis_tbl.pp_file == pfile) & (modis_tbl.ulmo_pp_type == ppt)
     pp_idx = modis_tbl[idx].ulmo_pp_idx.values
+    embed(header='774 of v4')
     modis_tbl.loc[idx, 'DT40'] = DT_40[pp_idx]
     return 
 
@@ -832,6 +841,8 @@ def parse_option():
                         help='Local?')
     parser.add_argument('--clobber', default=False, action='store_true',
                         help='Clobber existing files')
+    parser.add_argument('--redo', default=False, action='store_true',
+                        help='Redo?')
     parser.add_argument("--outfile", type=str, 
                         help="Path to output file")
     parser.add_argument("--umap_file", type=str, 
@@ -885,7 +896,8 @@ if __name__ == "__main__":
         
     # python ssl_modis_v4.py --func_flag DT40 --debug --local
     if args.func_flag == 'DT40':
-        calc_dt40(args.opt_path, debug=args.debug, local=args.local)
+        calc_dt40(args.opt_path, debug=args.debug, local=args.local,
+                  redo=args.redo)
 
     # python ssl_modis_v4.py --func_flag umap --debug
     if args.func_flag == 'umap':
