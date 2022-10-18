@@ -62,10 +62,17 @@ def load_hp_files(hp_type, hp_root:str):
         return None
 
 def fig_LL_histograms(outfile='fig_LL_histograms.png', local=True):
+    """ Main histogram figure
+
+    Args:
+        outfile (str, optional): _description_. Defaults to 'fig_LL_histograms.png'.
+        local (bool, optional): _description_. Defaults to True.
+    """
 
     llc_tbl = sst_compare_utils.load_table('llc_match', local=local)
     viirs_tbl = sst_compare_utils.load_table('viirs', local=local)
     print(f"N VIIRS: {len(viirs_tbl)}")
+    print(f"N LLC: {len(llc_tbl)}")
 
     # Stats
     med_viirs = np.median(viirs_tbl.LL)
@@ -90,8 +97,13 @@ def fig_LL_histograms(outfile='fig_LL_histograms.png', local=True):
     plt.clf()
     ax = plt.gca()
 
-    _ = sns.histplot(llc_tbl, x='LL', ax=ax, label='LLC')
-    _ = sns.histplot(viirs_tbl, x='LL', ax=ax, color='orange', label='VIIRS')
+    stat = 'density'
+    _ = sns.histplot(llc_tbl, x='LL', ax=ax, label='LLC', stat=stat)
+    _ = sns.histplot(viirs_tbl, x='LL', ax=ax, color='orange', 
+                     label='VIIRS', stat=stat)
+
+    print(f"VIIRS: {len(viirs_tbl)}")
+    print(f"LLC: {len(llc_tbl)}")
 
     ax.set_xlim(xmnx)
 
