@@ -379,9 +379,9 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
         # Write the file locally
         # Process them all, then deal with train/validation
         pp_fields, meta, img_idx = [], [], []
+        if debug:
+            nloop = 3
         for kk in range(nloop):
-            if debug and kk > 0:
-                continue
             f = h5py.File(local_file, mode='r')
 
             # Load the images into memory
@@ -423,6 +423,7 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
             meta += [item[2] for item in answers]
 
             if debug:
+                from ulmo.plotting import plotting
                 embed(header='426 of preproc')
             # Clean up
             del answers, fields, masks, items
@@ -516,7 +517,8 @@ def write_pp_fields(pp_fields:list, meta:list,
                 # Add to clms
                 if key not in clms:
                     clms += [key]
-
+    if debug:
+        embed(header='523 of preproc')
     # Train/validation
     n = int(valid_fraction * pp_fields.shape[0])
     idx = shuffle(np.arange(pp_fields.shape[0]))

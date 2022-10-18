@@ -2,6 +2,7 @@
 96% clear 
 New set of Augmentations
 """
+from operator import mod
 import os
 from typing import IO
 import numpy as np
@@ -17,7 +18,8 @@ from functools import partial
 from concurrent.futures import ProcessPoolExecutor
 from tqdm import tqdm
 
-import h5py
+from matplotlib import pyplot as plt
+import seaborn as sns
 
 from ulmo import io as ulmo_io
 from ulmo.utils import catalog as cat_utils
@@ -594,9 +596,32 @@ def slurp_tables(debug=False, orig_strip=False):
 
     # Load
     modis_20s_tbl = ulmo_io.load_main_table(tbl_20s_file)
-    modis_full = ulmo_io.load_main_table(full_tbl_file)
+
+    # Check
+    modis_20s_tbl['DT'] = modis_20s_tbl.T90 - modis_20s_tbl.T10
+
+    def plot_DTvsLL(tbl):
+        print("Generating the plot...")
+        ymnx = [-5000., 1000.]
+        jg = sns.jointplot(data=tbl, x='DT', y='LL', kind='hex',
+                        bins='log', gridsize=250, xscale='log',
+                        cmap=plt.get_cmap('autumn'), mincnt=1,
+                        marginal_kws=dict(fill=False, color='black', 
+                                            bins=100)) 
+        jg.ax_joint.set_xlabel(r'$\Delta T$')
+        jg.ax_joint.set_ylim(ymnx)
+        plt.colorbar()
+        plt.show()
+
+    # New check
+    print("New years")
+    plot_DTvsLL(modis_20s_tbl)
 
     # Strip original if it is there..
+    modis_full = ulmo_io.load_main_table(full_tbl_file)
+    print("Full table")
+    modis_full['DT'] = modis_full.T90 - modis_full.T10
+    plot_DTvsLL(modis_full)
     if orig_strip:
         bad = modis_full.UID.values == modis_full.iloc[0].UID
         bad[0] = False
@@ -605,6 +630,8 @@ def slurp_tables(debug=False, orig_strip=False):
         bad2021 = np.array(['R2019_2021' in pp_file for pp_file in modis_full.pp_file.values])
         bad = bad2020 | bad2021
     modis_full = modis_full[~bad].copy()
+
+    # Another check
 
     # Rename ulmo_pp_type
     modis_20s_tbl.rename(columns={'pp_type':'ulmo_pp_type'}, inplace=True)
@@ -963,3 +990,30 @@ if __name__ == "__main__":
     # python ssl_modis_v4.py --func_flag umap --debug
     if args.func_flag == 'umap':
         ssl_v4_umap(args.opt_path, debug=args.debug)
+
+
+'''
+filename            /tank/xavier/Oceanography/data/MODIS/SST/night...
+row                                                              1296
+col                                                               261
+lat                                                          41.75395
+lon                                                         -125.5704
+clear_fraction                                               0.036377
+field_size                                                        128
+datetime                                          2020-03-13 10:05:00
+ex_filename         s3://modis-l2/Extractions/MODIS_R2019_2020_95c...
+pp_file             s3://modis-l2/PreProc/MODIS_R2019_2020_95clear...
+pp_root                                                      standard
+pp_idx                                                             -1
+pp_type                                                            -1
+mean_temperature                                            10.258268
+Tmin                                                             8.55
+Tmax                                                            11.69
+T90                                                            11.065
+T10                                                          9.474999
+LL                                                         277.648804
+
+In [5]: meta[0]
+Out[5]: {'Tmax': 11.69, 'Tmin': 8.55, 'T10': 9.474999, 'T90': 11.065, 'mu': 10.258268}
+
+'''
