@@ -589,6 +589,9 @@ def modis_20s_preproc(debug=False, n_cores=20):
     # Final write
     if not debug:
         ulmo_io.write_main_table(modis_tbl, tbl_20s_file)
+    else:
+        ulmo_io.write_main_table(modis_tbl, 'preproc_debug.parquet', to_s3=False)
+        print('Wrote: preproc_debug.parquet')
 
 def slurp_tables(debug=False, orig_strip=False):
     tbl_20s_file = 's3://modis-l2/Tables/MODIS_L2_20202021.parquet'

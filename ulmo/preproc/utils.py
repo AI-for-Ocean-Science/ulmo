@@ -422,9 +422,9 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
             img_idx += [item[1] for item in answers]
             meta += [item[2] for item in answers]
 
-            if debug:
-                from ulmo.plotting import plotting
-                embed(header='426 of preproc')
+            #if debug:
+            #    from ulmo.plotting import plotting
+            #    embed(header='426 of preproc')
             # Clean up
             del answers, fields, masks, items
             f.close()
@@ -477,13 +477,11 @@ def write_pp_fields(pp_fields:list, meta:list,
     Returns:
         pandas.DataFrame: Updated main table
     """
-    if debug:
-        embed(header='474 of preproc')
-    
     # Recast
     pp_fields = np.stack(pp_fields)
     pp_fields = pp_fields[:, None, :, :]  # Shaped for training
     pp_fields = pp_fields.astype(np.float32) # Recast
+
 
     print("After pre-processing, there are {} images ready for analysis".format(pp_fields.shape[0]))
     
@@ -517,21 +515,27 @@ def write_pp_fields(pp_fields:list, meta:list,
                 # Add to clms
                 if key not in clms:
                     clms += [key]
-    if debug:
-        embed(header='523 of preproc')
     # Train/validation
     n = int(valid_fraction * pp_fields.shape[0])
     idx = shuffle(np.arange(pp_fields.shape[0]))
     valid_idx, train_idx = idx[:n], idx[n:]
 
-    # Update table
-    all_tf = np.array([False]*len(main_tbl))
-    all_tf[idx_idx[valid_idx]] = True
-    main_tbl.loc[all_tf, 'pp_idx'] = np.arange(valid_idx.size)
+    if debug:
+        embed(header='526 of preproc')
+
+    # Update table (this indexing is brutal..)
+    #all_tf = np.array([False]*len(main_tbl))
+    #all_tf[idx_idx[valid_idx]] = True
+    #main_tbl.loc[all_tf, 'pp_idx'] = np.arange(valid_idx.size)
+    for kk, ii in enumerate(idx_idx[valid_idx]):
+        main_tbl.loc[ii, 'pp_idx'] = kk
+    if len(train_idx) > 0:
+        for kk, ii in enumerate(idx_idx[train_idx]):
+            main_tbl.loc[ii, 'pp_idx'] = kk
     #main_tbl.loc[idx_idx[valid_idx], 'pp_idx'] = np.arange(valid_idx.size)
-    all_tf = np.array([False]*len(main_tbl))
-    all_tf[idx_idx[train_idx]] = True
-    main_tbl.loc[all_tf, 'pp_idx'] = np.arange(train_idx.size)
+    #all_tf = np.array([False]*len(main_tbl))
+    #all_tf[idx_idx[train_idx]] = True
+    #main_tbl.loc[all_tf, 'pp_idx'] = np.arange(train_idx.size)
     #main_tbl.loc[idx_idx[train_idx], 'pp_idx'] = np.arange(train_idx.size)
 
     main_tbl.loc[idx_idx[valid_idx], 'pp_type'] = ulmo_defs.mtbl_dmodel['pp_type']['valid']
