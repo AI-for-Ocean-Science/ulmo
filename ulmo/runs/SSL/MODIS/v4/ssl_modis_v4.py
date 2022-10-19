@@ -666,9 +666,10 @@ def slurp_tables(debug=False, orig_strip=False):
     # Concat
     modis_full = pandas.concat([modis_full, modis_20s_tbl],
                                ignore_index=True)
+    modis_full.drop(columns='DT', inplace=True)
 
     if debug:
-        embed(header='597 of v4')
+        embed(header='672 of v4')
 
     # Vet
     assert cat_utils.vet_main_table(modis_full, cut_prefix='ulmo_')
