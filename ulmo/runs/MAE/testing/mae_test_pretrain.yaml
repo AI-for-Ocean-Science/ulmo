@@ -31,7 +31,7 @@ spec:
             memory: "10Gi"  # Using ~7
             ephemeral-storage: 50Gi
           limits:
-            cpu: "6"
+            cpu: "1"
             memory: "25Gi"
             ephemeral-storage: 100Gi
             nvidia.com/gpu:  "8"  # See docs to exlude certain types
