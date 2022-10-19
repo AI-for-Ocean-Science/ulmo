@@ -659,6 +659,10 @@ def slurp_tables(debug=False, orig_strip=False):
         if key not in modis_full.keys():
             modis_20s_tbl.drop(key, axis=1, inplace=True)
 
+    # Cut on 96% clear
+    cut = modis_20s_tbl.clear_fraction < 0.04
+    modis_20s_tbl = modis_20s_tbl[cut].copy()
+
     # Concat
     modis_full = pandas.concat([modis_full, modis_20s_tbl],
                                ignore_index=True)
@@ -675,25 +679,26 @@ def slurp_tables(debug=False, orig_strip=False):
 
 
 
-def cut_96(debug=False):
-    """ Cut to 96% clear 
-    """
-    full_tbl_file = 's3://modis-l2/Tables/MODIS_SSL_96clear.parquet'
-
-    # Load
-    modis_full = ulmo_io.load_main_table(full_tbl_file)
-
-
-    # Cut
-    cut = modis_full.clear_fraction < 0.04
-    modis_full = modis_full[cut].copy()
-
-    # Vet
-    assert cat_utils.vet_main_table(modis_full, cut_prefix='ulmo_')
-
-    # Final write
-    if not debug:
-        ulmo_io.write_main_table(modis_full, full_tbl_file)
+# DEPRECATED
+#def cut_96(debug=False):
+#    """ Cut to 96% clear 
+#    """
+#    full_tbl_file = 's3://modis-l2/Tables/MODIS_SSL_96clear.parquet'
+#
+#    # Load
+#    modis_full = ulmo_io.load_main_table(full_tbl_file)
+#
+#
+#    # Cut
+#    cut = modis_full.clear_fraction < 0.04
+#    modis_full = modis_full[cut].copy()
+#
+#    # Vet
+#    assert cat_utils.vet_main_table(modis_full, cut_prefix='ulmo_')
+#
+#    # Final write
+#    if not debug:
+#        ulmo_io.write_main_table(modis_full, full_tbl_file)
 
 def modis_ulmo_evaluate(debug=False):
     """ Run Ulmo on the 2020s data
@@ -978,8 +983,8 @@ if __name__ == "__main__":
         slurp_tables(debug=args.debug)
 
     # python ssl_modis_v4.py --func_flag cut_96 --debug
-    if args.func_flag == 'cut_96':
-        cut_96(debug=args.debug)
+    #if args.func_flag == 'cut_96':
+    #    cut_96(debug=args.debug)
 
     # python ssl_modis_v4.py --func_flag ssl_evaluate --debug
     if args.func_flag == 'ssl_evaluate':
@@ -993,30 +998,3 @@ if __name__ == "__main__":
     # python ssl_modis_v4.py --func_flag umap --debug
     if args.func_flag == 'umap':
         ssl_v4_umap(args.opt_path, debug=args.debug)
-
-
-'''
-filename            /tank/xavier/Oceanography/data/MODIS/SST/night...
-row                                                              1296
-col                                                               261
-lat                                                          41.75395
-lon                                                         -125.5704
-clear_fraction                                               0.036377
-field_size                                                        128
-datetime                                          2020-03-13 10:05:00
-ex_filename         s3://modis-l2/Extractions/MODIS_R2019_2020_95c...
-pp_file             s3://modis-l2/PreProc/MODIS_R2019_2020_95clear...
-pp_root                                                      standard
-pp_idx                                                             -1
-pp_type                                                            -1
-mean_temperature                                            10.258268
-Tmin                                                             8.55
-Tmax                                                            11.69
-T90                                                            11.065
-T10                                                          9.474999
-LL                                                         277.648804
-
-In [5]: meta[0]
-Out[5]: {'Tmax': 11.69, 'Tmin': 8.55, 'T10': 9.474999, 'T90': 11.065, 'mu': 10.258268}
-
-'''
