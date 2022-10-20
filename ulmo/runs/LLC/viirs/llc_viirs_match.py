@@ -248,6 +248,21 @@ def llc_viirs_evaluate_144(tbl_file:str,
     # Write 
     ulmo_io.write_main_table(llc_table, tbl_file)
 
+def viirs_add_uid(debug=False):
+    """ Add a UID to the VIIRS table
+    """
+    # Load
+    tbl_file = 's3://viirs/Tables/VIIRS_2013_tst.parquet'
+    viirs_table = ulmo_io.load_main_table(tbl_file)
+
+    # Add
+    viirs_table['UID'] = np.arange(len(viirs_table))
+
+    # Vet
+    assert cat_utils.vet_main_table(modis_table)
+
+    # Write
+    ulmo_io.write_main_table(viirs_table, tbl_file)
 
 
 def main(flg):
@@ -266,6 +281,10 @@ def main(flg):
     if flg & (2**2):
         llc_viirs_evaluate_144(viirs_match_file)
 
+    # Add UID for *all* VIIRS tables
+    if flg & (2**3):
+        viirs_add_uid(debug=True)
+
 # Command line execution
 if __name__ == '__main__':
     import sys
@@ -275,6 +294,7 @@ if __name__ == '__main__':
         #flg += 2 ** 0  # 1 -- Setup coords and table
         #flg += 2 ** 1  # 2 -- Extract
         flg += 2 ** 2  # 4 -- Evaluate
+        flg += 2 ** 3  # 8 -- UID
 
 
 
