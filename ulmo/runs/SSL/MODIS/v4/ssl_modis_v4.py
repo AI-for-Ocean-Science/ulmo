@@ -863,7 +863,6 @@ def DT40(f:h5py.File, modis_tbl:pandas.DataFrame,
     ppt = 0 if itype == 'valid' else 1
     idx = (modis_tbl.pp_file == pfile) & (modis_tbl.ulmo_pp_type == ppt)
     pp_idx = modis_tbl[idx].ulmo_pp_idx.values
-    embed(header='774 of v4')
     modis_tbl.loc[idx, 'DT40'] = DT_40[pp_idx]
     return 
 
@@ -883,7 +882,6 @@ def ssl_v4_umap(opt_path:str, debug=False):
     opt = option_preprocess(ulmo_io.Params(opt_path))
 
     # Generate v4 Table?
-    embed(header='766 of v4')
     modis_tbl = ulmo_io.load_main_table(opt.tbl_file)
 
     # Base
