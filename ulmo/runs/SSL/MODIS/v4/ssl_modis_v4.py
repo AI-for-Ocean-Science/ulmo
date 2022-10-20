@@ -871,7 +871,7 @@ def DT40(f:h5py.File, modis_tbl:pandas.DataFrame,
     modis_tbl.loc[idx, 'DT40'] = DT_40[pp_idx]
     return 
 
-def ssl_v4_umap(opt_path:str, debug=False):
+def ssl_v4_umap(opt_path:str, debug=False, local=False):
     """Run a UMAP analysis on all the MODIS L2 data
     v4 model
 
@@ -911,6 +911,7 @@ def ssl_v4_umap(opt_path:str, debug=False):
         ssl_umap.umap_subset(modis_tbl.copy(),
                              opt_path, 
                              outfile, 
+                             local=local,
                              DT_cut=DT_cut, debug=debug, 
                             umap_savefile=umap_savefile,
                             remove=False, CF=False)
