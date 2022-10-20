@@ -10,12 +10,16 @@ from IPython import embed
 def match_ids(IDs, match_IDs, require_in_match=True):
     """ Match input IDs to another array of IDs (usually in a table)
     Return the rows aligned with input IDs
+
     Parameters
     ----------
     IDs : ndarray
+        IDs that are to be found in match_IDs
     match_IDs : ndarray
+        IDs to be searched
     require_in_match : bool, optional
-      Require that each of the input IDs occurs within the match_IDs
+        Require that each of the input IDs occurs within the match_IDs
+
     Returns
     -------
     rows : ndarray

@@ -188,7 +188,7 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
     field : np.ndarray
     mask : np.ndarray or None
         Data mask.  True = masked
-        Required for inpainting
+        Required for inpainting but otherwise ignored
     inpaint : bool, optional
         if True, inpaint masked values
     median : bool, optional
@@ -226,7 +226,7 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
     if inpaint:
         if mask.dtype.name != 'uint8':
             mask = np.uint8(mask)
-        field = sk_inpaint.inpaint_biharmonic(field, mask, multichannel=False)
+        field = sk_inpaint.inpaint_biharmonic(field, mask, channel_axis=None)
 
     if only_inpaint:
         if np.any(np.isnan(field)):
@@ -329,24 +329,30 @@ def preproc_tbl(data_tbl:pandas.DataFrame,
                 preproc_folder='PreProc',
                 nsub_fields=10000, 
                 use_mask=True,
+                remove_local=True,
+                clobber=False, 
                 inpainted_mask=False,
                 n_cores=10):
     """ Pre-process a Table of extracted files
 
     Args:
-        data_tbl (pandas.DataFrame): _description_
+        data_tbl (pandas.DataFrame): 
+            Table of input images
         valid_fraction (float): 
-            Fraction of data to use for training
-            The remainder is for testing
-        s3_bucket (str): _description_
-        preproc_root (str, optional): _description_. Defaults to 'standard'.
-        debug (bool, optional): _description_. Defaults to False.
+            Proportion of the data to select for the validation set
+        s3_bucket (str): 
+            Name of the S3 bucket (used to head for the Compute Node)
+        preproc_root (str, optional): 
+            Options for preproc
+        debug (bool, optional): Defaults to False.
         extract_folder (str, optional): _description_. Defaults to 'Extract'.
         preproc_folder (str, optional): _description_. Defaults to 'PreProc'.
         nsub_fields (int, optional): _description_. Defaults to 10000.
-        use_mask (bool, optional): _description_. Defaults to True.
+        use_mask (bool, optional): Passed to preproc_image(). Defaults to True.
         inpainted_mask (bool, optional): _description_. Defaults to False.
         n_cores (int, optional): _description_. Defaults to 10.
+        clobber (bool, optional): Defaults to False.
+        remove_local (bool, optional): If True, remove the local extraction file.  Defaults to True.
 
     Returns:
         _type_: _description_
@@ -363,7 +369,7 @@ def preproc_tbl(data_tbl:pandas.DataFrame,
     # Prep table
     data_tbl = prep_table_for_preproc(data_tbl, preproc_root)
     
-    # Folders
+    # Folders    mai    main_tbl['mean_temperature'] = [imeta['mu'] for imeta in meta]n_tbl['mean_temperature'] = [imeta['mu'] for imeta in meta]
     if not os.path.isdir(extract_folder):
         os.mkdir(extract_folder)                                            
     if not os.path.isdir(preproc_folder):
@@ -377,10 +383,12 @@ def preproc_tbl(data_tbl:pandas.DataFrame,
 
         # Download to local
         local_file = os.path.join(extract_folder, os.path.basename(ex_file))
-        ulmo_io.download_file_from_s3(local_file, ex_file)
+        if not os.path.isfile(local_file) or clobber:
+            ulmo_io.download_file_from_s3(local_file, ex_file)
 
         # Output file -- This is prone to crash
-        local_outfile = local_file.replace('inpaint', 
+        srep = 'inpaintT' if 'inpaintT' in local_file else 'inpaint'
+        local_outfile = local_file.replace(srep,
                                            'preproc_'+preproc_root).replace(
                                                extract_folder, preproc_folder)
         s3_file = os.path.join(s3_bucket, preproc_folder, 
@@ -397,6 +405,8 @@ def preproc_tbl(data_tbl:pandas.DataFrame,
         # Write the file locally
         # Process them all, then deal with train/validation
         pp_fields, meta, img_idx = [], [], []
+        if debug:
+            nloop = 3
         for kk in range(nloop):
             f = h5py.File(local_file, mode='r')
 
@@ -442,14 +452,20 @@ def preproc_tbl(data_tbl:pandas.DataFrame,
             img_idx += [item[1] for item in answers]
             meta += [item[2] for item in answers]
 
+            #if debug:
+            #    from ulmo.plotting import plotting
+            #    embed(header='426 of preproc')
+
+            # Clean up
             del answers, fields, items
             if use_mask:
                 del masks
             f.close()
 
         # Remove local_file
-        os.remove(local_file)
-        print("Removed: {}".format(local_file))
+        if remove_local:
+            os.remove(local_file)
+            print("Removed: {}".format(local_file))
 
         # Write
         data_tbl = write_pp_fields(pp_fields, 
@@ -459,10 +475,12 @@ def preproc_tbl(data_tbl:pandas.DataFrame,
                                  img_idx,
                                  valid_fraction, 
                                  s3_file, 
-                                 local_outfile)
+                                 local_outfile,
+                                 debug=debug)
 
         # Write to s3
-        ulmo_io.upload_file_to_s3(local_outfile, s3_file)
+        if not debug:
+            ulmo_io.upload_file_to_s3(local_outfile, s3_file)
 
     print("Done with generating pre-processed files..")
     return data_tbl
@@ -473,6 +491,7 @@ def write_pp_fields(pp_fields:list, meta:list,
                     ppf_idx:np.ndarray,
                     valid_fraction:float,
                     s3_file:str, local_file:str,
+                    debug:bool=False,
                     skip_meta=False):
     """Write a set of pre-processed cutouts to disk
 
@@ -491,11 +510,11 @@ def write_pp_fields(pp_fields:list, meta:list,
     Returns:
         pandas.DataFrame: Updated main table
     """
-    
     # Recast
     pp_fields = np.stack(pp_fields)
     pp_fields = pp_fields[:, None, :, :]  # Shaped for training
     pp_fields = pp_fields.astype(np.float32) # Recast
+
 
     print("After pre-processing, there are {} images ready for analysis".format(pp_fields.shape[0]))
     
@@ -508,24 +527,48 @@ def write_pp_fields(pp_fields:list, meta:list,
     # Mu
     clms = list(main_tbl.keys())
     if not skip_meta:
-        main_tbl.loc[idx_idx, 'mean_temperature'] = [float(imeta['mu']) for imeta in meta]
-        clms += ['mean_temperature']
         # Others
-        for key in ['Tmin', 'Tmax', 'T90', 'T10']:
+        all_tf = np.array([False]*len(main_tbl))
+        all_tf[idx_idx] = True
+        for key in ['mu', 'Tmin', 'Tmax', 'T90', 'T10']:
+            ikey = 'mean_temperature' if key == 'mu' else key
+
             if key in meta[0].keys():
-                main_tbl.loc[idx_idx, key] = [imeta[key] for imeta in meta]
+                # Init?
+                if ikey not in clms:
+                    main_tbl[ikey] = 0.
+                # unravel em
+                mvalues = []
+                for jj in ppf_idx:
+                    mvalues.append(meta[jj][key])
+                # Assign
+                main_tbl.loc[all_tf, ikey] = mvalues
                 # Add to clms
                 if key not in clms:
                     clms += [key]
-
     # Train/validation
     n = int(valid_fraction * pp_fields.shape[0])
     idx = shuffle(np.arange(pp_fields.shape[0]))
     valid_idx, train_idx = idx[:n], idx[n:]
 
-    # Update table
-    main_tbl.loc[idx_idx[valid_idx], 'pp_idx'] = np.arange(valid_idx.size)
-    main_tbl.loc[idx_idx[train_idx], 'pp_idx'] = np.arange(train_idx.size)
+    if debug:
+        embed(header='526 of preproc')
+
+    # Update table (this indexing is brutal..)
+    #all_tf = np.array([False]*len(main_tbl))
+    #all_tf[idx_idx[valid_idx]] = True
+    #main_tbl.loc[all_tf, 'pp_idx'] = np.arange(valid_idx.size)
+    for kk, ii in enumerate(idx_idx[valid_idx]):
+        main_tbl.loc[ii, 'pp_idx'] = kk
+    if len(train_idx) > 0:
+        for kk, ii in enumerate(idx_idx[train_idx]):
+            main_tbl.loc[ii, 'pp_idx'] = kk
+    #main_tbl.loc[idx_idx[valid_idx], 'pp_idx'] = np.arange(valid_idx.size)
+    #all_tf = np.array([False]*len(main_tbl))
+    #all_tf[idx_idx[train_idx]] = True
+    #main_tbl.loc[all_tf, 'pp_idx'] = np.arange(train_idx.size)
+    #main_tbl.loc[idx_idx[train_idx], 'pp_idx'] = np.arange(train_idx.size)
+
     main_tbl.loc[idx_idx[valid_idx], 'pp_type'] = ulmo_defs.mtbl_dmodel['pp_type']['valid']
     main_tbl.loc[idx_idx[train_idx], 'pp_type'] = ulmo_defs.mtbl_dmodel['pp_type']['train']
 

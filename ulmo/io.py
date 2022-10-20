@@ -130,6 +130,7 @@ def load_nc(filename, field='SST', verbose=True):
     or None's if the data is corrupt!
 
     """
+    raise DeprecationWarning("Use ulmo.modis.io.load_nc instead")
     geo = xr.open_dataset(
         filename_or_obj=filename,
         group='geophysical_data',
@@ -223,7 +224,7 @@ def load_to_bytes(s3_uri:str):
 
 
 def download_file_from_s3(local_file:str, s3_uri:str, 
-                          clobber_local=True):
+                          clobber_local=True, verbose=True):
     """ Grab an s3 file
 
     Args:
@@ -234,10 +235,12 @@ def download_file_from_s3(local_file:str, s3_uri:str,
     parsed_s3 = urlparse(s3_uri)
     # Download
     if not os.path.isfile(local_file) or clobber_local:
-        print("Downloading from s3: {}".format(local_file))
+        if verbose:
+            print("Downloading from s3: {}".format(local_file))
         s3.Bucket(parsed_s3.netloc).download_file(
             parsed_s3.path[1:], local_file)
-        print("Done!")
+        if verbose:
+            print("Done!")
     
 def upload_file_to_s3(local_file:str, s3_uri:str):
     """Upload a single file to s3 storage

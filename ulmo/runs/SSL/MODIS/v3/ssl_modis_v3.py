@@ -1,7 +1,6 @@
 """ SSL Analayis of MODIS -- 95% and CF 
 See v3 for 96% clear [final choice]
 """
-from logging import debug
 import os
 from re import A
 from typing import IO
@@ -35,7 +34,7 @@ from ulmo.ssl.train_util import train_model
 from IPython import embed
 
 
-def ssl_v2_umap(opt_path:str, debug=False, ntrain = 150000,
+def ssl_v3_umap(opt_path:str, debug=False, ntrain = 150000,
                 umap_file:str=None, ukeys:str=None,
                 outfile:str=None, ndim:int=2):
     """Run a UMAP analysis on all the MODIS L2 data
@@ -48,6 +47,7 @@ def ssl_v2_umap(opt_path:str, debug=False, ntrain = 150000,
         debug (bool, optional): For testing and debuggin 
         ndim (int, optional): Number of dimensions for the embedding
     """
+    raise NotImplementedError("Am using umap_subset in Analysis/py/ssl_paper_analy.py")
     # Load up the options file
     opt = option_preprocess(ulmo_io.Params(opt_path))
     model_file = os.path.join(opt.model_folder, 'last.pth')
@@ -210,6 +210,7 @@ def ssl_v2_umap(opt_path:str, debug=False, ntrain = 150000,
 def main_train(opt_path: str, debug=False, restore=False, save_file=None):
     """Train the model
 
+    Previously ---
     After running on 2012 without a validation dataset,
     I have now switched to running on 2010.  And to confuse
     everyone, I am going to use the valid set for training
@@ -217,6 +218,10 @@ def main_train(opt_path: str, debug=False, restore=False, save_file=None):
     for validation and ~800,000 for training.  
     But note it is done in the opt_path file.
     Yup, that is confusing
+
+    Now -- (June 2022)
+    We build a single file satisfying the clear_fraction criterion
+    and train/valid are properly named. 
 
     Args:
         opt_path (str): Path + filename of options file
@@ -339,12 +344,15 @@ def main_evaluate(opt_path, model_name,
     """
     # Parse the model
     opt = option_preprocess(ulmo_io.Params(opt_path))
-    model_file = os.path.join(opt.model_folder, 'last.pth')
+    model_file = os.path.join(opt.s3_outdir,
+        opt.model_folder, 'last.pth')
 
     # Load up the table
+    print(f"Grabbing table: {opt.tbl_file}")
     modis_tbl = ulmo_io.load_main_table(opt.tbl_file)
 
     # Grab the model
+    print(f"Grabbing model: {model_file}")
     model_base = os.path.basename(model_file)
     ulmo_io.download_file_from_s3(model_base, model_file)
     
@@ -438,14 +446,15 @@ def sub_tbl_2010():
     ulmo_io.write_main_table(valid_tbl, 'MODIS_2010_valid_SSLv2.parquet', to_s3=False)
     
 
-def prep_cloud_free(clear_fraction=0.01, local=True, 
+def prep_cloud_free(clear_fraction=96, local=True, 
                     img_shape=(64,64), debug=False, 
-                    outfile='MODIS_SSL_cloud_free_images.h5'):
+                    outfile='MODIS_SSL_96clear_images.h5',
+                    new_tbl_file='s3://modis-l2/Tables/MODIS_SSL_96clear.parquet'): 
     """ Generate a data file for SSL traiing on a subset of 
-    MODIS L2 that are "cloud free"  (>= 99% clear)
+    MODIS L2 that are "cloud free"  (>= 96% clear)
 
     Args:
-        clear_fraction (float, optional): [description]. Defaults to 0.01.
+        clear_fraction (float, optional): [description]. Defaults to 96
         local (bool, optional): [description]. Defaults to True.
         img_shape (tuple, optional): [description]. Defaults to (64,64).
         debug (bool, optional): [description]. Defaults to False.
@@ -462,8 +471,9 @@ def prep_cloud_free(clear_fraction=0.01, local=True,
     modis_tbl = ulmo_io.load_main_table(tbl_file)
 
     # Restrict to cloud free
-    cloud_free = modis_tbl.clear_fraction < clear_fraction
+    cloud_free = modis_tbl.clear_fraction < (1-clear_fraction/100)
     cfree_tbl = modis_tbl[cloud_free].copy()
+    print(f"We have {len(cfree_tbl)} images satisfying the clear_fraction={clear_fraction} criterion")
 
     # Save Ulmo pp_type
     cfree_tbl['ulmo_pp_type'] = cfree_tbl.pp_type.values.copy()
@@ -499,6 +509,7 @@ def prep_cloud_free(clear_fraction=0.01, local=True,
     valid_img_pp = img_tbl.pp_type == 0
     
     # Loop on PreProc files
+    print("Building the file for SSL training and validation")
     pp_files = np.unique(img_tbl.pp_file)
     ivalid, itrain = 0, 0
     for pp_file in pp_files:
@@ -550,11 +561,13 @@ def prep_cloud_free(clear_fraction=0.01, local=True,
 
     # Push to s3
     print("Uploading to s3")
-    ulmo_io.upload_file_to_s3(outfile, 's3://modis-l2/SSL/preproc/'+outfile)
+    ulmo_io.upload_file_to_s3(
+        outfile, 's3://modis-l2/SSL/preproc/'+outfile)
     
     # Table
-    assert cat_utils.vet_main_table(cfree_tbl, cut_prefix='ulmo_')
-    ulmo_io.write_main_table(cfree_tbl, 's3://modis-l2/Tables/MODIS_SSL_cloud_free.parquet') 
+    assert cat_utils.vet_main_table(
+        cfree_tbl, cut_prefix='ulmo_')
+    ulmo_io.write_main_table(cfree_tbl, new_tbl_file)
 
 def run_collect_images(pargs):
     if pargs.table_file is None:
@@ -576,8 +589,8 @@ def parse_option():
     """
     parser = argparse.ArgumentParser("argument for training.")
     parser.add_argument("--opt_path", type=str, 
-                        default='./experiments/modis_model_v2/opts_2010.json',
-                        help="Path to options file. Defaults to local + 2010")
+                        default='opts_96clear_ssl.json',
+                        help="Path to options file. Defaults to 96percent clear")
     parser.add_argument("--func_flag", type=str, 
                         help="flag of the function to be execute: train,evaluate,umap,umap_ndim3,sub2010,collect")
     parser.add_argument("--model", type=str, 
@@ -629,8 +642,10 @@ if __name__ == "__main__":
             ukeys = ('UT1_0', 'UT1_1')
         else:
             ukeys = None
-        ssl_v2_umap(args.opt_path, debug=args.debug, ndim=ndim,
-                    umap_file=args.umap_file, outfile=args.outfile,
+        ssl_v3_umap(args.opt_path, debug=args.debug, 
+                    ndim=ndim,
+                    umap_file=args.umap_file, 
+                    outfile=args.outfile,
                     ukeys=ukeys)
         print("UMAP Ends.")
 
@@ -644,17 +659,27 @@ if __name__ == "__main__":
                         clear_fraction=args.cf,
                         outfile=args.outfile)
 
-    # Prep for cloud free
+    # 
     if args.func_flag == 'collect':
         run_collect_images(args)
 
 
-# python ssl_modis_v2.py --opt_path ./experiments/modis_model_v2/opts_cloud_free.json --func_flag umap_ndim3
-# python ssl_modis_v2.py --opt_path ./experiments/modis_model_v2/opts_cloud_free.json --umap_file /tank/xavier/Oceanography/AI/OOD/SST/MODIS_L2/UMAP/MODIS_SSL_cloud_free_DT1_UMAP.pkl  --debug --func_flag umap_DT1
+# Re-run with 96% cloud free -- June 2022
 
-# Collect images
-# python ssl_modis_v2.py --func_flag collect --table_file=/tank/xavier/Oceanography/AI/OOD/SST/MODIS_L2/Tables/MODIS_SSL_cloud_free_DT1.parquet --outfile DT1_images.h5
+# Training images -- on profx (DONE) 2022-06-04 -- Done wrong
+# on profx (DONE) 2022-06-08 
+# python ssl_modis_v3.py --func_flag prep_cloud_free --cf 96 --outfile MODIS_SSL_96clear_images.h5
 
+# EXTRACTION WAS DONE WITH THE v2 FILE
 # Re-run with 96% cloud free -- June 2022
 #  BROKE OFF HERE AND STARTED v3
 # python ssl_modis_v2.py --func_flag prep_cloud_free
+
+
+# TRAIN :: Run in cloud
+#  python ./ssl_modis_v3.py --opt_path opts_96clear_ssl.json --func_flag train;
+
+# EVAL :: Run in cloud
+#  
+
+# UMAP ::

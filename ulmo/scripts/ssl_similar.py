@@ -1,5 +1,5 @@
-""" Script to grab LLC model data """
-### used to set the interpreter searching path
+""" Script to find a set of similar images based on SSL + UMAP """
+
 from signal import raise_signal
 import sys
 

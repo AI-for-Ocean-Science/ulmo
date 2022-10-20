@@ -27,6 +27,7 @@ def main(pargs):
 
     from ulmo.webpage_dynamic import os_portal
     from ulmo import io as ulmo_io
+    from ulmo import defs 
 
     from IPython import embed
 
@@ -37,11 +38,23 @@ def main(pargs):
     # Table
     main_tbl = ulmo_io.load_main_table(idict['table_file'])
 
-    # Cut down?
+    # Cut on image key
+
+
+    # Cut if train/valid
+    if idict['image_key'] in ['valid', 'train']:
+        pp_type = 'pp_type' if 'pp_type' not in idict.keys() else idict['pp_type']
+        keep = main_tbl[pp_type] == defs.mtbl_dmodel['pp_type'][idict['image_key']]
+        main_tbl = main_tbl[keep].copy()
+
+    # Cut down further?
     keep = np.array([False]*len(main_tbl))
     keep[np.arange(min(idict['Nimages'], len(main_tbl)))] = True 
     main_tbl = main_tbl[keep].copy()
-    sub_idx = np.arange(len(main_tbl))
+
+    # Indices
+    pp_idx = 'pp_idx' if 'pp_idx' not in idict.keys() else idict['pp_idx']
+    sub_idx = main_tbl[pp_idx].values
     
     print("Loading images")
     f = h5py.File(idict['image_file'], 'r') 
@@ -54,6 +67,9 @@ def main(pargs):
     for metric in idict['metrics']:
         if metric[0] == 'DT':
             metric_dict[metric[0]] = (main_tbl.T90-main_tbl.T10).values[sub_idx]
+        elif metric[1] == 'min_slope':
+            metric_dict[metric[0]] = np.minimum(main_tbl.merid_slope.values,
+                                                main_tbl.zonal_slope.values)[sub_idx]
         else:
             metric_dict[metric[0]] = main_tbl[metric[1]].values[sub_idx]
 
