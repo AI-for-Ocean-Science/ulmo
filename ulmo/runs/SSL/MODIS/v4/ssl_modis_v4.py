@@ -785,9 +785,14 @@ def calc_dt40(opt_path, debug:bool=False, local:bool=False,
     new_pp_files = []
     for pp_file in modis_tbl.pp_file:
         if 's3' not in pp_file:
-            new_pp_files.append('s3://modis-l2/PreProc/'+pp_file)
+            ipp_file = 's3://modis-l2/PreProc/'+pp_file
         else:
-            new_pp_files.append(pp_file)
+            ipp_file = pp_file
+        # Standard
+        if 'standard' in ipp_file:
+            ipp_file = ipp_file.replace('standard', 'std')
+        new_pp_files.append(ipp_file)
+            
     modis_tbl['pp_file'] = new_pp_files
     
     # Grab the list
