@@ -161,8 +161,12 @@ def umap_subset(modis_tbl:pandas.DataFrame,
     modis_tbl.loc[gd_idx, 'US1'] = embedding[srt,1]
 
     # Remove DT
-    modis_tbl.drop(columns=['DT', 'logDT', 'lowDT', 'absDT', 'min_slope'], 
-                   inplace=True)
+    drop_columns = []
+    for key in ['DT', 'logDT', 'lowDT', 'absDT', 'min_slope']: 
+        if key in modis_tbl.keys():
+            drop_columns.append(key)
+    if len(drop_columns) > 0:
+        modis_tbl.drop(columns=drop_columns, inplace=True)
     
     # Vet
     assert cat_utils.vet_main_table(modis_tbl, cut_prefix=cut_prefix)
