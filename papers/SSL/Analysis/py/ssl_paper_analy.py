@@ -79,11 +79,15 @@ def load_modis_tbl(table:str=None,
         # Base 1
         if 'CF' in table:
             base1 = 'MODIS_SSL_cloud_free'
+        elif '96_v4' in table:
+            base1 = 'MODIS_SSL_v4'
         elif '96' in table:
             base1 = 'MODIS_SSL_96clear'
         # DT
         if 'DT' in table:
-            dtstr = table.split('_')[1]
+            if 'v4' in table:
+                base1 = 'MODIS_SSL_96clear_v4'
+            dtstr = table.split('_')[-1]
             base2 = '_'+dtstr
         else:
             base2 = ''

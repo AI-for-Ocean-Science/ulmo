@@ -225,7 +225,7 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
     num_samples = len(modis_tbl)
     outfile = update_outfile(outfile, table, umap_dim,
                              umap_comp=umap_comp)
-    umap_keys = gen_umap_keys(umap_dim, umap_comp)
+    umap_keys = ssl_paper_analy.gen_umap_keys(umap_dim, umap_comp)
 
     # Inputs
     if cmap is None:
@@ -1961,3 +1961,21 @@ if __name__ == '__main__':
 #  python py/fig_ssl_modis.py learning_curve
 # FIGURE 4
 #  python py/fig_ssl_modis.py augment
+
+# #############################################################################
+# 96 v4
+
+# FIGURE 1
+# LL vs DT -- python py/fig_ssl_modis.py LLvsDT --local --table 96_v4
+
+# FIGURE 2
+# Slopes -- python py/fig_ssl_modis.py slopes --local --table 96_v4
+# FIGURE 3
+# Slope vs DT -- python py/fig_ssl_modis.py slopevsDT --local --table 96_v4
+
+# Figure 6
+# UMAP DTAll colored by DT (all) -- 
+# python py/fig_ssl_modis.py umap_DT --local --table 96clear_v4_DTall --umap_comp S0,S1
+
+# Figure 7
+#  python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DTall --umap_comp S0,S1 --vmnx=-1,1
