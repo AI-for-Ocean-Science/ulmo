@@ -250,6 +250,9 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
     elif metric == 'DT':
         values = modis_tbl.DT.values
         lmetric = r'$\Delta T$'
+    elif metric == 'DT40':
+        values = modis_tbl.DT40.values
+        lmetric = r'$\Delta T_{\rm 40}$'
     elif metric == 'clouds':
         values = modis_tbl.clear_fraction
     elif metric == 'slope':
@@ -429,7 +432,7 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
     # Load
     modis_tbl = ssl_paper_analy.load_modis_tbl(local=local, table=table)
 
-    umap_keys = gen_umap_keys(umap_dim, umap_comp)
+    umap_keys = ssl_paper_analy.gen_umap_keys(umap_dim, umap_comp)
     outfile = update_outfile(outfile, table, umap_dim,
                              umap_comp=umap_comp)
 
@@ -473,14 +476,14 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
         # Add more!
         dyv *= 0.66
         dxv *= 0.66
-    elif '96_DT' in table: 
+    elif '96_DT' in table or 'v4' in table: 
         if f'xrngs_{table}' in xyrng_dict.keys():
             xmin, xmax = xyrng_dict[f'xrngs_{table}']
             ymin, ymax = xyrng_dict[f'yrngs_{table}']
             dxv = 0.5 
             dyv = 0.25
         else:
-            umap_grid = grid_umap(modis_tbl[umap_keys[0]].values,
+            umap_grid = ssl_paper_analy.grid_umap(modis_tbl[umap_keys[0]].values,
                                   modis_tbl[umap_keys[1]].values, nxy=nxy)
             # Unpack
             xmin, xmax = umap_grid['xmin'], umap_grid['xmax']
@@ -1538,9 +1541,11 @@ def main(pargs):
                          umap_comp=pargs.umap_comp)
 
     # UMAP_DT 
-    if pargs.figure in 'umap_DT':
+    if pargs.figure in ['umap_DT', 'umap_DT40']:
         if 'all' in pargs.table:
             metric = 'logDT'
+        elif 'DT40' in pargs.figure:
+            metric = 'DT40'
         else:
             metric = 'DT'
         fig_umap_colored(local=pargs.local, table=pargs.table,
@@ -1979,3 +1984,10 @@ if __name__ == '__main__':
 
 # Figure 7
 #  python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DTall --umap_comp S0,S1 --vmnx=-1,1
+
+# Figure 8
+# UMAP DT15 colored by DT40 -- python py/fig_ssl_modis.py umap_DT40 --local --table 96clear_v4_DT15 --umap_comp S0,S1
+
+# Figure 9
+#  python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT15 --umap_comp S0,S1 --vmnx=-1,1
+#
