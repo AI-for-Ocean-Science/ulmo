@@ -19,6 +19,7 @@ from matplotlib import pyplot as plt
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 import cartopy.crs as ccrs
 import cartopy
+from sympy import im
 
 mpl.rcParams['font.family'] = 'stixgeneral'
 
@@ -417,6 +418,7 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
                      min_pts=10,
                      umap_dim=2,
                      use_std_lbls=True,
+                     cut_to_inner:int=None,
                      debug=False): 
     """ UMAP gallery
 
@@ -425,6 +427,8 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
         version (int, optional): [description]. Defaults to 1.
         local (bool, optional): [description]. Defaults to True.
         debug (bool, optional): [description]. Defaults to False.
+        cut_to_inner (int, optional): If provided, cut the image
+            down to the inner npix x npix with npix = cut_to_inner
 
     Raises:
         IOError: [description]
@@ -581,6 +585,7 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
             axins = ax_gallery.inset_axes(
                     [x, y, 0.9*dxv, 0.9*dyv], 
                     transform=ax_gallery.transData)
+            # Load
             try:
                 if local:
                     parsed_s3 = urlparse(cutout.pp_file)
@@ -592,7 +597,13 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
                 else:
                     cutout_img = image_utils.grab_image(cutout, close=True)
             except:
-                embed(header='198 of plotting')                                                    
+                embed(header='598 of plotting')                                                    
+            # Cut down?
+            if cut_to_inner is not None:
+                imsize = cutout_img.shape[0]
+                x0, y0 = [imsize//2-cut_to_inner//2]*2
+                x1, y1 = [imsize//2+cut_to_inner//2]*2
+                cutout_img = cutout_img[x0:x1,y0:y1]
             # Limits
             if in_vmnx[0] == -999:
                 DT = cutout.T90 - cutout.T10
@@ -1588,7 +1599,8 @@ def main(pargs):
                          table=pargs.table ,
             local=pargs.local, outfile=outfile,
             umap_dim=pargs.umap_dim,
-            umap_comp=pargs.umap_comp)
+            umap_comp=pargs.umap_comp,
+            cut_to_inner=40)
 
     if pargs.figure == 'umap_density':
         fig_umap_density(
