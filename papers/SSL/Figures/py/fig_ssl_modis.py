@@ -712,14 +712,31 @@ def fig_umap_2dhist(outfile='fig_umap_2dhist.png',
     plt.close()
     print('Wrote {:s}'.format(outfile))
 
-def fig_umap_geo(outfile, table, umap_rngs, local=False, 
-    nside=64, umap_comp='S0,S1', umap_dim=2, debug=False,
-    color='bwr', vmax=None): 
+def fig_umap_geo(outfile:str, table:str, umap_rngs:list, 
+                 local=False, nside=64, umap_comp='S0,S1', 
+                 umap_dim=2, debug=False, 
+                 color='bwr', vmax=None): 
+    """ Global geographic plot of the UMAP select range
+
+    Args:
+        outfile (str): 
+        table (str): 
+            Which table to use
+        umap_rngs (list): _description_
+        local (bool, optional): _description_. Defaults to False.
+        nside (int, optional): _description_. Defaults to 64.
+        umap_comp (str, optional): _description_. Defaults to 'S0,S1'.
+        umap_dim (int, optional): _description_. Defaults to 2.
+        debug (bool, optional): _description_. Defaults to False.
+        color (str, optional): _description_. Defaults to 'bwr'.
+        vmax (_type_, optional): _description_. Defaults to None.
+    """
 
     # Load
-    modis_tbl = ssl_paper_analy.load_modis_tbl(local=local, table=table)
+    modis_tbl = ssl_paper_analy.load_modis_tbl(
+        local=local, table=table)
 
-    umap_keys = gen_umap_keys(umap_dim, umap_comp)
+    umap_keys = ssl_paper_analy.gen_umap_keys(umap_dim, umap_comp)
     outfile = update_outfile(outfile, table, umap_dim,
                              umap_comp=umap_comp)
                             
@@ -1559,8 +1576,9 @@ def main(pargs):
             metric = 'DT40'
         else:
             metric = 'DT'
+        outfile='fig_umap_DT.png' if pargs.outfile is None else pargs.outfile
         fig_umap_colored(local=pargs.local, table=pargs.table,
-                         metric=metric, outfile='fig_umap_DT.png',
+                         metric=metric, outfile=outfile,
                          vmnx=(None,None),
                          umap_dim=pargs.umap_dim,
                          umap_comp=pargs.umap_comp)
@@ -1611,6 +1629,15 @@ def main(pargs):
             umap_comp=pargs.umap_comp)
 
     if pargs.figure == 'umap_geo':
+
+        # Parse
+        sp = pargs.umap_rngs.split(',')
+        umap_rngs = [[float(sp[0]), float(sp[1])], 
+             [float(sp[2]), float(sp[3])]]
+        # Do it
+        fig_umap_geo(pargs.outfile,
+            pargs.table, umap_rngs,
+            debug=pargs.debug, local=pargs.local)
         # Most boring
         #fig_umap_geo('fig_umap_geo_DT0_5656.png',
         #    '96_DT0', [[5.5,6.5], [5.3,6.3]], 
@@ -1631,9 +1658,9 @@ def main(pargs):
         #    debug=pargs.debug, local=pargs.local)
 
         # Shallow gradient region
-        fig_umap_geo('fig_umap_geo_DT15_6779.png',
-            '96_DT15', [[5,7], [7.5,9]], 
-            debug=pargs.debug, local=pargs.local)
+        #fig_umap_geo('fig_umap_geo_DT15_6779.png',
+        #    '96_DT15', [[5,7], [7.5,9]], 
+        #    debug=pargs.debug, local=pargs.local)
 
         # 'Turbulent' in DT2
         #fig_umap_geo('fig_umap_geo_DT2_5789.png',
@@ -1820,6 +1847,7 @@ def parse_option():
     parser.add_argument('--cmap', type=str, help="Color map")
     parser.add_argument('--umap_dim', type=int, default=2, help="UMAP embedding dimensions")
     parser.add_argument('--umap_comp', type=str, default='0,1', help="UMAP embedding dimensions")
+    parser.add_argument('--umap_rngs', type=str, help="UMAP ranges for analysis")
     parser.add_argument('--vmnx', default='-1,1', type=str, help="Color bar scale")
     parser.add_argument('--outfile', type=str, help="Outfile")
     parser.add_argument('--distr', type=str, default='normal',
@@ -1994,12 +2022,14 @@ if __name__ == '__main__':
 # UMAP DTAll colored by DT (all) -- 
 # python py/fig_ssl_modis.py umap_DT --local --table 96clear_v4_DTall --umap_comp S0,S1
 
-# Figure 7
-#  python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DTall --umap_comp S0,S1 --vmnx=-1,1
+# Figure 7 -- Full gallery
+#  python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DTall --umap_comp S0,S1 --vmnx=-1,1 --outfile fig_umap_gallery_DTall.png
 
 # Figure 8
-# UMAP DT15 colored by DT40 -- python py/fig_ssl_modis.py umap_DT40 --local --table 96clear_v4_DT15 --umap_comp S0,S1
+# UMAP DT15 colored by DT40 -- python py/fig_ssl_modis.py umap_DT40 --local --table 96clear_v4_DT15 --umap_comp S0,S1 --outfile fig_umap_DT40_DT15.png
 
-# Figure 9
-#  python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT15 --umap_comp S0,S1 --vmnx=-1,1
-#
+# Figure 9 DT15 gallery
+#  python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT15 --umap_comp S0,S1 --vmnx=-1,1 --outfile fig_umap_gallery_DT15.png
+
+# Figure 11 Global geo for DT15 and weak gradients
+#  python py/fig_ssl_modis.py umap_geo --local --outfile fig_umap_geo_global_DT15_weak.png --table 96clear_v4_DT15  --umap_rngs=1.5,3.,2.,3.
