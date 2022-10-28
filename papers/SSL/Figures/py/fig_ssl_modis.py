@@ -2033,3 +2033,15 @@ if __name__ == '__main__':
 
 # Figure 11 Global geo for DT15 and weak gradients
 #  python py/fig_ssl_modis.py umap_geo --local --outfile fig_umap_geo_global_DT15_weak.png --table 96clear_v4_DT15  --umap_rngs=1.5,3.,2.,3.
+
+# Figure 12 Global geo for DT1 and strong gradients
+#  python py/fig_ssl_modis.py umap_geo --local --outfile fig_umap_geo_global_DT1_strong.png --table 96clear_v4_DT1  --umap_rngs=4.7,8.,2.5,4.
+
+# Appendix
+#  python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT1 --umap_comp S0,S1 --vmnx=-0.75,0.75 --outfile fig_umap_gallery_DT1.png
+
+# Another strong gradient figure for DT15
+#  python py/fig_ssl_modis.py umap_geo --local --outfile fig_umap_geo_global_DT15_strong.png --table 96clear_v4_DT15  --umap_rngs=6,10,6,9
+
+# Geo global; clouds DT15
+#  python py/fig_ssl_modis.py umap_geo --local --outfile fig_umap_geo_global_DT15_clouds.png --table 96clear_v4_DT15  --umap_rngs=8.4,11.,1,4.
