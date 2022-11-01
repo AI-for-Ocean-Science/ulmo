@@ -14,19 +14,19 @@ with h5py.File(filepath, 'r') as f:
     print(len_valid)
     llc_modis_uniform = f['valid'][:] # Pretty sure this is pulling the file into mem
 
-print("suck my nuts please")
+print("Splitting data")
     
 llc_modis_uniform_train, llc_modis_uniform_test = train_test_split(
      llc_modis_uniform, test_size=0.1, random_state=0)
 
-print("awawawawaaa")
+print("Storing in new file")
 
 filepath_split = 'LLC_uniform_test_preproc_split.h5'
 with h5py.File(filepath_split, 'w') as f:
     f.create_dataset('train', data=llc_modis_uniform_train)
     f.create_dataset('valid', data=llc_modis_uniform_test)
 
-print("wah")
+print("Printing shapes")
 
 del(llc_modis_uniform)
 del(llc_modis_uniform_train)
