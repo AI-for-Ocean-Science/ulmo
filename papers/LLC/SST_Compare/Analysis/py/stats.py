@@ -10,11 +10,29 @@ import sst_compare_utils
 
 from IPython import embed
 
-def healpix_stats(dataset:str, outfile:str, local=False, debug:bool=False,
+def healpix_stats(dataset:str, outfile:str, local=False, 
+                  debug:bool=False, cut_DT:tuple=None,
                   nside:int=64, cut:str=None, CC=None):
+    """_summary_
 
+    Args:
+        dataset (str): [viirs, modis]
+
+        outfile (str): _description_
+        local (bool, optional): _description_. Defaults to False.
+        debug (bool, optional): _description_. Defaults to False.
+        cut_DT (tuple, optional): _description_. Defaults to None.
+        nside (int, optional): _description_. Defaults to 64.
+        cut (str, optional): _description_. Defaults to None.
+        CC (_type_, optional): _description_. Defaults to None.
+
+    Raises:
+        IOError: _description_
+    """
     # Load table
-    eval_tbl = sst_compare_utils.load_table(dataset, local=local)
+    eval_tbl = sst_compare_utils.load_table(dataset, 
+                                            local=local,
+                                            cut_DT=cut_DT)
 
     # Heads
     if cut is not None:
@@ -79,7 +97,10 @@ def healpix_stats(dataset:str, outfile:str, local=False, debug:bool=False,
 if __name__ == '__main__':
 
     # All
-    #healpix_stats('all_viirs.csv', local=True)#, debug=True)
+    #healpix_stats('viirs', 'all_viirs.csv', local=True)#, debug=True)
+
+    # DT cuts
+    healpix_stats('viirs', 'DT115_viirs.csv', local=True, cut_DT=(1.,1.5))#, debug=True)
 
     # Head/tail
     #healpix_stats('head_viirs.csv', local=True, cut='head')
@@ -90,4 +111,4 @@ if __name__ == '__main__':
 
     # MODIS
     #healpix_stats('modis_all', 'all_modis.csv')
-    healpix_stats('modis_all', '98_modis.csv', CC=0.98)
+    #healpix_stats('modis_all', '98_modis.csv', CC=0.98)

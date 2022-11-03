@@ -10,7 +10,8 @@ s3_llc_uniform_table_file = 's3://llc/Tables/LLC_uniform144_r0.5.parquet'
 s3_viirs_table_file = 's3://viirs/Tables/VIIRS_all_98clear_std.parquet'
 s3_modis_table_file = 's3://modis-l2/Tables/MODIS_SSL_96clear.parquet'
 
-def load_table(dataset:str, local:bool=False, cut_lat:float=57.):
+def load_table(dataset:str, local:bool=False, cut_lat:float=57.,
+               cut_DT:tuple=None):
     """ Load the output table
 
     Args:
@@ -56,6 +57,11 @@ def load_table(dataset:str, local:bool=False, cut_lat:float=57.):
     # Cut?
     if cut_lat is not None:
         tbl = tbl[tbl.lat < cut_lat].copy()
+        tbl.reset_index(drop=True, inplace=True)
+
+    if cut_DT is not None:
+        tbl.DT = tbl.T90.values - tbl.T10.values
+        tbl = tbl[(tbl.DT < cut_DT[1]) & (tbl.DT >= cut_DT[0])].copy()
         tbl.reset_index(drop=True, inplace=True)
 
     # Expunge Nan
