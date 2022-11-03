@@ -36,10 +36,13 @@ def generate_headtails(table:str, out_root:str, write=False):
         hp_lats_tail.dump('hp_lats_tail'+out_root)
         meds_tail.dump('meds_tail'+out_root)
 
-def generate_all(dataset:str, out_root:str, local=False):
+def generate_all(dataset:str, out_root:str, 
+                 cut_DT:tuple=None, local:bool=False):
 
     # Load table
-    tbl = sst_compare_utils.load_table(dataset)
+    tbl = sst_compare_utils.load_table(dataset, local=local,
+                                       cut_DT=cut_DT)
+    print(f"We have {len(tbl)} cutouts satisfying the cuts")
 
     # Evaluate
     evts, hp_lons, hp_lats, meds= sp.evals_to_healpix_meds(
@@ -69,5 +72,10 @@ if __name__ == '__main__':
     #generate_all('llc_match', '_llc_match')
 
     # MODIS, unmatched
-    generate_all('modis_all', '_modis_all')
+    #generate_all('modis_all', '_modis_all')
 
+
+    # DT = 1-1.X for VIIRS
+    #generate_all('viirs', '_v98_DT112', cut_DT=(1.,1.2), local=True)
+    #generate_all('viirs', '_v98_DT115', cut_DT=(1.,1.5), local=True)
+    pass
