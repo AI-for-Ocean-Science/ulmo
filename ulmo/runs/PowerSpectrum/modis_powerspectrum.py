@@ -20,6 +20,7 @@ def parse_option():
     """
     parser = argparse.ArgumentParser("argument for training.")
     parser.add_argument("--task", type=str, help="function to execute: 'slopes'")
+    parser.add_argument("--tbl_file", type=str, help="Table to work on")
     parser.add_argument("--options", type=str, help="Options for the task")
     parser.add_argument('--debug', default=False, action='store_true',
                         help='Debug?')
@@ -29,7 +30,7 @@ def parse_option():
 
 def measure_slopes(pargs):
     # Load the table
-    tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
+    tbl_file = pargs.tbl_file if pargs.tbl_file is not None else 's3://modis-l2/Tables/MODIS_L2_std.parquet'
     modis_tbl = ulmo_io.load_main_table(tbl_file)
 
     # Init
@@ -114,7 +115,7 @@ if __name__ == "__main__":
     # run the 'main_train()' function.
     #
     # 2020s
-    # python modis_powerspectrum.py --task slopes --options 2020s --debug 
+    # python modis_powerspectrum.py --task slopes --options 2020s --tbl_file s3://modis-l2/Tables/MODIS_SSL_v4.parquet --debug 
     if args.task == 'slopes':
         print("Powerlaw measurements start.")
         measure_slopes(args)
