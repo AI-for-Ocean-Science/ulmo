@@ -77,6 +77,8 @@ def measure_slopes(pargs):
 
         # Save
         pidx = modis_tbl.pp_file == pp_file
+        if pargs.debug:
+            embed(header='81 power spectrum debug')
         valid_idx = valid & pidx
         modis_tbl.loc[valid_idx, 'zonal_slope'] = slopes[:, 1]  # large
         modis_tbl.loc[valid_idx, 'zonal_slope_err'] = slopes[:, 2]  # large
