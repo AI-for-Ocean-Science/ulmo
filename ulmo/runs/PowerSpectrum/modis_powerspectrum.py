@@ -86,7 +86,7 @@ def measure_slopes(pargs):
         # Train
         if do_train:
             data1, data2, slopes, data4  = fft.process_preproc_file(
-                pp_hf, key='train') #, debug=pargs.debug
+                pp_hf, key='train', debug=pargs.debug)
             train_idx = train & pidx
             modis_tbl.loc[train_idx, 'zonal_slope'] = slopes[:, 1]  # large
             modis_tbl.loc[train_idx, 'zonal_slope_err'] = slopes[:, 2]  # large
