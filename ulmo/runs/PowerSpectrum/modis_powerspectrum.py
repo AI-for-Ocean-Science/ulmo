@@ -55,9 +55,10 @@ def measure_slopes(pargs):
 
     # Loop me
     for pp_file in pp_files:
-        if ('2020s' in options and (
-            ('2020' not in pp_file) or ('2021' not in pp_file))):
-            continue
+        if '2020s' in options:
+            ok = ('2020' in pp_file) or ('2021' in pp_file)
+            if not ok:
+                continue
         # Open
         basefile = os.path.basename(pp_file)
         if not os.path.isfile(basefile):
@@ -100,7 +101,7 @@ def measure_slopes(pargs):
             os.remove(basefile)
 
     # Vet
-    assert cat_utils.vet_main_table(modis_tbl, cut_prefix='modis_')
+    assert cat_utils.vet_main_table(modis_tbl, cut_prefix=['modis_', 'ulmo_'])
 
     # Final write
     if not pargs.debug:
