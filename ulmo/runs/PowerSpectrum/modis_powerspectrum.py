@@ -1,5 +1,6 @@
 import numpy as np
 import os
+import time
 
 import argparse
 
@@ -127,7 +128,30 @@ def measure_slopes(pargs):
     if not pargs.debug:
         ulmo_io.write_main_table(modis_tbl, tbl_file) 
 
+def get_time_string(codetime):
+    """
+    Utility function that takes the codetime and
+    converts this to a human readable String.
 
+    Args:
+        codetime (`float`):
+            Code execution time in seconds (usually the difference of two time.time() calls)
+
+    Returns:
+        `str`: A string indicating the total execution time
+    """
+    if codetime < 60.0:
+        retstr = 'Execution time: {0:.2f}s'.format(codetime)
+    elif codetime / 60.0 < 60.0:
+        mns = int(codetime / 60.0)
+        scs = codetime - 60.0 * mns
+        retstr = 'Execution time: {0:d}m {1:.2f}s'.format(mns, scs)
+    else:
+        hrs = int(codetime / 3600.0)
+        mns = int(60.0 * (codetime / 3600.0 - hrs))
+        scs = codetime - 60.0 * mns - 3600.0 * hrs
+        retstr = 'Execution time: {0:d}h {1:d}m {2:.2f}s'.format(hrs, mns, scs)
+    return retstr
 
 if __name__ == "__main__":
     # get the argument of training.
@@ -139,6 +163,11 @@ if __name__ == "__main__":
     # python modis_powerspectrum.py --task slopes --options 2020s --tbl_file s3://modis-l2/Tables/MODIS_SSL_v4.parquet --debug 
     if args.task == 'slopes':
         print("Powerlaw measurements start.")
+        tstart = time.time()
         measure_slopes(args)
+        tend = time.time()
+        #
+        print(get_time_string(time.time()-tstart))
         print("PowerLaw Ends.")
+        
     
