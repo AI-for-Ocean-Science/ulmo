@@ -61,7 +61,6 @@ def measure_slopes(pargs):
     pp_files = np.unique(modis_tbl.pp_file)
     if pargs.debug:
         pp_files = pp_files[-1:]
-        embed(header='47 debug')
 
     # Loop me
     for pp_file in pp_files:
@@ -87,9 +86,12 @@ def measure_slopes(pargs):
 
         # Save
         pidx = modis_tbl.pp_file == pp_file
-        if pargs.debug:
-            embed(header='81 power spectrum debug')
         valid_idx = valid & pidx
+
+        if pargs.debug:
+            tmp = np.zeros((np.sum(valid_idx, 6)))
+            tmp[0:100,:] = slopes
+            slopes = tmp
 
         # Dang pandas loc
         modis_tbl.zonal_slope.values[valid_idx] = slopes[:, 1]  # large
