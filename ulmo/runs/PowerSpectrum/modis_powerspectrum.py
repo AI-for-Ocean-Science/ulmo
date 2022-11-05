@@ -20,6 +20,7 @@ def parse_option():
     """
     parser = argparse.ArgumentParser("argument for training.")
     parser.add_argument("--task", type=str, help="function to execute: 'slopes'")
+    parser.add_argument("--options", type=str, help="Options for the task")
     parser.add_argument('--debug', default=False, action='store_true',
                         help='Debug?')
     args = parser.parse_args()
@@ -32,10 +33,15 @@ def measure_slopes(pargs):
     modis_tbl = ulmo_io.load_main_table(tbl_file)
 
     # Init
-    modis_tbl['zonal_slope'] = 0.
-    modis_tbl['merid_slope'] = 0.
-    modis_tbl['zonal_slope_err'] = 0.
-    modis_tbl['merid_slope_err'] = 0.
+    if pargs.options is not None:
+        options = pargs.options.split(',')
+    else:
+        options = []
+    if 'init' in options:
+        modis_tbl['zonal_slope'] = 0.
+        modis_tbl['merid_slope'] = 0.
+        modis_tbl['zonal_slope_err'] = 0.
+        modis_tbl['merid_slope_err'] = 0.
 
     train = modis_tbl.pp_type == 1
     valid = modis_tbl.pp_type == 0
@@ -43,11 +49,14 @@ def measure_slopes(pargs):
     # Unique PreProc files
     pp_files = np.unique(modis_tbl.pp_file)
     if pargs.debug:
-        #pp_files = pp_files[0:1]
+        pp_files = pp_files[-1:]
         embed(header='47 debug')
 
     # Loop me
     for pp_file in pp_files:
+        if ('2020s' in options and (
+            ('2020' not in pp_file) or ('2021' not in pp_file))):
+            continue
         # Open
         basefile = os.path.basename(pp_file)
         if not os.path.isfile(basefile):
@@ -86,7 +95,8 @@ def measure_slopes(pargs):
 
         # Cleanup
         print(f"Done with {basefile}.  Cleaning up")
-        os.remove(basefile)
+        if not pargs.debug:
+            os.remove(basefile)
 
     # Vet
     assert cat_utils.vet_main_table(modis_tbl, cut_prefix='modis_')
@@ -102,6 +112,9 @@ if __name__ == "__main__":
     args = parse_option()
     
     # run the 'main_train()' function.
+    #
+    # 2020s
+    # python modis_powerspectrum.py --task slopes --options 2020s --debug 
     if args.task == 'slopes':
         print("Powerlaw measurements start.")
         measure_slopes(args)
