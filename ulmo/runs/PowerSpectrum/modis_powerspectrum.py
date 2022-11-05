@@ -43,7 +43,8 @@ def measure_slopes(pargs):
     # Unique PreProc files
     pp_files = np.unique(modis_tbl.pp_file)
     if pargs.debug:
-        pp_files = pp_files[0:1]
+        #pp_files = pp_files[0:1]
+        embed(header='47 debug')
 
     # Loop me
     for pp_file in pp_files:
