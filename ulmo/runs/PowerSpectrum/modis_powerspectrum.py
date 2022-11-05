@@ -166,6 +166,7 @@ if __name__ == "__main__":
     #
     # 2020s
     # python modis_powerspectrum.py --task slopes --options 2020s --tbl_file s3://modis-l2/Tables/MODIS_SSL_v4.parquet --debug 
+    # python modis_powerspectrum.py --task slopes --options 2020s --tbl_file /home/xavier/Projects/Oceanography/SST/MODIS_L2/Tables/MODIS_SSL_v4.parquet --debug 
     if args.task == 'slopes':
         print("Powerlaw measurements start.")
         measure_slopes(args)
