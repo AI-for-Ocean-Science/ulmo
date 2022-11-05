@@ -43,9 +43,19 @@ def measure_slopes(pargs):
         modis_tbl['merid_slope'] = 0.
         modis_tbl['zonal_slope_err'] = 0.
         modis_tbl['merid_slope_err'] = 0.
-
-    train = modis_tbl.pp_type == 1
-    valid = modis_tbl.pp_type == 0
+    
+    # Reset pp_type
+    if '2020s' in options:
+        for year in ['2020', '2021']:
+            in_year = modis_tbl.pp_file == f's3://modis-l2/PreProc/MODIS_R2019_{year}_95clear_128x128_preproc_std.h5'
+            if 'ulmo_pp_type' not in modis_tbl.keys():
+                raise ValueError("Need to adjust this for pp_type")
+            modis_tbl.loc[in_year, 'ulmo_pp_type'] = 0
+        train = modis_tbl.ulmo_pp_type == 1
+        valid = modis_tbl.ulmo_pp_type == 0
+    else: # Original
+        train = modis_tbl.pp_type == 1
+        valid = modis_tbl.pp_type == 0
 
     # Unique PreProc files
     pp_files = np.unique(modis_tbl.pp_file)
@@ -80,20 +90,26 @@ def measure_slopes(pargs):
         if pargs.debug:
             embed(header='81 power spectrum debug')
         valid_idx = valid & pidx
-        modis_tbl.loc[valid_idx, 'zonal_slope'] = slopes[:, 1]  # large
-        modis_tbl.loc[valid_idx, 'zonal_slope_err'] = slopes[:, 2]  # large
-        modis_tbl.loc[valid_idx, 'merid_slope'] = slopes[:, 4]  # large
-        modis_tbl.loc[valid_idx, 'merid_slope_err'] = slopes[:, 5]  # large
+
+        # Dang pandas loc
+        modis_tbl.zonal_slope.values[valid_idx] = slopes[:, 1]  # large
+        modis_tbl.zonal_slope_err.values[valid_idx] = slopes[:, 2]  # large
+        modis_tbl.merid_slope.values[valid_idx] = slopes[:, 4]  # large
+        modis_tbl.merid_slope_err.values[valid_idx] = slopes[:, 5]  # large
 
         # Train
         if do_train:
             data1, data2, slopes, data4  = fft.process_preproc_file(
                 pp_hf, key='train', debug=pargs.debug)
             train_idx = train & pidx
-            modis_tbl.loc[train_idx, 'zonal_slope'] = slopes[:, 1]  # large
-            modis_tbl.loc[train_idx, 'zonal_slope_err'] = slopes[:, 2]  # large
-            modis_tbl.loc[train_idx, 'merid_slope'] = slopes[:, 4]  # large
-            modis_tbl.loc[train_idx, 'merid_slope_err'] = slopes[:, 5]  # large
+            modis_tbl.zonal_slope.values[train_idx] = slopes[:, 1]  # large
+            modis_tbl.zonal_slope_err.values[train_idx] = slopes[:, 2]  # large
+            modis_tbl.merid_slope.values[train_idx] = slopes[:, 4]  # large
+            modis_tbl.merid_slope_err.values[train_idx] = slopes[:, 5]  # large
+            #modis_tbl.loc[train_idx, 'zonal_slope'] = slopes[:, 1]  # large
+            #modis_tbl.loc[train_idx, 'zonal_slope_err'] = slopes[:, 2]  # large
+            #modis_tbl.loc[train_idx, 'merid_slope'] = slopes[:, 4]  # large
+            #modis_tbl.loc[train_idx, 'merid_slope_err'] = slopes[:, 5]  # large
         
         pp_hf.close()
 
