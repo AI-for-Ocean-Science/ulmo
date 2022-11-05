@@ -89,7 +89,7 @@ def measure_slopes(pargs):
         valid_idx = valid & pidx
 
         if pargs.debug:
-            tmp = np.zeros((np.sum(valid_idx, 6)))
+            tmp = np.zeros((np.sum(valid_idx), 6))
             tmp[0:100,:] = slopes
             slopes = tmp
 
