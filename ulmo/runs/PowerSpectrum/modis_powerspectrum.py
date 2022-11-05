@@ -73,7 +73,7 @@ def measure_slopes(pargs):
 
         # Valid
         data1, data2, slopes, data4  = fft.process_preproc_file(
-            pp_hf, key='valid') #, debug=pargs.debug
+            pp_hf, key='valid', debug=pargs.debug)
 
         # Save
         pidx = modis_tbl.pp_file == pp_file
