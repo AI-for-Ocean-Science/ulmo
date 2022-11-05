@@ -65,6 +65,7 @@ def measure_slopes(pargs):
 
     # Loop me
     for pp_file in pp_files:
+        tstart = time.time()
         if '2020s' in options:
             ok = ('2020' in pp_file) or ('2021' in pp_file)
             if not ok:
@@ -118,6 +119,10 @@ def measure_slopes(pargs):
 
         # Cleanup
         print(f"Done with {basefile}.  Cleaning up")
+        print(get_time_string(time.time()-tstart))
+        if pargs.debug:
+            print('It will take:')
+            print(get_time_string(slopes.shape[0]/100*(time.time()-tstart)))
         if not pargs.debug:
             os.remove(basefile)
 
@@ -163,11 +168,8 @@ if __name__ == "__main__":
     # python modis_powerspectrum.py --task slopes --options 2020s --tbl_file s3://modis-l2/Tables/MODIS_SSL_v4.parquet --debug 
     if args.task == 'slopes':
         print("Powerlaw measurements start.")
-        tstart = time.time()
         measure_slopes(args)
-        tend = time.time()
         #
-        print(get_time_string(time.time()-tstart))
         print("PowerLaw Ends.")
         
     
