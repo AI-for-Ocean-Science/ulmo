@@ -260,6 +260,7 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
         values = modis_tbl.clear_fraction
     elif metric == 'slope':
         values = modis_tbl.min_slope.values
+        embed(header='263 of figs')
     else:
         raise IOError("Bad metric!")
     
@@ -2033,10 +2034,13 @@ if __name__ == '__main__':
 #  python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DTall --umap_comp S0,S1 --vmnx=-1,1 --outfile fig_umap_gallery_DTall.png
 
 # Figure 8
-# UMAP DT15 colored by DT40 -- python py/fig_ssl_modis.py umap_DT40 --local --table 96clear_v4_DT15 --umap_comp S0,S1 --outfile fig_umap_DT40_DT15.png
+# UMAP DT15 colored by DT40 -- python py/fig_ssl_modis.py umap_DT40 --local --table 96clear_v4_DT15 --umap_comp S0,S1 --outfile fig_umap_DT40_DT15_96clear_v4_S1.png
 
 # Figure 9 DT15 gallery
 #  python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT15 --umap_comp S0,S1 --vmnx=-1,1 --outfile fig_umap_gallery_DT15.png
+
+# Figure 10 DT15 slopes
+#  python py/fig_ssl_modis.py umap_slope --local --table 96clear_v4_DT15 --umap_comp S0,S1
 
 # Figure 11 Global geo for DT15 and weak gradients
 #  python py/fig_ssl_modis.py umap_geo --local --outfile fig_umap_geo_global_DT15_weak.png --table 96clear_v4_DT15  --umap_rngs=1.5,3.,2.,3.

@@ -145,7 +145,7 @@ def umap_subset(modis_tbl:pandas.DataFrame,
     print("Done..")
 
     # Save?
-    if umap_savefile is not None:
+    if umap_savefile is not None and not debug:
         pickle.dump(latents_mapping, open(umap_savefile, "wb" ) )
         print(f"Saved UMAP to {umap_savefile}")
 
@@ -172,4 +172,5 @@ def umap_subset(modis_tbl:pandas.DataFrame,
     assert cat_utils.vet_main_table(modis_tbl, cut_prefix=cut_prefix)
     # Write new table
     to_s3 = True if 's3' in outfile else False
-    ulmo_io.write_main_table(modis_tbl, outfile, to_s3=to_s3)
+    if not debug:
+        ulmo_io.write_main_table(modis_tbl, outfile, to_s3=to_s3)
