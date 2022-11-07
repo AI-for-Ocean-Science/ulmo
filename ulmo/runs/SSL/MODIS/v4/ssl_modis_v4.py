@@ -892,7 +892,8 @@ def ssl_v4_umap(opt_path:str, debug=False, local=False):
     # Base
     base1 = '96clear_v4'
 
-    for subset in ['DT5', 'DT0', 'DT1', 'DT15', 'DT2', 'DT4', 'DTall']:
+    #for subset in ['DT5', 'DT0', 'DT1', 'DT15', 'DT2', 'DT4', 'DTall']:
+    for subset in ['DTall']:
         # Files
         outfile = os.path.join(
             os.getenv('SST_OOD'), 
@@ -1000,6 +1001,6 @@ if __name__ == "__main__":
         calc_dt40(args.opt_path, debug=args.debug, local=args.local,
                   redo=args.redo)
 
-    # python ssl_modis_v4.py --func_flag umap --debug
+    # python ssl_modis_v4.py --func_flag umap --debug --local
     if args.func_flag == 'umap':
-        ssl_v4_umap(args.opt_path, debug=args.debug)
+        ssl_v4_umap(args.opt_path, debug=args.debug, local=args.local)

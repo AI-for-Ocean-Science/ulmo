@@ -87,6 +87,8 @@ def update_outfile(outfile, table, umap_dim=2,
         # Base 1
         if 'CF' in table:
             base1 = '_CF'
+        elif '96_v4' in table:
+            base1 = '_96clear_v4'
         elif '96' in table:
             base1 = '_96clear'
         # DT
@@ -1268,7 +1270,8 @@ def fig_slopevsDT(outfile='fig_slopevsDT.png', table=None,
     """
 
     # Load table
-    modis_tbl = ssl_paper_analy.load_modis_tbl(local=local, cuts=cuts)
+    modis_tbl = ssl_paper_analy.load_modis_tbl(
+        local=local, cuts=cuts, table=table)
     outfile = update_outfile(outfile, table)
 
     # Debug?
@@ -1278,7 +1281,6 @@ def fig_slopevsDT(outfile='fig_slopevsDT.png', table=None,
     # Plot
     fig = plt.figure(figsize=(12, 12))
     plt.clf()
-
 
     jg = sns.jointplot(data=modis_tbl, x='DT', y='min_slope', kind='hex',
                        bins='log', gridsize=250, xscale='log',
@@ -1296,10 +1298,11 @@ def fig_slopevsDT(outfile='fig_slopevsDT.png', table=None,
 
 def fig_slopes(outfile='fig_slopes.png', 
                local=False, vmax=None, table=None,
-                    cmap=None, cuts=None, scl = 1, debug=False):
+               cmap=None, cuts=None, scl = 1, debug=False):
 
     # Load table
-    modis_tbl = ssl_paper_analy.load_modis_tbl(local=local, cuts=cuts)
+    modis_tbl = ssl_paper_analy.load_modis_tbl(
+        local=local, cuts=cuts, table=table)
     outfile = update_outfile(outfile, table)
 
     # Debug?
@@ -1482,7 +1485,8 @@ def fig_fit_metric(outroot='fig_fit_', metric=None,
 def fig_learn_curve(outfile='fig_learn_curve.png'):
     # Grab the data
     #valid_losses_file = 's3://modis-l2/SSL/models/MODIS_R2019_96/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/learning_curve/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm_losses_valid.h5'
-    valid_losses_file = 's3://modis-l2/SSL/models/MODIS_R2019_96/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/learning_curve/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm_losses_valid.h5'
+    #valid_losses_file = 's3://modis-l2/SSL/models/MODIS_R2019_96/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/learning_curve/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm_losses_valid.h5'
+    valid_losses_file = 's3://modis-l2/SSL/models/MODIS_R2019_v4/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_256_temp_0.07_trial_5_cosine_warm/learning_curve/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_256_temp_0.07_trial_5_cosine_warm_losses_valid.h5'
     with ulmo_io.open(valid_losses_file, 'rb') as f:
         valid_hf = h5py.File(f, 'r')
     loss_avg_valid = valid_hf['loss_avg_valid'][:]
@@ -1491,7 +1495,8 @@ def fig_learn_curve(outfile='fig_learn_curve.png'):
     valid_hf.close()
 
     #train_losses_file = 's3://modis-l2/SSL/models/MODIS_R2019_96/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/learning_curve/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm_losses_train.h5'
-    train_losses_file = 's3://modis-l2/SSL/models/MODIS_R2019_96/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/learning_curve/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm_losses_train.h5'
+    #train_losses_file = 's3://modis-l2/SSL/models/MODIS_R2019_96/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/learning_curve/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm_losses_train.h5'
+    train_losses_file = 's3://modis-l2/SSL/models/MODIS_R2019_v4/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_256_temp_0.07_trial_5_cosine_warm/learning_curve/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_256_temp_0.07_trial_5_cosine_warm_losses_train.h5'
     with ulmo_io.open(train_losses_file, 'rb') as f:
         train_hf = h5py.File(f, 'r')
     loss_train = train_hf['loss_train'][:]
@@ -1806,7 +1811,7 @@ def main(pargs):
     # slopts
     if pargs.figure == 'slopes':
         fig_slopes(local=pargs.local, debug=pargs.debug,
-                    table=pargs.table)
+                    table=pargs.table) 
 
     # Slope vs DT
     if pargs.figure == 'slopevsDT':
@@ -2002,10 +2007,6 @@ if __name__ == '__main__':
 #  python py/fig_ssl_modis.py yearly_geo --local 
 #  python py/fig_ssl_modis.py seasonal_geo --local 
 
-# MISC
-#  python py/fig_ssl_modis.py learning_curve
-# FIGURE 4
-#  python py/fig_ssl_modis.py augment
 
 # #############################################################################
 # 96 v4
@@ -2014,9 +2015,15 @@ if __name__ == '__main__':
 # LL vs DT -- python py/fig_ssl_modis.py LLvsDT --local --table 96_v4
 
 # FIGURE 2
-# Slopes -- python py/fig_ssl_modis.py slopes --local --table 96_v4
+# Slopes -- python py/fig_ssl_modis.py slopes --local --table 96_v4 
 # FIGURE 3
 # Slope vs DT -- python py/fig_ssl_modis.py slopevsDT --local --table 96_v4
+
+# FIGURE 4
+#  python py/fig_ssl_modis.py augment 
+
+# FIGURE 5 -- Learning curve
+#  python py/fig_ssl_modis.py learning_curve
 
 # Figure 6
 # UMAP DTAll colored by DT (all) -- 

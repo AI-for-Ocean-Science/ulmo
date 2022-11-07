@@ -216,7 +216,7 @@ def build_portal_images(subset, local=True, CF=False, debug=False):
 #run_subset('DT4', remove=False)
 
 # DT5  >4  # 16000 cutouts
-run_subset('DT5', remove=False) 
+#run_subset('DT5', remove=False) 
 
 # Build portal image files
 #build_portal_images('DT0')

@@ -96,20 +96,22 @@ def measure_slopes(pargs):
             slopes = tmp
 
         # Dang pandas loc
-        modis_tbl.zonal_slope.values[valid_idx] = slopes[:, 1]  # large
-        modis_tbl.zonal_slope_err.values[valid_idx] = slopes[:, 2]  # large
-        modis_tbl.merid_slope.values[valid_idx] = slopes[:, 4]  # large
-        modis_tbl.merid_slope_err.values[valid_idx] = slopes[:, 5]  # large
+        pp_idx = modis_tbl.loc[valid_idx, 'pp_idx'].values
+        modis_tbl.zonal_slope.values[valid_idx] = slopes[pp_idx, 1]  # large
+        modis_tbl.zonal_slope_err.values[valid_idx] = slopes[pp_idx, 2]  # large
+        modis_tbl.merid_slope.values[valid_idx] = slopes[pp_idx, 4]  # large
+        modis_tbl.merid_slope_err.values[valid_idx] = slopes[pp_idx, 5]  # large
 
         # Train
         if do_train:
             data1, data2, slopes, data4  = fft.process_preproc_file(
                 pp_hf, key='train', debug=pargs.debug)
             train_idx = train & pidx
-            modis_tbl.zonal_slope.values[train_idx] = slopes[:, 1]  # large
-            modis_tbl.zonal_slope_err.values[train_idx] = slopes[:, 2]  # large
-            modis_tbl.merid_slope.values[train_idx] = slopes[:, 4]  # large
-            modis_tbl.merid_slope_err.values[train_idx] = slopes[:, 5]  # large
+            pp_idx = modis_tbl.loc[train_idx, 'pp_idx'].values
+            modis_tbl.zonal_slope.values[train_idx] = slopes[pp_idx, 1]  # large
+            modis_tbl.zonal_slope_err.values[train_idx] = slopes[pp_idx, 2]  # large
+            modis_tbl.merid_slope.values[train_idx] = slopes[pp_idx, 4]  # large
+            modis_tbl.merid_slope_err.values[train_idx] = slopes[pp_idx, 5]  # large
             #modis_tbl.loc[train_idx, 'zonal_slope'] = slopes[:, 1]  # large
             #modis_tbl.loc[train_idx, 'zonal_slope_err'] = slopes[:, 2]  # large
             #modis_tbl.loc[train_idx, 'merid_slope'] = slopes[:, 4]  # large
@@ -131,7 +133,9 @@ def measure_slopes(pargs):
 
     # Final write
     if not pargs.debug:
-        ulmo_io.write_main_table(modis_tbl, tbl_file) 
+        out_file = f's3://modis-l2/Tables/{os.path.basename(tbl_file)}'
+        embed(header='pasuing for internet ;137')
+        ulmo_io.write_main_table(modis_tbl, out_file) 
 
 def get_time_string(codetime):
     """
