@@ -157,24 +157,27 @@ def main(args):
     )
     
     '''
-    batch_size = 2048
-    drop_last = False
-    filepath = "LLC_uniform_test_preproc_split.h5"
-    train_dset = HDF5Dataset(filepath, partition='train')
-    data_loader_train = torch.utils.data.DataLoader(
-        train_dset, batch_size=batch_size, shuffle=False, 
-        drop_last=drop_last, collate_fn=id_collate,
-        num_workers=16)
-      
     
+
+    filepath = "LLC_uniform_test_preproc_split.h5" # hardcoded for now
+    dataset_train = HDF5Dataset(filepath, partition='train')
     valid_dset = HDF5Dataset(filepath, partition='valid')
-    sampler_train = torch.utils.data.DataLoader(
-        valid_dset, batch_size=batch_size, shuffle=False, 
-        drop_last=drop_last, collate_fn=id_collate,
-        num_workers=16)
-    log_writer = None
+    
+    data_loader_train = torch.utils.data.DataLoader(
+        dataset_train, 
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
+        pin_memory=args.pin_mem,
+        collate_fn=id_collate,
+        drop_last=True,
+    )
 
     
+    log_writer = None
+    
+    print("training", len(data_loader_train.dataset) )
+    print("Datasets loaded")
+
     
     # define the model
     model = models_mae.__dict__[args.model](norm_pix_loss=args.norm_pix_loss)

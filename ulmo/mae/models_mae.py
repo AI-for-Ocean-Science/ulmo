@@ -23,7 +23,7 @@ class MaskedAutoencoderViT(nn.Module):
     """ Masked Autoencoder with VisionTransformer backbone
     """
     def __init__(self, img_size=64, patch_size=16, in_chans=1,
-                 embed_dim=2048, depth=24, num_heads=16,
+                 embed_dim=1024, depth=24, num_heads=16,
                  decoder_embed_dim=512, decoder_depth=8, decoder_num_heads=16,
                  mlp_ratio=4., norm_layer=nn.LayerNorm, norm_pix_loss=False):
         super().__init__()
@@ -94,30 +94,30 @@ class MaskedAutoencoderViT(nn.Module):
 
     def patchify(self, imgs):
         """
-        imgs: (N, 3, H, W)
-        x: (N, L, patch_size**2 *3)
+        imgs: (N, 3, H, W) I think the 3 is channels. Which in our case is 1
+        x: (N, L, patch_size**2 *3) 2 should be 1
         """
         p = self.patch_embed.patch_size[0]
         assert imgs.shape[2] == imgs.shape[3] and imgs.shape[2] % p == 0
 
         h = w = imgs.shape[2] // p
-        x = imgs.reshape(shape=(imgs.shape[0], 3, h, p, w, p))
+        x = imgs.reshape(shape=(imgs.shape[0], 1, h, p, w, p))
         x = torch.einsum('nchpwq->nhwpqc', x)
-        x = x.reshape(shape=(imgs.shape[0], h * w, p**2 * 3))
+        x = x.reshape(shape=(imgs.shape[0], h * w, p**2 * 1))
         return x
 
     def unpatchify(self, x):
         """
-        x: (N, L, patch_size**2 *3)
-        imgs: (N, 3, H, W)
+        x: (N, L, patch_size**2 *3) 3 should be 1
+        imgs: (N, 3, H, W) 3 should be 1
         """
         p = self.patch_embed.patch_size[0]
         h = w = int(x.shape[1]**.5)
         assert h * w == x.shape[1]
         
-        x = x.reshape(shape=(x.shape[0], h, w, p, p, 3))
+        x = x.reshape(shape=(x.shape[0], h, w, p, p, 1)) # x.reshape(shape=(x.shape[0], h, w, p, p, 3))
         x = torch.einsum('nhwpqc->nchpwq', x)
-        imgs = x.reshape(shape=(x.shape[0], 3, h * p, h * p))
+        imgs = x.reshape(shape=(x.shape[0], 1, h * p, h * p)) # x.reshape(shape=(x.shape[0], 3, h * p, h * p))
         return imgs
 
     def random_masking(self, x, mask_ratio):
@@ -197,8 +197,8 @@ class MaskedAutoencoderViT(nn.Module):
 
     def forward_loss(self, imgs, pred, mask):
         """
-        imgs: [N, 3, H, W]
-        pred: [N, L, p*p*3]
+        imgs: [N, 3, H, W] # 3 is 1
+        pred: [N, L, p*p*3] # 3 is... also probably one? :P
         mask: [N, L], 0 is keep, 1 is remove, 
         """
         target = self.patchify(imgs)
@@ -215,7 +215,7 @@ class MaskedAutoencoderViT(nn.Module):
 
     def forward(self, imgs, mask_ratio=0.75):
         latent, mask, ids_restore = self.forward_encoder(imgs, mask_ratio)
-        pred = self.forward_decoder(latent, ids_restore)  # [N, L, p*p*3]
+        pred = self.forward_decoder(latent, ids_restore)  # [N, L, p*p*3] --> [N, L, p*p*1]?
         loss = self.forward_loss(imgs, pred, mask)
         return loss, pred, mask
     
@@ -235,6 +235,12 @@ def mae_vit_large_patch16_dec512d8b(**kwargs):
         mlp_ratio=4, norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
     return model
 
+def mae_vit_testt(**kwargs):
+    model = MaskedAutoencoderViT(
+        patch_size=4, embed_dim=256, depth=12, num_heads=8,
+        decoder_embed_dim=512, decoder_depth=8, decoder_num_heads=8,
+        mlp_ratio=4, norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
+    return model
 
 def mae_vit_huge_patch14_dec512d8b(**kwargs):
     model = MaskedAutoencoderViT(
@@ -245,6 +251,7 @@ def mae_vit_huge_patch14_dec512d8b(**kwargs):
 
 
 # set recommended archs
+mae_vit_test = mae_vit_testt
 mae_vit_base_patch16 = mae_vit_base_patch16_dec512d8b  # decoder: 512 dim, 8 blocks
 mae_vit_large_patch16 = mae_vit_large_patch16_dec512d8b  # decoder: 512 dim, 8 blocks
 mae_vit_huge_patch14 = mae_vit_huge_patch14_dec512d8b  # decoder: 512 dim, 8 blocks
