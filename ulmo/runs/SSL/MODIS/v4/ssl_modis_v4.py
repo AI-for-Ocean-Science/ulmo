@@ -886,13 +886,21 @@ def ssl_v4_umap(opt_path:str, debug=False, local=False):
     # Load up the options file
     opt = option_preprocess(ulmo_io.Params(opt_path))
 
-    # Generate v4 Table?
-    modis_tbl = ulmo_io.load_main_table(opt.tbl_file)
+    # Load v4 Table
+    if local:
+        tbl_file = os.path.join(os.getenv('SST_OOD'),
+                                'MODIS_L2', 'Tables', 
+                                os.path.basename(opt.tbl_file))
+    else:                            
+        tbl_file = opt.tbl_file
+    modis_tbl = ulmo_io.load_main_table(tbl_file)
 
     # Base
     base1 = '96clear_v4'
 
-    for subset in ['DT5', 'DT0', 'DT1', 'DT15', 'DT2', 'DT4', 'DTall']:
+    #for subset in ['DTall']:
+    #for subset in ['DT5']:
+    for subset in ['DT15', 'DTall', 'DT0', 'DT1', 'DT2', 'DT4', 'DT5']:
         # Files
         outfile = os.path.join(
             os.getenv('SST_OOD'), 
@@ -1000,6 +1008,6 @@ if __name__ == "__main__":
         calc_dt40(args.opt_path, debug=args.debug, local=args.local,
                   redo=args.redo)
 
-    # python ssl_modis_v4.py --func_flag umap --debug
+    # python ssl_modis_v4.py --func_flag umap --debug --local
     if args.func_flag == 'umap':
-        ssl_v4_umap(args.opt_path, debug=args.debug)
+        ssl_v4_umap(args.opt_path, debug=args.debug, local=args.local)

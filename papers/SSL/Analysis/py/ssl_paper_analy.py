@@ -40,6 +40,12 @@ geo_regions['baybengal'] = dict(
 geo_regions['med'] = dict(
     lons=[0, 60.],   # E
     lats=[30, 45.])    # N
+geo_regions['south_atlantic'] = dict(
+    lons=[-40, 0.],   # W (Pretty crude)
+    lats=[-20, -10.])      # N
+geo_regions['south_pacific'] = dict(
+    lons=[-120, -90.],   # W (Pretty crude)
+    lats=[-30, -10.])      # S
 geo_regions['global'] = dict(
     lons=[-999., 999.],   # E
     lats=[-999, 999.])    # N
@@ -79,11 +85,15 @@ def load_modis_tbl(table:str=None,
         # Base 1
         if 'CF' in table:
             base1 = 'MODIS_SSL_cloud_free'
+        elif '96_v4' in table:
+            base1 = 'MODIS_SSL_v4'
         elif '96' in table:
             base1 = 'MODIS_SSL_96clear'
         # DT
         if 'DT' in table:
-            dtstr = table.split('_')[1]
+            if 'v4' in table:
+                base1 = 'MODIS_SSL_96clear_v4'
+            dtstr = table.split('_')[-1]
             base2 = '_'+dtstr
         else:
             base2 = ''

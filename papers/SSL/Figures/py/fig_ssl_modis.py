@@ -19,6 +19,7 @@ from matplotlib import pyplot as plt
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 import cartopy.crs as ccrs
 import cartopy
+from sympy import im
 
 mpl.rcParams['font.family'] = 'stixgeneral'
 
@@ -86,6 +87,8 @@ def update_outfile(outfile, table, umap_dim=2,
         # Base 1
         if 'CF' in table:
             base1 = '_CF'
+        elif '96_v4' in table:
+            base1 = '_96clear_v4'
         elif '96' in table:
             base1 = '_96clear'
         # DT
@@ -225,7 +228,7 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
     num_samples = len(modis_tbl)
     outfile = update_outfile(outfile, table, umap_dim,
                              umap_comp=umap_comp)
-    umap_keys = gen_umap_keys(umap_dim, umap_comp)
+    umap_keys = ssl_paper_analy.gen_umap_keys(umap_dim, umap_comp)
 
     # Inputs
     if cmap is None:
@@ -250,6 +253,9 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
     elif metric == 'DT':
         values = modis_tbl.DT.values
         lmetric = r'$\Delta T$'
+    elif metric == 'DT40':
+        values = modis_tbl.DT40.values
+        lmetric = r'$\Delta T_{\rm 40}$'
     elif metric == 'clouds':
         values = modis_tbl.clear_fraction
     elif metric == 'slope':
@@ -414,6 +420,7 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
                      min_pts=10,
                      umap_dim=2,
                      use_std_lbls=True,
+                     cut_to_inner:int=None,
                      debug=False): 
     """ UMAP gallery
 
@@ -422,6 +429,8 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
         version (int, optional): [description]. Defaults to 1.
         local (bool, optional): [description]. Defaults to True.
         debug (bool, optional): [description]. Defaults to False.
+        cut_to_inner (int, optional): If provided, cut the image
+            down to the inner npix x npix with npix = cut_to_inner
 
     Raises:
         IOError: [description]
@@ -429,7 +438,7 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
     # Load
     modis_tbl = ssl_paper_analy.load_modis_tbl(local=local, table=table)
 
-    umap_keys = gen_umap_keys(umap_dim, umap_comp)
+    umap_keys = ssl_paper_analy.gen_umap_keys(umap_dim, umap_comp)
     outfile = update_outfile(outfile, table, umap_dim,
                              umap_comp=umap_comp)
 
@@ -473,14 +482,14 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
         # Add more!
         dyv *= 0.66
         dxv *= 0.66
-    elif '96_DT' in table: 
+    elif '96_DT' in table or 'v4' in table: 
         if f'xrngs_{table}' in xyrng_dict.keys():
             xmin, xmax = xyrng_dict[f'xrngs_{table}']
             ymin, ymax = xyrng_dict[f'yrngs_{table}']
             dxv = 0.5 
             dyv = 0.25
         else:
-            umap_grid = grid_umap(modis_tbl[umap_keys[0]].values,
+            umap_grid = ssl_paper_analy.grid_umap(modis_tbl[umap_keys[0]].values,
                                   modis_tbl[umap_keys[1]].values, nxy=nxy)
             # Unpack
             xmin, xmax = umap_grid['xmin'], umap_grid['xmax']
@@ -578,6 +587,7 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
             axins = ax_gallery.inset_axes(
                     [x, y, 0.9*dxv, 0.9*dyv], 
                     transform=ax_gallery.transData)
+            # Load
             try:
                 if local:
                     parsed_s3 = urlparse(cutout.pp_file)
@@ -589,7 +599,13 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
                 else:
                     cutout_img = image_utils.grab_image(cutout, close=True)
             except:
-                embed(header='198 of plotting')                                                    
+                embed(header='598 of plotting')                                                    
+            # Cut down?
+            if cut_to_inner is not None:
+                imsize = cutout_img.shape[0]
+                x0, y0 = [imsize//2-cut_to_inner//2]*2
+                x1, y1 = [imsize//2+cut_to_inner//2]*2
+                cutout_img = cutout_img[x0:x1,y0:y1]
             # Limits
             if in_vmnx[0] == -999:
                 DT = cutout.T90 - cutout.T10
@@ -698,14 +714,31 @@ def fig_umap_2dhist(outfile='fig_umap_2dhist.png',
     plt.close()
     print('Wrote {:s}'.format(outfile))
 
-def fig_umap_geo(outfile, table, umap_rngs, local=False, 
-    nside=64, umap_comp='S0,S1', umap_dim=2, debug=False,
-    color='bwr', vmax=None): 
+def fig_umap_geo(outfile:str, table:str, umap_rngs:list, 
+                 local=False, nside=64, umap_comp='S0,S1', 
+                 umap_dim=2, debug=False, 
+                 color='bwr', vmax=None): 
+    """ Global geographic plot of the UMAP select range
+
+    Args:
+        outfile (str): 
+        table (str): 
+            Which table to use
+        umap_rngs (list): _description_
+        local (bool, optional): _description_. Defaults to False.
+        nside (int, optional): _description_. Defaults to 64.
+        umap_comp (str, optional): _description_. Defaults to 'S0,S1'.
+        umap_dim (int, optional): _description_. Defaults to 2.
+        debug (bool, optional): _description_. Defaults to False.
+        color (str, optional): _description_. Defaults to 'bwr'.
+        vmax (_type_, optional): _description_. Defaults to None.
+    """
 
     # Load
-    modis_tbl = ssl_paper_analy.load_modis_tbl(local=local, table=table)
+    modis_tbl = ssl_paper_analy.load_modis_tbl(
+        local=local, table=table)
 
-    umap_keys = gen_umap_keys(umap_dim, umap_comp)
+    umap_keys = ssl_paper_analy.gen_umap_keys(umap_dim, umap_comp)
     outfile = update_outfile(outfile, table, umap_dim,
                              umap_comp=umap_comp)
                             
@@ -802,13 +835,14 @@ def fig_geo_umap(outfile, geo_region,
                      umap_dim=2, cmap='bwr',
                      debug=False): 
     # Load
-    modis_tbl = ssl_paper_analy.load_modis_tbl(local=local, table=table)
+    modis_tbl = ssl_paper_analy.load_modis_tbl(
+        local=local, table=table)
 
-    umap_keys = gen_umap_keys(umap_dim, umap_comp)
+    umap_keys = ssl_paper_analy.gen_umap_keys(umap_dim, umap_comp)
     outfile = update_outfile(outfile, table, umap_dim,
                              umap_comp=umap_comp)
     # Grid
-    grid = grid_umap(modis_tbl[umap_keys[0]].values, 
+    grid = ssl_paper_analy.grid_umap(modis_tbl[umap_keys[0]].values, 
         modis_tbl[umap_keys[1]].values)
  
     # cut
@@ -884,18 +918,18 @@ def fig_seasonal_geo_umap(outfile, geo_region,
                      local=False, 
                      rtio_cut = 1.5,
                      umap_comp='S0,S1',
-                     table='96_DT15',
+                     table='96clear_v4_DT15',
                      umap_dim=2, cmap='bwr',
                      debug=False): 
     # Load
     modis_tbl = ssl_paper_analy.load_modis_tbl(
         local=local, table=table)
 
-    umap_keys = gen_umap_keys(umap_dim, umap_comp)
+    umap_keys = ssl_paper_analy.gen_umap_keys(umap_dim, umap_comp)
     outfile = update_outfile(outfile, table, umap_dim,
                              umap_comp=umap_comp)
     # Grid
-    grid = grid_umap(modis_tbl[umap_keys[0]].values, 
+    grid = ssl_paper_analy.grid_umap(modis_tbl[umap_keys[0]].values, 
         modis_tbl[umap_keys[1]].values)
  
     # cut
@@ -980,7 +1014,7 @@ def fig_yearly_geo_umap(outfile, geo_region,
                      rtio_cut = 1.5,
                      rtio_region=None,
                      umap_comp='S0,S1',
-                     table='96_DT15',
+                     table='96clear_v4_DT15',
                      min_Nsamp=10,
                      umap_dim=2, cmap='bwr',
                      debug=False): 
@@ -1007,11 +1041,11 @@ def fig_yearly_geo_umap(outfile, geo_region,
     modis_tbl = ssl_paper_analy.load_modis_tbl(
         local=local, table=table)
 
-    umap_keys = gen_umap_keys(umap_dim, umap_comp)
+    umap_keys = ssl_paper_analy.gen_umap_keys(umap_dim, umap_comp)
     outfile = update_outfile(outfile, table, umap_dim,
                              umap_comp=umap_comp)
     # Grid
-    grid = grid_umap(modis_tbl[umap_keys[0]].values, 
+    grid = ssl_paper_analy.grid_umap(modis_tbl[umap_keys[0]].values, 
         modis_tbl[umap_keys[1]].values)
  
     # cut on UMAP space
@@ -1237,7 +1271,8 @@ def fig_slopevsDT(outfile='fig_slopevsDT.png', table=None,
     """
 
     # Load table
-    modis_tbl = ssl_paper_analy.load_modis_tbl(local=local, cuts=cuts)
+    modis_tbl = ssl_paper_analy.load_modis_tbl(
+        local=local, cuts=cuts, table=table)
     outfile = update_outfile(outfile, table)
 
     # Debug?
@@ -1247,7 +1282,6 @@ def fig_slopevsDT(outfile='fig_slopevsDT.png', table=None,
     # Plot
     fig = plt.figure(figsize=(12, 12))
     plt.clf()
-
 
     jg = sns.jointplot(data=modis_tbl, x='DT', y='min_slope', kind='hex',
                        bins='log', gridsize=250, xscale='log',
@@ -1265,10 +1299,11 @@ def fig_slopevsDT(outfile='fig_slopevsDT.png', table=None,
 
 def fig_slopes(outfile='fig_slopes.png', 
                local=False, vmax=None, table=None,
-                    cmap=None, cuts=None, scl = 1, debug=False):
+               cmap=None, cuts=None, scl = 1, debug=False):
 
     # Load table
-    modis_tbl = ssl_paper_analy.load_modis_tbl(local=local, cuts=cuts)
+    modis_tbl = ssl_paper_analy.load_modis_tbl(
+        local=local, cuts=cuts, table=table)
     outfile = update_outfile(outfile, table)
 
     # Debug?
@@ -1451,7 +1486,8 @@ def fig_fit_metric(outroot='fig_fit_', metric=None,
 def fig_learn_curve(outfile='fig_learn_curve.png'):
     # Grab the data
     #valid_losses_file = 's3://modis-l2/SSL/models/MODIS_R2019_96/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/learning_curve/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm_losses_valid.h5'
-    valid_losses_file = 's3://modis-l2/SSL/models/MODIS_R2019_96/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/learning_curve/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm_losses_valid.h5'
+    #valid_losses_file = 's3://modis-l2/SSL/models/MODIS_R2019_96/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/learning_curve/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm_losses_valid.h5'
+    valid_losses_file = 's3://modis-l2/SSL/models/MODIS_R2019_v4/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_256_temp_0.07_trial_5_cosine_warm/learning_curve/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_256_temp_0.07_trial_5_cosine_warm_losses_valid.h5'
     with ulmo_io.open(valid_losses_file, 'rb') as f:
         valid_hf = h5py.File(f, 'r')
     loss_avg_valid = valid_hf['loss_avg_valid'][:]
@@ -1460,7 +1496,8 @@ def fig_learn_curve(outfile='fig_learn_curve.png'):
     valid_hf.close()
 
     #train_losses_file = 's3://modis-l2/SSL/models/MODIS_R2019_96/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/learning_curve/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm_losses_train.h5'
-    train_losses_file = 's3://modis-l2/SSL/models/MODIS_R2019_96/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/learning_curve/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm_losses_train.h5'
+    #train_losses_file = 's3://modis-l2/SSL/models/MODIS_R2019_96/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm/learning_curve/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_128_temp_0.07_trial_5_cosine_warm_losses_train.h5'
+    train_losses_file = 's3://modis-l2/SSL/models/MODIS_R2019_v4/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_256_temp_0.07_trial_5_cosine_warm/learning_curve/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_256_temp_0.07_trial_5_cosine_warm_losses_train.h5'
     with ulmo_io.open(train_losses_file, 'rb') as f:
         train_hf = h5py.File(f, 'r')
     loss_train = train_hf['loss_train'][:]
@@ -1538,13 +1575,16 @@ def main(pargs):
                          umap_comp=pargs.umap_comp)
 
     # UMAP_DT 
-    if pargs.figure in 'umap_DT':
+    if pargs.figure in ['umap_DT', 'umap_DT40']:
         if 'all' in pargs.table:
             metric = 'logDT'
+        elif 'DT40' in pargs.figure:
+            metric = 'DT40'
         else:
             metric = 'DT'
+        outfile='fig_umap_DT.png' if pargs.outfile is None else pargs.outfile
         fig_umap_colored(local=pargs.local, table=pargs.table,
-                         metric=metric, outfile='fig_umap_DT.png',
+                         metric=metric, outfile=outfile,
                          vmnx=(None,None),
                          umap_dim=pargs.umap_dim,
                          umap_comp=pargs.umap_comp)
@@ -1554,14 +1594,20 @@ def main(pargs):
 
     # UMAP_slope
     if pargs.figure == 'umap_slope':
+        if pargs.table == '96clear_v4_DT15':
+            binx=np.linspace(0,10.5,30)
+            biny=np.linspace(1,9.5,30)
+        else:
+            binx=np.linspace(2,12.5,30)
+            biny=np.linspace(-0.5,9,30)
         fig_umap_colored(local=pargs.local, table=pargs.table,
                          metric='slope', 
                          outfile='fig_umap_slope.png',
                          cmap='viridis',
                          #vmnx=(-3., -1),
                          hist_param=dict(
-                             binx=np.linspace(2,12.5,30),
-                             biny=np.linspace(-0.5,9,30)),
+                             binx=binx,
+                             biny=biny),
                          maxN=400000,
                          umap_dim=pargs.umap_dim,
                          umap_comp=pargs.umap_comp)
@@ -1583,7 +1629,8 @@ def main(pargs):
                          table=pargs.table ,
             local=pargs.local, outfile=outfile,
             umap_dim=pargs.umap_dim,
-            umap_comp=pargs.umap_comp)
+            umap_comp=pargs.umap_comp,
+            cut_to_inner=40)
 
     if pargs.figure == 'umap_density':
         fig_umap_density(
@@ -1594,6 +1641,15 @@ def main(pargs):
             umap_comp=pargs.umap_comp)
 
     if pargs.figure == 'umap_geo':
+
+        # Parse
+        sp = pargs.umap_rngs.split(',')
+        umap_rngs = [[float(sp[0]), float(sp[1])], 
+             [float(sp[2]), float(sp[3])]]
+        # Do it
+        fig_umap_geo(pargs.outfile,
+            pargs.table, umap_rngs,
+            debug=pargs.debug, local=pargs.local)
         # Most boring
         #fig_umap_geo('fig_umap_geo_DT0_5656.png',
         #    '96_DT0', [[5.5,6.5], [5.3,6.3]], 
@@ -1614,9 +1670,9 @@ def main(pargs):
         #    debug=pargs.debug, local=pargs.local)
 
         # Shallow gradient region
-        fig_umap_geo('fig_umap_geo_DT15_6779.png',
-            '96_DT15', [[5,7], [7.5,9]], 
-            debug=pargs.debug, local=pargs.local)
+        #fig_umap_geo('fig_umap_geo_DT15_6779.png',
+        #    '96_DT15', [[5,7], [7.5,9]], 
+        #    debug=pargs.debug, local=pargs.local)
 
         # 'Turbulent' in DT2
         #fig_umap_geo('fig_umap_geo_DT2_5789.png',
@@ -1630,11 +1686,9 @@ def main(pargs):
         #     [30, 45.]], # North
         #    debug=pargs.debug, local=pargs.local)
 
-        # Equatorial Pacific
-        #fig_geo_umap('fig_geo_umap_DT15_eqpacific.png',
-        #    [[-140, -90.],   # W
-        #     [-10, 10.]],    # Equitorial 
-        #    debug=pargs.debug, local=pargs.local)
+        fig_geo_umap(pargs.outfile, pargs.region,
+            debug=pargs.debug, local=pargs.local,
+            table=pargs.table)
 
         # Coastal California
         #fig_geo_umap('fig_geo_umap_DT15_california.png',
@@ -1650,10 +1704,10 @@ def main(pargs):
         #    debug=pargs.debug, local=pargs.local)
 
         # Bay of Bengal
-        fig_geo_umap('fig_geo_umap_DT15_baybengal.png', 
-                     'baybengal',
-            table='96_DT15',
-            debug=pargs.debug, local=pargs.local)
+        #fig_geo_umap('fig_geo_umap_DT15_baybengal.png', 
+        #             'baybengal',
+        #    table='96_DT15',
+        #    debug=pargs.debug, local=pargs.local)
 
         # South Pacific
         #fig_geo_umap('fig_geo_umap_DT1_southpacific.png',
@@ -1664,14 +1718,14 @@ def main(pargs):
 
     if pargs.figure == 'yearly_geo':
         # Equatorial Pacific
-        #fig_yearly_geo_umap('fig_yearly_geo_DT15_eqpacific.png',
-        #    'eqpacific', rtio_cut=1.5,
-        #    debug=pargs.debug, local=pargs.local)
+        fig_yearly_geo_umap('fig_yearly_geo_DT15_eqpacific.png',
+            'eqpacific', rtio_cut=1.5,
+            debug=pargs.debug, local=pargs.local)
 
         # Med
-        #fig_yearly_geo_umap('fig_yearly_geo_DT15_med.png',
-        #    'med', rtio_cut=1.25,
-        #    debug=pargs.debug, local=pargs.local)
+        fig_yearly_geo_umap('fig_yearly_geo_DT15_med.png',
+            'med', rtio_cut=1.25,
+            debug=pargs.debug, local=pargs.local)
 
         # Global using Med
         fig_yearly_geo_umap('fig_yearly_geo_DT15_global_med.png',
@@ -1695,19 +1749,19 @@ def main(pargs):
 
     if pargs.figure == 'seasonal_geo':
         # Med
-        #fig_seasonal_geo_umap('fig_seasonal_geo_DT15_med.png',
-        #    'med', rtio_cut=1.25,
-        #    debug=pargs.debug, local=pargs.local)
+        fig_seasonal_geo_umap('fig_seasonal_geo_DT15_med.png',
+            'med', rtio_cut=1.25,
+            debug=pargs.debug, local=pargs.local)
 
         # Equatorial Pacific
-        #fig_seasonal_geo_umap('fig_seasonal_geo_DT15_eqpacific.png',
-        #    'eqpacific',
-        #    debug=pargs.debug, local=pargs.local)
+        fig_seasonal_geo_umap('fig_seasonal_geo_DT15_eqpacific.png',
+            'eqpacific',
+            debug=pargs.debug, local=pargs.local)
 
         # Bay of Bengal
-        fig_seasonal_geo_umap('fig_seasonal_geo_DT1_baybengal.png',
-            'baybengal', rtio_cut=1.5, table='96_DT1',
-            debug=pargs.debug, local=pargs.local)
+        #fig_seasonal_geo_umap('fig_seasonal_geo_DT1_baybengal.png',
+        #    'baybengal', rtio_cut=1.5, table='96_DT1',
+        #    debug=pargs.debug, local=pargs.local)
 
 
     # UMAP LL Brazil
@@ -1762,7 +1816,7 @@ def main(pargs):
     # slopts
     if pargs.figure == 'slopes':
         fig_slopes(local=pargs.local, debug=pargs.debug,
-                    table=pargs.table)
+                    table=pargs.table) 
 
     # Slope vs DT
     if pargs.figure == 'slopevsDT':
@@ -1803,7 +1857,9 @@ def parse_option():
     parser.add_argument('--cmap', type=str, help="Color map")
     parser.add_argument('--umap_dim', type=int, default=2, help="UMAP embedding dimensions")
     parser.add_argument('--umap_comp', type=str, default='0,1', help="UMAP embedding dimensions")
+    parser.add_argument('--umap_rngs', type=str, help="UMAP ranges for analysis")
     parser.add_argument('--vmnx', default='-1,1', type=str, help="Color bar scale")
+    parser.add_argument('--region', type=str, help="Geographic region")
     parser.add_argument('--outfile', type=str, help="Outfile")
     parser.add_argument('--distr', type=str, default='normal',
                         help='Distribution to fit [normal, lognorm]')
@@ -1957,7 +2013,64 @@ if __name__ == '__main__':
 #  python py/fig_ssl_modis.py yearly_geo --local 
 #  python py/fig_ssl_modis.py seasonal_geo --local 
 
-# MISC
-#  python py/fig_ssl_modis.py learning_curve
+
+# #############################################################################
+# 96 v4
+
+# FIGURE 1
+# LL vs DT -- python py/fig_ssl_modis.py LLvsDT --local --table 96_v4
+
+# FIGURE 2
+# Slopes -- python py/fig_ssl_modis.py slopes --local --table 96_v4 
+# FIGURE 3
+# Slope vs DT -- python py/fig_ssl_modis.py slopevsDT --local --table 96_v4
+
 # FIGURE 4
-#  python py/fig_ssl_modis.py augment
+#  python py/fig_ssl_modis.py augment 
+
+# FIGURE 5 -- Learning curve
+#  python py/fig_ssl_modis.py learning_curve
+
+# Figure 6
+# UMAP DTAll colored by DT (all) -- 
+# python py/fig_ssl_modis.py umap_DT --local --table 96clear_v4_DTall --umap_comp S0,S1
+
+# Figure 7 -- Full gallery
+#  python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DTall --umap_comp S0,S1 --vmnx=-1,1 --outfile fig_umap_gallery_DTall.png
+
+# Figure 8
+# UMAP DT15 colored by DT40 -- python py/fig_ssl_modis.py umap_DT40 --local --table 96clear_v4_DT15 --umap_comp S0,S1 --outfile fig_umap_DT40_DT15_96clear_v4_S1.png
+
+# Figure 9 DT15 gallery
+#  python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT15 --umap_comp S0,S1 --vmnx=-1,1 --outfile fig_umap_gallery_DT15.png
+
+# Figure 10 DT15 slopes
+#  python py/fig_ssl_modis.py umap_slope --local --table 96clear_v4_DT15 --umap_comp S0,S1
+
+# Figure 11 Global geo for DT15 and weak gradients
+#  python py/fig_ssl_modis.py umap_geo --local --outfile fig_umap_geo_global_DT15_weak.png --table 96clear_v4_DT15  --umap_rngs=1.5,3.,2.,3.
+
+# Figure 12 Global geo for DT1 and strong gradients
+#  python py/fig_ssl_modis.py umap_geo --local --outfile fig_umap_geo_global_DT1_strong.png --table 96clear_v4_DT1  --umap_rngs=4.7,8.,2.5,4.
+
+# Figure 13 Equator and Med
+#  python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT15_eqpacific.png --table 96clear_v4_DT15  --region=eqpacific
+#  python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT15_med.png --table 96clear_v4_DT15  --region=med
+
+# Figure 14 South Atlantic/Pacific 
+#  python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_southatlantic.png --table 96clear_v4_DT1  --region=south_atlantic
+
+# Figure 15 Time Series EqPacific
+#  python py/fig_ssl_modis.py yearly_geo --local 
+
+# Seasonal
+#  python py/fig_ssl_modis.py seasonal_geo --local 
+
+# Appendix
+#  python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT1 --umap_comp S0,S1 --vmnx=-0.75,0.75 --outfile fig_umap_gallery_DT1.png
+
+# Another strong gradient figure for DT15
+#  python py/fig_ssl_modis.py umap_geo --local --outfile fig_umap_geo_global_DT15_strong.png --table 96clear_v4_DT15  --umap_rngs=6,10,6,9
+
+# Geo global; clouds DT15
+#  python py/fig_ssl_modis.py umap_geo --local --outfile fig_umap_geo_global_DT15_clouds.png --table 96clear_v4_DT15  --umap_rngs=8.4,11.,1,4.
