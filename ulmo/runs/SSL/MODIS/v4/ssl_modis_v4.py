@@ -898,9 +898,9 @@ def ssl_v4_umap(opt_path:str, debug=False, local=False):
     # Base
     base1 = '96clear_v4'
 
-    #for subset in ['DT5', 'DT0', 'DT1', 'DT15', 'DT2', 'DT4', 'DTall']:
     #for subset in ['DTall']:
-    for subset in ['DT5']:
+    #for subset in ['DT5']:
+    for subset in ['DT15', 'DTall', 'DT0', 'DT1', 'DT2', 'DT4', 'DT5']:
         # Files
         outfile = os.path.join(
             os.getenv('SST_OOD'), 

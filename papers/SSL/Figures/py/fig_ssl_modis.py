@@ -260,7 +260,6 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
         values = modis_tbl.clear_fraction
     elif metric == 'slope':
         values = modis_tbl.min_slope.values
-        embed(header='263 of figs')
     else:
         raise IOError("Bad metric!")
     
@@ -836,13 +835,14 @@ def fig_geo_umap(outfile, geo_region,
                      umap_dim=2, cmap='bwr',
                      debug=False): 
     # Load
-    modis_tbl = ssl_paper_analy.load_modis_tbl(local=local, table=table)
+    modis_tbl = ssl_paper_analy.load_modis_tbl(
+        local=local, table=table)
 
-    umap_keys = gen_umap_keys(umap_dim, umap_comp)
+    umap_keys = ssl_paper_analy.gen_umap_keys(umap_dim, umap_comp)
     outfile = update_outfile(outfile, table, umap_dim,
                              umap_comp=umap_comp)
     # Grid
-    grid = grid_umap(modis_tbl[umap_keys[0]].values, 
+    grid = ssl_paper_analy.grid_umap(modis_tbl[umap_keys[0]].values, 
         modis_tbl[umap_keys[1]].values)
  
     # cut
@@ -918,18 +918,18 @@ def fig_seasonal_geo_umap(outfile, geo_region,
                      local=False, 
                      rtio_cut = 1.5,
                      umap_comp='S0,S1',
-                     table='96_DT15',
+                     table='96clear_v4_DT15',
                      umap_dim=2, cmap='bwr',
                      debug=False): 
     # Load
     modis_tbl = ssl_paper_analy.load_modis_tbl(
         local=local, table=table)
 
-    umap_keys = gen_umap_keys(umap_dim, umap_comp)
+    umap_keys = ssl_paper_analy.gen_umap_keys(umap_dim, umap_comp)
     outfile = update_outfile(outfile, table, umap_dim,
                              umap_comp=umap_comp)
     # Grid
-    grid = grid_umap(modis_tbl[umap_keys[0]].values, 
+    grid = ssl_paper_analy.grid_umap(modis_tbl[umap_keys[0]].values, 
         modis_tbl[umap_keys[1]].values)
  
     # cut
@@ -1014,7 +1014,7 @@ def fig_yearly_geo_umap(outfile, geo_region,
                      rtio_cut = 1.5,
                      rtio_region=None,
                      umap_comp='S0,S1',
-                     table='96_DT15',
+                     table='96clear_v4_DT15',
                      min_Nsamp=10,
                      umap_dim=2, cmap='bwr',
                      debug=False): 
@@ -1041,11 +1041,11 @@ def fig_yearly_geo_umap(outfile, geo_region,
     modis_tbl = ssl_paper_analy.load_modis_tbl(
         local=local, table=table)
 
-    umap_keys = gen_umap_keys(umap_dim, umap_comp)
+    umap_keys = ssl_paper_analy.gen_umap_keys(umap_dim, umap_comp)
     outfile = update_outfile(outfile, table, umap_dim,
                              umap_comp=umap_comp)
     # Grid
-    grid = grid_umap(modis_tbl[umap_keys[0]].values, 
+    grid = ssl_paper_analy.grid_umap(modis_tbl[umap_keys[0]].values, 
         modis_tbl[umap_keys[1]].values)
  
     # cut on UMAP space
@@ -1594,14 +1594,20 @@ def main(pargs):
 
     # UMAP_slope
     if pargs.figure == 'umap_slope':
+        if pargs.table == '96clear_v4_DT15':
+            binx=np.linspace(0,10.5,30)
+            biny=np.linspace(1,9.5,30)
+        else:
+            binx=np.linspace(2,12.5,30)
+            biny=np.linspace(-0.5,9,30)
         fig_umap_colored(local=pargs.local, table=pargs.table,
                          metric='slope', 
                          outfile='fig_umap_slope.png',
                          cmap='viridis',
                          #vmnx=(-3., -1),
                          hist_param=dict(
-                             binx=np.linspace(2,12.5,30),
-                             biny=np.linspace(-0.5,9,30)),
+                             binx=binx,
+                             biny=biny),
                          maxN=400000,
                          umap_dim=pargs.umap_dim,
                          umap_comp=pargs.umap_comp)
@@ -1680,11 +1686,9 @@ def main(pargs):
         #     [30, 45.]], # North
         #    debug=pargs.debug, local=pargs.local)
 
-        # Equatorial Pacific
-        #fig_geo_umap('fig_geo_umap_DT15_eqpacific.png',
-        #    [[-140, -90.],   # W
-        #     [-10, 10.]],    # Equitorial 
-        #    debug=pargs.debug, local=pargs.local)
+        fig_geo_umap(pargs.outfile, pargs.region,
+            debug=pargs.debug, local=pargs.local,
+            table=pargs.table)
 
         # Coastal California
         #fig_geo_umap('fig_geo_umap_DT15_california.png',
@@ -1700,10 +1704,10 @@ def main(pargs):
         #    debug=pargs.debug, local=pargs.local)
 
         # Bay of Bengal
-        fig_geo_umap('fig_geo_umap_DT15_baybengal.png', 
-                     'baybengal',
-            table='96_DT15',
-            debug=pargs.debug, local=pargs.local)
+        #fig_geo_umap('fig_geo_umap_DT15_baybengal.png', 
+        #             'baybengal',
+        #    table='96_DT15',
+        #    debug=pargs.debug, local=pargs.local)
 
         # South Pacific
         #fig_geo_umap('fig_geo_umap_DT1_southpacific.png',
@@ -1714,14 +1718,14 @@ def main(pargs):
 
     if pargs.figure == 'yearly_geo':
         # Equatorial Pacific
-        #fig_yearly_geo_umap('fig_yearly_geo_DT15_eqpacific.png',
-        #    'eqpacific', rtio_cut=1.5,
-        #    debug=pargs.debug, local=pargs.local)
+        fig_yearly_geo_umap('fig_yearly_geo_DT15_eqpacific.png',
+            'eqpacific', rtio_cut=1.5,
+            debug=pargs.debug, local=pargs.local)
 
         # Med
-        #fig_yearly_geo_umap('fig_yearly_geo_DT15_med.png',
-        #    'med', rtio_cut=1.25,
-        #    debug=pargs.debug, local=pargs.local)
+        fig_yearly_geo_umap('fig_yearly_geo_DT15_med.png',
+            'med', rtio_cut=1.25,
+            debug=pargs.debug, local=pargs.local)
 
         # Global using Med
         fig_yearly_geo_umap('fig_yearly_geo_DT15_global_med.png',
@@ -1745,19 +1749,19 @@ def main(pargs):
 
     if pargs.figure == 'seasonal_geo':
         # Med
-        #fig_seasonal_geo_umap('fig_seasonal_geo_DT15_med.png',
-        #    'med', rtio_cut=1.25,
-        #    debug=pargs.debug, local=pargs.local)
+        fig_seasonal_geo_umap('fig_seasonal_geo_DT15_med.png',
+            'med', rtio_cut=1.25,
+            debug=pargs.debug, local=pargs.local)
 
         # Equatorial Pacific
-        #fig_seasonal_geo_umap('fig_seasonal_geo_DT15_eqpacific.png',
-        #    'eqpacific',
-        #    debug=pargs.debug, local=pargs.local)
+        fig_seasonal_geo_umap('fig_seasonal_geo_DT15_eqpacific.png',
+            'eqpacific',
+            debug=pargs.debug, local=pargs.local)
 
         # Bay of Bengal
-        fig_seasonal_geo_umap('fig_seasonal_geo_DT1_baybengal.png',
-            'baybengal', rtio_cut=1.5, table='96_DT1',
-            debug=pargs.debug, local=pargs.local)
+        #fig_seasonal_geo_umap('fig_seasonal_geo_DT1_baybengal.png',
+        #    'baybengal', rtio_cut=1.5, table='96_DT1',
+        #    debug=pargs.debug, local=pargs.local)
 
 
     # UMAP LL Brazil
@@ -1855,6 +1859,7 @@ def parse_option():
     parser.add_argument('--umap_comp', type=str, default='0,1', help="UMAP embedding dimensions")
     parser.add_argument('--umap_rngs', type=str, help="UMAP ranges for analysis")
     parser.add_argument('--vmnx', default='-1,1', type=str, help="Color bar scale")
+    parser.add_argument('--region', type=str, help="Geographic region")
     parser.add_argument('--outfile', type=str, help="Outfile")
     parser.add_argument('--distr', type=str, default='normal',
                         help='Distribution to fit [normal, lognorm]')
@@ -2047,6 +2052,19 @@ if __name__ == '__main__':
 
 # Figure 12 Global geo for DT1 and strong gradients
 #  python py/fig_ssl_modis.py umap_geo --local --outfile fig_umap_geo_global_DT1_strong.png --table 96clear_v4_DT1  --umap_rngs=4.7,8.,2.5,4.
+
+# Figure 13 Equator and Med
+#  python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT15_eqpacific.png --table 96clear_v4_DT15  --region=eqpacific
+#  python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT15_med.png --table 96clear_v4_DT15  --region=med
+
+# Figure 14 South Atlantic/Pacific 
+#  python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_southatlantic.png --table 96clear_v4_DT1  --region=south_atlantic
+
+# Figure 15 Time Series EqPacific
+#  python py/fig_ssl_modis.py yearly_geo --local 
+
+# Seasonal
+#  python py/fig_ssl_modis.py seasonal_geo --local 
 
 # Appendix
 #  python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT1 --umap_comp S0,S1 --vmnx=-0.75,0.75 --outfile fig_umap_gallery_DT1.png
