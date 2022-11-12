@@ -717,7 +717,8 @@ def fig_umap_2dhist(outfile='fig_umap_2dhist.png',
 def fig_umap_geo(outfile:str, table:str, umap_rngs:list, 
                  local=False, nside=64, umap_comp='S0,S1', 
                  umap_dim=2, debug=False, 
-                 color='bwr', vmax=None): 
+                 color='bwr', vmax=None,
+                 absolute=False): 
     """ Global geographic plot of the UMAP select range
 
     Args:
@@ -732,6 +733,8 @@ def fig_umap_geo(outfile:str, table:str, umap_rngs:list,
         debug (bool, optional): _description_. Defaults to False.
         color (str, optional): _description_. Defaults to 'bwr'.
         vmax (_type_, optional): _description_. Defaults to None.
+        absolute (bool, optional):
+            If True, show absolute counts instead of relative
     """
 
     # Load
@@ -775,8 +778,14 @@ def fig_umap_geo(outfile:str, table:str, umap_rngs:list,
     #ratio[set_one] = 1.
 
     # What to plot?
-    hp_plot = ratio
-    vmax = 2.
+    if absolute:
+        hp_plot = np.log10(hp_events)
+        lbl = r"$\log_{10} \; \rm Counts$"
+        vmax = None
+    else:
+        hp_plot = ratio
+        lbl = "Relative Frequency"
+        vmax = 2.
 
 
    # Figure
@@ -801,7 +810,6 @@ def fig_umap_geo(outfile:str, table:str, umap_rngs:list,
 
     # Colorbar
     cb = plt.colorbar(img, orientation='horizontal', pad=0.)
-    lbl = "Relative Frequency"
     if lbl is not None:
         cb.set_label(lbl, fontsize=20.)
     cb.ax.tick_params(labelsize=17)
@@ -1640,6 +1648,17 @@ def main(pargs):
             umap_dim=pargs.umap_dim,
             umap_comp=pargs.umap_comp)
 
+    if pargs.figure == 'umap_absgeo':
+        # Parse
+        sp = pargs.umap_rngs.split(',')
+        umap_rngs = [[float(sp[0]), float(sp[1])], 
+             [float(sp[2]), float(sp[3])]]
+        # Do it
+        fig_umap_geo(pargs.outfile,
+            pargs.table, umap_rngs,
+            debug=pargs.debug, local=pargs.local,
+            absolute=True)
+
     if pargs.figure == 'umap_geo':
 
         # Parse
@@ -2074,3 +2093,4 @@ if __name__ == '__main__':
 
 # Geo global; clouds DT15
 #  python py/fig_ssl_modis.py umap_geo --local --outfile fig_umap_geo_global_DT15_clouds.png --table 96clear_v4_DT15  --umap_rngs=8.4,11.,1,4.
+#  python py/fig_ssl_modis.py umap_absgeo --local --outfile fig_umap_absgeo_global_DT15_clouds.png --table 96clear_v4_DT15  --umap_rngs=8.4,11.,1,4.
