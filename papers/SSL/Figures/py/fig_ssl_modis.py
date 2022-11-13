@@ -2098,3 +2098,8 @@ if __name__ == '__main__':
 
 # APPENDIX
 #  python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT1 --umap_comp S0,S1 --vmnx=-1,1 --outfile fig_umap_gallery_DT1.png
+
+# OTHER
+
+# Explore weak gradients in DT1
+#  python py/fig_ssl_modis.py umap_geo --local --outfile fig_umap_geo_global_DT1_weak.png --table 96clear_v4_DT1  --umap_rngs=-1,2.,-3,-0.5
