@@ -18,8 +18,11 @@ def mktab_cutouts(outfile='tab_cutouts.tex', sub=False, local=True):
     # Load up 
     modis_tbl = ssl_paper_analy.load_modis_tbl(
         local=local, cuts=None, 
-        region=None, table='CF',
+        region=None, table='96_v4',
         percentiles=None)
+
+    # Number of cutouts
+    print(f'Number of cutouts: {len(modis_tbl)}')
 
     # Open
     tbfil = open(outfile, 'w')

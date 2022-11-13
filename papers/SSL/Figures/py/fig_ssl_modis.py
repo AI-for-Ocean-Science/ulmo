@@ -782,6 +782,7 @@ def fig_umap_geo(outfile:str, table:str, umap_rngs:list,
         hp_plot = np.log10(hp_events)
         lbl = r"$\log_{10} \; \rm Counts$"
         vmax = None
+        color = 'Blues'
     else:
         hp_plot = ratio
         lbl = "Relative Frequency"
@@ -1518,16 +1519,16 @@ def fig_learn_curve(outfile='fig_learn_curve.png'):
 
     ax = plt.subplot(gs[0])
 
-    ax.plot(loss_valid, label='valid')
-    ax.plot(loss_train, c='red', label='train')
+    ax.plot(loss_valid, label='valid', lw=3)
+    ax.plot(loss_train, c='red', label='train', lw=3)
 
-    ax.legend(fontsize=15.)
+    ax.legend(fontsize=19.)
 
     # Label
     ax.set_xlabel("Epoch")
     ax.set_ylabel("Loss")
 
-    plotting.set_fontsize(ax, 17.)
+    plotting.set_fontsize(ax, 21.)
     
     plt.savefig(outfile, dpi=300)
     plt.close()
@@ -2094,3 +2095,6 @@ if __name__ == '__main__':
 # Geo global; clouds DT15
 #  python py/fig_ssl_modis.py umap_geo --local --outfile fig_umap_geo_global_DT15_clouds.png --table 96clear_v4_DT15  --umap_rngs=8.4,11.,1,4.
 #  python py/fig_ssl_modis.py umap_absgeo --local --outfile fig_umap_absgeo_global_DT15_clouds.png --table 96clear_v4_DT15  --umap_rngs=8.4,11.,1,4.
+
+# APPENDIX
+#  python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT1 --umap_comp S0,S1 --vmnx=-1,1 --outfile fig_umap_gallery_DT1.png
