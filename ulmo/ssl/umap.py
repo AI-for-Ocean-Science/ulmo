@@ -18,6 +18,7 @@ def umap_subset(modis_tbl:pandas.DataFrame,
                 opt_path:str, outfile:str, DT_cut=None, 
                 ntrain=200000, remove=True,
                 umap_savefile:str=None,
+                train_umap:bool=True,
                 local=True, CF=False, debug=False):
     """Run UMAP on a subset of the data
     First 2 dimensions are written to the table
@@ -32,6 +33,7 @@ def umap_subset(modis_tbl:pandas.DataFrame,
         umap_savefile (str, optional): _description_. Defaults to None.
         local (bool, optional): _description_. Defaults to True.
         CF (bool, optional): Use cloud free (99%) set? Defaults to False.
+        train_umap (bool, optional): Train a new UMAP? Defaults to True.
         debug (bool, optional): _description_. Defaults to False.
 
     Raises:
@@ -136,18 +138,24 @@ def umap_subset(modis_tbl:pandas.DataFrame,
     # UMAP me
     if debug:
         embed(header='136 of umap')
-    ntrain = min(ntrain, nlatents)
-    print(f"Training UMAP on a random {ntrain} set of the files")
-    random = np.random.choice(np.arange(nlatents), size=ntrain, 
-                              replace=False)
-    reducer_umap = umap.UMAP()
-    latents_mapping = reducer_umap.fit(all_latents[random,...])
-    print("Done..")
 
-    # Save?
-    if umap_savefile is not None and not debug:
-        pickle.dump(latents_mapping, open(umap_savefile, "wb" ) )
-        print(f"Saved UMAP to {umap_savefile}")
+    if train_umap:
+        ntrain = min(ntrain, nlatents)
+        print(f"Training UMAP on a random {ntrain} set of the files")
+        random = np.random.choice(np.arange(nlatents), size=ntrain, 
+                                replace=False)
+        reducer_umap = umap.UMAP()
+        latents_mapping = reducer_umap.fit(all_latents[random,...])
+        print("Done..")
+
+        # Save?
+        if umap_savefile is not None and not debug:
+            pickle.dump(latents_mapping, open(umap_savefile, "wb" ) )
+            print(f"Saved UMAP to {umap_savefile}")
+    else:
+        latents_mapping = pickle.load(open(umap_savefile, "rb" ) )
+        print(f"Loaded UMAP from {umap_savefile}")
+
 
     # Evaluate all of the latents
     print("Embedding all of the latents..")

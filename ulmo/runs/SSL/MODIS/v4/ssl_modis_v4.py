@@ -916,13 +916,18 @@ def ssl_v4_umap(opt_path:str, debug=False, local=False):
             embed(header='786 of v4')
 
         # Run
+        if os.path.isfile(umap_savefile):
+            train_umap = False
+        else:
+            train_umap = True
         ssl_umap.umap_subset(modis_tbl.copy(),
                              opt_path, 
                              outfile, 
                              local=local,
                              DT_cut=DT_cut, debug=debug, 
-                            umap_savefile=umap_savefile,
-                            remove=False, CF=False)
+                             train_umap=train_umap, 
+                             umap_savefile=umap_savefile,
+                             remove=False, CF=False)
 
 def parse_option():
     """

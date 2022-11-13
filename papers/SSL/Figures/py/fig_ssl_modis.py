@@ -1025,6 +1025,8 @@ def fig_yearly_geo_umap(outfile, geo_region,
                      umap_comp='S0,S1',
                      table='96clear_v4_DT15',
                      min_Nsamp=10,
+                     show_annual=False,
+                     slope_pos:str='top',
                      umap_dim=2, cmap='bwr',
                      debug=False): 
     """Generate a time-series plot
@@ -1041,6 +1043,10 @@ def fig_yearly_geo_umap(outfile, geo_region,
             There must be at least this many sample to generate a point
         umap_dim (int, optional): _description_. Defaults to 2.
         cmap (str, optional): _description_. Defaults to 'bwr'.
+        show_annual (bool, optional): 
+            Show an estimate of the fraction per year.  Not recommended
+        slope_pos (str, optional):
+            Where to put the slope label.  Options are 'top', 'bottom'
         debug (bool, optional): _description_. Defaults to False.
     """
     # Init
@@ -1112,8 +1118,10 @@ def fig_yearly_geo_umap(outfile, geo_region,
     geo_tbl = modis_tbl.loc[good & geo].copy()
 
     # Time-series
-    years = 2003 + np.arange(17)
+    years = 2003 + np.arange(19)
     months = 1 + np.arange(12)
+
+    embed(header='1124 of figs')
 
     # Loop over each month
     fracs = []
@@ -1158,6 +1166,8 @@ def fig_yearly_geo_umap(outfile, geo_region,
         # frac
         frac = np.sum(counts_year*use_grid) / np.sum(counts_year)
         year_fracs.append(frac)
+        if debug and geo_region == 'med':
+            embed(header='1162 of figs')
         #
         year_dates.append(datetime.datetime(year, 7, 1))
 
@@ -1173,7 +1183,8 @@ def fig_yearly_geo_umap(outfile, geo_region,
     ax_time.plot(dates, fracs, 'k')
 
     # Annual
-    ax_time.plot(year_dates, year_fracs, 'ro')
+    if show_annual:
+        ax_time.plot(year_dates, year_fracs, 'ro')
 
 
     # Time-series analysis
@@ -1193,7 +1204,11 @@ def fig_yearly_geo_umap(outfile, geo_region,
             ls='--', color='pink')
 
     # Label
-    ax_time.text(0.05, 0.9, 
+    if slope_pos == 'top':
+        ysl = 0.9
+    else:
+        ysl = 0.1
+    ax_time.text(0.02, ysl,
             f"slope={result_dict['slope']:0.5f} +/- {result_dict['slope_err']:0.5f}",
             transform=ax_time.transAxes,
             fontsize=15, ha='left', color='k')
@@ -1739,7 +1754,7 @@ def main(pargs):
     if pargs.figure == 'yearly_geo':
         # Equatorial Pacific
         fig_yearly_geo_umap('fig_yearly_geo_DT15_eqpacific.png',
-            'eqpacific', rtio_cut=1.5,
+            'eqpacific', rtio_cut=1.5, slope_pos='bottom',
             debug=pargs.debug, local=pargs.local)
 
         # Med
@@ -1748,9 +1763,9 @@ def main(pargs):
             debug=pargs.debug, local=pargs.local)
 
         # Global using Med
-        fig_yearly_geo_umap('fig_yearly_geo_DT15_global_med.png',
-            'global', rtio_cut=1.25, rtio_region='med',
-            debug=pargs.debug, local=pargs.local)
+        #fig_yearly_geo_umap('fig_yearly_geo_DT15_global_med.png',
+        #    'global', rtio_cut=1.25, rtio_region='med',
+        #    debug=pargs.debug, local=pargs.local)
 
         # Bay of Bengal
         #fig_yearly_geo_umap('fig_yearly_geo_DT1_baybengal.png',
@@ -1758,9 +1773,9 @@ def main(pargs):
         #    debug=pargs.debug, local=pargs.local)
 
         # Global using Equatorial
-        fig_yearly_geo_umap('fig_yearly_geo_DT15_global_eqpac.png',
-            'global', rtio_cut=1.5, rtio_region='eqpacific',
-            debug=pargs.debug, local=pargs.local)
+        #fig_yearly_geo_umap('fig_yearly_geo_DT15_global_eqpac.png',
+        #    'global', rtio_cut=1.5, rtio_region='eqpacific',
+        #    debug=pargs.debug, local=pargs.local)
 
         # North hemisphere
         #fig_yearly_geo_umap('fig_yearly_geo_DT15_north_eqpac.png',
