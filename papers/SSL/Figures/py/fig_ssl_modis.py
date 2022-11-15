@@ -1121,7 +1121,7 @@ def fig_yearly_geo_umap(outfile, geo_region,
     years = 2003 + np.arange(19)
     months = 1 + np.arange(12)
 
-    embed(header='1124 of figs')
+    #embed(header='1124 of figs')
 
     # Loop over each month
     fracs = []
