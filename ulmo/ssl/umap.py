@@ -61,6 +61,9 @@ def umap_subset(modis_tbl:pandas.DataFrame,
     modis_tbl = modis_tbl[keep].copy()
     print(f"After the cuts, we have {len(modis_tbl)} cutouts to work on.")
 
+    if debug:
+        embed(header='64 of umap')
+
     # 
     if table in ['CF', '96']:
         valid = modis_tbl.ulmo_pp_type == 0

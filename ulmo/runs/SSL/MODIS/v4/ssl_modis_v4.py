@@ -740,6 +740,8 @@ def calc_dt40(opt_path, debug:bool=False, local:bool=False,
         opt_path (str): Path to the options file 
         debug (bool, optional): _description_. Defaults to False.
         local (bool, optional): _description_. Defaults to False.
+        redo (bool, optional): 
+            Redo the calculation for 2020 and 2021
     """
     # Options (for the Table name)
     opt = option_preprocess(ulmo_io.Params(opt_path))
@@ -782,6 +784,9 @@ def calc_dt40(opt_path, debug:bool=False, local:bool=False,
         print("Done..")
 
     # Fix s3 in 2020
+    if debug:
+        embed(header='789 of v4')
+
     new_pp_files = []
     for pp_file in modis_tbl.pp_file:
         if 's3' not in pp_file:
@@ -819,7 +824,7 @@ def calc_dt40(opt_path, debug:bool=False, local:bool=False,
         f = h5py.File(basename, 'r')
 
         # Load it all
-        DT40(f, modis_tbl, pfile, itype='valid', verbose=debug)
+        DT40(f, modis_tbl, pfile, itype='valid', verbose=debug, debug=debug)
         if 'train' in f.keys():
             DT40(f, modis_tbl, pfile, itype='train', verbose=debug)
 
@@ -845,7 +850,8 @@ def calc_dt40(opt_path, debug:bool=False, local:bool=False,
     print("All done")
 
 def DT40(f:h5py.File, modis_tbl:pandas.DataFrame, 
-         pfile:str, itype:str='train', verbose=False):
+         pfile:str, itype:str='train', verbose=False,
+         debug=False):
     """Calculate DT40 for a given file
 
     Args:
@@ -868,6 +874,8 @@ def DT40(f:h5py.File, modis_tbl:pandas.DataFrame,
     ppt = 0 if itype == 'valid' else 1
     idx = (modis_tbl.pp_file == pfile) & (modis_tbl.ulmo_pp_type == ppt)
     pp_idx = modis_tbl[idx].ulmo_pp_idx.values
+    if debug:
+        embed(header='878 of v4')
     modis_tbl.loc[idx, 'DT40'] = DT_40[pp_idx]
     return 
 
@@ -900,7 +908,7 @@ def ssl_v4_umap(opt_path:str, debug=False, local=False):
 
     #for subset in ['DTall']:
     #for subset in ['DT5']:
-    for subset in ['DT15', 'DTall', 'DT0', 'DT1', 'DT2', 'DT4', 'DT5']:
+    for subset in ['DT15', 'DT0', 'DT1', 'DT2', 'DT4', 'DT5', 'DTall']:
         # Files
         outfile = os.path.join(
             os.getenv('SST_OOD'), 
