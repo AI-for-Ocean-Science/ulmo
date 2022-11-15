@@ -31,10 +31,10 @@ spec:
             memory: "10Gi"  # Using ~7
             ephemeral-storage: 50Gi
           limits:
-            cpu: "1"
+            cpu: "8"
             memory: "25Gi"
             ephemeral-storage: 100Gi
-            nvidia.com/gpu:  "8"  # See docs to exlude certain types
+            nvidia.com/gpu:  "2"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]
             #command: ["sh", "-c", "sleep infinity"]
         args:
@@ -44,9 +44,11 @@ spec:
             git pull; 
             python setup.py develop;
             cp ulmo/mae/correct_helpers.py /root/miniconda3/lib/python3.8/site-packages/timm/models/layers/helpers.py;
-            cd ulmo/runs/MAE/testing;
-            python ./mae_test.py 
-            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp s3://modis-l2/SSL/preproc/MODIS_SSL_96clear_images.h5 ./;
+            cd ulmo/runs/mae;
+            aws --endpoint https://s3-west.nrp-nautilus.io s3 cp s3://llc/PreProc/LLC_uniform144_test_preproc.h5 ./;
+            python ./testh5.py;
+            python main_pretrain.py --epochs 10 --model mae_vit_LLC_patch4 --mask_ratio 0.10
+            aws --endpoint https://s3-west.nrp-nautilus.io s3 cp -R ./output_dir/ s3://llc/PreProc/;
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"
