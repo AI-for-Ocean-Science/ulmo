@@ -54,9 +54,6 @@
 # Seasonal
 #  python py/fig_ssl_modis.py seasonal_geo --local 
 
-# Appendix
-#  python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT1 --umap_comp S0,S1 --vmnx=-0.75,0.75 --outfile fig_umap_gallery_DT1.png
-
 # Another strong gradient figure for DT15
 #  python py/fig_ssl_modis.py umap_geo --local --outfile fig_umap_geo_global_DT15_strong.png --table 96clear_v4_DT15  --umap_rngs=6,10,6,9
 
