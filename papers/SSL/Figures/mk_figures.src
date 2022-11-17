@@ -1,0 +1,76 @@
+# #############################################################################
+# 96 v4
+
+# FIGURE 1
+# LL vs DT -- python py/fig_ssl_modis.py LLvsDT --local --table 96_v4
+
+# FIGURE 2
+# Slopes -- python py/fig_ssl_modis.py slopes --local --table 96_v4 
+# FIGURE 3
+# Slope vs DT -- python py/fig_ssl_modis.py slopevsDT --local --table 96_v4
+
+# FIGURE 4
+#  python py/fig_ssl_modis.py augment 
+
+# FIGURE 5 -- Learning curve
+#  python py/fig_ssl_modis.py learning_curve
+
+# Figure 6
+# UMAP DTAll colored by DT (all) -- 
+# python py/fig_ssl_modis.py umap_DT --local --table 96clear_v4_DTall --umap_comp S0,S1
+
+# Figure 7 -- Full gallery
+#  python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DTall --umap_comp S0,S1 --vmnx=-1,1 --outfile fig_umap_gallery_DTall.png
+
+# Figure 8
+# UMAP DT15 colored by DT40 -- python py/fig_ssl_modis.py umap_DT40 --local --table 96clear_v4_DT15 --umap_comp S0,S1 --outfile fig_umap_DT40_DT15_96clear_v4_S1.png
+
+# Figure 9 DT15 gallery
+#  python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT15 --umap_comp S0,S1 --vmnx=-1,1 --outfile fig_umap_gallery_DT15.png
+
+# Figure 10 DT15 slopes
+#  python py/fig_ssl_modis.py umap_slope --local --table 96clear_v4_DT15 --umap_comp S0,S1
+
+# Figure 11 Global geo for DT15 and weak gradients
+#  python py/fig_ssl_modis.py umap_geo --local --outfile fig_umap_geo_global_DT15_weak.png --table 96clear_v4_DT15  --umap_rngs=1.5,3.,2.,3. --min_counts=5
+
+# Figure 12 DT1 gallery
+#  python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT1 --umap_comp S0,S1 --vmnx=-1,1 --outfile fig_umap_gallery_DT1.png
+
+# Figure 13 Global geo for DT1 and strong gradients
+#  python py/fig_ssl_modis.py umap_geo --local --outfile fig_umap_geo_global_DT1_strong.png --table 96clear_v4_DT1  --umap_rngs=4.7,8.,2.5,4. --min_counts=5
+
+# Figure 14 Equator and Med
+#  python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT15_eqpacific.png --table 96clear_v4_DT15  --region=eqpacific
+#  python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT15_med.png --table 96clear_v4_DT15  --region=med
+
+# Figure 15 South Atlantic/Pacific 
+#  python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_southatlantic.png --table 96clear_v4_DT1  --region=south_atlantic
+#  python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_southpacific.png --table 96clear_v4_DT1  --region=south_pacific
+
+# Figure 16 Time Series EqPacific
+#  python py/fig_ssl_modis.py yearly_geo --local 
+
+# Seasonal
+#  python py/fig_ssl_modis.py seasonal_geo --local 
+
+# Appendix
+#  python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT1 --umap_comp S0,S1 --vmnx=-0.75,0.75 --outfile fig_umap_gallery_DT1.png
+
+# Another strong gradient figure for DT15
+#  python py/fig_ssl_modis.py umap_geo --local --outfile fig_umap_geo_global_DT15_strong.png --table 96clear_v4_DT15  --umap_rngs=6,10,6,9
+
+# Geo global; clouds DT15
+#  python py/fig_ssl_modis.py umap_geo --local --outfile fig_umap_geo_global_DT15_clouds.png --table 96clear_v4_DT15  --umap_rngs=8.4,11.,1,4.
+#  python py/fig_ssl_modis.py umap_absgeo --local --outfile fig_umap_absgeo_global_DT15_clouds.png --table 96clear_v4_DT15  --umap_rngs=8.4,11.,1,4.
+
+# APPENDIX
+python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT0 --umap_comp S0,S1 --vmnx=-0.5,0.5 --outfile fig_umap_gallery_DT0.png
+python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT2 --umap_comp S0,S1 --vmnx=-1.5,1.5 --outfile fig_umap_gallery_DT2.png
+python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT4 --umap_comp S0,S1 --vmnx=-2,2 --outfile fig_umap_gallery_DT4.png
+python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT5 --umap_comp S0,S1 --vmnx=-3,3 --outfile fig_umap_gallery_DT5.png
+
+# OTHER
+
+# Explore weak gradients in DT1
+#  python py/fig_ssl_modis.py umap_geo --local --outfile fig_umap_geo_global_DT1_weak.png --table 96clear_v4_DT1  --umap_rngs=-1,2.,-3,-0.5

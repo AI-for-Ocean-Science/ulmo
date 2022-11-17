@@ -718,6 +718,7 @@ def fig_umap_geo(outfile:str, table:str, umap_rngs:list,
                  local=False, nside=64, umap_comp='S0,S1', 
                  umap_dim=2, debug=False, 
                  color='bwr', vmax=None,
+                 min_counts=None, 
                  absolute=False): 
     """ Global geographic plot of the UMAP select range
 
@@ -733,6 +734,7 @@ def fig_umap_geo(outfile:str, table:str, umap_rngs:list,
         debug (bool, optional): _description_. Defaults to False.
         color (str, optional): _description_. Defaults to 'bwr'.
         vmax (_type_, optional): _description_. Defaults to None.
+        min_counts (int, optional): Minimum to show in plot.
         absolute (bool, optional):
             If True, show absolute counts instead of relative
     """
@@ -747,6 +749,11 @@ def fig_umap_geo(outfile:str, table:str, umap_rngs:list,
                             
     # Evaluate full table in healpix
     hp_events, hp_lons, hp_lats = image_utils.evals_to_healpix(modis_tbl, nside)
+
+    if min_counts is not None:
+        bad = hp_events < min_counts
+        hp_events.mask[bad] = True
+        hp_events.data[bad] = 0
 
     # Now the cut region
     cut = ( (modis_tbl[umap_keys[0]] > umap_rngs[0][0]) & 
@@ -763,6 +770,8 @@ def fig_umap_geo(outfile:str, table:str, umap_rngs:list,
     masked_in_cut_only = hp_events_cut.mask & np.invert(hp_events.mask)
     hp_events_cut.mask[masked_in_cut_only] = False
     hp_events_cut.data[masked_in_cut_only] = 0.
+
+    # 
 
     # Stats
     f_tot = hp_events / np.sum(hp_events)
@@ -841,6 +850,7 @@ def fig_geo_umap(outfile, geo_region,
                      local=False, 
                      umap_comp='S0,S1',
                      table='96_DT15',
+                     min_counts=200,
                      umap_dim=2, cmap='bwr',
                      debug=False): 
     # Load
@@ -871,6 +881,8 @@ def fig_geo_umap(outfile, geo_region,
                                        grid['yval']))
 
     # Normalize
+    if min_counts > 0:
+        counts[counts < min_counts] = 0.
     counts /= np.sum(counts)
 
     # Geographic
@@ -1683,7 +1695,7 @@ def main(pargs):
              [float(sp[2]), float(sp[3])]]
         # Do it
         fig_umap_geo(pargs.outfile,
-            pargs.table, umap_rngs,
+            pargs.table, umap_rngs, min_counts=pargs.min_counts,
             debug=pargs.debug, local=pargs.local)
         # Most boring
         #fig_umap_geo('fig_umap_geo_DT0_5656.png',
@@ -1895,6 +1907,7 @@ def parse_option():
     parser.add_argument('--umap_rngs', type=str, help="UMAP ranges for analysis")
     parser.add_argument('--vmnx', default='-1,1', type=str, help="Color bar scale")
     parser.add_argument('--region', type=str, help="Geographic region")
+    parser.add_argument('--min_counts', type=int, help="Minimum counts for analysis")
     parser.add_argument('--outfile', type=str, help="Outfile")
     parser.add_argument('--distr', type=str, default='normal',
                         help='Distribution to fit [normal, lognorm]')
@@ -2083,19 +2096,23 @@ if __name__ == '__main__':
 #  python py/fig_ssl_modis.py umap_slope --local --table 96clear_v4_DT15 --umap_comp S0,S1
 
 # Figure 11 Global geo for DT15 and weak gradients
-#  python py/fig_ssl_modis.py umap_geo --local --outfile fig_umap_geo_global_DT15_weak.png --table 96clear_v4_DT15  --umap_rngs=1.5,3.,2.,3.
+#  python py/fig_ssl_modis.py umap_geo --local --outfile fig_umap_geo_global_DT15_weak.png --table 96clear_v4_DT15  --umap_rngs=1.5,3.,2.,3. --min_counts=5
 
-# Figure 12 Global geo for DT1 and strong gradients
-#  python py/fig_ssl_modis.py umap_geo --local --outfile fig_umap_geo_global_DT1_strong.png --table 96clear_v4_DT1  --umap_rngs=4.7,8.,2.5,4.
+# Figure 12 DT1 gallery
+#  python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT1 --umap_comp S0,S1 --vmnx=-1,1 --outfile fig_umap_gallery_DT1.png
 
-# Figure 13 Equator and Med
+# Figure 13 Global geo for DT1 and strong gradients
+#  python py/fig_ssl_modis.py umap_geo --local --outfile fig_umap_geo_global_DT1_strong.png --table 96clear_v4_DT1  --umap_rngs=4.7,8.,2.5,4. --min_counts=5
+
+# Figure 14 Equator and Med
 #  python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT15_eqpacific.png --table 96clear_v4_DT15  --region=eqpacific
 #  python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT15_med.png --table 96clear_v4_DT15  --region=med
 
-# Figure 14 South Atlantic/Pacific 
+# Figure 15 South Atlantic/Pacific 
 #  python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_southatlantic.png --table 96clear_v4_DT1  --region=south_atlantic
+#  python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_southpacific.png --table 96clear_v4_DT1  --region=south_pacific
 
-# Figure 15 Time Series EqPacific
+# Figure 16 Time Series EqPacific
 #  python py/fig_ssl_modis.py yearly_geo --local 
 
 # Seasonal
@@ -2112,7 +2129,10 @@ if __name__ == '__main__':
 #  python py/fig_ssl_modis.py umap_absgeo --local --outfile fig_umap_absgeo_global_DT15_clouds.png --table 96clear_v4_DT15  --umap_rngs=8.4,11.,1,4.
 
 # APPENDIX
-#  python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT1 --umap_comp S0,S1 --vmnx=-1,1 --outfile fig_umap_gallery_DT1.png
+# python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT0 --umap_comp S0,S1 --vmnx=-0.5,0.5 --outfile fig_umap_gallery_DT0.png
+# python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT2 --umap_comp S0,S1 --vmnx=-1.5,1.5 --outfile fig_umap_gallery_DT2.png
+# python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT4 --umap_comp S0,S1 --vmnx=-2,2 --outfile fig_umap_gallery_DT4.png
+# python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT5 --umap_comp S0,S1 --vmnx=-3,3 --outfile fig_umap_gallery_DT5.png
 
 # OTHER
 
