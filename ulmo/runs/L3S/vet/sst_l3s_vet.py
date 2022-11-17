@@ -1,5 +1,6 @@
 """ vet of the SST L3S dataset
 """
+from email import header
 from operator import mod
 import os
 from typing import IO
@@ -53,7 +54,11 @@ def extract_files(debug=False, n_cores=20,
     if local:
         mat_files = glob.glob(
             os.path.join(os.getenv('OS_DATA'),
-                     'SST_L3S', 'extracted', '*',
+                     'SST', 
+                     'L3S', 
+                     'daily', 
+                     'extracted', 
+                     '*',
                      '*.mat'))
     mat_files.sort()
 
@@ -65,9 +70,19 @@ def extract_files(debug=False, n_cores=20,
 
     # 
     for year in all_years:
+        # Open table
+        if local:
+            tbl_file = os.path.join(os.getenv('OS_DATA'),
+                     'SST', 
+                     'L3S', 
+                     'daily', 
+                     'extracted', year,
+                     f'cutout_table_for_{year}.parquet')
+        tbl_year = pandas.read_parquet(tbl_file)
         # Output basename
         basename = f'SST_L3S_{year}_extract.h5'
         sst_a = []
+        embed(header='85 of sst')
         for mat_file in mat_files:
             if year not in mat_file:
                 continue
@@ -93,7 +108,7 @@ def extract_files(debug=False, n_cores=20,
                         'mean_temperature', 'Tmin', 
                         'Tmax', 'T90', 'T10', 'filename', 
                         'field_size']:
-            embed(header='60 of vet')
+                embed(header='60 of vet')
 
 def preproc(debug=False, n_cores=20):
     """Pre-process the files
