@@ -15,6 +15,8 @@ import healpy as hp
 import matplotlib as mpl
 import matplotlib.gridspec as gridspec
 from matplotlib import pyplot as plt
+from matplotlib.patches import Rectangle
+
 
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 import cartopy.crs as ccrs
@@ -72,7 +74,22 @@ metric_lbls = dict(min_slope=r'$\alpha_{\rm min}$',
                    merid_slope=r'$\alpha_{\rm AT}}$',
                    )
 
+umap_rngs_dict = {}
+umap_rngs_dict['weak'] = [[1.5,3.],  # DT15
+                          [1.5,3]]
+umap_rngs_dict['strong'] = [[4.7,8],  # DT1
+                          [2.4,4]]
 
+def parse_umap_rngs(inp):
+    # Parse
+    if ',' in inp:
+        sp = pargs.umap_rngs.split(',')
+        umap_rngs = [[float(sp[0]), float(sp[1])], 
+            [float(sp[2]), float(sp[3])]]
+    else:
+        umap_rngs = umap_rngs_dict[pargs.umap_rngs]
+
+    return umap_rngs
 
 # Local
 sys.path.append(os.path.abspath("../Analysis/py"))
@@ -419,6 +436,7 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
                      umap_comp='0,1', nxy=16,
                      min_pts=10,
                      umap_dim=2,
+                     umap_rngs=None,
                      use_std_lbls=True,
                      cut_to_inner:int=None,
                      debug=False): 
@@ -636,6 +654,18 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
     plotting.set_fontsize(ax_gallery, fsz)
     #ax.set_aspect('equal', 'datalim')
     #ax.set_aspect('equal')#, 'datalim')
+
+    # Box?
+    if umap_rngs is not None:
+        umap_rngs = parse_umap_rngs(umap_rngs)
+            # Create patch collection with specified colour/alpha
+        rect = Rectangle((umap_rngs[0][0], umap_rngs[1][0]),
+            umap_rngs[0][1]-umap_rngs[0][0],
+            umap_rngs[1][1]-umap_rngs[1][0],
+            linewidth=2, edgecolor='k', facecolor='none',
+            zorder=10)
+        ax_gallery.add_patch(rect)
+
 
     # Incidence plot
     ax_incidence = fig.add_axes([0.71, 0.45, 0.25, 0.36])
@@ -1666,6 +1696,7 @@ def main(pargs):
             local=pargs.local, outfile=outfile,
             umap_dim=pargs.umap_dim,
             umap_comp=pargs.umap_comp,
+            umap_rngs=pargs.umap_rngs,
             cut_to_inner=40)
 
     if pargs.figure == 'umap_density':
@@ -1689,10 +1720,8 @@ def main(pargs):
 
     if pargs.figure == 'umap_geo':
 
-        # Parse
-        sp = pargs.umap_rngs.split(',')
-        umap_rngs = [[float(sp[0]), float(sp[1])], 
-             [float(sp[2]), float(sp[3])]]
+        umap_rngs = parse_umap_rngs(pargs.umap_rngs)
+
         # Do it
         fig_umap_geo(pargs.outfile,
             pargs.table, umap_rngs, min_counts=pargs.min_counts,
@@ -2061,80 +2090,3 @@ if __name__ == '__main__':
 #  python py/fig_ssl_modis.py yearly_geo --local 
 #  python py/fig_ssl_modis.py seasonal_geo --local 
 
-
-# #############################################################################
-# 96 v4
-
-# FIGURE 1
-# LL vs DT -- python py/fig_ssl_modis.py LLvsDT --local --table 96_v4
-
-# FIGURE 2
-# Slopes -- python py/fig_ssl_modis.py slopes --local --table 96_v4 
-# FIGURE 3
-# Slope vs DT -- python py/fig_ssl_modis.py slopevsDT --local --table 96_v4
-
-# FIGURE 4
-#  python py/fig_ssl_modis.py augment 
-
-# FIGURE 5 -- Learning curve
-#  python py/fig_ssl_modis.py learning_curve
-
-# Figure 6
-# UMAP DTAll colored by DT (all) -- 
-# python py/fig_ssl_modis.py umap_DT --local --table 96clear_v4_DTall --umap_comp S0,S1
-
-# Figure 7 -- Full gallery
-#  python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DTall --umap_comp S0,S1 --vmnx=-1,1 --outfile fig_umap_gallery_DTall.png
-
-# Figure 8
-# UMAP DT15 colored by DT40 -- python py/fig_ssl_modis.py umap_DT40 --local --table 96clear_v4_DT15 --umap_comp S0,S1 --outfile fig_umap_DT40_DT15_96clear_v4_S1.png
-
-# Figure 9 DT15 gallery
-#  python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT15 --umap_comp S0,S1 --vmnx=-1,1 --outfile fig_umap_gallery_DT15.png
-
-# Figure 10 DT15 slopes
-#  python py/fig_ssl_modis.py umap_slope --local --table 96clear_v4_DT15 --umap_comp S0,S1
-
-# Figure 11 Global geo for DT15 and weak gradients
-#  python py/fig_ssl_modis.py umap_geo --local --outfile fig_umap_geo_global_DT15_weak.png --table 96clear_v4_DT15  --umap_rngs=1.5,3.,2.,3. --min_counts=5
-
-# Figure 12 DT1 gallery
-#  python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT1 --umap_comp S0,S1 --vmnx=-1,1 --outfile fig_umap_gallery_DT1.png
-
-# Figure 13 Global geo for DT1 and strong gradients
-#  python py/fig_ssl_modis.py umap_geo --local --outfile fig_umap_geo_global_DT1_strong.png --table 96clear_v4_DT1  --umap_rngs=4.7,8.,2.5,4. --min_counts=5
-
-# Figure 14 Equator and Med
-#  python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT15_eqpacific.png --table 96clear_v4_DT15  --region=eqpacific
-#  python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT15_med.png --table 96clear_v4_DT15  --region=med
-
-# Figure 15 South Atlantic/Pacific 
-#  python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_southatlantic.png --table 96clear_v4_DT1  --region=south_atlantic
-#  python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_southpacific.png --table 96clear_v4_DT1  --region=south_pacific
-
-# Figure 16 Time Series EqPacific
-#  python py/fig_ssl_modis.py yearly_geo --local 
-
-# Seasonal
-#  python py/fig_ssl_modis.py seasonal_geo --local 
-
-# Appendix
-#  python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT1 --umap_comp S0,S1 --vmnx=-0.75,0.75 --outfile fig_umap_gallery_DT1.png
-
-# Another strong gradient figure for DT15
-#  python py/fig_ssl_modis.py umap_geo --local --outfile fig_umap_geo_global_DT15_strong.png --table 96clear_v4_DT15  --umap_rngs=6,10,6,9
-
-# Geo global; clouds DT15
-#  python py/fig_ssl_modis.py umap_geo --local --outfile fig_umap_geo_global_DT15_clouds.png --table 96clear_v4_DT15  --umap_rngs=8.4,11.,1,4.
-#  python py/fig_ssl_modis.py umap_absgeo --local --outfile fig_umap_absgeo_global_DT15_clouds.png --table 96clear_v4_DT15  --umap_rngs=8.4,11.,1,4.
-
-# APPENDIX
-# python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT0 --umap_comp S0,S1 --vmnx=-0.5,0.5 --outfile fig_umap_gallery_DT0.png
-# python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT2 --umap_comp S0,S1 --vmnx=-1.5,1.5 --outfile fig_umap_gallery_DT2.png
-# python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT4 --umap_comp S0,S1 --vmnx=-2,2 --outfile fig_umap_gallery_DT4.png
-# python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT5 --umap_comp S0,S1 --vmnx=-3,3 --outfile fig_umap_gallery_DT5.png
-
-# OTHER
-
-# Explore weak gradients in DT1
-#  python py/fig_ssl_modis.py umap_geo --local --outfile fig_umap_geo_global_DT1_weak.png --table 96clear_v4_DT1  --umap_rngs=-1,2.,-3,-0.5
