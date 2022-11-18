@@ -261,7 +261,6 @@ def viirs_add_uid(debug=False, clobber=True):
         tbl_files = tbl_files[0:1]
 
     for tbl_file in tbl_files:
-        embed(header='263 of llc viirs')
         viirs_table = ulmo_io.load_main_table(tbl_file)
 
         if 'UID' in viirs_table.keys() and not clobber:
