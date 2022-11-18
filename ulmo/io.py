@@ -90,6 +90,7 @@ def list_of_bucket_files(inp:str, prefix='/', delimiter='/'):
 
     Args:
         inp (str): name of bucket or full s3 path
+            e.g. s3://viirs/Tables
         prefix (str, optional): Folder(s) path. Defaults to '/'.
         delimiter (str, optional): [description]. Defaults to '/'.
 
