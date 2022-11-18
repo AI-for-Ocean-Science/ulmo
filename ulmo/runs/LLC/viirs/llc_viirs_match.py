@@ -310,9 +310,6 @@ if __name__ == '__main__':
         #flg += 2 ** 2  # 4 -- Evaluate
         flg += 2 ** 3  # 8 -- UID
 
-
-
-
     else:
         flg = sys.argv[1]
 
