@@ -256,7 +256,7 @@ def viirs_add_uid(debug=False, clobber=True):
     # Load
     s3_path = 's3://viirs/Tables/'
     tbl_files = ulmo_io.list_of_bucket_files(
-        s3_path. include_prefix=True) 
+        s3_path, include_prefix=True) 
     if debug:
         tbl_files = tbl_files[0:1]
 
