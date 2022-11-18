@@ -271,7 +271,8 @@ def viirs_add_uid(debug=False, clobber=True):
         viirs_table['UID'] = viirs_utils.viirs_uid(viirs_table)
 
         # Vet
-        assert cat_utils.vet_main_table(viirs_table)
+        assert cat_utils.vet_main_table(viirs_table,
+                                        cut_prefix=['MODIS_'])
 
         # Write
         if not debug:
