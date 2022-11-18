@@ -111,7 +111,7 @@ def list_of_bucket_files(inp:str, prefix='/', delimiter='/',
 
     # Add prefix?
     if include_prefix:
-        files = [os.path.join(prefix, os.path.basename(_)) for _ in files]
+        files = [os.path.join(inp, os.path.basename(_)) for _ in files]
 
     # Return
     return files
