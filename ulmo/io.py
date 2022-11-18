@@ -85,7 +85,8 @@ def grab_cutout(cutout:pandas.core.series.Series,
         return img, pp_hf
 
 
-def list_of_bucket_files(inp:str, prefix='/', delimiter='/'):
+def list_of_bucket_files(inp:str, prefix='/', delimiter='/',
+                         include_prefix=False):
     """Generate a list of files in the bucket
 
     Args:
@@ -106,7 +107,14 @@ def list_of_bucket_files(inp:str, prefix='/', delimiter='/'):
     # Do it        
     prefix = prefix[1:] if prefix.startswith(delimiter) else prefix
     bucket = s3.Bucket(bucket_name)
-    return list(_.key for _ in bucket.objects.filter(Prefix=prefix))                                
+    files = list(_.key for _ in bucket.objects.filter(Prefix=prefix))                                
+
+    # Add prefix?
+    if include_prefix:
+        files = [os.path.join(prefix, _) for _ in files]
+
+    # Return
+    return files
 
 def load_nc(filename, field='SST', verbose=True):
     """
