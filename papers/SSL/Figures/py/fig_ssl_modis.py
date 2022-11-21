@@ -876,13 +876,29 @@ def fig_umap_geo(outfile:str, table:str, umap_rngs:list,
     plt.close()
     print('Wrote {:s}'.format(outfile))
 
-def fig_geo_umap(outfile, geo_region,
+def fig_geo_umap(outfile:str, geo_region:str,
                      local=False, 
                      umap_comp='S0,S1',
                      table='96_DT15',
                      min_counts=200,
                      umap_dim=2, cmap='bwr',
+                     show_cbar:bool=False,
                      debug=False): 
+    """ Relative frequency in umap space of a particulare
+    geographic region
+
+    Args:
+        outfile (str): 
+        geo_region (_type_): 
+            Geographic region to analyze
+        local (bool, optional): _description_. Defaults to False.
+        umap_comp (str, optional): _description_. Defaults to 'S0,S1'.
+        table (str, optional): _description_. Defaults to '96_DT15'.
+        min_counts (int, optional): _description_. Defaults to 200.
+        umap_dim (int, optional): _description_. Defaults to 2.
+        cmap (str, optional): _description_. Defaults to 'bwr'.
+        show_cbar (_type_, optional): _description_. Defaults to Falsedebug=False.
+    """
     # Load
     modis_tbl = ssl_paper_analy.load_modis_tbl(
         local=local, table=table)
@@ -955,7 +971,6 @@ def fig_geo_umap(outfile, geo_region,
                          cmap=cm, vmin=vmin, vmax=vmax) 
 
     # Color bar
-    show_cbar = False
     if show_cbar:
         cbaxes = plt.colorbar(mplt, pad=0., fraction=0.030)
         cbaxes.set_label(lbl, fontsize=15.)
@@ -1764,7 +1779,7 @@ def main(pargs):
 
         fig_geo_umap(pargs.outfile, pargs.region,
             debug=pargs.debug, local=pargs.local,
-            table=pargs.table)
+            table=pargs.table, show_cbar=True)
 
         # Coastal California
         #fig_geo_umap('fig_geo_umap_DT15_california.png',
