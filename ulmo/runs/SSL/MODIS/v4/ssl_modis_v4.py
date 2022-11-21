@@ -860,6 +860,7 @@ def DT40(f:h5py.File, modis_tbl:pandas.DataFrame,
         pfile (str): _description_
         itype (str, optional): _description_. Defaults to 'train'.
     """
+    embed(header='863 of v4; IMPLEMENT calc_DT40 in ssl.analyze_image')
     fields = f[itype][:]
     if verbose:
         print("Calculating T90")
