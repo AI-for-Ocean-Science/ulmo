@@ -33,7 +33,6 @@ def DT_interval(inp:tuple):
 
 def load(model_name:str, DT:float=None, use_s3:bool=False):
     tbl_file = None
-    print("Loading UMAP")
     if model_name == 'LLC':
         umap_file = 's3://llc/SSL/LLC_MODIS_2012_model/ssl_LLC_v1_umap.pkl'
     elif model_name == 'LLC_local':
@@ -73,7 +72,7 @@ def load(model_name:str, DT:float=None, use_s3:bool=False):
             ulmo_io.download_file_from_s3(umap_base, umap_file)
     else: # local
         umap_base = umap_file
-    print("UMAP Loaded")
+    print(f"Loading UMAP: {umap_base}")
     # Return
     return pickle.load(ulmo_io.open(umap_base, "rb")), tbl_file
 

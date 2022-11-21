@@ -38,31 +38,41 @@ def calc_DT40(images, random_jitter:list,
     """Calculate DT40 for a given image or set of images
 
     Args:
-        images (np.ndarray): _description_
+        images (np.ndarray): 
+            Analyzed shape is (N, 64, 64)
+            but a variety of shapes is allowed
+        random_jitter (list):
+            range to crop, amount to randomly jitter
+    Returns:
+        np.ndarray or float: DT40
     """
     if verbose:
         print("Calculating T90")
     # If single image, reshape into fields
+    single = False
     if len(images.shape) == 4:
-        fields = images
-        single = False
-    elif len(images.shape) == 3:
+        fields = images[...,0,...]
+    elif len(images.shape) == 2:
         fields = np.expand_dims(images, axis=0) 
         single = True
+    elif len(images.shape) == 3:
+        fields = images
     else:
         raise IOError("Bad shape for images")
 
     # Center
-    xcen = fields.shape[2]//2    
-    ycen = fields.shape[3]//2    
+    xcen = fields.shape[-2]//2    
+    ycen = fields.shape[-1]//2    
     dx = random_jitter[0]//2
     dy = random_jitter[0]//2
+    if verbose:
+        print(xcen, ycen, dx, dy)
     
-    T_90 = np.percentile(fields[:, 0, xcen-dx:xcen+dx,
+    T_90 = np.percentile(fields[..., xcen-dx:xcen+dx,
         ycen-dy:ycen+dy], 90., axis=(1,2))
     if verbose:
         print("Calculating T10")
-    T_10 = np.percentile(fields[:, 0, xcen-dx:xcen+dx,
+    T_10 = np.percentile(fields[..., xcen-dx:xcen+dx,
         ycen-dy:ycen+dy], 10., axis=(1,2))
     #T_10 = np.percentile(fields[:, 0, 32-20:32+20, 32-20:32+20], 
     #    10., axis=(1,2))
@@ -70,6 +80,6 @@ def calc_DT40(images, random_jitter:list,
 
     # Return
     if single:
-        return DT_40[0,...]
+        return DT_40[0]
     else:
         return DT_40

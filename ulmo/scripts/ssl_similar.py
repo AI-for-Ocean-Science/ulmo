@@ -3,9 +3,24 @@
 # Have to do this here, so odd..
 import pickle
 
-from ulmo import io as ulmo_io
-
 import os
+import numpy as np
+from pkg_resources import resource_filename
+
+import h5py
+
+from PIL import Image
+
+from ulmo import io as ulmo_io
+from ulmo.ssl.train_util import option_preprocess
+from ulmo.ssl import analyze_image
+from ulmo.ssl import umap as ssl_umap
+from ulmo.plotting import plotting
+
+
+from matplotlib import pyplot as plt
+import matplotlib.gridspec as gridspec
+import seaborn as sns
 
 from IPython import embed
 
@@ -26,6 +41,8 @@ def parser(options=None):
                         help="Over-ride errors (as possible)? Not recommended")
     parser.add_argument("--remove_model", default=False, action='store_true',
                         help="Remove the model?")
+    parser.add_argument("--debug", default=False, action='store_true',
+                        help="Debug?")
 
 
     if options is None:
@@ -36,11 +53,9 @@ def parser(options=None):
 
 
 def build_gallery(pargs, img, data_tbl, srt, local=True, 
-                  outfile='similar_images.png', n_new=5):
+                  outfile='similar_images.png', n_new=5,
+                  random_jitter=None):
 
-    from matplotlib import pyplot as plt
-    import matplotlib.gridspec as gridspec
-    import seaborn as sns
 
     import numpy as np
 
@@ -63,6 +78,13 @@ def build_gallery(pargs, img, data_tbl, srt, local=True,
         print("Grabbing {} from {}".format(cutout.pp_idx, os.path.basename(cutout.pp_file)))
         iimg = image_utils.grab_image(cutout, close=True,
                                       local_file=local_file)
+        # Random jitter
+        if random_jitter is not None:
+            xcen = iimg.shape[-2]//2    
+            ycen = iimg.shape[-1]//2    
+            dx = random_jitter[0]//2
+            dy = random_jitter[0]//2
+            iimg = iimg[xcen-dx:xcen+dx, ycen-dy:ycen+dy]
         new_imgs.append(iimg)
     
     _, cm = plotting.load_palette()
@@ -96,24 +118,11 @@ def build_gallery(pargs, img, data_tbl, srt, local=True,
     plt.savefig(outfile, dpi=400)
     plt.close()
     print('Wrote {:s}'.format(outfile))
+    return
     
 def main_umap(pargs):
     """ Run
     """
-    # Continue
-    import numpy as np
-    import os
-    from pkg_resources import resource_filename
-
-    import torch
-    import h5py
-    
-    from PIL import Image
-
-    from ulmo import io as ulmo_io
-    from ulmo.ssl.train_util import option_preprocess
-    from ulmo.ssl import analyze_image
-    from ulmo.ssl import umap as ssl_umap
 
     # Prep
     model_file = None
@@ -154,6 +163,7 @@ def main_umap(pargs):
         img = np.repeat(img, 3, axis=1)
         print(f"Image with index={pargs.pp_idx} loaded from {pargs.pp_file}") 
     else:
+        embed(header='158 NOT IMPLEMENTED')
         img = Image.open(pargs.img_path)
         img = np.array(img.resize((64, 64)))
         if img.shape[2] != 3:
@@ -162,6 +172,10 @@ def main_umap(pargs):
         img = np.transpose(img, (2, 0, 1))
         img = np.expand_dims(img, axis=0)
         print(f"Target Image is loaded and pre-processd!")
+
+    # Show the image
+    if pargs.debug:
+        plotting.show_image(img[0,0,...], show=True)
         
     # Generate dataset
 
@@ -170,36 +184,35 @@ def main_umap(pargs):
         img, model_file, opt)
 
     # T90
-    timg = img[0,0,...]
-    srt = np.argsort(timg.flatten())
-    i10 = int(0.1*timg.size)
-    i90 = int(0.9*timg.size)
-    T10 = timg.flatten()[srt[i10]]
-    T90 = timg.flatten()[srt[i90]]
-    DT = T90 - T10
+    DT40 = analyze_image.calc_DT40(img[0,0,...], opt.random_jitter)
+    print("Image has DT40={:g}".format(DT40))
 
     # UMAP me
     print("Embedding")
     latents_mapping, new_table_file = ssl_umap.load(
-        pargs.model, DT=DT)
+        pargs.model, DT=DT40)
     if new_table_file is not None:
         table_file = new_table_file
     embedding = latents_mapping.transform(latents)
+    print(f'U0,U1 for the input image = {embedding[0,0]:.3f}, {embedding[0,1]:.3f}')
 
     # Find the closest
     data_tbl = ulmo_io.load_main_table(table_file)
 
-    dist = (embedding[0,0]-data_tbl.U0)**2 + (
-        embedding[0,1]-data_tbl.U1)**2
+    dist = (embedding[0,0]-data_tbl.US0)**2 + (
+        embedding[0,1]-data_tbl.US1)**2
     srt_dist = np.argsort(dist)
+    if pargs.debug:
+        embed(header='191 of similar')
 
     # Gallery time
     build_gallery(pargs, img[0,0,...], data_tbl, srt_dist, 
-                  n_new=pargs.num_imgs)
+                  n_new=pargs.num_imgs, random_jitter=opt.random_jitter)
     
     # Leave no trace
-    #if pargs.remove_model:
-    #    os.remove(model_base)
+    if pargs.remove_model:
+        model_base = os.path.basename(model_file)
+        os.remove(model_base)
 
 if __name__ == "__main__":
     args = parser()
