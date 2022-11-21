@@ -181,7 +181,7 @@ def main_umap(pargs):
     # UMAP me
     print("Embedding")
     latents_mapping, new_table_file = ssl_umap.load(
-        pargs, DT=DT)
+        pargs.model, DT=DT)
     if new_table_file is not None:
         table_file = new_table_file
     embedding = latents_mapping.transform(latents)

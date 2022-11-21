@@ -14,36 +14,60 @@ from ulmo.ssl import defs as ssl_defs
 
 from IPython import embed
 
-def load(model_name:str, DT:float=None):
+def DT_interval(inp:tuple):
+    """ Generate a DT interval from the input
+
+    Args:
+        inp (tuple or None): DT central value and dDT
+
+    Returns:
+        tuple: Range of DT values
+    """
+    if inp is None: # All
+        return (0., 1e12)
+    DT, dDT = inp
+    if dDT < 0:
+        return (DT, DT+1e12)
+    else:
+        return (DT-dDT, DT+dDT)
+
+def load(model_name:str, DT:float=None, use_s3:bool=False):
     tbl_file = None
     print("Loading UMAP")
     if model_name == 'LLC':
         umap_file = 's3://llc/SSL/LLC_MODIS_2012_model/ssl_LLC_v1_umap.pkl'
     elif model_name == 'LLC_local':
         umap_file = './ssl_LLC_v1_umap.pkl'
-    if model_name == 'CF':
-        if pargs.s3:
+    if model_name in ['CF', 'v4']:
+        if use_s3:
             raise IOError("Not ready for s3!")
-        umap_path = os.path.join(os.getenv('SST_OOD'),
-                                 'MODIS_L2', 'UMAP')
-        if DT < 0.5:
-            umap_file = os.path.join(umap_path, 'MODIS_SSL_cloud_free_DT0_UMAP.pkl')
-        elif DT < 1.0:
-            umap_file = os.path.join(umap_path, 'MODIS_SSL_cloud_free_DT1_UMAP.pkl')
-        elif DT < 1.5:
-            umap_file = os.path.join(umap_path, 'MODIS_SSL_cloud_free_DT15_UMAP.pkl')
-        elif DT < 2.5:
-            umap_file = os.path.join(umap_path, 'MODIS_SSL_cloud_free_DT2_UMAP.pkl')
-        elif DT < 4.:
-            umap_file = os.path.join(umap_path, 'MODIS_SSL_cloud_free_DT4_UMAP.pkl')
         else:
-            umap_file = os.path.join(umap_path, 'MODIS_SSL_cloud_free_DT5_UMAP.pkl')
+            umap_path = os.path.join(os.getenv('SST_OOD'),
+                                 'MODIS_L2', 'UMAP')
+        # Root
+        if model_name == 'CF':
+            umap_root = 'cloud_free'
+        elif model_name == 'v4':
+            umap_root = '96clear_v4'
+        else:
+            raise IOError("Bad model_name")
+        
+        for key in ssl_defs.umap_DT.keys():
+            if key in ['all', 'DT10']:
+                continue
+            DT_rng = DT_interval(ssl_defs.umap_DT[key])
+            if DT_rng[0] < DT <= DT_rng[1]:
+                umap_file = os.path.join(
+                    umap_path, 
+                    f'MODIS_SSL_{umap_root}_{key}_UMAP.pkl')
+                                    
         tbl_file = os.path.join(
             os.getenv('SST_OOD'), 'MODIS_L2', 'Tables', 
-            os.path.basename(umap_file).replace('_UMAP.pkl', '.parquet'))
+            os.path.basename(umap_file).replace(
+                '_UMAP.pkl', '.parquet'))
     else:
         raise IOError("bad model")
-    if pargs.s3:
+    if use_s3:
         umap_base = os.path.basename(umap_file)
         if not os.path.isfile(umap_base):
             ulmo_io.download_file_from_s3(umap_base, umap_file)

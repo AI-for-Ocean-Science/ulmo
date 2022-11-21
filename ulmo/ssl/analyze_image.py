@@ -32,4 +32,44 @@ def get_latents(img:np.ndarray,
 
     # Return
     return latents
+
+def calc_DT40(images, random_jitter:list,
+              verbose=False, debug=False):
+    """Calculate DT40 for a given image or set of images
+
+    Args:
+        images (np.ndarray): _description_
+    """
+    if verbose:
+        print("Calculating T90")
+    # If single image, reshape into fields
+    if len(images.shape) == 4:
+        fields = images
+        single = False
+    elif len(images.shape) == 3:
+        fields = np.expand_dims(images, axis=0) 
+        single = True
+    else:
+        raise IOError("Bad shape for images")
+
+    # Center
+    xcen = fields.shape[2]//2    
+    ycen = fields.shape[3]//2    
+    dx = random_jitter[0]//2
+    dy = random_jitter[0]//2
     
+    T_90 = np.percentile(fields[:, 0, xcen-dx:xcen+dx,
+        ycen-dy:ycen+dy], 90., axis=(1,2))
+    if verbose:
+        print("Calculating T10")
+    T_10 = np.percentile(fields[:, 0, xcen-dx:xcen+dx,
+        ycen-dy:ycen+dy], 10., axis=(1,2))
+    #T_10 = np.percentile(fields[:, 0, 32-20:32+20, 32-20:32+20], 
+    #    10., axis=(1,2))
+    DT_40 = T_90 - T_10
+
+    # Return
+    if single:
+        return DT_40[0,...]
+    else:
+        return DT_40
