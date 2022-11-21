@@ -10,6 +10,36 @@ from torchvision import transforms
 from ulmo.ssl import train_util
 from ulmo.ssl.util import TwoCropTransform
 from ulmo import io as ulmo_io
+
+class BatchDataset(Dataset):
+    """ Class to generate a batch of images
+    from the input image and the pp_file
+    """
+    def __init__(self, image, batch_size:int, pp_file:str):
+        self.batch_size = batch_size
+        # Load up a faux batch
+        pp_hf = h5py.File(f, 'r')
+        random_idx  = np.random.randint(
+            0, pp_hf['valid'].shape[0], batch_size)
+        self.images = pp_hf['valid'][random_idx, ...]
+        # Set ours of interest
+        self.images[0] = np.resize(image,
+                                   (1, image.shape[-1], image.shape[-1]))
+
+    def __len__(self):
+        return self.batch_size
+
+    def __getitem__(self, global_idx):     
+        data = self.images[global_idx]
+        # For SSL
+        data = np.resize(data, (1, data.shape[-1], data.shape[-1]))
+        data = np.repeat(data, 3, axis=0)
+        
+        # Metadata
+        metadata = None
+        # Return
+        return data, metadata
+
     
 class ImageDataset(Dataset):
     def __init__(self, image, transform):
