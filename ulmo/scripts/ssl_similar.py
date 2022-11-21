@@ -16,7 +16,7 @@ from ulmo.ssl.train_util import option_preprocess
 from ulmo.ssl import analyze_image
 from ulmo.ssl import umap as ssl_umap
 from ulmo.plotting import plotting
-
+from ulmo.utils import image_utils
 
 from matplotlib import pyplot as plt
 import matplotlib.gridspec as gridspec
@@ -57,10 +57,6 @@ def build_gallery(pargs, img, data_tbl, srt, local=True,
                   random_jitter=None):
 
 
-    import numpy as np
-
-    from ulmo.plotting import plotting
-    from ulmo.utils import image_utils
 
     # Grab the new images
     new_imgs = []
@@ -99,19 +95,26 @@ def build_gallery(pargs, img, data_tbl, srt, local=True,
     # Input image
     #vmin, vmax = img.min(), img.max()
 
-    def make_one(timg, idx):
-        vmin, vmax = timg.min(), timg.max()
+    def make_one(timg, idx, cbar=False, vmnx=None):
+        if vmnx is None:
+            vmin, vmax = timg.min(), timg.max()
+        else:
+            vmin, vmax = vmnx
         ax = plt.subplot(gs[idx])
         sns.heatmap(np.flipud(timg), ax=ax, cmap=cm,
-               vmin=vmin, vmax=vmax, cbar=False)
+               vmin=vmin, vmax=vmax, cbar=cbar)
         ax.get_xaxis().set_ticks([])
         ax.get_yaxis().set_ticks([])
         ax.set_aspect('equal')
-    make_one(img, 0)
+    T90 = np.percentile(img, 90)
+    T10 = np.percentile(img, 10)
+    #vmnx = (-np.abs([vmin,vmax]).max(), np.abs([vmin,vmax]).max())
+    vmnx = [T10, T90]
+    make_one(img, 0, cbar=True, vmnx=vmnx)
 
     # Rest
     for kk in range(n_new):
-        make_one(new_imgs[kk], kk+1)
+        make_one(new_imgs[kk], kk+1, vmnx=vmnx)
 
     # Layout and save
     plt.tight_layout(pad=0.0, h_pad=0.0, w_pad=0.0)
