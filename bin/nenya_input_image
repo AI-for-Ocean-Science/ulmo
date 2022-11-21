@@ -6,7 +6,7 @@
 
 """
 This script grabs similar images to the input one
-  Uses CF MODIS for now
+  Uses v4 MODIS 
 """
 
 import ulmo.scripts.ssl_similar as ssl_similar
