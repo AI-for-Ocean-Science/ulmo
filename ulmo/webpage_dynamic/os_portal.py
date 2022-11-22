@@ -2,27 +2,23 @@
 and further modified by Kate Storrey-Fisher"""
 from bokeh.models.widgets.tables import StringFormatter
 import numpy as np
-import os
 
-import h5py
 import pandas
 
 from bokeh.layouts import column, gridplot, row
-from bokeh.models import ColumnDataSource, Slider
-from bokeh.sampledata.sea_surface_temperature import sea_surface_temperature
+from bokeh.models import ColumnDataSource
 from bokeh.palettes import Viridis256, Plasma256, Inferno256, Magma256, all_palettes
 from bokeh.models import LinearColorMapper, ColorBar, ColumnDataSource, Range1d, CustomJS, Div, \
-    CDSView, BasicTicker, \
-    IndexFilter, BooleanFilter, Span, Label, BoxZoomTool, TapTool
-from bokeh.models.widgets import TextInput, RadioButtonGroup, DataTable, TableColumn, AutocompleteInput, NumberFormatter
+    CDSView, BasicTicker
+from bokeh.models.widgets import TextInput, DataTable, TableColumn, NumberFormatter
 from bokeh.models.widgets import Select, Button, Dropdown
 from bokeh.plotting import figure
-from bokeh.server.server import Server
-from bokeh.themes import Theme
 from bokeh.models.annotations import Title
 from bokeh.colors import RGB
 from bokeh.transform import transform
-from bokeh.events import DoubleTap, PinchEnd, PanEnd, Reset
+from bokeh.events import DoubleTap, PanEnd, Reset
+
+from bokeh.server.server import Server  # THIS NEEDS TO STAY!
 
 # For the geography figure
 from bokeh.tile_providers import get_provider, Vendors
@@ -34,7 +30,7 @@ from IPython import embed
 
 class OSPortal(object):
     """ Primary class for the web site """
-    def __init__(self, data_dict, config=None, verbose=False): #images, obj_ids, metric_dict, umap_data):
+    def __init__(self, data_dict, verbose=False): 
 
         # Slurp
         self.verbose = verbose
@@ -93,7 +89,11 @@ class OSPortal(object):
         #self.dropdown_dict['embedding'] = 'UMAP'
         self.dropdown_dict['metric'] = 'LL'
 
+        # Complete the init
+        self.init_bits_and_pieces()
 
+    def init_bits_and_pieces(self):
+        """ Allow for some customization """
         self.init_title_text_tables()
         self.generate_buttons()
         self.generate_sources()

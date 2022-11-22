@@ -5,16 +5,14 @@ import pickle
 
 import os
 import numpy as np
-from pkg_resources import resource_filename
 
 import h5py
 
 from PIL import Image
 
 from ulmo import io as ulmo_io
-from ulmo.ssl.train_util import option_preprocess
 from ulmo.ssl import analyze_image
-from ulmo.ssl import umap as ssl_umap
+from ulmo.ssl import io as ssl_io
 from ulmo.plotting import plotting
 from ulmo.utils import image_utils
 
@@ -55,8 +53,6 @@ def parser(options=None):
 def build_gallery(pargs, img, data_tbl, srt, local=True, 
                   outfile='similar_images.png', n_new=5,
                   random_jitter=None):
-
-
 
     # Grab the new images
     new_imgs = []
@@ -126,30 +122,9 @@ def build_gallery(pargs, img, data_tbl, srt, local=True,
 def main_umap(pargs):
     """ Run
     """
+    # Load opt
+    opt, model_file = ssl_io.load_opt(pargs.model)
 
-    # Prep
-    model_file = None
-    if pargs.model == 'LLC' or pargs.model == 'LLC_local':
-        model_file = 's3://llc/SSL/LLC_MODIS_2012_model/SimCLR_LLC_MODIS_2012_resnet50_lr_0.05_decay_0.0001_bsz_64_temp_0.07_trial_0_cosine_warm/last.pth'
-        opt_path = os.path.join(resource_filename('ulmo', 'runs'),
-                                'SSL', 'LLC', 'experiments', 
-                                'llc_modis_2012', 'opts.json')
-        table_file = 's3://llc/Tables/LLC_MODIS2012_SSL_v1.parquet'
-    elif pargs.model == 'CF': 
-        opt_path= os.path.join(resource_filename('ulmo', 'runs'),
-            'SSL', 'MODIS', 'v2', 'experiments',
-            'modis_model_v2', 'opts_cloud_free.json')
-    elif pargs.model == 'v4': 
-        opt_path= os.path.join(resource_filename('ulmo', 'runs'),
-            'SSL', 'MODIS', 'v4', 'opts_ssl_modis_v4.json')
-    else:
-        raise IOError("Bad model!!")
-
-    opt = option_preprocess(ulmo_io.Params(opt_path))
-    if model_file is None:
-        model_file = os.path.join(opt.s3_outdir, 
-                                  opt.model_folder, 'last.pth')
-    
     if not (pargs.pp_idx or pargs.img_path):
         raise IOError("One argument of 'pp_idx' and 'img_path' must be valued.")
     
@@ -179,27 +154,12 @@ def main_umap(pargs):
     # Show the image
     if pargs.debug:
         plotting.show_image(img[0,0,...], show=True)
-        
-    # Generate dataset
 
-    # Calculate latents
-    latents = analyze_image.get_latents(
-        img, model_file, opt)
+    # UMAP it   
+    embedding, table_file, DT = analyze_image.umap_image(
+        pargs.model, img)
 
-    # T90
-    DT40 = analyze_image.calc_DT40(img[0,0,...], opt.random_jitter)
-    print("Image has DT40={:g}".format(DT40))
-
-    # UMAP me
-    print("Embedding")
-    latents_mapping, new_table_file = ssl_umap.load(
-        pargs.model, DT=DT40)
-    if new_table_file is not None:
-        table_file = new_table_file
-    embedding = latents_mapping.transform(latents)
-    print(f'U0,U1 for the input image = {embedding[0,0]:.3f}, {embedding[0,1]:.3f}')
-
-    # Find the closest
+    # Open the table
     data_tbl = ulmo_io.load_main_table(table_file)
 
     dist = (embedding[0,0]-data_tbl.US0)**2 + (

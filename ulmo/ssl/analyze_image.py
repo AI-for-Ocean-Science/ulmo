@@ -1,11 +1,13 @@
-""" Package to explore an input image """
+""" Module to explore an input image """
 import os
 import numpy as np
 
 import torch
 
 from ulmo.ssl import latents_extraction
+from ulmo.ssl import io as ssl_io
 from ulmo import io as ulmo_io
+from ulmo.ssl import umap as ssl_umap
 
 def get_latents(img:np.ndarray, 
                 model_file:str, 
@@ -33,9 +35,10 @@ def get_latents(img:np.ndarray,
     # Return
     return latents
 
-def calc_DT40(images, random_jitter:list,
+def calc_DT(images, random_jitter:list,
               verbose=False, debug=False):
-    """Calculate DT40 for a given image or set of images
+    """Calculate DT for a given image or set of images
+    using the random_jitter parameters
 
     Args:
         images (np.ndarray): 
@@ -44,7 +47,7 @@ def calc_DT40(images, random_jitter:list,
         random_jitter (list):
             range to crop, amount to randomly jitter
     Returns:
-        np.ndarray or float: DT40
+        np.ndarray or float: DT
     """
     if verbose:
         print("Calculating T90")
@@ -76,10 +79,32 @@ def calc_DT40(images, random_jitter:list,
         ycen-dy:ycen+dy], 10., axis=(1,2))
     #T_10 = np.percentile(fields[:, 0, 32-20:32+20, 32-20:32+20], 
     #    10., axis=(1,2))
-    DT_40 = T_90 - T_10
+    DT = T_90 - T_10
 
     # Return
     if single:
-        return DT_40[0]
+        return DT[0]
     else:
-        return DT_40
+        return DT
+
+def umap_image(model:str, img:np.ndarray):
+
+    # Load opt
+    opt, model_file = ssl_io.load_opt(model)
+
+    # Calculate latents
+    latents = get_latents(img, model_file, opt)
+
+    # T90
+    DT = calc_DT(img[0,0,...], opt.random_jitter)
+    print("Image has DT={:g}".format(DT))
+
+    # UMAP me
+    print("Embedding")
+    latents_mapping, table_file = ssl_umap.load(
+        model, DT=DT)
+    embedding = latents_mapping.transform(latents)
+    print(f'U0,U1 for the input image = {embedding[0,0]:.3f}, {embedding[0,1]:.3f}')
+
+    # Return
+    return embedding, table_file, DT
