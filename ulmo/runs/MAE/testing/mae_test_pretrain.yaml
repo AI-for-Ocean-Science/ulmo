@@ -20,7 +20,7 @@ spec:
               - key: nvidia.com/gpu.product
                 operator: In
                 values:
-                  - NVIDIA-GeForce-GTX-1080-Ti
+                  - NVIDIA-GeForce-GTX-3090
       containers:
       - name: container
         image: localhost:30081/profxj/mae_nvidia:latest  # UPDATE
@@ -38,17 +38,18 @@ spec:
         command: ["/bin/bash", "-c"]
             #command: ["sh", "-c", "sleep infinity"]
         args:
-          - cd ulmo; 
+          - pip install tensorboard;
+            cd ulmo; 
             git fetch;
             git checkout mae; 
             git pull; 
             python setup.py develop;
             cp ulmo/mae/correct_helpers.py /root/miniconda3/lib/python3.8/site-packages/timm/models/layers/helpers.py;
-            cd ulmo/runs/mae;
+            cd ulmo/mae;
             aws --endpoint https://s3-west.nrp-nautilus.io s3 cp s3://llc/PreProc/LLC_uniform144_test_preproc.h5 ./;
             python ./testh5.py;
-            python main_pretrain.py --epochs 10 --model mae_vit_LLC_patch4 --mask_ratio 0.10
-            aws --endpoint https://s3-west.nrp-nautilus.io s3 cp -R ./output_dir/ s3://llc/PreProc/;
+            python main_pretrain.py --epochs 10 --model mae_vit_LLC_patch4 --mask_ratio 0.10;
+            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp output_dir s3://viirs --recursive --force;
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"
