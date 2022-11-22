@@ -46,7 +46,8 @@ def train_one_epoch(model: torch.nn.Module,
 
         with torch.cuda.amp.autocast():
             loss, _, _ = model(samples, mask_ratio=args.mask_ratio)
-
+        
+        loss = loss.mean()
         loss_value = loss.item()
 
         if not math.isfinite(loss_value):
