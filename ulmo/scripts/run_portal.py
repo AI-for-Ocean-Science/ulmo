@@ -88,7 +88,7 @@ def main(pargs):
 
     # Odd work-around
     def get_session(doc):
-        sess = os_portal.os_web(data_dict)
+        sess = os_portal.OSPortal(data_dict)
         return sess(doc)
 
     # Do me!
