@@ -1,0 +1,14 @@
+{
+    "image_file": "/home/xavier/Oceanography/AI/OOD/SST/VIIRS/PreProc/VIIRS_2013_95clear_192x192_preproc_viirs_std.h5",
+    "image_key": "valid",
+    "Nimages": 100000,
+    "xy_values": "LL, DT",
+    "table_file": "s3://viirs/Tables/VIIRS_2013_std.parquet",
+    "metrics": [
+        ["LL", "LL"],
+        ["DT", "DT"],
+        ["lon", "lon"],
+        ["lat", "lat"],
+        ["avgT", "mean_temperature"]
+    ]
+}
