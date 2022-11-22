@@ -769,7 +769,9 @@ class OSPortal(object):
 
         return callback
 
-
+    # 
+    def set_selected_from_source(self):
+        pass
 
     # TODO: can this be simplified?
     def select_stacks_callback(self):
@@ -782,6 +784,7 @@ class OSPortal(object):
         self.select_object.value = str(self.selected_objects.data['index'][new[0]])
     
     def umap_source_callback(self, attr, old, new):
+        print("In umap_source_callback")
         # Init
         tdict = {}
         for key in ['index']+list(self.metric_dict.keys()):
@@ -1018,6 +1021,13 @@ class OSPortal(object):
         else:
             metric = custom_sd
 
+        self.umap_source_view.data = dict(xs=self.umap_data[new_objects, 0],
+                          ys=self.umap_data[new_objects, 1],
+                          color_data=metric[new_objects],
+                          names=list(new_objects),
+                          radius=[self.R_DOT] * len(new_objects),
+                        )
+        '''
         self.umap_source_view = ColumnDataSource(
                 data=dict(xs=self.umap_data[new_objects, 0],
                           ys=self.umap_data[new_objects, 1],
@@ -1025,6 +1035,7 @@ class OSPortal(object):
                           names=list(new_objects),
                           radius=[self.R_DOT] * len(new_objects),
                         ))
+        '''
         self.points = np.array(new_objects)
         self.umap_scatter.data_source.data = dict(self.umap_source_view.data)
 
@@ -1048,6 +1059,9 @@ class OSPortal(object):
             self.internal_reset.value = str(np.random.rand())
         else:
             self.update_table.value = str(np.random.rand())
+
+        # Update indices?
+        self.umap_source_view.selected.indices = np.arange(nof_selected_objects).tolist()
 
         # Update circle
         index = self.select_object.value
