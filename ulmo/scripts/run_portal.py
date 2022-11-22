@@ -38,12 +38,24 @@ def main(pargs):
     # Table
     main_tbl = ulmo_io.load_main_table(idict['table_file'])
 
-    # Load images 
+    # Cut down?
     if idict['Nimages'] == 0:
-        sub_idx = np.arange(len(main_tbl))
+        keep = np.array([True]*len(main_tbl))
     else:
-        sub_idx = np.arange(idict['Nimages'])
-    print(f"Loading {sub_idx.size} images..")
+        keep = np.array([False]*len(main_tbl))
+        keep[np.arange(min(idict['Nimages'], 
+                       len(main_tbl)))] = True 
+    main_tbl = main_tbl[keep].copy()
+    sub_idx = np.arange(len(main_tbl))
+
+    print("Loading images")
+
+    # Load images 
+    #if idict['Nimages'] == 0:
+    #    sub_idx = np.arange(len(main_tbl))
+    #else:
+    #    sub_idx = np.arange(idict['Nimages'])
+    #print(f"Loading {sub_idx.size} images..")
 
     f = h5py.File(idict['image_file'], 'r') 
     images = f[idict['image_key']][sub_idx, 0,:,:]
