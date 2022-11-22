@@ -1021,13 +1021,6 @@ class OSPortal(object):
         else:
             metric = custom_sd
 
-        self.umap_source_view.data = dict(xs=self.umap_data[new_objects, 0],
-                          ys=self.umap_data[new_objects, 1],
-                          color_data=metric[new_objects],
-                          names=list(new_objects),
-                          radius=[self.R_DOT] * len(new_objects),
-                        )
-        '''
         self.umap_source_view = ColumnDataSource(
                 data=dict(xs=self.umap_data[new_objects, 0],
                           ys=self.umap_data[new_objects, 1],
@@ -1035,7 +1028,6 @@ class OSPortal(object):
                           names=list(new_objects),
                           radius=[self.R_DOT] * len(new_objects),
                         ))
-        '''
         self.points = np.array(new_objects)
         self.umap_scatter.data_source.data = dict(self.umap_source_view.data)
 
@@ -1044,15 +1036,8 @@ class OSPortal(object):
             for key in self.metric_dict.keys():
                 new_dict[key] = [self.metric_dict[key][s] for s in selected_objects]
             self.selected_objects.data = new_dict
-            #order = np.array([float(o) for o in self.selected_objects.data['order']])
-            #self.selected_objects.data = dict(
-            #    index=list(selected_objects), 
-            #    score=[-999999 if np.isnan(metric[s]) else metric[s] for s in selected_objects],
-            #    order=list(order), 
-            #    info_id=[self.obj_links[s] for s in selected_objects],
-            #    object_id=[self.obj_ids[s] for s in selected_objects]
-            #)
             self.update_table.value = str(np.random.rand())
+            self.umap_source_view.selected.indices = np.arange(nof_selected_objects).tolist()
         elif len(selected_objects_) > 0:
             self.selected_objects = ColumnDataSource(data=dict(index=[], score=[], order=[], info_id=[], object_id=[]))
             self.update_table.value = str(np.random.rand())
@@ -1061,7 +1046,6 @@ class OSPortal(object):
             self.update_table.value = str(np.random.rand())
 
         # Update indices?
-        self.umap_source_view.selected.indices = np.arange(nof_selected_objects).tolist()
 
         # Update circle
         index = self.select_object.value
