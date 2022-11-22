@@ -162,8 +162,8 @@ def main_umap(pargs):
     # Open the table
     data_tbl = ulmo_io.load_main_table(table_file)
 
-    dist = (embedding[0,0]-data_tbl.US0)**2 + (
-        embedding[0,1]-data_tbl.US1)**2
+    dist = (embedding[0,0]-data_tbl.US0.values)**2 + (
+        embedding[0,1]-data_tbl.US1.values)**2
     srt_dist = np.argsort(dist)
     if pargs.debug:
         embed(header='191 of similar')
