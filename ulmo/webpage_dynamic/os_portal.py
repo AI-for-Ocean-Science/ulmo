@@ -80,6 +80,11 @@ class OSPortal(object):
         self.nrow, self.ncol = 2, 5
         self.first_im_index = 0
         self.zero_gallery = 0
+        #self.nonselection_fill_color = 'moccasin'
+        self.nonselection_fill_color = transform('color_data', self.color_mapper)
+
+        # For selecting on a specific source (or location)
+        self.select_on_source = False
 
         # TODO -- ELIMINATE THIS
         self.selected_objects = ColumnDataSource(
@@ -278,12 +283,12 @@ class OSPortal(object):
         self.umap_scatter = self.umap_figure.scatter(
             'xs', 'ys', source=self.umap_source_view,
             color=transform('color_data', self.color_mapper),
-            nonselection_fill_color = 'moccasin',
+            nonselection_fill_color = self.nonselection_fill_color, 
             nonselection_line_color = 'moccasin',
-            nonselection_alpha = 1,
+            nonselection_alpha = 0.2,
             nonselection_line_alpha = 0,
-            alpha=0.5,
-            line_color=None,
+            alpha=0.7,
+            line_color=None, #'black',
             size='radius',
             view=self.umap_view)
 

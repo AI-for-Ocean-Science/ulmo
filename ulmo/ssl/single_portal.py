@@ -4,6 +4,8 @@ import os
 
 import h5py
 
+from bokeh.transform import transform
+
 from ulmo import io as ulmo_io
 from ulmo.utils import catalog 
 from ulmo.webpage_dynamic import os_portal
@@ -63,6 +65,9 @@ class OSSinglePortal(os_portal.OSPortal):
         # Launch
         os_portal.OSPortal.__init__(self, data_dict)
 
+        # Specific to single portal
+        self.select_on_source = True
+
         # Select objects
         dist = (self.img_U0-self.umap_source.data['xs'])**2 + (
             self.img_U1-self.umap_source.data['ys'])**2
@@ -78,7 +83,15 @@ class OSSinglePortal(os_portal.OSPortal):
                                  require_in_match=False)
         in_view = rows > 0                                
 
-        self.umap_source_callback(None, None, rows[in_view].tolist())
+        self.umap_source_view.selected.indices = rows[in_view].tolist()
+        #self.umap_source_callback(None, None, rows[in_view].tolist())
+        self.search_galaxy_source.data = dict(
+            xs=[self.img_U0], ys=[self.img_U1])
+        self.update_color(None)
+
+        # Gallery
+        self.reset_gallery_index()
+        self.stacks_callback()
 
 
     def load_images(self):
@@ -113,7 +126,8 @@ if __name__ == "__main__":
 
     # Odd work-around
     def get_session(doc):
-        sess = OSSinglePortal(None, None)
+        sess = OSSinglePortal(None, None, Nmax=2000, Nclose=50)
+        #sess = OSSinglePortal(None, None)
         return sess(doc)
 
     # Do me!
