@@ -49,8 +49,12 @@ def main(pargs):
         main_tbl = main_tbl[keep].copy()
 
     # Cut down further?
-    keep = np.array([False]*len(main_tbl))
-    keep[np.arange(min(idict['Nimages'], len(main_tbl)))] = True 
+    if idict['Nimages'] == 0:
+        keep = np.array([True]*len(main_tbl))
+    else:
+        keep = np.array([False]*len(main_tbl))
+        keep[np.arange(min(idict['Nimages'], 
+                       len(main_tbl)))] = True 
     main_tbl = main_tbl[keep].copy()
 
     # Indices
@@ -58,13 +62,6 @@ def main(pargs):
     sub_idx = main_tbl[pp_idx].values
     
     print("Loading images")
-
-    # Load images 
-    #if idict['Nimages'] == 0:
-    #    sub_idx = np.arange(len(main_tbl))
-    #else:
-    #    sub_idx = np.arange(idict['Nimages'])
-    #print(f"Loading {sub_idx.size} images..")
 
     f = h5py.File(idict['image_file'], 'r') 
     images = f[idict['image_key']][sub_idx, 0,:,:]
