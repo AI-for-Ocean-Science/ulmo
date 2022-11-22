@@ -19,14 +19,14 @@ def parse_option():
         args: (dict) dictionary of the arguments.
     """
     parser = argparse.ArgumentParser("argument for training.")
-    parser.add_argument("--task", type=str, help="function to execute: 'powerlaw'")
+    parser.add_argument("--task", type=str, help="function to execute: 'slopes'")
     parser.add_argument('--debug', default=False, action='store_true',
                         help='Debug?')
     args = parser.parse_args()
     
     return args
 
-def measure_powerlaw(pargs):
+def measure_slopes(pargs):
     # Load the table
     tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
     modis_tbl = ulmo_io.load_main_table(tbl_file)
@@ -34,6 +34,8 @@ def measure_powerlaw(pargs):
     # Init
     modis_tbl['zonal_slope'] = 0.
     modis_tbl['merid_slope'] = 0.
+    modis_tbl['zonal_slope_err'] = 0.
+    modis_tbl['merid_slope_err'] = 0.
 
     train = modis_tbl.pp_type == 1
     valid = modis_tbl.pp_type == 0
@@ -58,22 +60,26 @@ def measure_powerlaw(pargs):
             do_train = False
 
         # Valid
-        data1, data2, data3, data4  = fft.process_preproc_file(
+        data1, data2, slopes, data4  = fft.process_preproc_file(
             pp_hf, key='valid') #, debug=pargs.debug
 
         # Save
         pidx = modis_tbl.pp_file == pp_file
         valid_idx = valid & pidx
-        modis_tbl.loc[valid_idx, 'zonal_slope'] = data3[:, 1]  # large
-        modis_tbl.loc[valid_idx, 'merid_slope'] = data3[:, 3]  # large
+        modis_tbl.loc[valid_idx, 'zonal_slope'] = slopes[:, 1]  # large
+        modis_tbl.loc[valid_idx, 'zonal_slope_err'] = slopes[:, 2]  # large
+        modis_tbl.loc[valid_idx, 'merid_slope'] = slopes[:, 4]  # large
+        modis_tbl.loc[valid_idx, 'merid_slope_err'] = slopes[:, 5]  # large
 
         # Train
         if do_train:
-            data1, data2, data3, data4  = fft.process_preproc_file(
+            data1, data2, slopes, data4  = fft.process_preproc_file(
                 pp_hf, key='train') #, debug=pargs.debug
             train_idx = train & pidx
-            modis_tbl.loc[train_idx, 'zonal_slope'] = data3[:, 1]  # large
-            modis_tbl.loc[train_idx, 'merid_slope'] = data3[:, 3]  # large
+            modis_tbl.loc[train_idx, 'zonal_slope'] = slopes[:, 1]  # large
+            modis_tbl.loc[train_idx, 'zonal_slope_err'] = slopes[:, 2]  # large
+            modis_tbl.loc[train_idx, 'merid_slope'] = slopes[:, 4]  # large
+            modis_tbl.loc[train_idx, 'merid_slope_err'] = slopes[:, 5]  # large
         
         pp_hf.close()
 
@@ -95,8 +101,8 @@ if __name__ == "__main__":
     args = parse_option()
     
     # run the 'main_train()' function.
-    if args.task == 'powerlaw':
+    if args.task == 'slopes':
         print("Powerlaw measurements start.")
-        measure_powerlaw(args)
+        measure_slopes(args)
         print("PowerLaw Ends.")
     

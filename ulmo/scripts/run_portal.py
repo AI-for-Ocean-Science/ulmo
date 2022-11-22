@@ -1,5 +1,6 @@
 """ Script to run Web Portal"""
 
+import enum
 from IPython import embed
 
 def parser(options=None):
@@ -19,11 +20,10 @@ def main(pargs):
     """ Run
     """
     import numpy as np
-    import os
     import json
+    import os
 
     import h5py
-    import pandas
 
     from ulmo.webpage_dynamic import os_portal
     from ulmo import io as ulmo_io
@@ -46,7 +46,7 @@ def main(pargs):
     print(f"Loading {sub_idx.size} images..")
 
     f = h5py.File(idict['image_file'], 'r') 
-    images = f[idict['image_key']][sub_idx,0,:,:]
+    images = f[idict['image_key']][sub_idx, 0,:,:]
     f.close()
     print("Done")
 

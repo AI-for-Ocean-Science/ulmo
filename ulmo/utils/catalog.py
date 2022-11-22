@@ -41,6 +41,17 @@ def match_ids(IDs, match_IDs, require_in_match=True):
 
 def vet_main_table(table:pandas.DataFrame, cut_prefix=None,
                    data_model=None):
+    """Check that the main table is AOK
+
+    Args:
+        table (pandas.DataFrame or dict): [description]
+        cut_prefix (str, optional): . Defaults to None.
+        data_model (dict, optional): Data model to test
+            against.  If None, use the main Ulmo data model
+
+    Returns:
+        bool: True = passed the vetting
+    """
     if data_model is None:
         data_model = defs.mtbl_dmodel
 
@@ -59,9 +70,11 @@ def vet_main_table(table:pandas.DataFrame, cut_prefix=None,
         if not skey in data_model.keys():
             disallowed_keys.append(key)
             chk = False
+        # Allow for dict
+        item = table[key] if isinstance(
+            table, dict) else table.iloc[0][key] 
         # Check datat type
-        if not isinstance(table.iloc[0][key], 
-                          data_model[skey]['dtype']):
+        if not isinstance(item, data_model[skey]['dtype']):
             badtype_keys.append(key)
             chk = False
     # Required

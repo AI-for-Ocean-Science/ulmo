@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import Dataset
 from torchvision import transforms
 
-from ulmo.ssl import my_util
+from ulmo.ssl import train_util
 from ulmo.ssl.util import TwoCropTransform
     
 class ImageDataset(Dataset):
@@ -25,9 +25,9 @@ class ImageDataset(Dataset):
 
 def image_loader(image):
     transforms_compose = transforms.Compose(
-        [my_util.RandomRotate(), 
-         my_util.JitterCrop(), 
-         my_util.GaussianNoise(), 
+        [train_util.RandomRotate(), 
+         train_util.JitterCrop(), 
+         train_util.GaussianNoise(), 
          transforms.ToTensor()])
     
     image_dataset = ImageDataset(
