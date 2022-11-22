@@ -30,7 +30,7 @@ from IPython import embed
 
 class OSPortal(object):
     """ Primary class for the web site """
-    def __init__(self, data_dict, verbose=False): 
+    def __init__(self, data_dict, verbose=True): 
 
         # Slurp
         self.verbose = verbose
