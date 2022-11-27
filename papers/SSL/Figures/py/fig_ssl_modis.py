@@ -1655,6 +1655,14 @@ def main(pargs):
                          umap_dim=pargs.umap_dim,
                          umap_comp=pargs.umap_comp)
 
+    # UMAP_alpha
+    if pargs.figure == 'umap_alpha':
+        outfile='fig_umap_alpha.png' if pargs.outfile is None else pargs.outfile
+        fig_umap_colored(local=pargs.local, table=pargs.table,
+                         metric='slope', outfile=outfile,
+                         vmnx=(None,None),
+                         umap_dim=pargs.umap_dim,
+                         umap_comp=pargs.umap_comp)
     # UMAP_DT 
     if pargs.figure in ['umap_DT', 'umap_DT40']:
         if 'all' in pargs.table:

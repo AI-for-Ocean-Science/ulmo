@@ -86,3 +86,15 @@ umap_DT['DT4'] = (3.25, 0.75)
 umap_DT['DT5'] = (4.0, -1)
 umap_DT['all'] = None
 umap_DT['DT10'] = (1.0, 0.05)
+
+# UMAP alpha CUTS
+umap_alpha = {}
+
+umap_alpha['a0'] = (-0.25, 0.25)
+umap_alpha['a1'] = (-0.75, 0.25)
+umap_alpha['a15'] = (-1.25, 0.25)
+umap_alpha['a2'] = (-1.75, 0.25)
+umap_alpha['a25'] = (-2.25, 0.25)
+umap_alpha['a3'] = (-2.75, 0.25)
+umap_alpha['a4'] = (-3.0, -1)
+umap_alpha['all'] = None

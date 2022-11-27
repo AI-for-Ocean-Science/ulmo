@@ -29,6 +29,7 @@ from ulmo.ssl.util import adjust_learning_rate
 from ulmo.ssl.util import set_optimizer, save_model
 from ulmo.ssl import latents_extraction
 from ulmo.ssl import umap as ssl_umap
+from ulmo.ssl import defs as ssl_defs
 
 from ulmo.ssl.train_util import option_preprocess
 from ulmo.ssl.train_util import modis_loader, set_model
@@ -880,7 +881,7 @@ def DT40(f:h5py.File, modis_tbl:pandas.DataFrame,
     modis_tbl.loc[idx, 'DT40'] = DT_40[pp_idx]
     return 
 
-def ssl_v4_umap(opt_path:str, debug=False, local=False):
+def ssl_v4_umap(opt_path:str, debug=False, local=False, metric:str='DT40'):
     """Run a UMAP analysis on all the MODIS L2 data
     v4 model
 
@@ -904,12 +905,23 @@ def ssl_v4_umap(opt_path:str, debug=False, local=False):
         tbl_file = opt.tbl_file
     modis_tbl = ulmo_io.load_main_table(tbl_file)
 
+    # Add slope
+    modis_tbl['min_slope'] = np.minimum(
+        modis_tbl.zonal_slope, modis_tbl.merid_slope)
+
     # Base
     base1 = '96clear_v4'
 
-    #for subset in ['DTall']:
-    #for subset in ['DT5']:
-    for subset in ['DT15', 'DT0', 'DT1', 'DT2', 'DT4', 'DT5', 'DTall']:
+    if 'DT' in metric: 
+        subsets =  ['DT15', 'DT0', 'DT1', 'DT2', 'DT4', 'DT5', 'DTall']
+    elif metric == 'alpha':
+        #subsets = list(ssl_defs.umap_alpha.keys())
+        subsets = ['a2']
+    else:
+        raise ValueError("Bad metric")
+
+    # Loop me
+    for subset in subsets:
         # Files
         outfile = os.path.join(
             os.getenv('SST_OOD'), 
@@ -918,11 +930,18 @@ def ssl_v4_umap(opt_path:str, debug=False, local=False):
             os.getenv('SST_OOD'), 
             f'MODIS_L2/UMAP/MODIS_SSL_{base1}_{subset}_UMAP.pkl')
 
-        # DT cut
-        DT_cut = None if subset == 'DTall' else subset
+        DT_cut = None 
+        alpha_cut = None 
+        if 'DT' in metric:
+            # DT cut
+            DT_cut = None if subset == 'DTall' else subset
+        elif metric == 'alpha':
+            alpha_cut = subset
+        else:
+            raise ValueError("Bad metric")
 
         if debug:
-            embed(header='786 of v4')
+            embed(header='940 of v4')
 
         # Run
         if os.path.isfile(umap_savefile):
@@ -933,7 +952,9 @@ def ssl_v4_umap(opt_path:str, debug=False, local=False):
                              opt_path, 
                              outfile, 
                              local=local,
-                             DT_cut=DT_cut, debug=debug, 
+                             DT_cut=DT_cut, 
+                             alpha_cut=alpha_cut, 
+                             debug=debug, 
                              train_umap=train_umap, 
                              umap_savefile=umap_savefile,
                              remove=False, CF=False)
@@ -1025,3 +1046,9 @@ if __name__ == "__main__":
     # python ssl_modis_v4.py --func_flag umap --debug --local
     if args.func_flag == 'umap':
         ssl_v4_umap(args.opt_path, debug=args.debug, local=args.local)
+
+    # Repeat UMAP analysis by DT using alpha instead
+    # python ssl_modis_v4.py --func_flag alpha --debug --local
+    if args.func_flag == 'alpha':
+        ssl_v4_umap(args.opt_path, metric='alpha', debug=args.debug, local=args.local)
+

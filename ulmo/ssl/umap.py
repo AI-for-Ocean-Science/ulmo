@@ -77,7 +77,9 @@ def load(model_name:str, DT:float=None, use_s3:bool=False):
     return pickle.load(ulmo_io.open(umap_base, "rb")), tbl_file
 
 def umap_subset(modis_tbl:pandas.DataFrame, 
-                opt_path:str, outfile:str, DT_cut=None, 
+                opt_path:str, outfile:str, 
+                DT_cut:str=None, 
+                alpha_cut:str=None, 
                 ntrain=200000, remove=True,
                 umap_savefile:str=None,
                 train_umap:bool=True,
@@ -90,6 +92,7 @@ def umap_subset(modis_tbl:pandas.DataFrame,
         opt_path (str): _description_
         outfile (str): _description_
         DT_cut (str, optional): DT40 cut to apply. Defaults to None.
+        alpha_cut (str, optional): alpha cut to apply. Defaults to None.
         ntrain (int, optional): _description_. Defaults to 200000.
         remove (bool, optional): _description_. Defaults to True.
         umap_savefile (str, optional): _description_. Defaults to None.
@@ -120,11 +123,21 @@ def umap_subset(modis_tbl:pandas.DataFrame,
     else: # Do em all!
         keep = np.ones(len(modis_tbl), dtype=bool)
 
-    modis_tbl = modis_tbl[keep].copy()
-    print(f"After the cuts, we have {len(modis_tbl)} cutouts to work on.")
+    # Cut down on alpha
+    if alpha_cut is not None:
+        alpha_cuts = ssl_defs.umap_alpha[alpha_cut]
+        if alpha_cuts[1] < 0: # Upper limit?
+            keep = modis_tbl.min_slope < alpha_cuts[0]
+        else:
+            keep = np.abs(modis_tbl.min_slope - alpha_cuts[0]) < alpha_cuts[1]
+    else: # Do em all!
+        keep = np.ones(len(modis_tbl), dtype=bool)
 
     if debug:
-        embed(header='64 of umap')
+        embed(header='138 of umap')
+
+    modis_tbl = modis_tbl[keep].copy()
+    print(f"After the cuts, we have {len(modis_tbl)} cutouts to work on.")
 
     # 
     if table in ['CF', '96']:
@@ -202,7 +215,7 @@ def umap_subset(modis_tbl:pandas.DataFrame,
 
     # UMAP me
     if debug:
-        embed(header='136 of umap')
+        embed(header='218 of umap')
 
     if train_umap:
         ntrain = min(ntrain, nlatents)
