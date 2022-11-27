@@ -166,10 +166,10 @@ if __name__ == '__main__':
                              (245.-360, 255.-360), (-2., 2.), local=True)#, debug=True)
     '''
 
-    '''
     # Gulf                            
     grab_rectangular_cutouts('viirs', 'viirs_gulf_rect_cutouts.h5',
                              (290.-360, 310.-360), (34., 42.), local=True)#, debug=True)
     '''
     grab_rectangular_cutouts('llc_match', 'llc_gulf_rect_cutouts.h5',
                              (290.-360, 310.-360), (34., 42.), local=True)#, debug=True)
+    '''
