@@ -915,8 +915,8 @@ def ssl_v4_umap(opt_path:str, debug=False, local=False, metric:str='DT40'):
     if 'DT' in metric: 
         subsets =  ['DT15', 'DT0', 'DT1', 'DT2', 'DT4', 'DT5', 'DTall']
     elif metric == 'alpha':
-        #subsets = list(ssl_defs.umap_alpha.keys())
-        subsets = ['a2']
+        subsets = list(ssl_defs.umap_alpha.keys())
+        #subsets = ['a2']
     else:
         raise ValueError("Bad metric")
 

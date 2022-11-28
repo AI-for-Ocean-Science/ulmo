@@ -74,4 +74,13 @@
 
 # Figure 6 with alpha
 # UMAP DTAll colored by alpha 
-python py/fig_ssl_modis.py umap_alpha --local --table 96clear_v4_DTall --umap_comp S0,S1
+# python py/fig_ssl_modis.py umap_alpha --local --table 96clear_v4_DTall --umap_comp S0,S1
+
+# Galleries with alpha
+python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_a0 --umap_comp S0,S1 --vmnx=-1,1 --outfile fig_umap_gallery_a0.png
+python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_a1 --umap_comp S0,S1 --vmnx=-1,1 --outfile fig_umap_gallery_a1.png
+python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_a15 --umap_comp S0,S1 --vmnx=-1,1 --outfile fig_umap_gallery_a15.png
+python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_a2 --umap_comp S0,S1 --vmnx=-1,1 --outfile fig_umap_gallery_a2.png
+python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_a25 --umap_comp S0,S1 --vmnx=-1,1 --outfile fig_umap_gallery_a25.png
+python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_a3 --umap_comp S0,S1 --vmnx=-1,1 --outfile fig_umap_gallery_a3.png
+python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_a4 --umap_comp S0,S1 --vmnx=-1,1 --outfile fig_umap_gallery_a4.png

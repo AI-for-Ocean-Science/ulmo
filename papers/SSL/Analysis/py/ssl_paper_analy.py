@@ -95,25 +95,14 @@ def load_modis_tbl(table:str=None,
                 base1 = 'MODIS_SSL_96clear_v4'
             dtstr = table.split('_')[-1]
             base2 = '_'+dtstr
+        elif 'v4_a' in table:
+            base1 = 'MODIS_SSL_96clear_v4'
+            dtstr = table.split('_')[-1]
+            base2 = '_'+dtstr
         else:
             base2 = ''
         # 
         basename = base1+base2+'.parquet'
-
-    '''
-    elif table == 'CF':
-        basename = 'MODIS_SSL_cloud_free.parquet'
-    elif table == 'CF_DT0':
-        basename = 'MODIS_SSL_cloud_free_DT0.parquet'
-    elif table == 'CF_DT1':
-        basename = 'MODIS_SSL_cloud_free_DT1.parquet'
-    elif table == 'CF_DT15':
-        basename = 'MODIS_SSL_cloud_free_DT15.parquet'
-    elif table == 'CF_DT2':
-        basename = 'MODIS_SSL_cloud_free_DT2.parquet'
-    elif table == 'CF_DT1_DT2':
-        basename = 'UT1_2003.parquet'
-    '''
 
     if local:
         tbl_file = os.path.join(os.getenv('SST_OOD'), 'MODIS_L2', 'Tables', basename)
