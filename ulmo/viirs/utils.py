@@ -4,6 +4,8 @@ import numpy as np
 import datetime
 import pandas
 
+from IPython import embed
+
 def viirs_uid(df:pandas.DataFrame):
     """ Generate a unique identifier for VIIRS
 
