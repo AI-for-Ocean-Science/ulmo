@@ -5,6 +5,9 @@ import os
 import h5py
 
 from bokeh.transform import transform
+from bokeh.layouts import column, gridplot, row
+from bokeh.models import LinearColorMapper, ColorBar, ColumnDataSource, Range1d, CustomJS, Div, \
+    CDSView, BasicTicker
 
 from ulmo import io as ulmo_io
 from ulmo.utils import catalog 
@@ -94,6 +97,46 @@ class OSSinglePortal(os_portal.OSPortal):
         self.stacks_callback()
         self.plot_gallery()  # Resets color map
 
+    def __call__(self, doc):
+        doc.add_root(column(row(self.main_title_div ), 
+                            row(column(self.info_div), 
+                                column(self.gallery_figure,
+                                    row(self.prev_set, self.next_set), 
+                                    ), 
+                            )
+        ))
+        doc.title = 'OS Gallery'
+
+    def plot_gallery(self):
+        """ Plot the gallery of images
+        """
+        self.spectrum_stacks = []
+        for i in range(self.nrow*self.ncol):
+            spec_stack = self.gallery_figures[i].image(
+                'image', 'x', 'y', 'dw', 'dh', 
+                source=self.stacks_sources[i],
+                color_mapper=self.snap_color_mapper)
+            self.spectrum_stacks.append(spec_stack)
+            if self.verbose:
+                print(f"Updated gallery {i}")
+
+    def plot_snapshot(self, init=False):
+        """ Plot the current image with color mapper and bar
+        """
+        self.snap_color_mapper = LinearColorMapper(palette="Turbo256", 
+                                         low=-1., #self.data_source.data['min'][0],
+                                         high=1.) #self.data_source.data['max'][0])
+        self.data_image = self.data_figure.image(
+            'image', 'x', 'y', 'dw', 'dh', source=self.data_source,
+            color_mapper=self.snap_color_mapper)
+        # Add color bar
+        self.color_bar = ColorBar(color_mapper=self.snap_color_mapper, 
+                             ticker= BasicTicker(), location=(0,0))
+        if init:
+            self.data_figure.add_layout(self.color_bar, 'right')
+        else:
+            self.data_figure.right[0].color_mapper.low = self.snap_color_mapper.low
+            self.data_figure.right[0].color_mapper.high = self.snap_color_mapper.high
 
     def load_images(self):
         print("Loading images")

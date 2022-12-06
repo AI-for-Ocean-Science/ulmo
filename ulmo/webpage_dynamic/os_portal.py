@@ -6,7 +6,7 @@ import numpy as np
 import pandas
 
 from bokeh.layouts import column, gridplot, row
-from bokeh.models import ColumnDataSource
+from bokeh.models import ColumnDataSource, Plot
 from bokeh.palettes import Viridis256, Plasma256, Inferno256, Magma256, all_palettes
 from bokeh.models import LinearColorMapper, ColorBar, ColumnDataSource, Range1d, CustomJS, Div, \
     CDSView, BasicTicker
@@ -129,7 +129,8 @@ class OSPortal(object):
 
     def init_title_text_tables(self):
 
-        self.main_title_div = Div(text='<center>OS Image Visualization Tool</center>', style={'font-size': '299%', 'color': 'black'}, sizing_mode="stretch_width")
+        self.main_title_div = Div(text='<center>OS Image Visualization Tool</center>', 
+                                  styles={'font-size': '299%', 'color': 'black'}, sizing_mode="stretch_width")
         info_text = """
         <p><b>What is this?</b></p>
         <p>This is an interactive tool for visualizing the results of pattern analysis of Ocean Science imagery</p>
@@ -146,7 +147,7 @@ class OSPortal(object):
         <p><b>Author:</b> X</p>
         <p><i>Adapted from the <a href="https://toast-docs.readthedocs.io/en/latest/">SDSS galaxy portal</a> by Itamar Reis and Kate Storey-Fisher</i></p>
         """
-        self.info_div = Div(text=info_text, style={'font-size': '119%', 'color': 'black'})#, sizing_mode="stretch_width")
+        self.info_div = Div(text=info_text, styles={'font-size': '119%', 'color': 'black'})#, sizing_mode="stretch_width")
 
         self.selected_objects_columns = []
         for key in self.metric_dict.keys():
@@ -202,11 +203,11 @@ class OSPortal(object):
 
     def generate_figures(self):
 
-        umap_plot_width = 800
+        self.umap_plot_width = 800
         column_width = 500
         self.umap_figure = figure(tools='lasso_select,tap,box_zoom,pan,save,reset',
-                                  plot_width=umap_plot_width,
-                                  plot_height=600,
+                                  width=self.umap_plot_width,
+                                  height=600,
                                   toolbar_location="above", output_backend='webgl', )  # x_range=(-10, 10),
         self.umap_colorbar = ColorBar(color_mapper=self.color_mapper, location=(0, 0), 
                                       major_label_text_font_size='15pt', 
@@ -217,28 +218,17 @@ class OSPortal(object):
 
         # Snapshot figure
         self.data_figure = figure(tools="box_zoom,save,reset", 
-                                  plot_width=column_width,
-                                  plot_height=column_width,
+                                  width=column_width,
+                                  height=column_width,
                                   toolbar_location="above", 
                                   output_backend='webgl',
                                   x_range=(0,self.imsize[0]), 
                                   y_range=(0,self.imsize[1]))
                                   #x_range=(0,96), y_range=(0,96))
 
-        # Gallery figure 
-        title_height = 20
-        buffer = 10*self.ncol
-        collage_im_width = int((umap_plot_width-buffer)/self.ncol)
-        self.gallery_figures = []
-        for _ in range(self.nrow*self.ncol):
-            sfig = figure(tools="box_zoom,save,reset", 
-                          plot_width=collage_im_width, 
-                          plot_height=collage_im_width+title_height, 
-                          toolbar_location="above", output_backend='webgl', 
-                          x_range=(0,self.imsize[0]), y_range=(0,self.imsize[1]))
-            self.gallery_figures.append(sfig)
+        # Gallery
+        self.init_gallery_figure()
 
-        self.gallery_figure = gridplot(self.gallery_figures, ncols=self.ncol)
 
         # TODO: make this the index
         t = Title()
@@ -264,8 +254,8 @@ class OSPortal(object):
         # Geography figure
         tooltips = [("ID", "@obj_ID"), ("Lat","@lat"), ("Lon", "@lon")]
         self.geo_figure = figure(tools='box_zoom,pan,save,reset',
-                                  plot_width=umap_plot_width,
-                                  plot_height=600,
+                                  width=self.umap_plot_width,
+                                  height=600,
                                   toolbar_location="above", 
                                   x_axis_type="mercator", 
                                   y_axis_type="mercator", 
@@ -273,6 +263,22 @@ class OSPortal(object):
                                   y_axis_label = 'Latitude', 
                                   tooltips=tooltips,
                                   output_backend='webgl', )  # x_range=(-10, 10),
+
+    def init_gallery_figure(self):
+        # Gallery figure 
+        title_height = 20
+        buffer = 10*self.ncol
+        collage_im_width = int((self.umap_plot_width-buffer)/self.ncol)
+        self.gallery_figures = []
+        for kk in range(self.nrow*self.ncol):
+            sfig = figure(tools="box_zoom,save,reset", 
+                          width=collage_im_width, 
+                          height=collage_im_width+title_height, 
+                          toolbar_location="above", #output_backend='webgl', 
+                          x_range=(0,self.imsize[0]), y_range=(0,self.imsize[1]))
+            self.gallery_figures.append(sfig)
+
+        self.gallery_figure = gridplot(self.gallery_figures, ncols=self.ncol)
 
     def generate_plots(self):
         """Generate/init plots
@@ -297,8 +303,8 @@ class OSPortal(object):
 
         # Gallery
         self.plot_gallery()
-        self.gallery_figure = gridplot(self.gallery_figures, 
-                                       ncols=self.ncol)
+        #self.gallery_figure = gridplot(self.gallery_figures, 
+        #                               ncols=self.ncol)
 
         # Search circle
         self.umap_search_galaxy = self.umap_figure.circle(
@@ -846,6 +852,10 @@ class OSPortal(object):
             self.gallery_figures[count].title.text = new_title
             #self.spectrum_stacks[count].data_source.data = dict(self.stacks_sources[count].data)
 
+            if self.verbose:
+                print(f'Loaded image: {count}, {np.std(im)}')
+
+            # Increment
             count += 1
         self.plot_gallery()
 
@@ -878,10 +888,13 @@ class OSPortal(object):
                 source=self.stacks_sources[i],
                 color_mapper=self.snap_color_mapper)
             self.spectrum_stacks.append(spec_stack)
+            if self.verbose:
+                print(f"Updated gallery {i}")
 
     def update_snapshot(self):
         """ Update the Zoom-in image
         """
+        print("inside snapshot")
         if self.verbose:
             print("update snapshot")
         #TODO: BE CAREFUL W INDEX VS ID
