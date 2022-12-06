@@ -749,6 +749,7 @@ def fig_umap_geo(outfile:str, table:str, umap_rngs:list,
                  umap_dim=2, debug=False, 
                  color='bwr', vmax=None,
                  min_counts=None, 
+                 show_regions:str=None,
                  absolute=False): 
     """ Global geographic plot of the UMAP select range
 
@@ -765,6 +766,8 @@ def fig_umap_geo(outfile:str, table:str, umap_rngs:list,
         color (str, optional): _description_. Defaults to 'bwr'.
         vmax (_type_, optional): _description_. Defaults to None.
         min_counts (int, optional): Minimum to show in plot.
+        show_regions (str, optional): Rectangles for the geographic regions of this 
+            Defaults to False.
         absolute (bool, optional):
             If True, show absolute counts instead of relative
     """
@@ -860,7 +863,7 @@ def fig_umap_geo(outfile:str, table:str, umap_rngs:list,
         facecolor='gray', edgecolor='black')
     ax.set_global()
 
-    gl = ax.gridlines(crs=ccrs.PlateCarree(), linewidth=1, 
+    gl = ax.gridlines(crs=tformP, linewidth=1, 
         color='black', alpha=0.5, linestyle=':', draw_labels=True)
     gl.xlabels_top = False
     gl.ylabels_left = True
@@ -870,6 +873,26 @@ def fig_umap_geo(outfile:str, table:str, umap_rngs:list,
     gl.yformatter = LATITUDE_FORMATTER
     gl.xlabel_style = {'color': 'black'}# 'weight': 'bold'}
     gl.ylabel_style = {'color': 'black'}# 'weight': 'bold'}
+
+    # Rectangle?
+    if show_regions == 'weak':
+        regions = ['eqpacific', 'med']
+    elif show_regions == 'strong':
+        regions = ['south_atlantic', 'south_pacific']
+    else:
+        regions = []
+
+
+    for key in regions:
+        lons = ssl_paper_analy.geo_regions[key]['lons']
+        lats = ssl_paper_analy.geo_regions[key]['lats']
+
+        # Rectangle
+        rect = Rectangle((lons[0], lats[0]),
+            lons[1]-lons[0], lats[1]-lats[0],
+            linewidth=2, edgecolor='k', facecolor='none',
+            ls='--', transform=tformP)
+        ax.add_patch(rect) 
 
     plotting.set_fontsize(ax, 19.)
     plt.savefig(outfile, dpi=300)
@@ -1748,7 +1771,8 @@ def main(pargs):
         # Do it
         fig_umap_geo(pargs.outfile,
             pargs.table, umap_rngs, min_counts=pargs.min_counts,
-            debug=pargs.debug, local=pargs.local)
+            debug=pargs.debug, local=pargs.local,
+            show_regions=pargs.umap_rngs)
         # Most boring
         #fig_umap_geo('fig_umap_geo_DT0_5656.png',
         #    '96_DT0', [[5.5,6.5], [5.3,6.3]], 

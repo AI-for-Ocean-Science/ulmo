@@ -41,12 +41,12 @@
 # python py/fig_ssl_modis.py umap_geo --local --outfile fig_umap_geo_global_DT1_strong.png --table 96clear_v4_DT1  --umap_rngs=strong --min_counts=5
 
 # Figure 14 Equator and Med
-# python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT15_eqpacific.png --table 96clear_v4_DT15  --region=eqpacific
-# python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT15_med.png --table 96clear_v4_DT15  --region=med
+ python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT15_eqpacific.png --table 96clear_v4_DT15  --region=eqpacific
+ python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT15_med.png --table 96clear_v4_DT15  --region=med
 
 # Figure 15 South Atlantic/Pacific 
-# python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_southatlantic.png --table 96clear_v4_DT1  --region=south_atlantic
-# python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_southpacific.png --table 96clear_v4_DT1  --region=south_pacific
+ python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_southatlantic.png --table 96clear_v4_DT1  --region=south_atlantic
+ python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_southpacific.png --table 96clear_v4_DT1  --region=south_pacific
 
 # Figure 16 Time Series EqPacific
 #  python py/fig_ssl_modis.py yearly_geo --local 
@@ -74,4 +74,4 @@
 
 # Figure 6 with alpha
 # UMAP DTAll colored by alpha 
-python py/fig_ssl_modis.py umap_alpha --local --table 96clear_v4_DTall --umap_comp S0,S1
+# python py/fig_ssl_modis.py umap_alpha --local --table 96clear_v4_DTall --umap_comp S0,S1
