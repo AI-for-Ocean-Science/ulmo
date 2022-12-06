@@ -97,4 +97,4 @@ umap_alpha['a2'] = (-1.75, 0.25)
 umap_alpha['a25'] = (-2.25, 0.25)
 umap_alpha['a3'] = (-2.75, 0.25)
 umap_alpha['a4'] = (-3.0, -1)
-umap_alpha['all'] = None
+#umap_alpha['all'] = None   # SAME AS DT all
