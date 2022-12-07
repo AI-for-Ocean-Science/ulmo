@@ -5,6 +5,7 @@ import os
 import h5py
 
 from bokeh.transform import transform
+from bokeh.layouts import column, row
 
 from ulmo import io as ulmo_io
 from ulmo.utils import catalog 
@@ -16,6 +17,7 @@ class OSSinglePortal(os_portal.OSPortal):
 
     def __init__(self, sngl_image, opt, Nmax=20000, Nclose=1000):
 
+        self.debug=False
         # Get UMAP values
         table_file = os.path.join(
             os.getenv('SST_OOD'), 
@@ -93,6 +95,22 @@ class OSSinglePortal(os_portal.OSPortal):
         self.reset_gallery_index()
         self.stacks_callback()
         self.plot_gallery()  # Resets color map
+
+    def __call__(self, doc):
+        doc.add_root(column(
+            row(self.umap_figure, 
+                column(self.data_figure,
+                       row(self.x_text, self.y_text),
+                       self.select_metric,
+                       row(self.main_low, self.main_high),
+                       self.selected_objects_table,
+                       self.print_table,
+                )),
+            self.gallery_figure,
+            row(self.prev_set, self.next_set), 
+            self.geo_figure)
+                     ) 
+        doc.title = 'OS Web Portal'
 
 
     def load_images(self):
