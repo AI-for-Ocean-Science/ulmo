@@ -124,12 +124,22 @@ class OSSinglePortal(object):
         '''
         self.init_bits_and_pieces()
 
+        '''
         # Show
         show(column(row(
             column(self.primary_figure,
                 row(self.DT_text, self.PCB_low, self.PCB_high),
                    )))
         )
+        '''
+
+    def __call__(self, doc):
+        doc.add_root(column(row(
+            column(self.primary_figure,
+                row(self.DT_text, self.PCB_low, self.PCB_high),
+                   )))
+        )
+        doc.title = 'SSL Portal'
 
     def init_bits_and_pieces(self):
         """ Allow for some customization """
@@ -340,21 +350,6 @@ class OSSinglePortal(object):
         self.plot_primary()
 
 
-    def __call__(self, doc):
-        doc.add_root(column(
-            row(self.umap_figure, 
-                column(self.data_figure,
-                       row(self.x_text, self.y_text),
-                       self.select_metric,
-                       row(self.main_low, self.main_high),
-                       self.selected_objects_table,
-                       self.print_table,
-                )),
-            self.gallery_figure,
-            row(self.prev_set, self.next_set), 
-            self.geo_figure)
-                     ) 
-        doc.title = 'OS Web Portal'
 
     def open_files(self):
         # Open files
@@ -411,21 +406,21 @@ class OSSinglePortal(object):
 if __name__ == "__main__":
     #tmp = OSSinglePortal(None, None)
 
-    '''
     # Odd work-around
     def get_session(doc):
-        sess = OSSinglePortal(None, None, Nmax=2000, Nclose=50)
+        sess = OSSinglePortal(None, None)
         #sess = OSSinglePortal(None, None)
         return sess(doc)
 
     # Do me!
-    server = os_portal.Server({'/': get_session}, num_procs=1)
+    server = Server({'/': get_session}, num_procs=1)
     server.start()
     print('Opening Bokeh application for OS data on http://localhost:5006/')
 
     server.io_loop.add_callback(server.show, "/")
     server.io_loop.start()
-    '''
 
+    '''
     obj = OSSinglePortal(None, None)
+    '''
         
