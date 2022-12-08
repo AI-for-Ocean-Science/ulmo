@@ -50,6 +50,8 @@ class OSSinglePortal(object):
         self.umap_tbl = ulmo_io.load_main_table(
             table_file)
         self.umap_tbl['DT'] = self.umap_tbl.T90 - self.umap_tbl.T10
+        self.umap_data = np.array([self.umap_tbl.US0.values, 
+                                   self.umap_tbl.US1.values,]).T
 
         # Grab h5 pointers
         self.open_files() # Held in self.file_dict
@@ -62,6 +64,19 @@ class OSSinglePortal(object):
 
         # Setup focus Us
         #self.reset_focus()
+
+        # UMAP FIGURE
+        rev_Plasma256 = Plasma256[::-1]
+        self.DECIMATE_NUMBER = 5000
+        self.UMAP_XYLIM_DELTA = 0.5
+        self.R_DOT = 6#10
+        self.high_colormap_factor = 0.1
+        self.umap_color_mapper = LinearColorMapper(
+            palette=rev_Plasma256, low=0, high=1, 
+            nan_color=RGB(220, 220, 220, a = 0.1))
+        self.xkey, self.ykey = 'U0', 'U1'
+        self.nonselection_fill_color = transform(
+            'color_data', self.umap_color_mapper)
 
         # Load images
         self.N = len(self.umap_tbl)
@@ -81,16 +96,17 @@ class OSSinglePortal(object):
             ["lat", "lat"], 
             ["avgT", "mean_temperature"]]
 
-        metric_dict = dict(obj_ID=np.arange(len(self.umap_tbl)))
+        self.metric_dict = dict(obj_ID=np.arange(len(self.umap_tbl)))
         for metric in metrics:
             if metric[0] == 'DT':
-                metric_dict[metric[0]] = (self.umap_tbl.T90-self.umap_tbl.T10).values
+                self.metric_dict[metric[0]] = (self.umap_tbl.T90-self.umap_tbl.T10).values
             elif metric[1] == 'min_slope':
-                metric_dict[metric[0]] = np.minimum(self.umap_tbl.merid_slope.values,
+                self.metric_dict[metric[0]] = np.minimum(self.umap_tbl.merid_slope.values,
                                                     self.umap_tbl.zonal_slope.values)
             else:
-                metric_dict[metric[0]] = self.umap_tbl[metric[1]].values
-        data_dict['metrics'] = metric_dict
+                self.metric_dict[metric[0]] = self.umap_tbl[metric[1]].values
+        self.obj_ids = self.metric_dict['obj_ID']
+        #data_dict['metrics'] = metric_dict
 
         # Launch
         #os_portal.OSPortal.__init__(self, data_dict)
@@ -134,11 +150,14 @@ class OSSinglePortal(object):
         '''
 
     def __call__(self, doc):
-        doc.add_root(column(row(
-            column(self.primary_figure,
+        doc.add_root(column(
+            row(column(
+                self.primary_figure,
                 row(self.DT_text, self.PCB_low, self.PCB_high),
-                   )))
-        )
+                   ),
+                self.umap_figure,
+                ),
+            ))
         doc.title = 'SSL Portal'
 
     def init_bits_and_pieces(self):
@@ -161,8 +180,47 @@ class OSSinglePortal(object):
         self.PCB_low = TextInput(title='PCB Low:', max_width=100)
         self.PCB_high = TextInput(title='PCB High:', max_width=100)
 
-    def generate_sources(self):
+        # Color bar for UMAP figure
+        self.UCB_low = TextInput(title='PCB Low:', max_width=100)
+        self.UCB_high = TextInput(title='UCB High:', max_width=100)
 
+    def generate_sources(self):
+        # Primry figure
+        self.set_primary_source()
+
+        # UMAP scatter
+        self.update_umap_color(None)
+        # Unpack for convenience
+        #metric = self.metric_dict[self.dropdown_dict['metric']]
+        metric = self.metric_dict['LL']
+        self.U_xlim = (np.min(self.umap_source.data['xs']) 
+                       - self.UMAP_XYLIM_DELTA, 
+                       np.max(self.umap_source.data['xs']) 
+                       + self.UMAP_XYLIM_DELTA)
+        self.U_ylim = (np.min(self.umap_source.data['ys']) 
+                       - self.UMAP_XYLIM_DELTA, 
+                       np.max(self.umap_source.data['ys']) 
+                       + self.UMAP_XYLIM_DELTA)
+
+        points = portal_utils.get_decimated_region_points(
+            self.U_xlim[0], self.U_xlim[1], 
+            self.U_ylim[0], self.U_ylim[1],
+            self.umap_source.data, self.DECIMATE_NUMBER)
+
+        self.umap_source_view = ColumnDataSource(
+            #data=dict(xs=self.umap_data[embedding][points, 0],
+            #          ys=self.umap_data[embedding][points, 1],
+            data=dict(xs=self.umap_data[points, 0],
+                      ys=self.umap_data[points, 1],
+                      color_data=metric[points],
+                      names=list(points),
+                      radius=[self.R_DOT] * len(points)),
+                    )
+        self.points = np.array(points)
+        self.umap_view = CDSView()#source=self.umap_source_view)
+
+
+    def set_primary_source(self):
         # Primary image
         xsize, ysize = self.imsize
         im = self.primary_image
@@ -173,23 +231,170 @@ class OSSinglePortal(object):
                     'max': [np.max(im)]}
         )
 
+    def update_umap_color(self, event):
+        """ Update the color bar and set source for UMAP
+
+        Args:
+            event (bokey event): 
+        """
+        # Update?
+        if event is not None:
+            self.dropdown_dict['metric'] = event.item
+            self.umap_figure_axes()
+
+        # UPDATE LATER
+        #metric_key = self.dropdown_dict['metric']
+        metric_key = 'LL'
+        metric = self.metric_dict[metric_key]
+
+        self.set_colormap(metric, metric_key)
+        # Set limits
+        self.UCB_low.value = str(self.umap_color_mapper.low)
+        self.UCB_high.value = str(self.umap_color_mapper.high)
+
+        self.umap_source = ColumnDataSource(
+            #data=dict(xs=self.umap_data[embedding][:, 0],
+            #            ys=self.umap_data[embedding][:, 1],
+            data=dict(xs=self.umap_data[:, 0],
+                        ys=self.umap_data[:, 1],
+                        color_data=metric,
+                        radius=[self.R_DOT] * len(metric),
+                        names=list(np.arange(len(metric))),
+                    ))
+        # Init?
+        if event is None:
+            return
+
+        selected_objects = self.selected_objects.data['index']
+        background_objects = self.umap_source_view.data['names']
+
+        self.get_new_view_keep_selected(background_objects, 
+                                        selected_objects)
+        #self.select_score_table.value = self.select_score.value
+
+    def set_colormap(self, metric:np.ndarray, 
+                     metric_key:str):
+        """Set the color map for the given metric
+
+        Args:
+            metric (np.ndarray): Metric values of interest
+            metric_key (str): Metric of interest, e.g. LL
+        """
+        mx = np.nanmax(metric)
+        mn = np.nanmin(metric)
+        if mn == mx:
+            high = mx + 1
+            low = mn - 1
+        else:
+            high = mx + (mx - mn)*self.high_colormap_factor
+            low = mn
+            # set max of colormap to Nth largets val, to deal with outliers
+            nth = 100
+            if len(metric)>nth:
+                nmx = np.sort(metric)[-nth]
+                if nmx*1.2 < mx:
+                    high = nmx
+        
+        # THIS ISN'T THE BEST IDEA
+        if metric_key == 'LL':
+            low = max(low, -1000.)
+
+        self.umap_color_mapper.high = high
+        self.umap_color_mapper.low = low
+
+        return
+
+    def get_new_view_keep_selected(self, background_objects, 
+                                   selected_objects_, 
+                                   custom_sd = None):
+        """ Handle selected objects
+
+        Args:
+            background_objects ([type]): [description]
+            selected_objects_ ([type]): [description]
+            custom_sd ([type], optional): [description]. Defaults to None.
+        """
+
+
+        #embedding = self.dropdown_dict['embedding']
+        print('get_new_view_keep_selected')
+        _, _, is_relevant = portal_utils.get_relevant_objects_coords(self.umap_source.data)
+        selected_objects = [s for s in selected_objects_ if is_relevant[int(s)]]
+        selected_objects = np.array(selected_objects)
+        background_objects = np.array(background_objects)
+
+        nof_selected_objects = selected_objects.size
+
+        max_nof_selected_objects = int(self.DECIMATE_NUMBER)/2
+        if nof_selected_objects > max_nof_selected_objects:
+            nof_selected_objects = max_nof_selected_objects
+            new_objects = selected_objects[:nof_selected_objects]
+        else:
+            new_objects = np.concatenate([selected_objects, background_objects])
+            new_objects, order = np.unique(new_objects, return_index=True)
+            new_objects = new_objects[np.argsort(order)]
+            new_objects = new_objects[:self.DECIMATE_NUMBER]
+
+        new_objects = new_objects.astype(int)
+        if custom_sd is None:
+            # UPDATE THIS
+            #metric = self.metric_dict[self.dropdown_dict['metric']]
+            metric = self.metric_dict['LL'] #self.dropdown_dict['metric']]
+        else:
+            metric = custom_sd
+
+        self.umap_source_view = ColumnDataSource(
+                data=dict(xs=self.umap_data[new_objects, 0],
+                          ys=self.umap_data[new_objects, 1],
+                          color_data=metric[new_objects],
+                          names=list(new_objects),
+                          radius=[self.R_DOT] * len(new_objects),
+                        ))
+        self.points = np.array(new_objects)
+        self.umap_scatter.data_source.data = dict(self.umap_source_view.data)
+
+        if nof_selected_objects > 0:
+            new_dict = dict(index=list(selected_objects))
+            for key in self.metric_dict.keys():
+                new_dict[key] = [self.metric_dict[key][s] for s in selected_objects]
+            self.selected_objects.data = new_dict
+            self.update_table.value = str(np.random.rand())
+            self.umap_source_view.selected.indices = np.arange(nof_selected_objects).tolist()
+        elif len(selected_objects_) > 0:
+            self.selected_objects = ColumnDataSource(data=dict(index=[], score=[], order=[], info_id=[], object_id=[]))
+            self.update_table.value = str(np.random.rand())
+            self.internal_reset.value = str(np.random.rand())
+        else:
+            self.update_table.value = str(np.random.rand())
+
+        # Update indices?
+
+        # Update circle
+        index = self.select_object.value
+
+        if (index in set(background_objects)) :
+            pass
+        else:
+            if len(selected_objects) > 0:
+                if (index in set(selected_objects)):
+                    pass
+                else:
+                    index = str(selected_objects[0])
+                    self.select_object.value = index
+            else:
+                index = str(background_objects[0])
+                self.select_object.value = index
+
+        #self.update_search_circle(index)
+
+        return
+
 
     def generate_figures(self):
 
         self.umap_plot_width = 800
         column_width = 500
 
-        '''
-        self.umap_figure = figure(tools='lasso_select,tap,box_zoom,pan,save,reset',
-                                  width=self.umap_plot_width,
-                                  height=600,
-                                  toolbar_location="above", output_backend='webgl', )  # x_range=(-10, 10),
-        self.umap_colorbar = ColorBar(color_mapper=self.color_mapper, location=(0, 0), 
-                                      major_label_text_font_size='15pt', 
-                                      label_standoff=13)
-        self.umap_figure.add_layout(self.umap_colorbar, 'right')
-        self.umap_figure_axes()
-        '''
 
         # Primary figure
         self.primary_figure = figure(
@@ -201,6 +406,21 @@ class OSSinglePortal(object):
             x_range=(0,self.imsize[0]), 
             y_range=(0,self.imsize[1]))
         portal_utils.remove_ticks_and_labels(self.primary_figure)
+
+        # UMAP figure
+        self.umap_figure = figure(tools='tap,box_zoom,pan,save,reset',
+                                  width=self.umap_plot_width,
+                                  height=600,
+                                  toolbar_location="above", 
+                                  output_backend='webgl', )  # x_range=(-10, 10),
+        self.umap_colorbar = ColorBar(
+            color_mapper=self.umap_color_mapper, 
+            location=(0, 0), 
+            major_label_text_font_size='15pt', 
+            label_standoff=13)
+        self.umap_figure.add_layout(
+            self.umap_colorbar, 'right')
+        self.umap_figure_axes()
                                   #x_range=(0,96), y_range=(0,96))
         '''
         # Gallery
@@ -241,15 +461,51 @@ class OSSinglePortal(object):
                                   output_backend='webgl', )  # x_range=(-10, 10),
         '''
 
+    def umap_figure_axes(self):
+        """ Set the x-y axes
+        """
+
+        #embedding_name = self.dropdown_dict['embedding']
+        embedding_name = f"{self.xkey}, {self.ykey}"
+        # DROPDOWN
+        #metric_name = self.dropdown_dict['metric']
+        metric_name = 'LL'
+        if metric_name == 'No color':
+            self.umap_figure.title.text  = '{}'.format(embedding_name)
+        else:
+            self.umap_figure.title.text  = '{} - Colored by {}'.format(embedding_name , metric_name)
+        self.umap_figure.title.text_font_size = '17pt'
+
+        # Labels
+        self.umap_figure.xaxis.axis_label = self.xkey
+        self.umap_figure.yaxis.axis_label = self.ykey
+
+        self.umap_figure.xaxis.major_tick_line_color = None  # turn off x-axis major ticks
+
+        self.umap_figure.xaxis.major_tick_line_color = 'black'  # turn off x-axis major ticks
+        self.umap_figure.xaxis.minor_tick_line_color = 'black'  # turn off x-axis minor ticks
+
+        self.umap_figure.yaxis.minor_tick_line_color = 'black'  # turn off y-axis major ticks
+        self.umap_figure.yaxis.major_tick_line_color = 'black'  # turn off y-axis minor ticks
+
+        self.umap_figure.xaxis.major_label_text_font_size = "15pt"
+        self.umap_figure.yaxis.major_label_text_font_size = "15pt"
+        self.umap_figure.xaxis.axis_label_text_font_size = "15pt"
+        self.umap_figure.yaxis.axis_label_text_font_size = "15pt"
+
+
     def generate_plots(self):
         """Generate/init plots
         """
 
-        '''
+        # Primary
+        self.plot_primary(init=True)
+
         # Main scatter plot
         self.umap_scatter = self.umap_figure.scatter(
             'xs', 'ys', source=self.umap_source_view,
-            color=transform('color_data', self.color_mapper),
+            color=transform('color_data', 
+                            self.umap_color_mapper),
             nonselection_fill_color = self.nonselection_fill_color, 
             nonselection_line_color = 'moccasin',
             nonselection_alpha = 0.2,
@@ -258,10 +514,6 @@ class OSSinglePortal(object):
             line_color=None, #'black',
             size='radius',
             view=self.umap_view)
-        '''
-
-        # Snapshot
-        self.plot_primary(init=True)
 
         '''
         # Gallery
@@ -283,8 +535,8 @@ class OSSinglePortal(object):
         self.geo_color_mapper = linear_cmap(
             field_name = self.dropdown_dict['metric'],
             palette = Plasma256, 
-            low = self.color_mapper.low,
-            high = self.color_mapper.high)
+            low = self.umap_color_mapper.low,
+            high = self.umap_color_mapper.high)
         self.geo_figure.circle(
             x = 'mercator_x', 
             y = 'mercator_y', 
@@ -393,8 +645,11 @@ class OSSinglePortal(object):
         # Set image
         self.primary_image = self.load_images(
             [self.closest])[0]
+        # Could change self.imsize here
+        self.set_primary_source()
         # DT
         self.prim_DT = self.umap_closest.DT
+        
         
 
 
