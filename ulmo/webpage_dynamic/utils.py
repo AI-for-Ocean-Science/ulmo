@@ -111,3 +111,19 @@ def get_decimated_region_points(x_min, x_max, y_min, y_max, datasource, DECIMATE
     random_objects_ = np.random.choice(is_in_box_inds, DECIMATE_NUMBER, replace=False)
     random_objects = [datasource['names'][r] for r in random_objects_]
     return random_objects
+
+def remove_ticks_and_labels(figure):
+    """Simple cleaning method
+
+    Args:
+        figure (bokeh.figure): 
+    """
+    figure.xaxis.major_label_text_font_size = "0pt"
+    figure.xaxis.axis_label_text_font_size = "0pt"
+    figure.yaxis.major_label_text_font_size = "0pt"
+
+    figure.xaxis.major_tick_line_color = None  # turn off x-axis major ticks
+    figure.xaxis.minor_tick_line_color = None  # turn off x-axis minor ticks
+
+    figure.yaxis.major_tick_line_color = None  # turn off y-axis major ticks
+    figure.yaxis.minor_tick_line_color = None  # turn off y-axis minor tick
