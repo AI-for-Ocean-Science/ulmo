@@ -130,7 +130,8 @@ class OSPortal(object):
     def init_title_text_tables(self):
 
         self.main_title_div = Div(text='<center>OS Image Visualization Tool</center>', 
-                                  styles={'font-size': '299%', 'color': 'black'}, sizing_mode="stretch_width")
+                                  styles={'font-size': '299%', 'color': 'black'}, 
+                                  sizing_mode="stretch_width")
         info_text = """
         <p><b>What is this?</b></p>
         <p>This is an interactive tool for visualizing the results of pattern analysis of Ocean Science imagery</p>
