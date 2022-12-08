@@ -49,14 +49,14 @@ class OSSinglePortal(object):
             'MODIS_SSL_96clear_v4_DT15.parquet')
         self.umap_tbl = ulmo_io.load_main_table(
             table_file)
+        self.umap_tbl['DT'] = self.umap_tbl.T90 - self.umap_tbl.T10
+
         # Grab h5 pointers
         self.open_files() # Held in self.file_dict
 
         # Fake the image for now
         self.img_Us = 2.2, 2.5
-        self.find_closest(self.img_Us)
-        #self.primary_image = sngl_image
-        self.primary_image = self.load_images([self.closest])[0]
+        self.set_primary_by_U(self.img_Us)
         
         #embed(header='37 of single_portal.py')
 
@@ -125,16 +125,31 @@ class OSSinglePortal(object):
         self.init_bits_and_pieces()
 
         # Show
-        show(column(self.primary_figure))
+        show(column(row(
+            column(self.primary_figure,
+                row(self.DT_text, self.PCB_low, self.PCB_high),
+                   )))
+        )
 
     def init_bits_and_pieces(self):
         """ Allow for some customization """
-        #self.init_title_text_tables()
+        self.init_title_text_tables()
         #self.generate_buttons()
         self.generate_sources()
         self.generate_figures()
         self.generate_plots()
-        #self.register_callbacks()
+        self.register_callbacks()
+
+    def init_title_text_tables(self):
+        # Label primary figure
+        self.DT_text = Div(text=f'DT: {self.prim_DT:.2f}K',
+                           styles={'font-size': '199%', 
+                                   'color': 'black'}, 
+                           width=100)
+
+        # Color bar for primary figure
+        self.PCB_low = TextInput(title='PCB Low:', max_width=100)
+        self.PCB_high = TextInput(title='PCB High:', max_width=100)
 
     def generate_sources(self):
 
@@ -271,11 +286,17 @@ class OSSinglePortal(object):
     def plot_primary(self, init=False):
         """ Plot the primary image with color mapper and bar
         """
-        # Color map
+        # Text
+        if init:
+            self.DT_text.text = f'DT: {self.prim_DT:.2f}K'
+        # Color bar
+        if init:
+            self.PCB_low.value = f'{np.percentile(self.primary_image,10):.1f}'
+            self.PCB_high.value = f'{np.percentile(self.primary_image,90):.1f}'
         self.prim_color_mapper = LinearColorMapper(
             palette="Turbo256", 
-            low=self.primary_source.data['min'][0],
-            high=self.primary_source.data['max'][0])
+            low=float(self.PCB_low.value),
+            high=float(self.PCB_high.value))
         # Data
         self.data_image = self.primary_figure.image(
             'image', 'x', 'y', 'dw', 'dh', 
@@ -292,6 +313,31 @@ class OSSinglePortal(object):
         else:
             self.primary_figure.right[0].color_mapper.low = self.prim_color_mapper.low
             self.primary_figure.right[0].color_mapper.high = self.prim_color_mapper.high
+
+    def register_callbacks(self):
+        self.PCB_low.on_change('value', self.PCB_low_callback)
+        self.PCB_high.on_change('value', self.PCB_high_callback)
+
+    def PCB_low_callback(self, attr, old, new):
+        """Fuss with the low value of the main color bar
+
+        Args:
+            attr ([type]): [description]
+            old ([type]): [description]
+            new (str): New value
+        """
+        print("PCB Low callback")
+        self.plot_primary()
+
+    def PCB_high_callback(self, attr, old, new):
+        """Fuss with the high value of the main color bar
+
+        Args:
+            attr ([type]): [description]
+            old ([type]): [description]
+            new (str): New value
+        """
+        self.plot_primary()
 
 
     def __call__(self, doc):
@@ -352,6 +398,9 @@ class OSSinglePortal(object):
         # Set image
         self.primary_image = self.load_images(
             [self.closest])[0]
+        # DT
+        self.prim_DT = self.umap_closest.DT
+        
 
 
         
