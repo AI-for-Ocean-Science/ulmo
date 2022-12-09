@@ -273,6 +273,9 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
     elif metric == 'DT40':
         values = modis_tbl.DT40.values
         lmetric = r'$\Delta T_{\rm 40}$'
+    elif metric == 'logDT40':
+        values = np.log10(modis_tbl.DT40.values)
+        lmetric = r'$\log \Delta T_{\rm 40}$'
     elif metric == 'clouds':
         values = modis_tbl.clear_fraction
     elif metric == 'slope':
@@ -312,6 +315,7 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
             s=point_size, c=values,
             cmap=cmap, vmin=vmnx[0], vmax=vmnx[1])
     else:
+        # Require at least 50
         bad_counts = counts < 50
         stat[bad_counts] = np.nan
         img = ax0.pcolormesh(xedges, yedges, 
@@ -1717,6 +1721,25 @@ def main(pargs):
                          outfile='fig_umap_slope.png',
                          cmap='viridis',
                          #vmnx=(-3., -1),
+                         hist_param=dict(
+                             binx=binx,
+                             biny=biny),
+                         maxN=400000,
+                         umap_dim=pargs.umap_dim,
+                         umap_comp=pargs.umap_comp)
+
+    # UMAP_slope
+    if pargs.figure == 'umap_2D':
+        # These are only good for 
+        if pargs.table == '96clear_v4_DTall':
+            binx=np.linspace(0,10.5,30)
+            biny=np.linspace(-2,6,30)
+        else:
+            raise ValueError("Need to set binx and biny")
+        fig_umap_colored(local=pargs.local, table=pargs.table,
+                         metric=pargs.metric,
+                         outfile=f'fig_umap_2D{pargs.metric}.png',
+                         #cmap='viridis',
                          hist_param=dict(
                              binx=binx,
                              biny=biny),
