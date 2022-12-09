@@ -65,6 +65,8 @@ class OSSinglePortal(object):
 
         # Primary Figure
         self.primary_column_width = 500
+        self.prim_DT = 0.
+        self.prim_Us = (0., 0.)
 
         # UMAP FIGURE
         rev_Plasma256 = Plasma256[::-1]
@@ -84,10 +86,6 @@ class OSSinglePortal(object):
         self.nrow, self.ncol = 2, 5
         self.gallery_index = 0
 
-        # ########################################
-        # Fake the image for now
-        self.img_Us = 2.2, 2.5
-        self.set_primary_by_U(self.img_Us)
 
         # ########################################
         # Init data
@@ -123,53 +121,40 @@ class OSSinglePortal(object):
         self.dropdown_dict = {}
         self.dropdown_dict['metric'] = 'LL'
 
-        '''
-        # Select objects
-        dist = (self.img_U0-self.umap_source.data['xs'])**2 + (
-            self.img_U1-self.umap_source.data['ys'])**2
-        srt_dist = np.argsort(dist)
-
-        self.Nclose = min(Nclose, len(srt_dist))
-        all_items = np.array(self.umap_source.data['names'])[srt_dist[:self.Nclose]]
-        
-
-        # In view
-        rows = catalog.match_ids(all_items, 
-                                 np.array(self.umap_source_view.data['names']),
-                                 require_in_match=False)
-        in_view = rows > 0                                
-
-        self.umap_source_view.selected.indices = rows[in_view].tolist()
-        #self.umap_source_callback(None, None, rows[in_view].tolist())
-        self.search_galaxy_source.data = dict(
-            xs=[self.img_U0], ys=[self.img_U1])
-        self.update_color(None)
-
-        # Gallery
-        self.reset_gallery_index()
-        self.stacks_callback()
-        self.plot_gallery()  # Resets color map
-        '''
         self.init_bits_and_pieces()
 
+        # ########################################
+        # Fill it all in
+        # Fake the image for now
+        self.img_Us = 2.2, 2.5
+        self.set_primary_by_U(self.img_Us) # THIS IS A HACK
 
-        '''
-        # Show
-        show(column(row(
-            column(self.primary_figure,
-                row(self.DT_text, self.PCB_low, self.PCB_high),
-                   )))
-        )
-        '''
+
+        # Hold input image in a dict
+        self.input_image = dict(image=self.primary_image.copy(),
+                                DT=float(self.prim_DT),
+                                Us=self.img_Us)
+
+        self.input_img_callback(None)
+        self.reset_from_primary()
+
 
     def __call__(self, doc):
+        """ Layout
+
+        Args:
+            doc (_type_): _description_
+        """
         doc.add_root(column(
             row(column(
                 self.primary_figure,
-                row(self.DT_text, self.PCB_low, self.PCB_high),
-                   ),
+                row(self.DT_text, self.U0_text, self.U1_text), 
+                row(self.PCB_low, self.PCB_high),
+                ),
                 self.umap_figure,
-                row(self.match_radius),
+                column(self.match_radius,
+                       self.Us_byview_set,
+                       self.input_img_set),
                 ),
             self.gallery_figure,
             row(self.prev_set, self.next_set),
@@ -188,14 +173,22 @@ class OSSinglePortal(object):
 
     def init_title_text_tables(self):
         # Label primary figure
-        self.DT_text = Div(text=f'DT: {self.prim_DT:.2f}K',
+        self.DT_text = Div(text='DT: -1K',
+                           styles={'font-size': '199%', 
+                                   'color': 'black'}, 
+                           width=130)
+        self.U0_text = Div(text='U0: 0',
+                           styles={'font-size': '199%', 
+                                   'color': 'black'}, 
+                           width=100)
+        self.U1_text = Div(text='U1: 0',
                            styles={'font-size': '199%', 
                                    'color': 'black'}, 
                            width=100)
 
         # Color bar for primary figure
-        self.PCB_low = TextInput(title='PCB Low:', max_width=100)
-        self.PCB_high = TextInput(title='PCB High:', max_width=100)
+        self.PCB_low = TextInput(title='PCB Low:', max_width=100, value='0.0')
+        self.PCB_high = TextInput(title='PCB High:', max_width=100, value='1.0')
 
         # Color bar for UMAP figure
         self.UCB_low = TextInput(title='PCB Low:', max_width=100)
@@ -226,6 +219,11 @@ class OSSinglePortal(object):
         #                                 options=[])
         self.print_table = Button(label="Print Table", button_type="default")
 
+        # Set by location
+        self.Us_byview_set = Button(label="Set Img by View", button_type="default")
+        # Input image
+        self.input_img_set = Button(label="Input Image", button_type="default")
+
         # Gallery
         self.next_set = Button(label="Next Set", button_type="default")
         self.prev_set = Button(label="Previous Set", button_type="default")
@@ -241,7 +239,8 @@ class OSSinglePortal(object):
 
 
     def generate_sources(self):
-        # Primry figure
+        # Primary figure
+        self.primary_image = self.get_im_empty()
         self.set_primary_source()
 
         # UMAP scatter
@@ -281,6 +280,15 @@ class OSSinglePortal(object):
         for key in self.metric_dict.keys():
             cdata[key] = []
         self.matched_source = ColumnDataSource(cdata)
+
+    def reset_from_primary(self):
+        #
+        self.set_primary_source()
+        self.plot_primary(reinit=True)
+
+        self.set_matched(self.prim_Us, 
+                         float(self.match_radius.value))
+        self.matched_callback()  # Scatter, gallery and table
 
 
     def set_primary_source(self):
@@ -552,7 +560,7 @@ class OSSinglePortal(object):
         """
 
         # Primary
-        self.plot_primary(init=True)
+        self.plot_primary(first_init=True)
 
         # Main scatter plot
         self.umap_scatter = self.umap_figure.scatter(
@@ -569,11 +577,11 @@ class OSSinglePortal(object):
             view=self.umap_view)
 
         # Init Matched
-        self.set_matched(self.prim_Us, 
-                         float(self.match_radius.value))
+        #self.set_matched(self.prim_Us, 
+        #                 float(self.match_radius.value))
 
         # Selected, table, gallery
-        self.matched_callback()
+        #self.matched_callback()
 
         '''
         # Test
@@ -618,14 +626,19 @@ class OSSinglePortal(object):
             size=5, fill_alpha = 0.7)
         '''
 
-    def plot_primary(self, init=False):
+    def plot_primary(self, first_init=False, reinit=False):
         """ Plot the primary image with color mapper and bar
+
+            Args:
+                init (bool): If True, initialize the plot first time
         """
         # Text
-        if init:
+        if first_init or reinit:
             self.DT_text.text = f'DT: {self.prim_DT:.2f}K'
+            self.U0_text.text = f'U0: {self.prim_Us[0]:.2f}'
+            self.U1_text.text = f'U1: {self.prim_Us[1]:.2f}'
         # Color bar
-        if init:
+        if first_init or reinit:
             self.PCB_low.value = f'{np.percentile(self.primary_image,10):.1f}'
             self.PCB_high.value = f'{np.percentile(self.primary_image,90):.1f}'
         self.prim_color_mapper = LinearColorMapper(
@@ -639,10 +652,10 @@ class OSSinglePortal(object):
             color_mapper=self.prim_color_mapper)
         # Add color bar
         self.color_bar = ColorBar(
-            color_mapper=self.prim_color_mapper, 
-            ticker= BasicTicker(), location=(0,0))
+                color_mapper=self.prim_color_mapper, 
+                ticker= BasicTicker(), location=(0,0))
         # Finish
-        if init:
+        if first_init:
             self.primary_figure.add_layout(
                 self.color_bar, 'right')
         else:
@@ -668,6 +681,8 @@ class OSSinglePortal(object):
         #self.print_table.on_click(self.print_table_callback)
         self.prev_set.on_click(self.prev_set_callback)
         self.next_set.on_click(self.next_set_callback)
+        self.Us_byview_set.on_click(self.Us_byview_callback)
+        self.input_img_set.on_click(self.input_img_callback)
 
         # Primary
         self.PCB_low.on_change('value', self.PCB_low_callback)
@@ -790,6 +805,31 @@ class OSSinglePortal(object):
                 pass
 
         return callback
+
+    def input_img_callback(self, event):
+        self.prim_DT = self.input_image['DT']
+        self.prim_Us = self.input_image['Us']
+        self.primary_image = self.input_image['image'].copy()
+        self.reset_from_primary()
+
+
+    def Us_byview_callback(self, event):
+        """Callback to previous gallery images
+
+        Args:
+            event ([type]): [description]
+        """
+        U0 = np.mean([self.umap_figure.x_range.start, 
+                      self.umap_figure.x_range.end])
+        U1 = np.mean([self.umap_figure.y_range.start, 
+                      self.umap_figure.y_range.end])
+
+        self.set_primary_by_U((U0,U1))
+        self.reset_from_primary()
+
+        # 
+        #self.gallery_callback()
+
 
     def prev_set_callback(self, event):
         """Callback to previous gallery images
