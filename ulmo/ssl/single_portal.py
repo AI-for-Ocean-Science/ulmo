@@ -41,6 +41,7 @@ class OSSinglePortal(object):
 
         self.debug=False
         self.imsize = (64, 64) # Need to consider altering this
+        self.verbose = False
 
         # Load UMAP table
         table_file = os.path.join(
@@ -56,18 +57,13 @@ class OSSinglePortal(object):
         # Grab h5 pointers
         self.open_files() # Held in self.file_dict
 
-        # Fake the image for now
-        self.img_Us = 2.2, 2.5
-        self.set_primary_by_U(self.img_Us)
-        # Match
-        self.match_radius = 0.5
-        self.set_matched(self.prim_Us, 
-                         self.match_radius)
-        
         #embed(header='37 of single_portal.py')
 
         # Setup focus Us
         #self.reset_focus()
+
+        # Primary Figure
+        self.primary_column_width = 500
 
         # UMAP FIGURE
         rev_Plasma256 = Plasma256[::-1]
@@ -81,12 +77,24 @@ class OSSinglePortal(object):
         self.xkey, self.ykey = 'U0', 'U1'
         self.nonselection_fill_color = transform(
             'color_data', self.umap_color_mapper)
+        self.umap_plot_width = 800
 
+        # Gallery Figure
+        self.nrow, self.ncol = 2, 5
+        self.gallery_index = 0
 
+        # ########################################
+        # Fake the image for now
+        self.img_Us = 2.2, 2.5
+        self.set_primary_by_U(self.img_Us)
+        # Match
+        self.match_radius = 0.5
+        self.set_matched(self.prim_Us, 
+                         self.match_radius)
         # Load images
-        self.N = len(self.umap_tbl)
-        #self.load_images()
+        self.set_gallery_images()
 
+        # ########################################
         # Init data
         data_dict = {}
         #data_dict['images'] = self.images
@@ -162,6 +170,7 @@ class OSSinglePortal(object):
                    ),
                 self.umap_figure,
                 ),
+            self.gallery_figure,
             ))
         doc.title = 'SSL Portal'
 
@@ -393,15 +402,12 @@ class OSSinglePortal(object):
 
     def generate_figures(self):
 
-        self.umap_plot_width = 800
-        column_width = 500
-
 
         # Primary figure
         self.primary_figure = figure(
             tools="box_zoom,save,reset", 
-            width=column_width,
-            height=column_width,
+            width=self.primary_column_width,
+            height=self.primary_column_width,
             toolbar_location="above", 
             output_backend='webgl',
             x_range=(0,self.imsize[0]), 
@@ -423,23 +429,11 @@ class OSSinglePortal(object):
             self.umap_colorbar, 'right')
         self.umap_figure_axes()
                                   #x_range=(0,96), y_range=(0,96))
-        '''
         # Gallery
         self.init_gallery_figure()
 
 
-        # TODO: make this the index
-        t = Title()
-        t.text = 'TMP'
-        self.data_figure.title = t
-
-
-        for i in range(len(self.gallery_figures)):
-            self.remove_ticks_and_labels(self.gallery_figures[i])
-            t = Title()
-            t.text = ' '
-            self.gallery_figures[i].title = t
-
+        '''
         # Table
         self.selected_objects_table = DataTable(
             source=self.selected_objects_source,
@@ -494,6 +488,30 @@ class OSSinglePortal(object):
         self.umap_figure.xaxis.axis_label_text_font_size = "15pt"
         self.umap_figure.yaxis.axis_label_text_font_size = "15pt"
 
+    def init_gallery_figure(self):
+        self.gallery_width = self.primary_column_width + self.umap_plot_width
+        # Gallery figure 
+        title_height = 20
+        buffer = 10*self.ncol
+        self.collage_im_width = int((self.gallery_width-buffer)/self.ncol)
+        self.gallery_figures = []
+        for kk in range(self.nrow*self.ncol):
+            sfig = figure(tools="box_zoom,save,reset", 
+                          width=self.collage_im_width, 
+                          height=self.collage_im_width+title_height, 
+                          toolbar_location="above", #output_backend='webgl', 
+                          x_range=(0,self.imsize[0]), y_range=(0,self.imsize[1]))
+            self.gallery_figures.append(sfig)
+
+        self.gallery_figure = gridplot(self.gallery_figures, 
+                                       ncols=self.ncol)
+
+        for i in range(len(self.gallery_figures)):
+            portal_utils.remove_ticks_and_labels(
+                self.gallery_figures[i])
+            t = Title()
+            t.text = ' '
+            self.gallery_figures[i].title = t
 
     def generate_plots(self):
         """Generate/init plots
@@ -526,12 +544,10 @@ class OSSinglePortal(object):
         #self.selected_objects, indices = self.get_selected_from_match( self.umap_source_view.data['names'])
         #self.umap_source_view.selected.indices = indices
 
-        '''
         # Gallery
         self.plot_gallery()
-        #self.gallery_figure = gridplot(self.gallery_figures, 
-        #                               ncols=self.ncol)
 
+        '''
         # Search circle
         self.umap_search_galaxy = self.umap_figure.circle(
             'xs', 'ys', source=self.search_galaxy_source, alpha=0.5,
@@ -586,6 +602,20 @@ class OSSinglePortal(object):
         else:
             self.primary_figure.right[0].color_mapper.low = self.prim_color_mapper.low
             self.primary_figure.right[0].color_mapper.high = self.prim_color_mapper.high
+
+    def plot_gallery(self):
+        """ Plot the gallery of images
+        """
+        #self.spectrum_stacks = []
+        for i in range(self.nrow*self.ncol):
+            spec_stack = self.gallery_figures[i].image(
+                'image', 'x', 'y', 'dw', 'dh', 
+                source=self.gallery_data[i],
+                color_mapper=self.prim_color_mapper)
+            #self.spectrum_stacks.append(spec_stack)
+            if self.verbose:
+                print(f"Updated gallery {i}")
+
 
     def register_callbacks(self):
         # Primary
@@ -692,6 +722,10 @@ class OSSinglePortal(object):
         # Grab em
         images = []
         for kk in tbl_idx: #, row in self.umap_tbl.iterrows():
+            if kk < 0:
+                images.append(self.get_im_empty())
+                continue
+            #
             row = self.umap_tbl.iloc[kk]
             #
             ppfile = row.pp_file
@@ -702,7 +736,33 @@ class OSSinglePortal(object):
             img = self.file_dict[base][key][pp_idx, 0, ...]
             images.append(img)
         # Save
-        return np.array(images)
+        return images
+
+    def get_im_empty(self):
+        """ Grab an empty image
+        """
+        return np.zeros((self.imsize[0], self.imsize[1])).astype(np.uint8)
+
+    def set_gallery_images(self):
+        self.gallery_images = []
+        ngallery = self.nrow*self.ncol
+        nmatch = len(self.match_idx) - self.gallery_index
+        #
+        if nmatch >= ngallery:
+            load_idx = self.match_idx[self.gallery_index:self.gallery_index+ngallery]
+        else:
+            load_idx = self.match_idx[self.gallery_index:] + [-1]*(ngallery-nmatch)
+        # Load
+        self.gallery_images = self.load_images(load_idx)
+        # Gallery data
+        self.gallery_data = []
+        for im in self.gallery_images:
+            data_source = ColumnDataSource(
+                data = {'image':[im], 'x':[0], 'y':[0], 
+                    'dw':[self.imsize[0]], 'dh':[self.imsize[1]],
+                    'min': [np.min(im)], 'max': [np.max(im)]}
+            )
+            self.gallery_data.append(data_source)
 
     def reset_focus(self):
         self.focus_Us = (self.img_Us[0], self.img_Us[1])
