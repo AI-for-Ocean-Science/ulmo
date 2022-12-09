@@ -18,6 +18,7 @@ from bokeh.models.annotations import Title
 from bokeh.colors import RGB
 from bokeh.transform import transform
 from bokeh.events import DoubleTap, PanEnd, Reset
+from bokeh.models.widgets.tables import StringFormatter
 
 from bokeh.server.server import Server  # THIS NEEDS TO STAY!
 from bokeh.io import curdoc, show
@@ -87,12 +88,6 @@ class OSSinglePortal(object):
         # Fake the image for now
         self.img_Us = 2.2, 2.5
         self.set_primary_by_U(self.img_Us)
-        # Match
-        self.match_radius = 0.5
-        self.set_matched(self.prim_Us, 
-                         self.match_radius)
-        # Load images
-        self.set_gallery_images()
 
         # ########################################
         # Init data
@@ -124,6 +119,10 @@ class OSSinglePortal(object):
         # Launch
         #os_portal.OSPortal.__init__(self, data_dict)
 
+        # 
+        self.dropdown_dict = {}
+        self.dropdown_dict['metric'] = 'LL'
+
         '''
         # Select objects
         dist = (self.img_U0-self.umap_source.data['xs'])**2 + (
@@ -153,6 +152,7 @@ class OSSinglePortal(object):
         '''
         self.init_bits_and_pieces()
 
+
         '''
         # Show
         show(column(row(
@@ -169,15 +169,18 @@ class OSSinglePortal(object):
                 row(self.DT_text, self.PCB_low, self.PCB_high),
                    ),
                 self.umap_figure,
+                row(self.match_radius),
                 ),
             self.gallery_figure,
+            row(self.prev_set, self.next_set),
+            self.matched_table,
             ))
         doc.title = 'SSL Portal'
 
     def init_bits_and_pieces(self):
         """ Allow for some customization """
         self.init_title_text_tables()
-        #self.generate_buttons()
+        self.generate_buttons()
         self.generate_sources()
         self.generate_figures()
         self.generate_plots()
@@ -197,6 +200,45 @@ class OSSinglePortal(object):
         # Color bar for UMAP figure
         self.UCB_low = TextInput(title='PCB Low:', max_width=100)
         self.UCB_high = TextInput(title='UCB High:', max_width=100)
+
+        self.match_radius = TextInput(title='Radius:', max_width=100,
+                                      value='0.5')
+
+        # Gallery table
+        self.gallery_columns = []
+        for key in self.metric_dict.keys():
+            # Format
+            if key == 'obj_ID':
+                formatter=StringFormatter()
+            else:
+                formatter=NumberFormatter(format='0.00')
+            self.gallery_columns.append(
+                TableColumn(field=key, title=key, 
+                            formatter=formatter))
+
+
+    def generate_buttons(self):
+        """Setup buttons and Dropdown objects
+        """
+        self.galley_table = Select(title="Inactive", value="",
+                                         options=[])
+        #self.internal_reset = Select(title="Inactive", value="",
+        #                                 options=[])
+        self.print_table = Button(label="Print Table", button_type="default")
+
+        # Gallery
+        self.next_set = Button(label="Next Set", button_type="default")
+        self.prev_set = Button(label="Previous Set", button_type="default")
+
+        # 
+        select_metric_menu = []
+        for key in self.metric_dict.keys():
+            select_metric_menu.append((key,key))
+        self.select_metric = Dropdown(label="Color by:", 
+                                      button_type="danger", 
+                                      menu=select_metric_menu)#, value='Anomaly Score')
+        self.dropdown_dict['metric'] = 'LL'
+
 
     def generate_sources(self):
         # Primry figure
@@ -233,6 +275,12 @@ class OSSinglePortal(object):
         self.points = np.array(points)
         # Selected
         self.umap_view = CDSView()#source=self.umap_source_view)
+
+        # Generate the data table for the matched sources
+        cdata = dict(index=[])
+        for key in self.metric_dict.keys():
+            cdata[key] = []
+        self.matched_source = ColumnDataSource(cdata)
 
 
     def set_primary_source(self):
@@ -282,9 +330,7 @@ class OSSinglePortal(object):
 
         background_objects = self.umap_source_view.data['names']
         self.selected_objects, indices = self.get_selected_from_match(background_objects)
-
-        self.get_new_view_keep_selected(background_objects, 
-                                        indices)
+        self.get_new_view_keep_selected(background_objects, indices)
         #self.select_score_table.value = self.select_score.value
 
     def set_colormap(self, metric:np.ndarray, 
@@ -365,18 +411,6 @@ class OSSinglePortal(object):
         self.selected_objects.data = new_dict
         self.update_table.value = str(np.random.rand())
         '''
-        #print(self.umap_data[new_objects[selected_objects_idx]])
-
-        #elif len(selected_objects_) > 0:
-        #    self.selected_objects = ColumnDataSource(
-        #        data=dict(index=[], score=[], order=[], 
-        #                  info_id=[], object_id=[]))
-        #    self.update_table.value = str(np.random.rand())
-        #    self.internal_reset.value = str(np.random.rand())
-        #else:
-        #    self.update_table.value = str(np.random.rand())
-
-        # Update indices?
 
         '''
         # Update circle
@@ -433,15 +467,15 @@ class OSSinglePortal(object):
         self.init_gallery_figure()
 
 
-        '''
         # Table
-        self.selected_objects_table = DataTable(
-            source=self.selected_objects_source,
-            columns=self.selected_objects_columns,
-            width=column_width,
+        self.matched_table = DataTable(
+            source=self.matched_source,
+            columns=self.gallery_columns,
+            width=self.primary_column_width,
             height=200,
             scroll_to_selection=False)
 
+        '''
         # Geography figure
         tooltips = [("ID", "@obj_ID"), ("Lat","@lat"), ("Lon", "@lon")]
         self.geo_figure = figure(tools='box_zoom,pan,save,reset',
@@ -534,18 +568,30 @@ class OSSinglePortal(object):
             size='radius',
             view=self.umap_view)
 
+        # Init Matched
+        self.set_matched(self.prim_Us, 
+                         float(self.match_radius.value))
+
+        # Selected, table, gallery
+        self.matched_callback()
+
+        '''
         # Test
         background_objects = self.umap_source_view.data['names']
         self.selected_objects, indices = self.get_selected_from_match(background_objects)
         self.get_new_view_keep_selected(background_objects, 
                                         indices)
+        
 
         # Set selected
         #self.selected_objects, indices = self.get_selected_from_match( self.umap_source_view.data['names'])
         #self.umap_source_view.selected.indices = indices
 
+
         # Gallery
+        self.set_gallery_images()
         self.plot_gallery()
+        '''
 
         '''
         # Search circle
@@ -618,11 +664,17 @@ class OSSinglePortal(object):
 
 
     def register_callbacks(self):
+        # Buttons
+        #self.print_table.on_click(self.print_table_callback)
+        self.prev_set.on_click(self.prev_set_callback)
+        self.next_set.on_click(self.next_set_callback)
+
         # Primary
         self.PCB_low.on_change('value', self.PCB_low_callback)
         self.PCB_high.on_change('value', self.PCB_high_callback)
 
         # UMAP 
+        self.match_radius.on_change('value', self.match_radius_callback)
         #self.UCB_low.on_change('value', self.UCB_low_callback)
         #self.UCB_high.on_change('value', self.UCB_high_callback)
         #self.umap_figure.on_event(PanEnd, self.reset_gallery_index)
@@ -654,6 +706,39 @@ class OSSinglePortal(object):
             new (str): New value
         """
         self.plot_primary()
+
+    def match_radius_callback(self, attr, old, new):
+        self.set_matched(self.prim_Us, 
+                         float(self.match_radius.value))
+        self.matched_callback()
+
+    def matched_callback(self):
+
+        # Selected
+        background_objects = self.umap_source_view.data['names']
+        self.selected_objects, indices = self.get_selected_from_match(background_objects)
+        self.get_new_view_keep_selected(background_objects, indices)
+
+        # Gallery
+        self.gallery_callback()
+
+        # Table
+        tdict = {}
+        for key in ['index']+list(self.metric_dict.keys()):
+            tdict[key] = []
+        # Fill
+        for idx in self.match_idx:
+            #idx = self.umap_source_view.data['names'][ii]
+            # Loop on selected objects and galaxy table data
+            # Selected objects
+            tdict['index'].append(idx)
+            # Metrics
+            for key in self.metric_dict.keys():
+                tdict[key].append(self.metric_dict[key][idx])
+        # Update
+        self.matched_source.data = tdict.copy()
+        #self.selected_objects.data = tdict.copy()
+
 
     def umap_source_callback(self, attr, old, new):
         print("In umap_source_callback")
@@ -706,6 +791,33 @@ class OSSinglePortal(object):
 
         return callback
 
+    def prev_set_callback(self, event):
+        """Callback to previous gallery images
+
+        Args:
+            event ([type]): [description]
+        """
+        # 
+        self.gallery_index -= self.nrow*self.ncol
+        self.gallery_index = max(self.gallery_index, 0)
+        print(f"Previous set of gallery images; zero={self.gallery_index}")
+        self.gallery_callback()
+
+    def next_set_callback(self, event):
+        """Callback to next gallery images
+
+        Args:
+            event ([type]): [description]
+        """
+        nmatch = len(self.match_idx)
+        self.gallery_index += self.nrow*self.ncol
+        self.gallery_index = min(self.gallery_index, nmatch-1)
+        print(f"Next set of gallery images; zero={self.gallery_index}")
+        self.gallery_callback()
+
+    def gallery_callback(self):
+        self.set_gallery_images()
+        self.plot_gallery()
 
     def open_files(self):
         # Open files
@@ -786,9 +898,16 @@ class OSSinglePortal(object):
         self.prim_Us = self.umap_closest.US0, self.umap_closest.US1
         
     def set_matched(self, Us, radius):
-        dist = (Us[0]-self.umap_tbl.US0)**2 + (
-            Us[1]-self.umap_tbl.US1)**2
-        self.match_idx = np.where(dist < radius)[0].tolist()
+        dist = (Us[0]-self.umap_tbl.US0.values)**2 + (
+            Us[1]-self.umap_tbl.US1.values)**2
+        # Matched
+        matched = np.where(dist < radius)[0]
+        if len(matched) == 0:
+            self.match_idx = []
+            return
+        # Sort
+        srt = np.argsort(dist[matched])
+        self.match_idx = matched[srt].tolist()
 
     def get_selected_from_match(self, objects_in_view):
         """ Return true indices of selected objects
