@@ -342,7 +342,10 @@ class OSSinglePortal(object):
         #self.umap_scatter.data_source = self.umap_source_view
         self.umap_source_view.data = dict(tmp_view.data)
         #self.umap_source_view.selected = tmp_view.selected
-        self.umap_source_view.selected.indices = selected_objects_idx
+        if len(selected_objects_idx) > 0:
+            self.umap_source_view.selected.indices = selected_objects_idx
+        else:
+            self.umap_source_view.selected.indices = [-1]
 
         # Set indices etc.
         '''
@@ -386,108 +389,6 @@ class OSSinglePortal(object):
         self.update_search_circle(index)
         '''                                
         return
-
-    '''
-    def get_new_view_keep_selected(self, background_objects, 
-                                   selected_objects_, 
-                                   custom_sd = None):
-        """ Handle selected objects
-
-        Args:
-            background_objects ([type]): [description]
-            selected_objects_ ([type]): [description]
-            custom_sd ([type], optional): [description]. Defaults to None.
-        """
-        #embedding = self.dropdown_dict['embedding']
-        # Prep
-        _, _, is_relevant = portal_utils.get_relevant_objects_coords(self.umap_source.data)
-        selected_objects = [s for s in selected_objects_ if is_relevant[int(s)]]
-        selected_objects = np.array(selected_objects)
-        background_objects = np.array(background_objects)
-
-        # Number
-        nof_selected_objects = selected_objects.size
-        max_nof_selected_objects = int(self.DECIMATE_NUMBER)
-
-        # Cut down (should not happen)
-        if nof_selected_objects > max_nof_selected_objects:
-            nof_selected_objects = max_nof_selected_objects
-            new_objects = selected_objects[:nof_selected_objects]
-        else:
-            new_objects = np.concatenate([selected_objects, 
-                                          background_objects])
-            new_objects, order = np.unique(new_objects, 
-                                           return_index=True)
-            new_objects = new_objects[np.argsort(order)]
-            new_objects = new_objects[:self.DECIMATE_NUMBER]
-
-        new_objects = new_objects.astype(int)
-
-        if custom_sd is None:
-            # UPDATE THIS
-            #metric = self.metric_dict[self.dropdown_dict['metric']]
-            metric = self.metric_dict['LL'] #self.dropdown_dict['metric']]
-        else:
-            metric = custom_sd
-
-        #new_objects = np.array(background_objects)
-
-        self.umap_source_view = ColumnDataSource(
-                data=dict(xs=self.umap_data[new_objects, 0],
-                          ys=self.umap_data[new_objects, 1],
-                          color_data=metric[new_objects],
-                          names=list(new_objects),
-                          radius=[self.R_DOT] * len(new_objects),
-                        ))
-        self.points = np.array(new_objects)
-        self.umap_scatter.data_source.data = dict(
-            self.umap_source_view.data)
-
-        import pdb; pdb.set_trace()
-        if nof_selected_objects > 0:
-            # Bring back for table
-
-            #new_dict = dict(index=list(selected_objects))
-            #for key in self.metric_dict.keys():
-            #    new_dict[key] = [self.metric_dict[key][s] for s in selected_objects]
-            #self.selected_objects.data = new_dict
-            #self.update_table.value = str(np.random.rand())
-
-            self.umap_source_view.selected.indices = np.arange(
-                nof_selected_objects).tolist()
-        elif len(selected_objects_) > 0:
-            self.selected_objects = ColumnDataSource(
-                data=dict(index=[], score=[], order=[], 
-                          info_id=[], object_id=[]))
-            self.update_table.value = str(np.random.rand())
-            self.internal_reset.value = str(np.random.rand())
-        else:
-            self.update_table.value = str(np.random.rand())
-
-        # Update indices?
-
-
-        # Update circle
-        index = self.select_object.value
-
-        if (index in set(background_objects)) :
-            pass
-        else:
-            if len(selected_objects) > 0:
-                if (index in set(selected_objects)):
-                    pass
-                else:
-                    index = str(selected_objects[0])
-                    self.select_object.value = index
-            else:
-                index = str(background_objects[0])
-                self.select_object.value = index
-
-        self.update_search_circle(index)
-        
-
-        return
-    '''
 
 
     def generate_figures(self):
@@ -700,6 +601,9 @@ class OSSinglePortal(object):
         self.umap_source_view.selected.on_change(
             'indices', self.umap_source_callback)     
 
+        self.umap_figure.on_event(
+            Reset, self.update_umap_filter_event(reset=True))
+
     def PCB_low_callback(self, attr, old, new):
         """Fuss with the low value of the main color bar
 
@@ -726,7 +630,7 @@ class OSSinglePortal(object):
         #print(self.umap_source_view.selected.indices)
         pass
 
-    def update_umap_filter_event(self):
+    def update_umap_filter_event(self, reset=False):
         """ Callback for UMAP
 
         Returns:
@@ -738,6 +642,12 @@ class OSSinglePortal(object):
             ux = self.umap_source_view.data['xs']
             uy = self.umap_source_view.data['ys']
 
+            if reset:
+                self.umap_figure.x_range.start = self.U_xlim[0]
+                self.umap_figure.x_range.end = self.U_xlim[1]
+                self.umap_figure.y_range.start = self.U_ylim[0]
+                self.umap_figure.y_range.end = self.U_ylim[1]
+
             px_start = self.umap_figure.x_range.start
             px_end = self.umap_figure.x_range.end
             py_start = self.umap_figure.y_range.start
@@ -746,7 +656,7 @@ class OSSinglePortal(object):
             if ( (px_start > np.min(ux) ) or
                  (px_end   < np.max(ux) ) or
                  (py_start > np.min(uy) ) or
-                 (py_end   < np.max(uy) )   ):
+                 (py_end   < np.max(uy) ) or reset  ):
 
                 background_objects = portal_utils.get_decimated_region_points(
                     self.umap_figure.x_range.start,

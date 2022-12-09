@@ -1110,16 +1110,12 @@ class OSPortal(object):
                 self.umap_source.data,
                 self.DECIMATE_NUMBER)
 
-            import pdb; pdb.set_trace()
             selected_objects = self.selected_objects.data['index']
             self.get_new_view_keep_selected(background_objects, selected_objects)
 
             self.umap_figure.x_range.start = self.xlim[0]
-
             self.umap_figure.x_range.end = self.xlim[1]
-
             self.umap_figure.y_range.start = self.ylim[0]
-
             self.umap_figure.y_range.end = self.ylim[1]
 
             xsize, ysize = self.imsize
