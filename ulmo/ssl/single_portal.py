@@ -59,6 +59,10 @@ class OSSinglePortal(object):
         # Fake the image for now
         self.img_Us = 2.2, 2.5
         self.set_primary_by_U(self.img_Us)
+        # Match
+        self.match_radius = 0.5
+        self.set_matched(self.prim_Us, 
+                         self.match_radius)
         
         #embed(header='37 of single_portal.py')
 
@@ -77,6 +81,7 @@ class OSSinglePortal(object):
         self.xkey, self.ykey = 'U0', 'U1'
         self.nonselection_fill_color = transform(
             'color_data', self.umap_color_mapper)
+
 
         # Load images
         self.N = len(self.umap_tbl)
@@ -217,6 +222,7 @@ class OSSinglePortal(object):
                       radius=[self.R_DOT] * len(points)),
                     )
         self.points = np.array(points)
+        # Selected
         self.umap_view = CDSView()#source=self.umap_source_view)
 
 
@@ -265,11 +271,11 @@ class OSSinglePortal(object):
         if event is None:
             return
 
-        selected_objects = self.selected_objects.data['index']
         background_objects = self.umap_source_view.data['names']
+        self.selected_objects, indices = self.get_selected_from_match(background_objects)
 
         self.get_new_view_keep_selected(background_objects, 
-                                        selected_objects)
+                                        indices)
         #self.select_score_table.value = self.select_score.value
 
     def set_colormap(self, metric:np.ndarray, 
@@ -305,6 +311,84 @@ class OSSinglePortal(object):
         return
 
     def get_new_view_keep_selected(self, background_objects, 
+                                   selected_objects_idx, 
+                                   custom_sd = None):
+
+        if custom_sd is None:
+            # UPDATE THIS
+            #metric = self.metric_dict[self.dropdown_dict['metric']]
+            metric = self.metric_dict['LL'] #self.dropdown_dict['metric']]
+        else:
+            metric = custom_sd
+
+        new_objects = np.array(background_objects)
+
+        #self.umap_source_view = ColumnDataSource(
+        #         data=dict(xs=self.umap_data[new_objects, 0],
+        #                   ys=self.umap_data[new_objects, 1],
+        #                   color_data=metric[new_objects],
+        #                   names=list(new_objects),
+        #                   radius=[self.R_DOT] * len(new_objects),
+        #                 ))
+        tmp_view = ColumnDataSource(
+                 data=dict(xs=self.umap_data[new_objects, 0],
+                           ys=self.umap_data[new_objects, 1],
+                           color_data=metric[new_objects],
+                           names=list(new_objects),
+                          radius=[self.R_DOT] * len(new_objects),
+                         ))
+        self.points = np.array(new_objects)
+        #self.umap_scatter.data_source.data = dict(tmp_view.data)
+        #self.umap_scatter.data_source = self.umap_source_view
+        self.umap_source_view.data = dict(tmp_view.data)
+        #self.umap_source_view.selected = tmp_view.selected
+        self.umap_source_view.selected.indices = selected_objects_idx
+
+        # Set indices etc.
+        '''
+        # Bring back for table
+        new_dict = dict(index=list(selected_objects))
+        for key in self.metric_dict.keys():
+            new_dict[key] = [self.metric_dict[key][s] for s in selected_objects]
+        self.selected_objects.data = new_dict
+        self.update_table.value = str(np.random.rand())
+        '''
+        #print(self.umap_data[new_objects[selected_objects_idx]])
+
+        #elif len(selected_objects_) > 0:
+        #    self.selected_objects = ColumnDataSource(
+        #        data=dict(index=[], score=[], order=[], 
+        #                  info_id=[], object_id=[]))
+        #    self.update_table.value = str(np.random.rand())
+        #    self.internal_reset.value = str(np.random.rand())
+        #else:
+        #    self.update_table.value = str(np.random.rand())
+
+        # Update indices?
+
+        '''
+        # Update circle
+        index = self.select_object.value
+
+        if (index in set(background_objects)) :
+            pass
+        else:
+            if len(selected_objects) > 0:
+                if (index in set(selected_objects)):
+                    pass
+                else:
+                    index = str(selected_objects[0])
+                    self.select_object.value = index
+            else:
+                index = str(background_objects[0])
+                self.select_object.value = index
+
+        self.update_search_circle(index)
+        '''                                
+        return
+
+    '''
+    def get_new_view_keep_selected(self, background_objects, 
                                    selected_objects_, 
                                    custom_sd = None):
         """ Handle selected objects
@@ -314,34 +398,39 @@ class OSSinglePortal(object):
             selected_objects_ ([type]): [description]
             custom_sd ([type], optional): [description]. Defaults to None.
         """
-
-
         #embedding = self.dropdown_dict['embedding']
-        print('get_new_view_keep_selected')
+        # Prep
         _, _, is_relevant = portal_utils.get_relevant_objects_coords(self.umap_source.data)
         selected_objects = [s for s in selected_objects_ if is_relevant[int(s)]]
         selected_objects = np.array(selected_objects)
         background_objects = np.array(background_objects)
 
+        # Number
         nof_selected_objects = selected_objects.size
+        max_nof_selected_objects = int(self.DECIMATE_NUMBER)
 
-        max_nof_selected_objects = int(self.DECIMATE_NUMBER)/2
+        # Cut down (should not happen)
         if nof_selected_objects > max_nof_selected_objects:
             nof_selected_objects = max_nof_selected_objects
             new_objects = selected_objects[:nof_selected_objects]
         else:
-            new_objects = np.concatenate([selected_objects, background_objects])
-            new_objects, order = np.unique(new_objects, return_index=True)
+            new_objects = np.concatenate([selected_objects, 
+                                          background_objects])
+            new_objects, order = np.unique(new_objects, 
+                                           return_index=True)
             new_objects = new_objects[np.argsort(order)]
             new_objects = new_objects[:self.DECIMATE_NUMBER]
 
         new_objects = new_objects.astype(int)
+
         if custom_sd is None:
             # UPDATE THIS
             #metric = self.metric_dict[self.dropdown_dict['metric']]
             metric = self.metric_dict['LL'] #self.dropdown_dict['metric']]
         else:
             metric = custom_sd
+
+        #new_objects = np.array(background_objects)
 
         self.umap_source_view = ColumnDataSource(
                 data=dict(xs=self.umap_data[new_objects, 0],
@@ -351,23 +440,32 @@ class OSSinglePortal(object):
                           radius=[self.R_DOT] * len(new_objects),
                         ))
         self.points = np.array(new_objects)
-        self.umap_scatter.data_source.data = dict(self.umap_source_view.data)
+        self.umap_scatter.data_source.data = dict(
+            self.umap_source_view.data)
 
+        import pdb; pdb.set_trace()
         if nof_selected_objects > 0:
-            new_dict = dict(index=list(selected_objects))
-            for key in self.metric_dict.keys():
-                new_dict[key] = [self.metric_dict[key][s] for s in selected_objects]
-            self.selected_objects.data = new_dict
-            self.update_table.value = str(np.random.rand())
-            self.umap_source_view.selected.indices = np.arange(nof_selected_objects).tolist()
+            # Bring back for table
+
+            #new_dict = dict(index=list(selected_objects))
+            #for key in self.metric_dict.keys():
+            #    new_dict[key] = [self.metric_dict[key][s] for s in selected_objects]
+            #self.selected_objects.data = new_dict
+            #self.update_table.value = str(np.random.rand())
+
+            self.umap_source_view.selected.indices = np.arange(
+                nof_selected_objects).tolist()
         elif len(selected_objects_) > 0:
-            self.selected_objects = ColumnDataSource(data=dict(index=[], score=[], order=[], info_id=[], object_id=[]))
+            self.selected_objects = ColumnDataSource(
+                data=dict(index=[], score=[], order=[], 
+                          info_id=[], object_id=[]))
             self.update_table.value = str(np.random.rand())
             self.internal_reset.value = str(np.random.rand())
         else:
             self.update_table.value = str(np.random.rand())
 
         # Update indices?
+
 
         # Update circle
         index = self.select_object.value
@@ -385,9 +483,11 @@ class OSSinglePortal(object):
                 index = str(background_objects[0])
                 self.select_object.value = index
 
-        #self.update_search_circle(index)
+        self.update_search_circle(index)
+        
 
         return
+    '''
 
 
     def generate_figures(self):
@@ -408,7 +508,7 @@ class OSSinglePortal(object):
         portal_utils.remove_ticks_and_labels(self.primary_figure)
 
         # UMAP figure
-        self.umap_figure = figure(tools='tap,box_zoom,pan,save,reset',
+        self.umap_figure = figure(tools='box_zoom,pan,save,reset',
                                   width=self.umap_plot_width,
                                   height=600,
                                   toolbar_location="above", 
@@ -515,6 +615,16 @@ class OSSinglePortal(object):
             size='radius',
             view=self.umap_view)
 
+        # Test
+        background_objects = self.umap_source_view.data['names']
+        self.selected_objects, indices = self.get_selected_from_match(background_objects)
+        self.get_new_view_keep_selected(background_objects, 
+                                        indices)
+
+        # Set selected
+        #self.selected_objects, indices = self.get_selected_from_match( self.umap_source_view.data['names'])
+        #self.umap_source_view.selected.indices = indices
+
         '''
         # Gallery
         self.plot_gallery()
@@ -577,8 +687,18 @@ class OSSinglePortal(object):
             self.primary_figure.right[0].color_mapper.high = self.prim_color_mapper.high
 
     def register_callbacks(self):
+        # Primary
         self.PCB_low.on_change('value', self.PCB_low_callback)
         self.PCB_high.on_change('value', self.PCB_high_callback)
+
+        # UMAP 
+        #self.UCB_low.on_change('value', self.UCB_low_callback)
+        #self.UCB_high.on_change('value', self.UCB_high_callback)
+        #self.umap_figure.on_event(PanEnd, self.reset_gallery_index)
+        self.umap_figure.on_event(
+            PanEnd, self.update_umap_filter_event())
+        self.umap_source_view.selected.on_change(
+            'indices', self.umap_source_callback)     
 
     def PCB_low_callback(self, attr, old, new):
         """Fuss with the low value of the main color bar
@@ -601,6 +721,50 @@ class OSSinglePortal(object):
         """
         self.plot_primary()
 
+    def umap_source_callback(self, attr, old, new):
+        print("In umap_source_callback")
+        #print(self.umap_source_view.selected.indices)
+        pass
+
+    def update_umap_filter_event(self):
+        """ Callback for UMAP
+
+        Returns:
+            callback: 
+        """
+        def callback(event):
+            print('update_umap_filter_event')
+
+            ux = self.umap_source_view.data['xs']
+            uy = self.umap_source_view.data['ys']
+
+            px_start = self.umap_figure.x_range.start
+            px_end = self.umap_figure.x_range.end
+            py_start = self.umap_figure.y_range.start
+            py_end = self.umap_figure.y_range.end
+
+            if ( (px_start > np.min(ux) ) or
+                 (px_end   < np.max(ux) ) or
+                 (py_start > np.min(uy) ) or
+                 (py_end   < np.max(uy) )   ):
+
+                background_objects = portal_utils.get_decimated_region_points(
+                    self.umap_figure.x_range.start,
+                    self.umap_figure.x_range.end,
+                    self.umap_figure.y_range.start,
+                    self.umap_figure.y_range.end,
+                    self.umap_source.data,
+                    self.DECIMATE_NUMBER)
+
+                print("umap selected:")
+                self.selected_objects, indices = self.get_selected_from_match(background_objects)
+                self.get_new_view_keep_selected(background_objects, 
+                                                indices)
+            else:
+                print('Pan event did not require doing anything')
+                pass
+
+        return callback
 
 
     def open_files(self):
@@ -634,8 +798,8 @@ class OSSinglePortal(object):
         self.focus_Us = (self.img_Us[0], self.img_Us[1])
 
     def find_closest(self, Us):
-        dist = (self.img_Us[0]-self.umap_tbl.US0)**2 + (
-            self.img_Us[1]-self.umap_tbl.US1)**2
+        dist = (Us[0]-self.umap_tbl.US0)**2 + (
+            Us[1]-self.umap_tbl.US1)**2
         self.closest = np.argmin(dist)
         self.umap_closest = self.umap_tbl.iloc[self.closest]
 
@@ -649,11 +813,34 @@ class OSSinglePortal(object):
         self.set_primary_source()
         # DT
         self.prim_DT = self.umap_closest.DT
+        self.prim_Us = self.umap_closest.US0, self.umap_closest.US1
         
-        
+    def set_matched(self, Us, radius):
+        dist = (Us[0]-self.umap_tbl.US0)**2 + (
+            Us[1]-self.umap_tbl.US1)**2
+        self.match_idx = np.where(dist < radius)[0].tolist()
 
+    def get_selected_from_match(self, objects_in_view):
+        """ Return true indices of selected objects
+        in the umap_source_view
 
-        
+        Args:
+            objects_in_view (_type_): _description_
+
+        Returns:
+            np.ndarray, list: _description_
+        """
+        if len(self.match_idx) == 0:
+            return
+        rows = catalog.match_ids(
+            np.array(self.match_idx),
+            np.array(objects_in_view), #self.umap_source_view.data['names']),
+            require_in_match=False)
+        sel_in_view = rows > 0                                
+        indices = rows[sel_in_view]
+        selected = np.array(self.match_idx)[sel_in_view]
+        # Return
+        return selected, rows[sel_in_view].tolist()
 
 
 
