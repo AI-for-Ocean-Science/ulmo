@@ -158,7 +158,7 @@ class OSSinglePortal(object):
                 ),
             self.gallery_figure,
             row(self.prev_set, self.next_set),
-            self.matched_table,
+            row(self.matched_table, self.geo_figure),
             ))
         doc.title = 'SSL Portal'
 
@@ -280,6 +280,13 @@ class OSSinglePortal(object):
         for key in self.metric_dict.keys():
             cdata[key] = []
         self.matched_source = ColumnDataSource(cdata)
+
+        # Geography coords
+        #  The items need to include what is in the tooltips above
+        geo_dict = dict(mercator_x=[], mercator_y=[])
+        for key in self.metric_dict.keys():
+            geo_dict[key] = []
+        self.geo_source = ColumnDataSource(geo_dict)
 
     def reset_from_primary(self):
         #
@@ -483,20 +490,21 @@ class OSSinglePortal(object):
             height=200,
             scroll_to_selection=False)
 
-        '''
         # Geography figure
-        tooltips = [("ID", "@obj_ID"), ("Lat","@lat"), ("Lon", "@lon")]
-        self.geo_figure = figure(tools='box_zoom,pan,save,reset',
-                                  width=self.umap_plot_width,
-                                  height=600,
-                                  toolbar_location="above", 
-                                  x_axis_type="mercator", 
-                                  y_axis_type="mercator", 
-                                  x_axis_label = 'Longitude', 
-                                  y_axis_label = 'Latitude', 
-                                  tooltips=tooltips,
-                                  output_backend='webgl', )  # x_range=(-10, 10),
-        '''
+        tooltips = [("ID", "@obj_ID"), ("Lat","@lat"), 
+                    ("Lon", "@lon")]
+        self.geo_figure = figure(
+            tools='box_zoom,pan,save,reset',
+            width=self.umap_plot_width,
+            height=600,
+            toolbar_location="above", 
+            x_axis_type="mercator", 
+            y_axis_type="mercator", 
+            x_axis_label = 'Longitude', 
+            y_axis_label = 'Latitude', 
+            tooltips=tooltips,
+            output_backend='webgl', )  
+
 
     def umap_figure_axes(self):
         """ Set the x-y axes
@@ -608,13 +616,16 @@ class OSSinglePortal(object):
             color='tomato', size=self.R_DOT*4, line_color="black", line_width=2)
 
         LINE_ARGS = dict(color="#3A5785", line_color=None)
+        '''
 
         # Geography plot
         # Add map tile
-        chosentile = get_provider(Vendors.STAMEN_TONER)
-        self.geo_figure.add_tile(chosentile)
+        #chosentile = get_provider(Vendors.STAMEN_TONER)
+        #chosentile = add_tile('STAMEN_TONER')
+        self.geo_figure.add_tile('STAMEN_TONER')
         self.geo_color_mapper = linear_cmap(
-            field_name = self.dropdown_dict['metric'],
+            #field_name = self.dropdown_dict['metric'],
+            field_name = 'LL', #self.dropdown_dict['metric'],
             palette = Plasma256, 
             low = self.umap_color_mapper.low,
             high = self.umap_color_mapper.high)
@@ -624,7 +635,6 @@ class OSSinglePortal(object):
             color = self.geo_color_mapper, 
             source=self.geo_source, 
             size=5, fill_alpha = 0.7)
-        '''
 
     def plot_primary(self, first_init=False, reinit=False):
         """ Plot the primary image with color mapper and bar
@@ -695,11 +705,15 @@ class OSSinglePortal(object):
         #self.umap_figure.on_event(PanEnd, self.reset_gallery_index)
         self.umap_figure.on_event(
             PanEnd, self.update_umap_filter_event())
-        self.umap_source_view.selected.on_change(
+        self.umap_source_view.selected.on_change( # This doesn't do anything
             'indices', self.umap_source_callback)     
 
         self.umap_figure.on_event(
             Reset, self.update_umap_filter_event(reset=True))
+
+        # Geo figure
+        self.geo_figure.on_event(
+            PanEnd, self.update_geo_filter_event())
 
     def PCB_low_callback(self, attr, old, new):
         """Fuss with the low value of the main color bar
@@ -754,6 +768,17 @@ class OSSinglePortal(object):
         self.matched_source.data = tdict.copy()
         #self.selected_objects.data = tdict.copy()
 
+        # Geography
+        mercator_x, mercator_y =  portal_utils.mercator_coord(
+            np.array(tdict['lat']), np.array(tdict['lon']))
+        #print(mercator_y)
+        geo_dict = dict(mercator_x=mercator_x.tolist(), 
+                        mercator_y=mercator_y.tolist())
+        # Metrics
+        for key in tdict.keys():
+            geo_dict[key] = tdict[key]
+        self.geo_source.data = geo_dict.copy()
+
 
     def umap_source_callback(self, attr, old, new):
         print("In umap_source_callback")
@@ -803,6 +828,56 @@ class OSSinglePortal(object):
             else:
                 print('Pan event did not require doing anything')
                 pass
+
+        return callback
+
+    def update_geo_filter_event(self, reset=False):
+        """ Callback for Geography figure
+
+        Returns:
+            callback: 
+        """
+        def callback(event):
+            print('update_geo_filter_event')
+
+            '''
+            ux = self.umap_source_view.data['xs']
+            uy = self.umap_source_view.data['ys']
+
+            if reset:
+                self.umap_figure.x_range.start = self.U_xlim[0]
+                self.umap_figure.x_range.end = self.U_xlim[1]
+                self.umap_figure.y_range.start = self.U_ylim[0]
+                self.umap_figure.y_range.end = self.U_ylim[1]
+            '''
+
+            px_start = self.geo_figure.x_range.start
+            px_end = self.geo_figure.x_range.end
+            py_start = self.geo_figure.y_range.start
+            py_end = self.geo_figure.y_range.end
+
+            '''
+            if ( (px_start > np.min(ux) ) or
+                 (px_end   < np.max(ux) ) or
+                 (py_start > np.min(uy) ) or
+                 (py_end   < np.max(uy) ) or reset  ):
+
+                background_objects = portal_utils.get_decimated_region_points(
+                    self.umap_figure.x_range.start,
+                    self.umap_figure.x_range.end,
+                    self.umap_figure.y_range.start,
+                    self.umap_figure.y_range.end,
+                    self.umap_source.data,
+                    self.DECIMATE_NUMBER)
+
+                print("umap selected:")
+                self.selected_objects, indices = self.get_selected_from_match(background_objects)
+                self.get_new_view_keep_selected(background_objects, 
+                                                indices)
+            else:
+                print('Pan event did not require doing anything')
+                pass
+            '''
 
         return callback
 
