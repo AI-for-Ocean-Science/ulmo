@@ -23,7 +23,6 @@ from bokeh.models.widgets.tables import StringFormatter
 from bokeh.server.server import Server  # THIS NEEDS TO STAY!
 
 # For the geography figure
-#from bokeh.tile_providers import get_provider, Vendors
 from bokeh.transform import linear_cmap
 
 
