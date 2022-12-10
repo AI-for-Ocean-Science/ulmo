@@ -152,9 +152,11 @@ class OSSinglePortal(object):
                 row(self.PCB_low, self.PCB_high),
                 ),
                 self.umap_figure,
-                column(self.match_radius,
-                       self.Us_byview_set,
-                       self.input_img_set),
+                column(
+                    self.match_radius,
+                    self.umap_alpha, 
+                    self.Us_byview_set, 
+                    self.input_img_set),
                 ),
             self.gallery_figure,
             row(self.prev_set, self.next_set),
@@ -190,12 +192,16 @@ class OSSinglePortal(object):
         self.PCB_low = TextInput(title='PCB Low:', max_width=100, value='0.0')
         self.PCB_high = TextInput(title='PCB High:', max_width=100, value='1.0')
 
-        # Color bar for UMAP figure
+        # UMAP figure
+        # Color bar
         self.UCB_low = TextInput(title='PCB Low:', max_width=100)
         self.UCB_high = TextInput(title='UCB High:', max_width=100)
 
         self.match_radius = TextInput(title='Radius:', max_width=100,
                                       value='0.5')
+        self.umap_alpha = TextInput(
+            title='alpha:', max_width=100,
+            value='0.2')
 
         # Gallery table
         self.gallery_columns = []
@@ -274,6 +280,12 @@ class OSSinglePortal(object):
         self.points = np.array(points)
         # Selected
         self.umap_view = CDSView()#source=self.umap_source_view)
+
+        # Matched
+        self.match_idx = []
+
+        # Gallery
+        self.set_gallery_images()
 
         # Generate the data table for the matched sources
         cdata = dict(index=[])
@@ -577,7 +589,7 @@ class OSSinglePortal(object):
                             self.umap_color_mapper),
             nonselection_fill_color = self.nonselection_fill_color, 
             nonselection_line_color = 'moccasin',
-            nonselection_alpha = 0.2,
+            nonselection_alpha = float(self.umap_alpha.value),
             nonselection_line_alpha = 0,
             alpha=0.7,
             line_color=None, #'black',
@@ -677,13 +689,13 @@ class OSSinglePortal(object):
         """
         #self.spectrum_stacks = []
         for i in range(self.nrow*self.ncol):
+            # Image
             spec_stack = self.gallery_figures[i].image(
                 'image', 'x', 'y', 'dw', 'dh', 
                 source=self.gallery_data[i],
                 color_mapper=self.prim_color_mapper)
-            #self.spectrum_stacks.append(spec_stack)
-            if self.verbose:
-                print(f"Updated gallery {i}")
+            # Title
+            self.gallery_figures[i].title.text = self.gallery_titles[i]
 
 
     def register_callbacks(self):
@@ -700,6 +712,7 @@ class OSSinglePortal(object):
 
         # UMAP 
         self.match_radius.on_change('value', self.match_radius_callback)
+        self.umap_alpha.on_change('value', self.umap_alpha_callback)
         #self.UCB_low.on_change('value', self.UCB_low_callback)
         #self.UCB_high.on_change('value', self.UCB_high_callback)
         #self.umap_figure.on_event(PanEnd, self.reset_gallery_index)
@@ -725,6 +738,7 @@ class OSSinglePortal(object):
         """
         print("PCB Low callback")
         self.plot_primary()
+        self.plot_gallery()
 
     def PCB_high_callback(self, attr, old, new):
         """Fuss with the high value of the main color bar
@@ -735,6 +749,14 @@ class OSSinglePortal(object):
             new (str): New value
         """
         self.plot_primary()
+        self.plot_gallery()
+
+    def umap_alpha_callback(self, attr, old, new):
+        try:
+            self.umap_scatter.nonselection_glyph.fill_alpha = float(new)
+        except:
+            print(f"Bad input alpha value: {new}.  Keeping old") 
+            self.umap_alpha.value = old
 
     def match_radius_callback(self, attr, old, new):
         self.set_matched(self.prim_Us, 
@@ -944,13 +966,21 @@ class OSSinglePortal(object):
                                  'MODIS_L2', 'PreProc', base)
             self.file_dict[base] = h5py.File(ifile, 'r')
 
-    def load_images(self, tbl_idx):
-        print("Loading images")
+    def load_images(self, tbl_idx:list):
+        """ Load up the images from disk
+
+        Args:
+            tbl_idx (list): _description_
+
+        Returns:
+            list, list: Lists of images and their titles
+        """
         # Grab em
-        images = []
+        images, titles = [], []
         for kk in tbl_idx: #, row in self.umap_tbl.iterrows():
             if kk < 0:
                 images.append(self.get_im_empty())
+                titles.append(' ')
                 continue
             #
             row = self.umap_tbl.iloc[kk]
@@ -961,9 +991,11 @@ class OSSinglePortal(object):
             base = os.path.basename(ppfile)
             key = 'valid' if row.ulmo_pp_type == 0 else 'train'
             img = self.file_dict[base][key][pp_idx, 0, ...]
+            # Finish
             images.append(img)
+            titles.append(str(kk))
         # Save
-        return images
+        return images, titles
 
     def get_im_empty(self):
         """ Grab an empty image
@@ -971,6 +1003,9 @@ class OSSinglePortal(object):
         return np.zeros((self.imsize[0], self.imsize[1])).astype(np.uint8)
 
     def set_gallery_images(self):
+        """ Load the gallery images and place
+        in a bokeh friendly package
+        """
         self.gallery_images = []
         ngallery = self.nrow*self.ncol
         nmatch = len(self.match_idx) - self.gallery_index
@@ -980,10 +1015,10 @@ class OSSinglePortal(object):
         else:
             load_idx = self.match_idx[self.gallery_index:] + [-1]*(ngallery-nmatch)
         # Load
-        self.gallery_images = self.load_images(load_idx)
+        self.gallery_images, self.gallery_titles = self.load_images(load_idx)
         # Gallery data
         self.gallery_data = []
-        for im in self.gallery_images:
+        for kk, im in enumerate(self.gallery_images):
             data_source = ColumnDataSource(
                 data = {'image':[im], 'x':[0], 'y':[0], 
                     'dw':[self.imsize[0]], 'dh':[self.imsize[1]],
@@ -1005,7 +1040,7 @@ class OSSinglePortal(object):
         self.find_closest(Us)
         # Set image
         self.primary_image = self.load_images(
-            [self.closest])[0]
+            [self.closest])[0][0]
         # Could change self.imsize here
         self.set_primary_source()
         # DT
