@@ -1,6 +1,7 @@
 """ Code for running the OS Portal for a single image"""
 import numpy as np
 import os
+from copy import deepcopy
 
 import h5py
 
@@ -33,6 +34,18 @@ from ulmo.webpage_dynamic import utils as portal_utils
 
 from IPython import embed
 
+class Image(object):
+    def __init__(self, image, Us, DT, lat=None, lon=None):
+        self.image = image
+        self.Us = Us
+        # Optional
+        self.DT = DT
+        self.lat = lat
+        self.lon = lon
+
+    def copy(self):
+        return deepcopy(self)
+
 class OSSinglePortal(object):
 
     def __init__(self, sngl_image, opt, 
@@ -62,13 +75,8 @@ class OSSinglePortal(object):
 
         #embed(header='37 of single_portal.py')
 
-        # Setup focus Us
-        #self.reset_focus()
-
         # Primary Figure
         self.primary_column_width = 500
-        self.prim_DT = 0.
-        self.prim_Us = (0., 0.)
 
         # UMAP FIGURE
         self.umap_palette = Plasma256[::-1]
@@ -109,12 +117,8 @@ class OSSinglePortal(object):
             else:
                 self.metric_dict[metric[0]] = self.umap_tbl[metric[1]].values
         self.obj_ids = self.metric_dict['obj_ID']
-        #data_dict['metrics'] = metric_dict
 
-        # Launch
-        #os_portal.OSPortal.__init__(self, data_dict)
-
-        # 
+        # Dropdowns
         self.dropdown_dict = {}
         self.dropdown_dict['metric'] = 'LL'
 
@@ -122,15 +126,13 @@ class OSSinglePortal(object):
 
         # ########################################
         # Fill it all in
+        self.input_Image = None
+
         # Fake the image for now
         self.img_Us = 2.2, 2.5
-        self.set_primary_by_U(self.img_Us) # THIS IS A HACK
-
-
-        # Hold input image in a dict
-        self.input_image = dict(image=self.primary_image.copy(),
-                                DT=float(self.prim_DT),
-                                Us=self.img_Us)
+        closest = self.find_closest_U(self.img_Us)
+        self.set_primary_by_objID(closest)
+        self.input_Image = self.primary_Image.copy()
 
         self.input_img_callback(None)
         self.reset_from_primary()
@@ -144,23 +146,25 @@ class OSSinglePortal(object):
         """
         doc.add_root(column(
             row(column(
+                # Primary
                 self.primary_figure,
                 row(self.DT_text, self.U0_text, self.U1_text), 
-                row(self.PCB_low, self.PCB_high),
+                row(self.PCB_low, self.PCB_high, self.input_img_set),
                 ),
+                # UMAP
                 self.umap_figure,
                 column(
                     self.select_metric,
                     self.match_radius,
                     self.umap_alpha, 
-                    self.Us_byview_set, 
-                    self.input_img_set),
+                    self.Us_byview_set),
                 ),
             self.status1_text,
-            self.gallery_figure, # Gallery
-            row(self.prev_set, self.next_set),
+            # Gallery
+            self.gallery_figure, 
+            row(self.select_gallery, self.gallery_source_text, self.prev_set, self.next_set),
             self.status2_text,
-            row(self.matched_table, self.geo_figure),
+            row(column(self.matched_table, self.bytable_set), self.geo_figure),
             ))
         doc.title = 'SSL Portal'
 
@@ -183,7 +187,7 @@ class OSSinglePortal(object):
                            styles={'font-size': '199%', 
                                    'color': 'black'}, 
                            width=100)
-        self.U1_text = Div(text='U1: 0',
+        self.U1_text = Div(text='U1: 0', 
                            styles={'font-size': '199%', 
                                    'color': 'black'}, 
                            width=100)
@@ -225,6 +229,10 @@ class OSSinglePortal(object):
             self.gallery_columns.append(
                 TableColumn(field=key, title=key, 
                             formatter=formatter))
+        self.gallery_source_text = Div(text='U', 
+                           styles={'font-size': '159%', 
+                                   'color': 'black'}, 
+                           width=30)
 
 
     def generate_buttons(self):
@@ -238,14 +246,15 @@ class OSSinglePortal(object):
 
         # Set by location
         self.Us_byview_set = Button(label="Set Img by View", button_type="default")
+        self.bytable_set = Button(label="Set Img by Table", button_type="default")
         # Input image
-        self.input_img_set = Button(label="Input Image", button_type="default")
+        self.input_img_set = Button(label="Use Input Image", button_type="default")
 
         # Gallery
         self.next_set = Button(label="Next Set", button_type="default")
         self.prev_set = Button(label="Previous Set", button_type="default")
 
-        # 
+        # Drop Downs 
         select_metric_menu = []
         for key in self.metric_dict.keys():
             select_metric_menu.append((key,key))
@@ -253,16 +262,25 @@ class OSSinglePortal(object):
                                       button_type="danger", 
                                       menu=select_metric_menu)#, value='Anomaly Score')
         self.dropdown_dict['metric'] = 'LL'
+        
+        select_gallery_menu = []
+        for key in ['U', 'geo']:
+            select_gallery_menu.append((key,key))
+        self.select_gallery = Dropdown(label="Gallery by:", 
+                                      button_type="danger", 
+                                      menu=select_gallery_menu)
+        self.gallery_dict = {}
+        self.gallery_dict['source'] = 'U'
 
 
     def generate_sources(self):
+
         # Primary figure
-        self.primary_image = self.get_im_empty()
+        self.primary_Image = Image(self.get_im_empty(), (0.,0.), 0.)
         self.set_primary_source()
 
         # UMAP scatter
         self.update_umap_color(None)
-        # Unpack for convenience
         metric = self.metric_dict[self.dropdown_dict['metric']]
         self.U_xlim = (np.min(self.umap_source.data['xs']) 
                        - self.UMAP_XYLIM_DELTA, 
@@ -279,8 +297,6 @@ class OSSinglePortal(object):
             self.umap_source.data, self.DECIMATE_NUMBER)
 
         self.umap_source_view = ColumnDataSource(
-            #data=dict(xs=self.umap_data[embedding][points, 0],
-            #          ys=self.umap_data[embedding][points, 1],
             data=dict(xs=self.umap_data[points, 0],
                       ys=self.umap_data[points, 1],
                       color_data=metric[points],
@@ -289,7 +305,7 @@ class OSSinglePortal(object):
                     )
         self.points = np.array(points)
         # Selected
-        self.umap_view = CDSView()#source=self.umap_source_view)
+        self.umap_view = CDSView()
 
         # Circle
         self.umap_circle_source = ColumnDataSource(
@@ -319,7 +335,7 @@ class OSSinglePortal(object):
         self.set_primary_source()
         self.plot_primary(reinit=True)
 
-        self.match_Us = self.prim_Us
+        self.match_Us = self.primary_Image.Us
         self.set_matched(float(self.match_radius.value))
         self.matched_callback()  # Scatter, gallery and table
 
@@ -327,7 +343,7 @@ class OSSinglePortal(object):
     def set_primary_source(self):
         # Primary image
         xsize, ysize = self.imsize
-        im = self.primary_image
+        im = self.primary_Image.image
         self.primary_source = ColumnDataSource(
             data = {'image':[im], 'x':[0], 'y':[0], 
                     'dw':[xsize], 'dh':[ysize],
@@ -472,6 +488,12 @@ class OSSinglePortal(object):
         '''                                
         return
 
+    def update_gallery_source(self, event):
+        # Update?
+        if event is not None:
+            self.gallery_dict['source'] = event.item
+            self.gallery_source_text.text = event.item
+
 
     def generate_figures(self):
 
@@ -512,7 +534,8 @@ class OSSinglePortal(object):
             columns=self.gallery_columns,
             width=self.primary_column_width,
             height=200,
-            scroll_to_selection=False)
+            selectable=True,
+            scroll_to_selection=True)
 
         # Geography figure
         tooltips = [("ID", "@obj_ID"), 
@@ -625,8 +648,6 @@ class OSSinglePortal(object):
 
         # Geography plot
         # Add map tile
-        #chosentile = get_provider(Vendors.STAMEN_TONER)
-        #chosentile = add_tile('STAMEN_TONER')
         self.geo_figure.add_tile('STAMEN_TONER')
         self.plot_geo()
 
@@ -638,13 +659,13 @@ class OSSinglePortal(object):
         """
         # Text
         if first_init or reinit:
-            self.DT_text.text = f'DT: {self.prim_DT:.2f}K'
-            self.U0_text.text = f'U0: {self.prim_Us[0]:.2f}'
-            self.U1_text.text = f'U1: {self.prim_Us[1]:.2f}'
+            self.DT_text.text = f'DT: {self.primary_Image.DT:.2f}K'
+            self.U0_text.text = f'U0: {self.primary_Image.Us[0]:.2f}'
+            self.U1_text.text = f'U1: {self.primary_Image.Us[1]:.2f}'
         # Color bar
         if first_init or reinit:
-            self.PCB_low.value = f'{np.percentile(self.primary_image,10):.1f}'
-            self.PCB_high.value = f'{np.percentile(self.primary_image,90):.1f}'
+            self.PCB_low.value = f'{np.percentile(self.primary_Image.image,10):.1f}'
+            self.PCB_high.value = f'{np.percentile(self.primary_Image.image,90):.1f}'
         self.prim_color_mapper = LinearColorMapper(
             palette="Turbo256", 
             low=float(self.PCB_low.value),
@@ -699,6 +720,7 @@ class OSSinglePortal(object):
         self.next_set.on_click(self.next_set_callback)
         self.Us_byview_set.on_click(self.Us_byview_callback)
         self.input_img_set.on_click(self.input_img_callback)
+        self.bytable_set.on_click(self.bytable_callback)
 
         # Primary
         self.PCB_low.on_change('value', self.PCB_low_callback)
@@ -711,6 +733,7 @@ class OSSinglePortal(object):
         #self.UCB_high.on_change('value', self.UCB_high_callback)
         #self.umap_figure.on_event(PanEnd, self.reset_gallery_index)
         self.select_metric.on_click(self.update_umap_color)
+        self.select_gallery.on_click(self.update_gallery_source)
         self.umap_figure.on_event(
             PanEnd, self.update_umap_filter_event())
         self.umap_source_view.selected.on_change( # This doesn't do anything
@@ -914,9 +937,29 @@ class OSSinglePortal(object):
         return callback
 
     def input_img_callback(self, event):
-        self.prim_DT = self.input_image['DT']
-        self.prim_Us = self.input_image['Us']
-        self.primary_image = self.input_image['image'].copy()
+        """ Return to the input image
+
+        Args:
+            event (_type_): _description_
+        """
+        if self.input_Image is None:
+            self.set_status(f"You didn't provide an input image")
+            return
+        self.set_status(f"Using input image")
+        #self.prim_DT = self.input_image['DT']
+        #self.prim_Us = self.input_image['Us']
+        self.primary_Image = self.input_Image.copy()
+        self.reset_from_primary()
+
+    def bytable_callback(self, event):
+        self.set_status(f"Using image from Table")
+        # Selected
+        indices = self.matched_table.source.selected.indices
+        selected = 0 if len(indices) == 0 else indices[0]
+        # Load up
+        obj_ID = int(self.matched_table.source.data['obj_ID'][selected])
+        self.set_primary_by_objID(obj_ID)
+        # Reset
         self.reset_from_primary()
 
 
@@ -926,6 +969,7 @@ class OSSinglePortal(object):
         Args:
             event ([type]): [description]
         """
+        self.set_status(f"Using image by Us")
         U0 = np.mean([self.umap_figure.x_range.start, 
                       self.umap_figure.x_range.end])
         U1 = np.mean([self.umap_figure.y_range.start, 
@@ -1041,26 +1085,23 @@ class OSSinglePortal(object):
             )
             self.gallery_data.append(data_source)
 
-    def reset_focus(self):
-        self.focus_Us = (self.img_Us[0], self.img_Us[1])
-
-    def find_closest(self, Us):
+    def find_closest_U(self, Us):
         dist = (Us[0]-self.umap_tbl.US0)**2 + (
             Us[1]-self.umap_tbl.US1)**2
-        self.closest = np.argmin(dist)
-        self.umap_closest = self.umap_tbl.iloc[self.closest]
+        closest = np.argmin(dist)
+        return closest
 
-    def set_primary_by_U(self, Us):
-        # Find closest
-        self.find_closest(Us)
+    def set_primary_by_objID(self, obj_ID):
         # Set image
-        self.primary_image = self.load_images(
-            [self.closest])[0][0]
+        image = self.load_images([obj_ID])[0][0]
+        self.primary_Image = Image(image, 
+                                   (self.umap_tbl.US0.values[obj_ID], 
+                                    self.umap_tbl.US1.values[obj_ID]),
+                                   self.umap_tbl.DT40.values[obj_ID]
+        )
+
         # Could change self.imsize here
         self.set_primary_source()
-        # DT
-        self.prim_DT = self.umap_closest.DT
-        self.prim_Us = self.umap_closest.US0, self.umap_closest.US1
         
     def set_matched(self, radius):
         dist = (self.match_Us[0]-self.umap_tbl.US0.values)**2 + (
