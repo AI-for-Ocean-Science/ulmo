@@ -17,11 +17,10 @@ from bokeh.plotting import figure
 from bokeh.models.annotations import Title
 from bokeh.colors import RGB
 from bokeh.transform import transform
-from bokeh.events import DoubleTap, PanEnd, Reset
+from bokeh.events import PanEnd, Reset
 from bokeh.models.widgets.tables import StringFormatter
 
 from bokeh.server.server import Server  # THIS NEEDS TO STAY!
-from bokeh.io import curdoc, show
 
 # For the geography figure
 #from bokeh.tile_providers import get_provider, Vendors
@@ -52,8 +51,12 @@ class OSSinglePortal(object):
         self.umap_tbl = ulmo_io.load_main_table(
             table_file)
         self.umap_tbl['DT'] = self.umap_tbl.T90 - self.umap_tbl.T10
-        self.umap_data = np.array([self.umap_tbl.US0.values, 
-                                   self.umap_tbl.US1.values,]).T
+        self.umap_tbl['min_slope'] = np.minimum(
+            self.umap_tbl.zonal_slope, 
+            self.umap_tbl.merid_slope)
+        self.umap_data = np.array([
+            self.umap_tbl.US0.values, 
+            self.umap_tbl.US1.values,]).T
 
         # Grab h5 pointers
         self.open_files() # Held in self.file_dict
@@ -69,13 +72,13 @@ class OSSinglePortal(object):
         self.prim_Us = (0., 0.)
 
         # UMAP FIGURE
-        rev_Plasma256 = Plasma256[::-1]
+        self.umap_palette = Plasma256[::-1]
         self.DECIMATE_NUMBER = 5000
         self.UMAP_XYLIM_DELTA = 0.5
         self.R_DOT = 6#10
         self.high_colormap_factor = 0.1
         self.umap_color_mapper = LinearColorMapper(
-            palette=rev_Plasma256, low=0, high=1, 
+            palette=self.umap_palette, low=0, high=1, 
             nan_color=RGB(220, 220, 220, a = 0.1))
         self.xkey, self.ykey = 'U0', 'U1'
         self.nonselection_fill_color = transform(
@@ -87,17 +90,12 @@ class OSSinglePortal(object):
         self.gallery_index = 0
 
 
-        # ########################################
-        # Init data
-        data_dict = {}
-        #data_dict['images'] = self.images
-
         # Metrics
         metrics= [
             ["U0", "US0"], 
             ["U1", "US1"], 
             ["LL", "LL"], 
-            ["DT", "DT"], 
+            ["DT40", "DT40"], 
             ["lon", "lon"], 
             ["lat", "lat"], 
             ["avgT", "mean_temperature"]]
@@ -153,13 +151,16 @@ class OSSinglePortal(object):
                 ),
                 self.umap_figure,
                 column(
+                    self.select_metric,
                     self.match_radius,
                     self.umap_alpha, 
                     self.Us_byview_set, 
                     self.input_img_set),
                 ),
-            self.gallery_figure,
+            self.status1_text,
+            self.gallery_figure, # Gallery
             row(self.prev_set, self.next_set),
+            self.status2_text,
             row(self.matched_table, self.geo_figure),
             ))
         doc.title = 'SSL Portal'
@@ -203,6 +204,17 @@ class OSSinglePortal(object):
             title='alpha:', max_width=100,
             value='0.2')
 
+        # Status 
+        self.status1_text = Div(text='Status: ',
+                           styles={'font-size': '150%', 
+                                   'color': 'black'}, 
+                           width=self.primary_column_width 
+                           + self.umap_plot_width)
+        self.status2_text = Div(text='Status: ',
+                           styles={'font-size': '150%', 
+                                   'color': 'black'}, 
+                           width=self.primary_column_width 
+                           + self.umap_plot_width)
         # Gallery table
         self.gallery_columns = []
         for key in self.metric_dict.keys():
@@ -252,8 +264,7 @@ class OSSinglePortal(object):
         # UMAP scatter
         self.update_umap_color(None)
         # Unpack for convenience
-        #metric = self.metric_dict[self.dropdown_dict['metric']]
-        metric = self.metric_dict['LL']
+        metric = self.metric_dict[self.dropdown_dict['metric']]
         self.U_xlim = (np.min(self.umap_source.data['xs']) 
                        - self.UMAP_XYLIM_DELTA, 
                        np.max(self.umap_source.data['xs']) 
@@ -281,6 +292,10 @@ class OSSinglePortal(object):
         # Selected
         self.umap_view = CDSView()#source=self.umap_source_view)
 
+        # Circle
+        self.umap_circle_source = ColumnDataSource(
+            dict(xs=[0], ys=[0]))
+
         # Matched
         self.match_idx = []
 
@@ -305,8 +320,8 @@ class OSSinglePortal(object):
         self.set_primary_source()
         self.plot_primary(reinit=True)
 
-        self.set_matched(self.prim_Us, 
-                         float(self.match_radius.value))
+        self.match_Us = self.prim_Us
+        self.set_matched(float(self.match_radius.value))
         self.matched_callback()  # Scatter, gallery and table
 
 
@@ -333,18 +348,16 @@ class OSSinglePortal(object):
             self.umap_figure_axes()
 
         # UPDATE LATER
-        #metric_key = self.dropdown_dict['metric']
-        metric_key = 'LL'
+        metric_key = self.dropdown_dict['metric']
         metric = self.metric_dict[metric_key]
 
         self.set_colormap(metric, metric_key)
+
         # Set limits
         self.UCB_low.value = str(self.umap_color_mapper.low)
         self.UCB_high.value = str(self.umap_color_mapper.high)
 
         self.umap_source = ColumnDataSource(
-            #data=dict(xs=self.umap_data[embedding][:, 0],
-            #            ys=self.umap_data[embedding][:, 1],
             data=dict(xs=self.umap_data[:, 0],
                         ys=self.umap_data[:, 1],
                         color_data=metric,
@@ -359,6 +372,9 @@ class OSSinglePortal(object):
         self.selected_objects, indices = self.get_selected_from_match(background_objects)
         self.get_new_view_keep_selected(background_objects, indices)
         #self.select_score_table.value = self.select_score.value
+
+        # Geo points
+        self.plot_geo()
 
     def set_colormap(self, metric:np.ndarray, 
                      metric_key:str):
@@ -390,16 +406,13 @@ class OSSinglePortal(object):
         self.umap_color_mapper.high = high
         self.umap_color_mapper.low = low
 
-        return
-
     def get_new_view_keep_selected(self, background_objects, 
                                    selected_objects_idx, 
                                    custom_sd = None):
 
         if custom_sd is None:
             # UPDATE THIS
-            #metric = self.metric_dict[self.dropdown_dict['metric']]
-            metric = self.metric_dict['LL'] #self.dropdown_dict['metric']]
+            metric = self.metric_dict[self.dropdown_dict['metric']]
         else:
             metric = custom_sd
 
@@ -503,8 +516,9 @@ class OSSinglePortal(object):
             scroll_to_selection=False)
 
         # Geography figure
-        tooltips = [("ID", "@obj_ID"), ("Lat","@lat"), 
-                    ("Lon", "@lon")]
+        tooltips = [("ID", "@obj_ID"), 
+                    ("LL","@LL"), 
+                    ("DT", "@DT40")]
         self.geo_figure = figure(
             tools='box_zoom,pan,save,reset',
             width=self.umap_plot_width,
@@ -522,11 +536,9 @@ class OSSinglePortal(object):
         """ Set the x-y axes
         """
 
-        #embedding_name = self.dropdown_dict['embedding']
         embedding_name = f"{self.xkey}, {self.ykey}"
         # DROPDOWN
-        #metric_name = self.dropdown_dict['metric']
-        metric_name = 'LL'
+        metric_name = self.dropdown_dict['metric']
         if metric_name == 'No color':
             self.umap_figure.title.text  = '{}'.format(embedding_name)
         else:
@@ -596,57 +608,28 @@ class OSSinglePortal(object):
             size='radius',
             view=self.umap_view)
 
-        # Init Matched
-        #self.set_matched(self.prim_Us, 
-        #                 float(self.match_radius.value))
-
-        # Selected, table, gallery
-        #self.matched_callback()
-
         '''
-        # Test
-        background_objects = self.umap_source_view.data['names']
-        self.selected_objects, indices = self.get_selected_from_match(background_objects)
-        self.get_new_view_keep_selected(background_objects, 
-                                        indices)
-        
-
-        # Set selected
-        #self.selected_objects, indices = self.get_selected_from_match( self.umap_source_view.data['names'])
-        #self.umap_source_view.selected.indices = indices
-
-
         # Gallery
         self.set_gallery_images()
         self.plot_gallery()
         '''
 
-        '''
         # Search circle
-        self.umap_search_galaxy = self.umap_figure.circle(
-            'xs', 'ys', source=self.search_galaxy_source, alpha=0.5,
-            color='tomato', size=self.R_DOT*4, line_color="black", line_width=2)
-
-        LINE_ARGS = dict(color="#3A5785", line_color=None)
-        '''
+        self.umap_match_circle = self.umap_figure.ellipse(
+            'xs', 'ys', source=self.umap_circle_source, 
+            alpha=0.5, color='', 
+            width=2*float(self.match_radius.value), 
+            height=2*float(self.match_radius.value), 
+            line_color="black", 
+            #line_dash=[6,3],
+            line_width=2)
 
         # Geography plot
         # Add map tile
         #chosentile = get_provider(Vendors.STAMEN_TONER)
         #chosentile = add_tile('STAMEN_TONER')
         self.geo_figure.add_tile('STAMEN_TONER')
-        self.geo_color_mapper = linear_cmap(
-            #field_name = self.dropdown_dict['metric'],
-            field_name = 'LL', #self.dropdown_dict['metric'],
-            palette = Plasma256, 
-            low = self.umap_color_mapper.low,
-            high = self.umap_color_mapper.high)
-        self.geo_figure.circle(
-            x = 'mercator_x', 
-            y = 'mercator_y', 
-            color = self.geo_color_mapper, 
-            source=self.geo_source, 
-            size=5, fill_alpha = 0.7)
+        self.plot_geo()
 
     def plot_primary(self, first_init=False, reinit=False):
         """ Plot the primary image with color mapper and bar
@@ -697,6 +680,18 @@ class OSSinglePortal(object):
             # Title
             self.gallery_figures[i].title.text = self.gallery_titles[i]
 
+    def plot_geo(self):
+        self.geo_color_mapper = linear_cmap(
+            field_name = self.dropdown_dict['metric'],
+            palette = self.umap_palette, 
+            low = self.umap_color_mapper.low,
+            high = self.umap_color_mapper.high)
+        self.geo_figure.circle(
+            x = 'mercator_x', 
+            y = 'mercator_y', 
+            color = self.geo_color_mapper,
+            source=self.geo_source, 
+            size=5, fill_alpha = 0.7)
 
     def register_callbacks(self):
         # Buttons
@@ -716,6 +711,7 @@ class OSSinglePortal(object):
         #self.UCB_low.on_change('value', self.UCB_low_callback)
         #self.UCB_high.on_change('value', self.UCB_high_callback)
         #self.umap_figure.on_event(PanEnd, self.reset_gallery_index)
+        self.select_metric.on_click(self.update_umap_color)
         self.umap_figure.on_event(
             PanEnd, self.update_umap_filter_event())
         self.umap_source_view.selected.on_change( # This doesn't do anything
@@ -755,13 +751,25 @@ class OSSinglePortal(object):
         try:
             self.umap_scatter.nonselection_glyph.fill_alpha = float(new)
         except:
-            print(f"Bad input alpha value: {new}.  Keeping old") 
+            self.set_status(
+                f"Bad input alpha value: {new}.  Keeping old") 
             self.umap_alpha.value = old
 
     def match_radius_callback(self, attr, old, new):
-        self.set_matched(self.prim_Us, 
-                         float(self.match_radius.value))
-        self.matched_callback()
+        try:
+            mr = float(new)
+        except:
+            self.set_status(
+                f"Bad input Radius value: {new}.  Keeping old") 
+            self.match_radius.value = old
+        else:
+            # Ellipse
+            self.umap_match_circle.glyph.width = 2*mr
+            self.umap_match_circle.glyph.height = 2*mr
+
+            # Points
+            self.set_matched(mr)
+            self.matched_callback()
 
     def matched_callback(self):
 
@@ -770,7 +778,13 @@ class OSSinglePortal(object):
         self.selected_objects, indices = self.get_selected_from_match(background_objects)
         self.get_new_view_keep_selected(background_objects, indices)
 
+        # Circle
+        self.umap_circle_source.data = dict(
+            xs=[self.match_Us[0]], 
+            ys=[self.match_Us[1]])
+
         # Gallery
+        self.gallery_index = 0
         self.gallery_callback()
 
         # Table
@@ -793,7 +807,7 @@ class OSSinglePortal(object):
         # Geography
         mercator_x, mercator_y =  portal_utils.mercator_coord(
             np.array(tdict['lat']), np.array(tdict['lon']))
-        #print(mercator_y)
+
         geo_dict = dict(mercator_x=mercator_x.tolist(), 
                         mercator_y=mercator_y.tolist())
         # Metrics
@@ -814,8 +828,6 @@ class OSSinglePortal(object):
             callback: 
         """
         def callback(event):
-            print('update_umap_filter_event')
-
             ux = self.umap_source_view.data['xs']
             uy = self.umap_source_view.data['ys']
 
@@ -843,7 +855,6 @@ class OSSinglePortal(object):
                     self.umap_source.data,
                     self.DECIMATE_NUMBER)
 
-                print("umap selected:")
                 self.selected_objects, indices = self.get_selected_from_match(background_objects)
                 self.get_new_view_keep_selected(background_objects, 
                                                 indices)
@@ -937,7 +948,7 @@ class OSSinglePortal(object):
         # 
         self.gallery_index -= self.nrow*self.ncol
         self.gallery_index = max(self.gallery_index, 0)
-        print(f"Previous set of gallery images; zero={self.gallery_index}")
+        self.set_status(f"Previous set; zero={self.gallery_index}")
         self.gallery_callback()
 
     def next_set_callback(self, event):
@@ -949,12 +960,17 @@ class OSSinglePortal(object):
         nmatch = len(self.match_idx)
         self.gallery_index += self.nrow*self.ncol
         self.gallery_index = min(self.gallery_index, nmatch-1)
-        print(f"Next set of gallery images; zero={self.gallery_index}")
+        self.set_status(
+            f"Next set; zero={self.gallery_index}")
         self.gallery_callback()
 
     def gallery_callback(self):
         self.set_gallery_images()
         self.plot_gallery()
+
+    def set_status(self, text:str, styles:dict=None):
+        self.status1_text.text = '(Status) '+text
+        self.status2_text.text = '(Status) '+text
 
     def open_files(self):
         # Open files
@@ -1047,11 +1063,11 @@ class OSSinglePortal(object):
         self.prim_DT = self.umap_closest.DT
         self.prim_Us = self.umap_closest.US0, self.umap_closest.US1
         
-    def set_matched(self, Us, radius):
-        dist = (Us[0]-self.umap_tbl.US0.values)**2 + (
-            Us[1]-self.umap_tbl.US1.values)**2
+    def set_matched(self, radius):
+        dist = (self.match_Us[0]-self.umap_tbl.US0.values)**2 + (
+            self.match_Us[1]-self.umap_tbl.US1.values)**2
         # Matched
-        matched = np.where(dist < radius)[0]
+        matched = np.where(dist < radius**2)[0]
         if len(matched) == 0:
             self.match_idx = []
             return
