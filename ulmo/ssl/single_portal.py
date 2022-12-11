@@ -162,7 +162,7 @@ class OSSinglePortal(object):
             self.status1_text,
             # Gallery
             self.gallery_figure, 
-            row(self.select_gallery, self.gallery_source_text, self.prev_set, self.next_set),
+            row(self.select_inspect, self.inspect_source_text, self.prev_set, self.next_set),
             self.status2_text,
             row(column(self.matched_table, self.bytable_set), self.geo_figure),
             ))
@@ -229,7 +229,7 @@ class OSSinglePortal(object):
             self.gallery_columns.append(
                 TableColumn(field=key, title=key, 
                             formatter=formatter))
-        self.gallery_source_text = Div(text='U', 
+        self.inspect_source_text = Div(text='U', 
                            styles={'font-size': '159%', 
                                    'color': 'black'}, 
                            width=30)
@@ -263,14 +263,14 @@ class OSSinglePortal(object):
                                       menu=select_metric_menu)#, value='Anomaly Score')
         self.dropdown_dict['metric'] = 'LL'
         
-        select_gallery_menu = []
+        select_inspect_menu = []
         for key in ['U', 'geo']:
-            select_gallery_menu.append((key,key))
-        self.select_gallery = Dropdown(label="Gallery by:", 
+            select_inspect_menu.append((key,key))
+        self.select_inspect = Dropdown(label="Inspect by:", 
                                       button_type="danger", 
-                                      menu=select_gallery_menu)
-        self.gallery_dict = {}
-        self.gallery_dict['source'] = 'U'
+                                      menu=select_inspect_menu)
+        # Gallery and Table
+        self.inspect_source = 'U'
 
 
     def generate_sources(self):
@@ -303,7 +303,6 @@ class OSSinglePortal(object):
                       names=list(points),
                       radius=[self.R_DOT] * len(points)),
                     )
-        self.points = np.array(points)
         # Selected
         self.umap_view = CDSView()
 
@@ -318,17 +317,19 @@ class OSSinglePortal(object):
         self.set_gallery_images()
 
         # Generate the data table for the matched sources
+        #  Limited to DECIMATED sources
         cdata = dict(index=[])
         for key in self.metric_dict.keys():
             cdata[key] = []
-        self.matched_source = ColumnDataSource(cdata)
+        self.table_source = ColumnDataSource(cdata)
 
         # Geography coords
         #  The items need to include what is in the tooltips above
-        geo_dict = dict(mercator_x=[], mercator_y=[])
+        geo_dict = dict(xs=[], ys=[])
         for key in self.metric_dict.keys():
             geo_dict[key] = []
         self.geo_source = ColumnDataSource(geo_dict)
+        self.geo_source_view = ColumnDataSource(geo_dict)
 
     def reset_from_primary(self):
         #
@@ -422,24 +423,12 @@ class OSSinglePortal(object):
         self.umap_color_mapper.low = low
 
     def get_new_view_keep_selected(self, background_objects, 
-                                   selected_objects_idx, 
-                                   custom_sd = None):
+                                   selected_objects_idx): 
+        # Metric
+        metric = self.metric_dict[self.dropdown_dict['metric']]
 
-        if custom_sd is None:
-            # UPDATE THIS
-            metric = self.metric_dict[self.dropdown_dict['metric']]
-        else:
-            metric = custom_sd
-
+        # Update data
         new_objects = np.array(background_objects)
-
-        #self.umap_source_view = ColumnDataSource(
-        #         data=dict(xs=self.umap_data[new_objects, 0],
-        #                   ys=self.umap_data[new_objects, 1],
-        #                   color_data=metric[new_objects],
-        #                   names=list(new_objects),
-        #                   radius=[self.R_DOT] * len(new_objects),
-        #                 ))
         tmp_view = ColumnDataSource(
                  data=dict(xs=self.umap_data[new_objects, 0],
                            ys=self.umap_data[new_objects, 1],
@@ -447,57 +436,41 @@ class OSSinglePortal(object):
                            names=list(new_objects),
                           radius=[self.R_DOT] * len(new_objects),
                          ))
-        self.points = np.array(new_objects)
-        #self.umap_scatter.data_source.data = dict(tmp_view.data)
-        #self.umap_scatter.data_source = self.umap_source_view
         self.umap_source_view.data = dict(tmp_view.data)
-        #self.umap_source_view.selected = tmp_view.selected
+
+        # Update selected
         if len(selected_objects_idx) > 0:
             self.umap_source_view.selected.indices = selected_objects_idx
         else:
             self.umap_source_view.selected.indices = [-1]
-
-        # Set indices etc.
-        '''
-        # Bring back for table
-        new_dict = dict(index=list(selected_objects))
-        for key in self.metric_dict.keys():
-            new_dict[key] = [self.metric_dict[key][s] for s in selected_objects]
-        self.selected_objects.data = new_dict
-        self.update_table.value = str(np.random.rand())
-        '''
-
-        '''
-        # Update circle
-        index = self.select_object.value
-
-        if (index in set(background_objects)) :
-            pass
-        else:
-            if len(selected_objects) > 0:
-                if (index in set(selected_objects)):
-                    pass
-                else:
-                    index = str(selected_objects[0])
-                    self.select_object.value = index
-            else:
-                index = str(background_objects[0])
-                self.select_object.value = index
-
-        self.update_search_circle(index)
-        '''                                
         return
 
-    def update_gallery_source(self, event):
+    def update_inspect_source(self, event):
         # Update?
         if event is not None:
-            self.gallery_dict['source'] = event.item
-            self.gallery_source_text.text = event.item
+            self.inspect_source = event.item
+            self.inspect_source_text.text = event.item
+
+        # Inspecting..
+        self.gallery_callback()
+
+    def get_new_geo_view(self):
+        # DECIMATE
+        px_start, px_end, py_start, py_end = self.grab_geo_limits()
+        viewed_objID = np.array(portal_utils.get_decimated_region_points(
+            px_start, px_end, py_start, py_end, self.geo_source.data, 
+            self.DECIMATE_NUMBER, IGNORE_TH=-9e9, id_key='obj_ID'))
+        # Match me
+        rows = catalog.match_ids(viewed_objID, np.array(self.geo_source.data['obj_ID']), require_in_match=True)
+
+        # May need to move this elsewhere
+        view_dict = {}
+        for key in self.geo_source.data.keys():
+            view_dict[key] = np.array(self.geo_source.data[key])[rows]
+        self.geo_source_view.data = view_dict
 
 
     def generate_figures(self):
-
-
         # Primary figure
         self.primary_figure = figure(
             tools="box_zoom,save,reset", 
@@ -530,7 +503,7 @@ class OSSinglePortal(object):
 
         # Table
         self.matched_table = DataTable(
-            source=self.matched_source,
+            source=self.table_source,
             columns=self.gallery_columns,
             width=self.primary_column_width,
             height=200,
@@ -630,12 +603,6 @@ class OSSinglePortal(object):
             size='radius',
             view=self.umap_view)
 
-        '''
-        # Gallery
-        self.set_gallery_images()
-        self.plot_gallery()
-        '''
-
         # Search circle
         self.umap_match_circle = self.umap_figure.ellipse(
             'xs', 'ys', source=self.umap_circle_source, 
@@ -707,10 +674,10 @@ class OSSinglePortal(object):
             low = self.umap_color_mapper.low,
             high = self.umap_color_mapper.high)
         self.geo_figure.circle(
-            x = 'mercator_x', 
-            y = 'mercator_y', 
+            x = 'xs', 
+            y = 'ys', 
             color = self.geo_color_mapper,
-            source=self.geo_source, 
+            source=self.geo_source_view, 
             size=5, fill_alpha = 0.7)
 
     def register_callbacks(self):
@@ -733,7 +700,7 @@ class OSSinglePortal(object):
         #self.UCB_high.on_change('value', self.UCB_high_callback)
         #self.umap_figure.on_event(PanEnd, self.reset_gallery_index)
         self.select_metric.on_click(self.update_umap_color)
-        self.select_gallery.on_click(self.update_gallery_source)
+        self.select_inspect.on_click(self.update_inspect_source)
         self.umap_figure.on_event(
             PanEnd, self.update_umap_filter_event())
         self.umap_source_view.selected.on_change( # This doesn't do anything
@@ -745,6 +712,8 @@ class OSSinglePortal(object):
         # Geo figure
         self.geo_figure.on_event(
             PanEnd, self.update_geo_filter_event())
+        self.geo_figure.on_event(
+            Reset, self.update_geo_filter_event(reset=True))
 
     def PCB_low_callback(self, attr, old, new):
         """Fuss with the low value of the main color bar
@@ -794,49 +763,58 @@ class OSSinglePortal(object):
             self.matched_callback()
 
     def matched_callback(self):
+        """ Updates after matching changes
+        """
 
-        # Selected
+        # Update Selected
+        print("Updating selected")
         background_objects = self.umap_source_view.data['names']
         self.selected_objects, indices = self.get_selected_from_match(background_objects)
         self.get_new_view_keep_selected(background_objects, indices)
 
-        # Circle
+        # Update Circle
         self.umap_circle_source.data = dict(
             xs=[self.match_Us[0]], 
             ys=[self.match_Us[1]])
 
         # Gallery
+        print("Updating gallery")
         self.gallery_index = 0
         self.gallery_callback()
 
+        # Update
+        self.table_source.data = self.gen_matched_dict(maxN=self.DECIMATE_NUMBER)
+
+        # Geography view
+        print("starting geo")
+        geo_dict = self.gen_matched_dict()
+        mercator_x, mercator_y =  portal_utils.mercator_coord(
+            np.array(geo_dict['lat']), np.array(geo_dict['lon']))
+        geo_dict['xs'] = mercator_x
+        geo_dict['ys'] = mercator_y
+        self.geo_source.data = geo_dict
+
+        print("geo view")
+        self.get_new_geo_view()
+        # Geo plot 
+        print(f"geo plot {len(self.geo_source_view.data['xs'])}")
+        self.plot_geo()
+        print("finished geo plot")
+
+    def gen_matched_dict(self, maxN=None):
         # Table
         tdict = {}
-        for key in ['index']+list(self.metric_dict.keys()):
-            tdict[key] = []
-        # Fill
-        for idx in self.match_idx:
-            #idx = self.umap_source_view.data['names'][ii]
-            # Loop on selected objects and galaxy table data
-            # Selected objects
-            tdict['index'].append(idx)
-            # Metrics
-            for key in self.metric_dict.keys():
-                tdict[key].append(self.metric_dict[key][idx])
-        # Update
-        self.matched_source.data = tdict.copy()
-        #self.selected_objects.data = tdict.copy()
-
-        # Geography
-        mercator_x, mercator_y =  portal_utils.mercator_coord(
-            np.array(tdict['lat']), np.array(tdict['lon']))
-
-        geo_dict = dict(mercator_x=mercator_x.tolist(), 
-                        mercator_y=mercator_y.tolist())
+        if maxN is None:
+            tbl_idx = np.array(self.match_idx)
+        else:
+            tbl_idx = self.match_idx if len(self.match_idx) < maxN else self.match_idx[:maxN]
+            tbl_idx = np.array(tbl_idx)
+        tdict['index'] = tbl_idx
         # Metrics
-        for key in tdict.keys():
-            geo_dict[key] = tdict[key]
-        self.geo_source.data = geo_dict.copy()
-
+        for key in self.metric_dict.keys():
+            tdict[key] = self.metric_dict[key][tbl_idx]
+        #
+        return tdict
 
     def umap_source_callback(self, attr, old, new):
         print("In umap_source_callback")
@@ -893,48 +871,34 @@ class OSSinglePortal(object):
             callback: 
         """
         def callback(event):
-            print('update_geo_filter_event')
-
-            '''
-            ux = self.umap_source_view.data['xs']
-            uy = self.umap_source_view.data['ys']
-
             if reset:
-                self.umap_figure.x_range.start = self.U_xlim[0]
-                self.umap_figure.x_range.end = self.U_xlim[1]
-                self.umap_figure.y_range.start = self.U_ylim[0]
-                self.umap_figure.y_range.end = self.U_ylim[1]
-            '''
-
-            px_start = self.geo_figure.x_range.start
-            px_end = self.geo_figure.x_range.end
-            py_start = self.geo_figure.y_range.start
-            py_end = self.geo_figure.y_range.end
-
-            '''
-            if ( (px_start > np.min(ux) ) or
-                 (px_end   < np.max(ux) ) or
-                 (py_start > np.min(uy) ) or
-                 (py_end   < np.max(uy) ) or reset  ):
-
-                background_objects = portal_utils.get_decimated_region_points(
-                    self.umap_figure.x_range.start,
-                    self.umap_figure.x_range.end,
-                    self.umap_figure.y_range.start,
-                    self.umap_figure.y_range.end,
-                    self.umap_source.data,
-                    self.DECIMATE_NUMBER)
-
-                print("umap selected:")
-                self.selected_objects, indices = self.get_selected_from_match(background_objects)
-                self.get_new_view_keep_selected(background_objects, 
-                                                indices)
-            else:
-                print('Pan event did not require doing anything')
-                pass
-            '''
+                self.geo_figure.x_range.start = portal_utils.mercator_coord(0., -180.)[0]
+                self.geo_figure.x_range.end = portal_utils.mercator_coord(0., 180.)[0]
+                self.geo_figure.y_range.start = portal_utils.mercator_coord(-90., 180.)[1]
+                self.geo_figure.y_range.end = portal_utils.mercator_coord(90., 180.)[1]
+            self.get_new_geo_view()
+            self.plot_geo()
+            # Inspecting geo?
+            if self.inspect_source == 'geo':
+                self.gallery_callback()
 
         return callback
+
+    def grab_geo_limits(self):
+            px_start = self.geo_figure.x_range.start
+            if np.isnan(px_start):
+                px_start = portal_utils.mercator_coord(0., -180.)[0]
+            px_end = self.geo_figure.x_range.end
+            if np.isnan(px_end):
+                px_end = portal_utils.mercator_coord(0., 180.)[0]
+            py_start = self.geo_figure.y_range.start
+            if np.isnan(py_start):
+                py_start = portal_utils.mercator_coord(-90., 180.)[1]
+            py_end = self.geo_figure.y_range.end
+            if np.isnan(py_end):
+                py_end = portal_utils.mercator_coord(90., 180.)[1]
+            # Return
+            return px_start, px_end, py_start, py_end
 
     def input_img_callback(self, event):
         """ Return to the input image
@@ -946,8 +910,6 @@ class OSSinglePortal(object):
             self.set_status(f"You didn't provide an input image")
             return
         self.set_status(f"Using input image")
-        #self.prim_DT = self.input_image['DT']
-        #self.prim_Us = self.input_image['Us']
         self.primary_Image = self.input_Image.copy()
         self.reset_from_primary()
 
@@ -975,7 +937,8 @@ class OSSinglePortal(object):
         U1 = np.mean([self.umap_figure.y_range.start, 
                       self.umap_figure.y_range.end])
 
-        self.set_primary_by_U((U0,U1))
+        obj_ID = self.find_closest_U((U0,U1))
+        self.set_primary_by_objID(obj_ID)
         self.reset_from_primary()
 
         # 
@@ -1065,14 +1028,19 @@ class OSSinglePortal(object):
         """ Load the gallery images and place
         in a bokeh friendly package
         """
+        if self.inspect_source == 'U':
+            inspect_idx = self.match_idx.copy()
+        elif self.inspect_source == 'geo':
+            inspect_idx = self.geo_source_view.data['obj_ID'].tolist()
+
         self.gallery_images = []
         ngallery = self.nrow*self.ncol
-        nmatch = len(self.match_idx) - self.gallery_index
+        nmatch = len(inspect_idx) - self.gallery_index
         #
         if nmatch >= ngallery:
-            load_idx = self.match_idx[self.gallery_index:self.gallery_index+ngallery]
+            load_idx = inspect_idx[self.gallery_index:self.gallery_index+ngallery]
         else:
-            load_idx = self.match_idx[self.gallery_index:] + [-1]*(ngallery-nmatch)
+            load_idx = inspect_idx[self.gallery_index:] + [-1]*(ngallery-nmatch)
         # Load
         self.gallery_images, self.gallery_titles = self.load_images(load_idx)
         # Gallery data

@@ -1,32 +1,8 @@
 """ Bokeh portal for Ocean Sciences.  Based on Itamar Reiss' code 
 and further modified by Kate Storrey-Fisher"""
-from bokeh.models.widgets.tables import StringFormatter
 import numpy as np
-import os
-
-import h5py
-import pandas
-
-from bokeh.layouts import column, gridplot, row
-from bokeh.models import ColumnDataSource, Slider
-from bokeh.sampledata.sea_surface_temperature import sea_surface_temperature
-from bokeh.palettes import Viridis256, Plasma256, Inferno256, Magma256, all_palettes
-from bokeh.models import LinearColorMapper, ColorBar, ColumnDataSource, Range1d, CustomJS, Div, \
-    CDSView, BasicTicker, \
-    IndexFilter, BooleanFilter, Span, Label, BoxZoomTool, TapTool
-from bokeh.models.widgets import TextInput, RadioButtonGroup, DataTable, TableColumn, AutocompleteInput, NumberFormatter
-from bokeh.models.widgets import Select, Button, Dropdown
-from bokeh.plotting import figure
-from bokeh.server.server import Server
-from bokeh.themes import Theme
-from bokeh.models.annotations import Title
-from bokeh.colors import RGB
-from bokeh.transform import transform
-from bokeh.events import DoubleTap, PinchEnd, PanEnd, Reset
 
 # For the geography figure
-from bokeh.tile_providers import get_provider, Vendors
-from bokeh.transform import linear_cmap
 
 
 from IPython import embed
@@ -49,7 +25,7 @@ def mercator_coord(lat, lon):
     return x, y
 
 
-def get_region_points(x_min, x_max, y_min, y_max, datasource):
+def get_region_points(x_min, x_max, y_min, y_max, datasource, IGNORE_TH=-9999):
     """ Get the points within the box
 
     Args:
@@ -62,15 +38,9 @@ def get_region_points(x_min, x_max, y_min, y_max, datasource):
     Returns:
         [type]: [description]
     """
-    IGNORE_TH = -9999
     xs = np.array(datasource['xs'])
     ys = np.array(datasource['ys'])
-    cd = datasource['color_data']
-    nof_objects = len(cd)
-    if True:
-        is_in_box = np.logical_and.reduce([xs >= x_min, xs <= x_max, ys >= y_min, ys <= y_max, ys > IGNORE_TH, xs > IGNORE_TH])
-    else:
-        is_in_box = np.logical_and.reduce([xs >= x_min, xs <= x_max, ys >= y_min, ys <= y_max])
+    is_in_box = np.logical_and.reduce([xs >= x_min, xs <= x_max, ys >= y_min, ys <= y_max, ys > IGNORE_TH, xs > IGNORE_TH])
     return np.where(is_in_box)[0]
 
 
@@ -90,7 +60,8 @@ def get_relevant_objects_coords(datasource):
     return xs[relevant_objects], ys[relevant_objects], relevant_objects
 
 
-def get_decimated_region_points(x_min, x_max, y_min, y_max, datasource, DECIMATE_NUMBER):
+def get_decimated_region_points(x_min, x_max, y_min, y_max, datasource, DECIMATE_NUMBER, 
+    id_key:str='names', IGNORE_TH=-9999):
     """ ??
 
     Args:
@@ -104,13 +75,15 @@ def get_decimated_region_points(x_min, x_max, y_min, y_max, datasource, DECIMATE
     Returns:
         [type]: [description]
     """
-    is_in_box_inds = get_region_points(x_min, x_max, y_min, y_max, datasource)
+    is_in_box_inds = get_region_points(x_min, x_max, y_min, y_max, datasource, IGNORE_TH=IGNORE_TH)
     print('total points before decimation', len(is_in_box_inds))
     if len(is_in_box_inds) < DECIMATE_NUMBER:
-        return is_in_box_inds
+        #return is_in_box_inds
+        return [datasource[id_key][r] for r in is_in_box_inds]
     random_objects_ = np.random.choice(is_in_box_inds, DECIMATE_NUMBER, replace=False)
-    random_objects = [datasource['names'][r] for r in random_objects_]
+    random_objects = [datasource[id_key][r] for r in random_objects_]
     return random_objects
+
 
 def remove_ticks_and_labels(figure):
     """Simple cleaning method
