@@ -312,6 +312,7 @@ class OSSinglePortal(object):
 
         # Matched
         self.match_idx = []
+        self.inspect_idx = []
 
         # Gallery
         self.set_gallery_images()
@@ -450,9 +451,18 @@ class OSSinglePortal(object):
         if event is not None:
             self.inspect_source = event.item
             self.inspect_source_text.text = event.item
+        self.set_inspect_idx()
 
+        # Inspection tools
+        self.inspect_callback()
+
+    def set_inspect_idx(self):
         # Inspecting..
-        self.gallery_callback()
+        if self.inspect_source == 'U':
+            self.inspect_idx = self.match_idx.copy()
+        elif self.inspect_source == 'geo':
+            self.inspect_idx = self.geo_source_view.data['obj_ID'].tolist()
+
 
     def get_new_geo_view(self):
         # DECIMATE
@@ -468,6 +478,8 @@ class OSSinglePortal(object):
         for key in self.geo_source.data.keys():
             view_dict[key] = np.array(self.geo_source.data[key])[rows]
         self.geo_source_view.data = view_dict
+
+        self.set_inspect_idx()
 
 
     def generate_figures(self):
@@ -767,7 +779,6 @@ class OSSinglePortal(object):
         """
 
         # Update Selected
-        print("Updating selected")
         background_objects = self.umap_source_view.data['names']
         self.selected_objects, indices = self.get_selected_from_match(background_objects)
         self.get_new_view_keep_selected(background_objects, indices)
@@ -777,38 +788,53 @@ class OSSinglePortal(object):
             xs=[self.match_Us[0]], 
             ys=[self.match_Us[1]])
 
-        # Gallery
-        print("Updating gallery")
-        self.gallery_index = 0
-        self.gallery_callback()
-
-        # Update
-        self.table_source.data = self.gen_matched_dict(maxN=self.DECIMATE_NUMBER)
-
-        # Geography view
-        print("starting geo")
-        geo_dict = self.gen_matched_dict()
+        # Geography view -- Always view the matched objects in the UMAP
+        #   May update this eventually
+        geo_dict = self.gen_inspect_dict(use_matched=True)
         mercator_x, mercator_y =  portal_utils.mercator_coord(
             np.array(geo_dict['lat']), np.array(geo_dict['lon']))
         geo_dict['xs'] = mercator_x
         geo_dict['ys'] = mercator_y
         self.geo_source.data = geo_dict
 
-        print("geo view")
         self.get_new_geo_view()
         # Geo plot 
-        print(f"geo plot {len(self.geo_source_view.data['xs'])}")
         self.plot_geo()
-        print("finished geo plot")
 
-    def gen_matched_dict(self, maxN=None):
-        # Table
+        # #########################################################3
+        # Inspection tools now
+        self.set_inspect_idx()
+
+        # Gallery
+        self.gallery_index = 0
+
+        self.inspect_callback()
+
+    def inspect_callback(self):
+        # Gallery
+        self.gallery_callback()
+        # Table 
+        self.table_callback()
+
+    def table_callback(self):
+        # Table -- needs to come after geo view
+        self.table_source.data = self.gen_inspect_dict(maxN=self.DECIMATE_NUMBER)
+
+
+    def gen_inspect_dict(self, maxN=None, use_matched=False):
+        # Indices
+        dict_idx = self.match_idx if use_matched else self.inspect_idx
+
         tdict = {}
+        if len(dict_idx) == 0:
+            return tdict
+        #
         if maxN is None:
-            tbl_idx = np.array(self.match_idx)
+            tbl_idx = np.array(dict_idx)
         else:
-            tbl_idx = self.match_idx if len(self.match_idx) < maxN else self.match_idx[:maxN]
+            tbl_idx = dict_idx if len(dict_idx) < maxN else dict_idx[:maxN]
             tbl_idx = np.array(tbl_idx)
+        #
         tdict['index'] = tbl_idx
         # Metrics
         for key in self.metric_dict.keys():
@@ -878,9 +904,10 @@ class OSSinglePortal(object):
                 self.geo_figure.y_range.end = portal_utils.mercator_coord(90., 180.)[1]
             self.get_new_geo_view()
             self.plot_geo()
+
             # Inspecting geo?
             if self.inspect_source == 'geo':
-                self.gallery_callback()
+                self.inspect_callback()
 
         return callback
 
@@ -940,9 +967,6 @@ class OSSinglePortal(object):
         obj_ID = self.find_closest_U((U0,U1))
         self.set_primary_by_objID(obj_ID)
         self.reset_from_primary()
-
-        # 
-        #self.gallery_callback()
 
 
     def prev_set_callback(self, event):
@@ -1028,19 +1052,15 @@ class OSSinglePortal(object):
         """ Load the gallery images and place
         in a bokeh friendly package
         """
-        if self.inspect_source == 'U':
-            inspect_idx = self.match_idx.copy()
-        elif self.inspect_source == 'geo':
-            inspect_idx = self.geo_source_view.data['obj_ID'].tolist()
 
         self.gallery_images = []
         ngallery = self.nrow*self.ncol
-        nmatch = len(inspect_idx) - self.gallery_index
+        nmatch = len(self.inspect_idx) - self.gallery_index
         #
         if nmatch >= ngallery:
-            load_idx = inspect_idx[self.gallery_index:self.gallery_index+ngallery]
+            load_idx = self.inspect_idx[self.gallery_index:self.gallery_index+ngallery]
         else:
-            load_idx = inspect_idx[self.gallery_index:] + [-1]*(ngallery-nmatch)
+            load_idx = self.inspect_idx[self.gallery_index:] + [-1]*(ngallery-nmatch)
         # Load
         self.gallery_images, self.gallery_titles = self.load_images(load_idx)
         # Gallery data
