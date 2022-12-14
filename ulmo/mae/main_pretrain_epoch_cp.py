@@ -211,10 +211,11 @@ def main(args):
             with open(os.path.join(args.output_dir, "log.txt"), mode="a", encoding="utf-8") as f:
                 f.write(json.dumps(log_stats) + "\n")
         
-        # upload and update log file per epoch
-        log_file = args.output_dir + "/log.txt"
-        s3_log_file = "s3://llc/" + log_file
-        ulmo_io.upload_file_to_s3(log_file, s3_log_file)
+        # upload and update log file per 3 epoch
+        if args.output_dir and (epoch % 3 == 0 or epoch + 1 == args.epochs):
+            log_file = args.output_dir + "/log.txt"
+            s3_log_file = "s3://llc/" + log_file
+            ulmo_io.upload_file_to_s3(log_file, s3_log_file)
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
