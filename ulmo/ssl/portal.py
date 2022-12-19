@@ -8,7 +8,7 @@ import h5py
 from bokeh.transform import transform
 
 from bokeh.layouts import column, gridplot, row
-from bokeh.models import ColumnDataSource, Plot
+from bokeh.models import ColumnDataSource
 from bokeh.palettes import Viridis256, Plasma256, Inferno256, Magma256, all_palettes
 from bokeh.models import LinearColorMapper, ColorBar, ColumnDataSource, Range1d, CustomJS, Div, \
     CDSView, BasicTicker
@@ -48,18 +48,15 @@ class Image(object):
 
 class OSSinglePortal(object):
 
-    def __init__(self, sngl_image, opt, 
-                 Nmax=20000, Nclose=1000):
+    def __init__(self, table_file:str,
+                 input_image:np.ndarray=None,
+                 Us:tuple=None): 
 
         self.debug=False
         self.imsize = (64, 64) # Need to consider altering this
         self.verbose = False
 
         # Load UMAP table
-        table_file = os.path.join(
-            os.getenv('SST_OOD'), 
-            'MODIS_L2', 'Tables',
-            'MODIS_SSL_96clear_v4_DT15.parquet')
         self.umap_tbl = ulmo_io.load_main_table(
             table_file)
         self.umap_tbl['DT'] = self.umap_tbl.T90 - self.umap_tbl.T10
@@ -126,13 +123,21 @@ class OSSinglePortal(object):
 
         # ########################################
         # Fill it all in
-        self.input_Image = None
 
-        # Fake the image for now
-        self.img_Us = 2.2, 2.5
-        closest = self.find_closest_U(self.img_Us)
-        self.set_primary_by_objID(closest)
-        self.input_Image = self.primary_Image.copy()
+        if input_image is None:
+            if Us is None:
+                U0 = np.median(self.umap_tbl.US0.values)
+                U1 = np.median(self.umap_tbl.US1.values)
+                self.img_Us = U0, U1
+            else:
+                self.img_Us = Us
+
+            closest = self.find_closest_U(self.img_Us)
+            self.set_primary_by_objID(closest)
+            self.input_Image = self.primary_Image.copy()
+
+            # Dump for testing
+            import pdb; pdb.set_trace()
 
         self.input_img_callback(None)
         self.reset_from_primary()
@@ -1130,10 +1135,14 @@ class OSSinglePortal(object):
 # TESTING
 if __name__ == "__main__":
     #tmp = OSSinglePortal(None, None)
+    table_file = os.path.join(
+            os.getenv('SST_OOD'), 
+            'MODIS_L2', 'Tables',
+            'MODIS_SSL_96clear_v4_DT15.parquet')
 
     # Odd work-around
     def get_session(doc):
-        sess = OSSinglePortal(None, None)
+        sess = OSSinglePortal(table_file)
         #sess = OSSinglePortal(None, None)
         return sess(doc)
 
