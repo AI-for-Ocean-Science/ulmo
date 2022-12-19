@@ -1158,6 +1158,8 @@ def fig_yearly_geo_umap(outfile, geo_region,
     print(f"We have {num_samples} making the UMAP cuts.")
 
     # All
+    #  Counts is the binning of all data on our UMAP grid
+    #  Normalized by all the data (i.e. to 1)
     counts, xedges, yedges = np.histogram2d(
         modis_tbl[umap_keys[0]], 
         modis_tbl[umap_keys[1]], bins=(grid['xval'], 
@@ -1165,6 +1167,8 @@ def fig_yearly_geo_umap(outfile, geo_region,
 
     # Normalize
     counts /= np.sum(counts)
+
+    embed(header='1169 of figs')
 
     # Ratio table
 
