@@ -120,18 +120,16 @@ def umap_subset(modis_tbl:pandas.DataFrame,
             keep = modis_tbl.DT40 > DT_cuts[0]
         else:
             keep = np.abs(modis_tbl.DT40 - DT_cuts[0]) < DT_cuts[1]
-    else: # Do em all!
+    else: # Do em all! (or cut on alpha)
         keep = np.ones(len(modis_tbl), dtype=bool)
 
     # Cut down on alpha
-    if alpha_cut is not None:
+    if DT_cut is None and alpha_cut is not None:
         alpha_cuts = ssl_defs.umap_alpha[alpha_cut]
         if alpha_cuts[1] < 0: # Upper limit?
             keep = modis_tbl.min_slope < alpha_cuts[0]
         else:
             keep = np.abs(modis_tbl.min_slope - alpha_cuts[0]) < alpha_cuts[1]
-    else: # Do em all!
-        keep = np.ones(len(modis_tbl), dtype=bool)
 
     if debug:
         embed(header='138 of umap')
@@ -222,7 +220,7 @@ def umap_subset(modis_tbl:pandas.DataFrame,
         print(f"Training UMAP on a random {ntrain} set of the files")
         random = np.random.choice(np.arange(nlatents), size=ntrain, 
                                 replace=False)
-        reducer_umap = umap.UMAP()
+        reducer_umap = umap.UMAP(random_state=42)
         latents_mapping = reducer_umap.fit(all_latents[random,...])
         print("Done..")
 
@@ -243,8 +241,10 @@ def umap_subset(modis_tbl:pandas.DataFrame,
     srt = np.argsort(sv_idx)
     gd_idx = np.zeros(len(modis_tbl), dtype=bool)
     gd_idx[sv_idx] = True
-    modis_tbl.loc[gd_idx, 'US0'] = embedding[srt,0]
-    modis_tbl.loc[gd_idx, 'US1'] = embedding[srt,1]
+    modis_tbl.US0.values[gd_idx] = embedding[srt,0]
+    modis_tbl.US1.values[gd_idx] = embedding[srt,1]
+    #modis_tbl.loc[gd_idx, 'US0'] = embedding[srt,0]
+    #modis_tbl.loc[gd_idx, 'US1'] = embedding[srt,1]
 
     # Remove DT
     drop_columns = []

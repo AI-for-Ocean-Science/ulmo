@@ -2,17 +2,30 @@
 import os
 import numpy as np
 
+import umap
+
 import torch
 
 from ulmo.ssl import latents_extraction
 from ulmo.ssl import io as ssl_io
 from ulmo import io as ulmo_io
-from ulmo.ssl import umap as ssl_umap
+from ulmo.ssl import ssl_umap
+
+from IPython import embed
 
 def get_latents(img:np.ndarray, 
                 model_file:str, 
                 opt:ulmo_io.Params):
 
+    # Reshape image as need be
+    if len(img.shape) == 2:
+        img = np.expand_dims(img, axis=0) 
+        img = np.expand_dims(img, axis=0) 
+        img = np.repeat(img, 3, axis=1)
+
+    # Pre-process
+    pp_img = img - np.mean(img)
+    
     # Build the SSL model
     model_base = os.path.basename(model_file)
     if not os.path.isfile(model_base):
@@ -21,7 +34,7 @@ def get_latents(img:np.ndarray,
         print(f"Using already downloaded {model_base} for the model")
 
     # DataLoader
-    dset = torch.utils.data.TensorDataset(torch.from_numpy(img).float())
+    dset = torch.utils.data.TensorDataset(torch.from_numpy(pp_img).float())
     data_loader = torch.utils.data.DataLoader(
         dset, batch_size=1, shuffle=False, collate_fn=None,
         drop_last=False, num_workers=1)
@@ -32,8 +45,14 @@ def get_latents(img:np.ndarray,
         model_base, None, None,
          loader=data_loader)
 
+    #embed(header='48 of analyze_image.py')
+    #latents2 = latents_extraction.model_latents_extract(
+    #    opt, 'None', 'valid', 
+    #    model_base, None, None,
+    #     loader=data_loader)
+
     # Return
-    return latents
+    return latents, pp_img
 
 def calc_DT(images, random_jitter:list,
               verbose=False, debug=False):
@@ -51,6 +70,7 @@ def calc_DT(images, random_jitter:list,
     """
     if verbose:
         print("Calculating T90")
+
     # If single image, reshape into fields
     single = False
     if len(images.shape) == 4:
@@ -93,18 +113,18 @@ def umap_image(model:str, img:np.ndarray):
     opt, model_file = ssl_io.load_opt(model)
 
     # Calculate latents
-    latents = get_latents(img, model_file, opt)
+    latents, pp_img = get_latents(img, model_file, opt)
 
-    # T90
-    DT = calc_DT(img[0,0,...], opt.random_jitter)
+    # DT40
+    DT = calc_DT(img, opt.random_jitter)
     print("Image has DT={:g}".format(DT))
 
     # UMAP me
     print("Embedding")
-    latents_mapping, table_file = ssl_umap.load(
-        model, DT=DT)
+    latents_mapping, table_file = ssl_umap.load(model, DT=DT)
     embedding = latents_mapping.transform(latents)
+
     print(f'U0,U1 for the input image = {embedding[0,0]:.3f}, {embedding[0,1]:.3f}')
 
     # Return
-    return embedding, table_file, DT
+    return embedding, pp_img, table_file, DT

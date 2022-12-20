@@ -31,6 +31,7 @@ from ulmo import io as ulmo_io
 from ulmo.utils import catalog 
 #from ulmo.webpage_dynamic import os_portal
 from ulmo.webpage_dynamic import utils as portal_utils
+from ulmo.ssl import analyze_image
 
 from IPython import embed
 
@@ -49,8 +50,8 @@ class Image(object):
 class OSSinglePortal(object):
 
     def __init__(self, table_file:str,
-                 input_image:np.ndarray=None,
-                 Us:tuple=None): 
+                 input_Image:Image=None,
+                 init_Us:list=None):
 
         self.debug=False
         self.imsize = (64, 64) # Need to consider altering this
@@ -124,20 +125,21 @@ class OSSinglePortal(object):
         # ########################################
         # Fill it all in
 
-        if input_image is None:
-            if Us is None:
+        if input_Image is None:
+            if init_Us is None:
                 U0 = np.median(self.umap_tbl.US0.values)
                 U1 = np.median(self.umap_tbl.US1.values)
                 self.img_Us = U0, U1
             else:
-                self.img_Us = Us
+                self.img_Us = init_Us
 
             closest = self.find_closest_U(self.img_Us)
             self.set_primary_by_objID(closest)
             self.input_Image = self.primary_Image.copy()
 
-            # Dump for testing
-            import pdb; pdb.set_trace()
+        else:
+            self.input_Image = input_Image
+            self.primary_Image = input_Image.copy()
 
         self.input_img_callback(None)
         self.reset_from_primary()
@@ -1140,9 +1142,18 @@ if __name__ == "__main__":
             'MODIS_L2', 'Tables',
             'MODIS_SSL_96clear_v4_DT15.parquet')
 
+    tst_Image = None
+
+    # Test on individual image
+    img = np.load('test_image.npy')
+    embedding, pp_img, table_file, DT = analyze_image.umap_image('v4', img)
+    Us = embedding[0,:]
+    tst_Image = Image(pp_img[0,0,...], Us.tolist(), 
+                      DT, lat=150., lon=150.)
+
     # Odd work-around
     def get_session(doc):
-        sess = OSSinglePortal(table_file)
+        sess = OSSinglePortal(table_file, input_Image=tst_Image)
         #sess = OSSinglePortal(None, None)
         return sess(doc)
 

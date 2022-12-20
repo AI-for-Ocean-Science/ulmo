@@ -1,6 +1,5 @@
 """ Script to run Web Portal"""
 
-import enum
 from IPython import embed
 
 def parser(options=None):

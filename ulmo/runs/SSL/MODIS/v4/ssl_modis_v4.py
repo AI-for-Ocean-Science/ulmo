@@ -28,7 +28,7 @@ from ulmo.preproc import utils as pp_utils
 from ulmo.ssl.util import adjust_learning_rate
 from ulmo.ssl.util import set_optimizer, save_model
 from ulmo.ssl import latents_extraction
-from ulmo.ssl import umap as ssl_umap
+from ulmo.ssl import ssl_umap
 from ulmo.ssl import defs as ssl_defs
 
 from ulmo.ssl.train_util import option_preprocess
@@ -916,7 +916,8 @@ def ssl_v4_umap(opt_path:str, debug=False, local=False, metric:str='DT40'):
         subsets =  ['DT15', 'DT0', 'DT1', 'DT2', 'DT4', 'DT5', 'DTall']
     elif metric == 'alpha':
         subsets = list(ssl_defs.umap_alpha.keys())
-        #subsets = ['a2']
+        if debug:
+            subsets = ['a0']
     else:
         raise ValueError("Bad metric")
 
@@ -945,9 +946,15 @@ def ssl_v4_umap(opt_path:str, debug=False, local=False, metric:str='DT40'):
 
         # Run
         if os.path.isfile(umap_savefile):
+            print(f"Skipping UMAP training as {umap_savefile} already exists")
             train_umap = False
         else:
             train_umap = True
+        # Can't do both so quick check
+        if DT_cut is not None and alpha_cut is not None:
+            raise ValueError("Can't do both DT and alpha cuts")
+
+        # Do it
         ssl_umap.umap_subset(modis_tbl.copy(),
                              opt_path, 
                              outfile, 

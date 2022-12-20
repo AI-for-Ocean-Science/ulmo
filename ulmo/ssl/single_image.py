@@ -4,6 +4,7 @@ from pkg_resources import resource_filename
 import numpy as np
 
 import torch
+import h5py
 from torch.utils.data import Dataset
 from torchvision import transforms
 
