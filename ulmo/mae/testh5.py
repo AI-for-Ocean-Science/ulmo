@@ -21,7 +21,7 @@ llc_modis_uniform_train, llc_modis_uniform_test = train_test_split(
 
 print("Storing in new file")
 
-filepath_split = 'LLC_uniform_test_preproc_split.h5'
+filepath_split = 'LLC_uniform144_nonoise_preproc_split.h5'
 with h5py.File(filepath_split, 'w') as f:
     f.create_dataset('valid', data=llc_modis_uniform_train)
     f.create_dataset('test', data=llc_modis_uniform_test)
