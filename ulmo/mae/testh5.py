@@ -1,6 +1,7 @@
 import h5py
 import numpy as np
 from sklearn.model_selection import train_test_split
+import os
 
 
 filepath = "LLC_uniform144_nonoise_preproc.h5"
@@ -20,6 +21,7 @@ llc_modis_uniform_train, llc_modis_uniform_test = train_test_split(
      llc_modis_uniform, test_size=0.4, random_state=0)
 
 print("Storing in new file")
+os.remove("LLC_uniform144_nonoise_preproc.h5")
 
 filepath_split = 'LLC_uniform144_nonoise_preproc_split.h5'
 with h5py.File(filepath_split, 'w') as f:
