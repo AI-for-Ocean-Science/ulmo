@@ -885,10 +885,10 @@ def fig_umap_geo(outfile:str, table:str, umap_rngs:list,
     gl.ylabel_style = {'color': 'black'}# 'weight': 'bold'}
 
     # Rectangle?
-    if show_regions == 'weak':
-        regions = ['eqpacific', 'med']
-    elif show_regions == 'strong':
-        regions = ['south_atlantic', 'south_pacific']
+    if 'weak' in show_regions:
+        regions = ['eqpacific', 'south_atlantic']
+    elif 'strong' in show_regions:
+        regions = ['gulfstream', 'eqindian'] #'south_pacific']
     else:
         regions = []
 
@@ -1173,8 +1173,6 @@ def fig_yearly_geo_umap(outfile, geo_region,
 
     # Normalize
     counts /= np.sum(counts)
-
-    embed(header='1169 of figs')
 
     # Ratio table
 
@@ -1877,15 +1875,23 @@ def main(pargs):
         #    debug=pargs.debug, local=pargs.local)
 
     if pargs.figure == 'yearly_geo':
+
         # Equatorial Pacific
-        fig_yearly_geo_umap('fig_yearly_geo_DT15_eqpacific.png',
-            'eqpacific', rtio_cut=1.5, slope_pos='bottom',
+        if pargs.region in ['eqpacific']:
+            rcut = 1.5
+        else:
+            rcut = 1.25
+        if pargs.region in ['eqpacific', 'gulfstream']:
+            slope_pos = 'bottom'
+        else:
+            slope_pos = 'top'
+
+        fig_yearly_geo_umap(f'fig_yearly_geo_DT1_{pargs.region}.png', 
+                     pargs.region,
+                     table=pargs.table,
+                     rtio_cut=rcut, slope_pos=slope_pos,
             debug=pargs.debug, local=pargs.local)
 
-        # Med
-        fig_yearly_geo_umap('fig_yearly_geo_DT15_med.png',
-            'med', rtio_cut=1.25,
-            debug=pargs.debug, local=pargs.local)
 
         # Global using Med
         #fig_yearly_geo_umap('fig_yearly_geo_DT15_global_med.png',

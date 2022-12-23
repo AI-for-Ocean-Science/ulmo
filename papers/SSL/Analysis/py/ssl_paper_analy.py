@@ -34,18 +34,24 @@ geo_regions = {}
 geo_regions['eqpacific'] = dict(
     lons=[-140, -90.],   # W
     lats=[-5, 5.])    # Equitorial 
+geo_regions['eqindian'] = dict(
+    lons=[60, 90.],   # E
+    lats=[-5, 5.])    # Equitorial 
 geo_regions['baybengal'] = dict(
     lons=[79, 95.],   # E
     lats=[16, 23.])    # N
+geo_regions['gulfstream'] = dict(
+    lons=[-70, -40.],   # W
+    lats=[40, 50.])    # N
 geo_regions['med'] = dict(
     lons=[0, 20.],   # E
     lats=[30, 45.])    # N
 geo_regions['south_atlantic'] = dict(
     lons=[-35, 10.],   # W (Pretty crude)
-    lats=[-20, -10.])      # N
+    lats=[-30, -20.])      # N
 geo_regions['south_pacific'] = dict(
     lons=[-140, -90.],   # W (Pretty crude)
-    lats=[-20, -10.])      # S
+    lats=[-30, -20.])      # S
 geo_regions['global'] = dict(
     lons=[-999., 999.],   # E
     lats=[-999, 999.])    # N
@@ -58,7 +64,7 @@ umap_rngs_dict = {}
 #umap_rngs_dict['weak_DT15'] = [[1.5,3.],  # DT15, old UMAP
 #                          [1.5,3]]
 umap_rngs_dict['weak_DT1'] = [[-1, 1.4],  # DT1, new UMAP
-                          [-3.,-0.3]]
+                          [-2.5,-0.3]]
 #umap_rngs_dict['weak_DT1'] = [[-1, 1.],  # DT1, new UMAP
 #                          [-3.,-0.5]]
 umap_rngs_dict['strong_DT1'] = [[4.7,8],  # DT1, new UMAP
