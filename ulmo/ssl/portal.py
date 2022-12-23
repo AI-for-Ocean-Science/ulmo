@@ -650,8 +650,8 @@ class OSSinglePortal(object):
             self.U1_text.text = f'U1: {self.primary_Image.Us[1]:.2f}'
         # Color bar
         if first_init or reinit:
-            self.PCB_low.value = f'{np.percentile(self.primary_Image.image,10):.1f}'
-            self.PCB_high.value = f'{np.percentile(self.primary_Image.image,90):.1f}'
+            self.PCB_low.value = f'{np.percentile(self.primary_Image.image,1):.1f}'
+            self.PCB_high.value = f'{np.percentile(self.primary_Image.image,99):.1f}'
         self.prim_color_mapper = LinearColorMapper(
             palette="Turbo256", 
             low=float(self.PCB_low.value),
@@ -1163,3 +1163,9 @@ if __name__ == "__main__":
     obj = OSSinglePortal(None, None)
     '''
         
+
+# THINGS TO FIX
+
+# 1. Turn off double click
+# 2. Include name of the Table
+# 3. Status -- Be patient
