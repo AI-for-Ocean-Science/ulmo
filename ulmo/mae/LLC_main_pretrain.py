@@ -123,7 +123,7 @@ def main(args):
     cudnn.benchmark = True
 
     filepath = "LLC_uniform144_nonoise_preproc.h5"
-    dataset_train = HDF5Dataset(datapath, partition='valid')
+    dataset_train = HDF5Dataset(args.data_path, partition='valid')
     
     # ???
     if global_rank == 0 and args.log_dir is not None:
