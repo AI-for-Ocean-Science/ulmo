@@ -80,11 +80,11 @@ import ssl_paper_analy
 def parse_umap_rngs(inp):
     # Parse
     if ',' in inp:
-        sp = pargs.umap_rngs.split(',')
+        sp = inp.split(',')
         umap_rngs = [[float(sp[0]), float(sp[1])], 
             [float(sp[2]), float(sp[3])]]
     else:
-        umap_rngs = ssl_paper_analy.umap_rngs_dict[pargs.umap_rngs]
+        umap_rngs = ssl_paper_analy.umap_rngs_dict[inp]
 
     return umap_rngs
 
@@ -435,6 +435,7 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
                      min_pts=10,
                      umap_dim=2,
                      umap_rngs=None,
+                     extra_umap_rngs=None,
                      use_std_lbls=True,
                      cut_to_inner:int=None,
                      debug=False): 
@@ -660,9 +661,20 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
         rect = Rectangle((umap_rngs[0][0], umap_rngs[1][0]),
             umap_rngs[0][1]-umap_rngs[0][0],
             umap_rngs[1][1]-umap_rngs[1][0],
-            linewidth=2, edgecolor='k', facecolor='none',
+            linewidth=2, edgecolor='k', facecolor='none', ls='--',
             zorder=10)
         ax_gallery.add_patch(rect)
+
+    # Another?
+    if extra_umap_rngs is not None:
+        umap_rngs = parse_umap_rngs(extra_umap_rngs)
+            # Create patch collection with specified colour/alpha
+        rect2 = Rectangle((umap_rngs[0][0], umap_rngs[1][0]),
+            umap_rngs[0][1]-umap_rngs[0][0],
+            umap_rngs[1][1]-umap_rngs[1][0],
+            linewidth=2, edgecolor='k', facecolor='none', ls='dotted',
+            zorder=10)
+        ax_gallery.add_patch(rect2)
 
 
     # Incidence plot
@@ -1711,6 +1723,9 @@ def main(pargs):
         if pargs.table == '96clear_v4_DT15':
             binx=np.linspace(0,10.5,30)
             biny=np.linspace(1,9.5,30)
+        elif pargs.table == '96clear_v4_DT1':
+            binx=np.linspace(-1,10.5,30)
+            biny=np.linspace(-3.5,4.5,30)
         else:
             binx=np.linspace(2,12.5,30)
             biny=np.linspace(-0.5,9,30)
@@ -1764,6 +1779,7 @@ def main(pargs):
             umap_dim=pargs.umap_dim,
             umap_comp=pargs.umap_comp,
             umap_rngs=pargs.umap_rngs,
+            extra_umap_rngs=pargs.extra_umap_rngs,
             cut_to_inner=40)
 
     if pargs.figure == 'umap_density':
@@ -2002,6 +2018,7 @@ def parse_option():
     parser.add_argument('--umap_dim', type=int, default=2, help="UMAP embedding dimensions")
     parser.add_argument('--umap_comp', type=str, default='0,1', help="UMAP embedding dimensions")
     parser.add_argument('--umap_rngs', type=str, help="UMAP ranges for analysis")
+    parser.add_argument('--extra_umap_rngs', type=str, help="Extra UMAP ranges for analysis")
     parser.add_argument('--vmnx', default='-1,1', type=str, help="Color bar scale")
     parser.add_argument('--region', type=str, help="Geographic region")
     parser.add_argument('--min_counts', type=int, help="Minimum counts for analysis")

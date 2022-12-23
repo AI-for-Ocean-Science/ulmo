@@ -55,11 +55,13 @@ geo_regions['north'] = dict(
 
 # UMAP ranges for the paper
 umap_rngs_dict = {}
-#umap_rngs_dict['weak'] = [[1.5,3.],  # DT15, old UMAP
+#umap_rngs_dict['weak_DT15'] = [[1.5,3.],  # DT15, old UMAP
 #                          [1.5,3]]
-umap_rngs_dict['weak'] = [[1.5,3.3],  # DT15
-                          [2.1,3.5]]
-umap_rngs_dict['strong'] = [[4.7,8],  # DT1
+umap_rngs_dict['weak_DT1'] = [[-1, 1.4],  # DT1, new UMAP
+                          [-3.,-0.3]]
+#umap_rngs_dict['weak_DT1'] = [[-1, 1.],  # DT1, new UMAP
+#                          [-3.,-0.5]]
+umap_rngs_dict['strong_DT1'] = [[4.7,8],  # DT1, new UMAP
                           [2.4,4]]
 
 def load_modis_tbl(table:str=None, 
