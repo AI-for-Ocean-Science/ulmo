@@ -1169,3 +1169,5 @@ if __name__ == "__main__":
 # 1. Turn off double click
 # 2. Include name of the Table
 # 3. Status -- Be patient
+# 4. Slider bar for the color bar range
+# 5. Does Bokeh have jet?
