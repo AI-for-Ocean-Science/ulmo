@@ -7,7 +7,7 @@ import torch.optim as optim
 
 
 class TwoCropTransform:
-    """Create two crops of the same image"""
+    """Create two transformations of the same image"""
     def __init__(self, transform):
         self.transform = transform
 

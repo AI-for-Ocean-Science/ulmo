@@ -21,7 +21,6 @@ from matplotlib.patches import Rectangle
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 import cartopy.crs as ccrs
 import cartopy
-from sympy import im
 
 mpl.rcParams['font.family'] = 'stixgeneral'
 
@@ -74,11 +73,9 @@ metric_lbls = dict(min_slope=r'$\alpha_{\rm min}$',
                    merid_slope=r'$\alpha_{\rm AT}}$',
                    )
 
-umap_rngs_dict = {}
-umap_rngs_dict['weak'] = [[1.5,3.],  # DT15
-                          [1.5,3]]
-umap_rngs_dict['strong'] = [[4.7,8],  # DT1
-                          [2.4,4]]
+# Local
+sys.path.append(os.path.abspath("../Analysis/py"))
+import ssl_paper_analy
 
 def parse_umap_rngs(inp):
     # Parse
@@ -87,13 +84,10 @@ def parse_umap_rngs(inp):
         umap_rngs = [[float(sp[0]), float(sp[1])], 
             [float(sp[2]), float(sp[3])]]
     else:
-        umap_rngs = umap_rngs_dict[pargs.umap_rngs]
+        umap_rngs = ssl_paper_analy.umap_rngs_dict[pargs.umap_rngs]
 
     return umap_rngs
 
-# Local
-sys.path.append(os.path.abspath("../Analysis/py"))
-import ssl_paper_analy
 
 def update_outfile(outfile, table, umap_dim=2,
                    umap_comp=None):
