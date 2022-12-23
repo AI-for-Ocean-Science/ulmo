@@ -26,7 +26,7 @@ setup_keywords['install_requires'] = [
     'torchvision', 'seaborn', 'smart-open[s3]', 'pyarrow',
     'scikit-learn', 'scikit-image', 'tqdm', 'astropy', 'astropy-healpix',
     'healpy', 'cftime', 'bokeh', 'umap-learn', 'llvmlite', 'boto3',
-    'importlib-metadata', 'timm==0.3.2', 'numpy==1.20.3']
+    'importlib-metadata', 'timm==0.3.2', 'numpy==1.23.3']
 setup_keywords['zip_safe'] = False
 setup_keywords['use_2to3'] = False
 setup_keywords['packages'] = find_packages()
