@@ -128,12 +128,6 @@ def main(args):
     if True:  # args.distributed:
         num_tasks = misc.get_world_size()
         global_rank = misc.get_rank()
-        sampler_train = torch.utils.data.DistributedSampler(
-            dataset_train, num_replicas=num_tasks, rank=global_rank, shuffle=True
-        )
-        print("Sampler_train = %s" % str(sampler_train))
-    else:
-        sampler_train = torch.utils.data.RandomSampler(dataset_train)
     
     # ???
     if global_rank == 0 and args.log_dir is not None:
@@ -144,7 +138,7 @@ def main(args):
     
     
     data_loader_train = torch.utils.data.DataLoader(
-        dataset_train, sampler=sampler_train,
+        dataset_train,
         batch_size=args.batch_size,
         num_workers=args.num_workers,
         pin_memory=args.pin_mem,
