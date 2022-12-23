@@ -1,3 +1,4 @@
+
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 
@@ -219,6 +220,21 @@ class MaskedAutoencoderViT(nn.Module):
         loss = self.forward_loss(imgs, pred, mask)
         return loss, pred, mask
     
+    def return_latent(self, imgs, mask_ration=0.75):
+        latent, mask, ids_restore = self.forward_encoder(imgs, mask_ratio)
+        # debugging step to check the latent (do numpy.save)
+        # check to shape
+        # format to file
+        
+        
+# MAE Model
+def mae_vit_LLC_patch4(**kwargs):
+    model = MaskedAutoencoderViT( # changing embed_dim from 768 fucks it up big time
+        patch_size=4, embed_dim=256, depth=12, num_heads=16,
+        decoder_embed_dim=512, decoder_depth=8, decoder_num_heads=16,
+        mlp_ratio=4, norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
+    return model
+    
     
 def mae_vit_base_patch16_dec512d8b(**kwargs):
     model = MaskedAutoencoderViT(
@@ -227,17 +243,9 @@ def mae_vit_base_patch16_dec512d8b(**kwargs):
         mlp_ratio=4, norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
     return model
 
-
 def mae_vit_large_patch16_dec512d8b(**kwargs):
     model = MaskedAutoencoderViT(
         patch_size=16, embed_dim=1024, depth=24, num_heads=16,
-        decoder_embed_dim=512, decoder_depth=8, decoder_num_heads=16,
-        mlp_ratio=4, norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
-    return model
-
-def mae_vit_LLC_patch4(**kwargs):
-    model = MaskedAutoencoderViT(
-        patch_size=4, embed_dim=768, depth=12, num_heads=12,
         decoder_embed_dim=512, decoder_depth=8, decoder_num_heads=16,
         mlp_ratio=4, norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
     return model
