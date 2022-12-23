@@ -1144,12 +1144,6 @@ if __name__ == "__main__":
 
     tst_Image = None
 
-    # Test on individual image
-    img = np.load('test_image.npy')
-    embedding, pp_img, table_file, DT = analyze_image.umap_image('v4', img)
-    Us = embedding[0,:]
-    tst_Image = Image(pp_img[0,0,...], Us.tolist(), 
-                      DT, lat=150., lon=150.)
 
     # Odd work-around
     def get_session(doc):
