@@ -19,6 +19,7 @@ from pathlib import Path
 import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
+import torch.multiprocessing as mp
 from torch.utils.tensorboard import SummaryWriter
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
@@ -106,9 +107,29 @@ def get_args_parser():
 
     return parser
 
+def ddp_setup():
+    torch.distributed.init_process_group(backend="nccl")
+
+def get_available_devices():
+    """Get IDs of all available GPUs.
+
+    Returns:
+        device (torch.device): Main device (GPU 0 or CPU).
+        gpu_ids (list): List of IDs of all GPUs that are available.
+    """
+    gpu_ids = []
+    if torch.cuda.is_available():
+        gpu_ids += [gpu_id for gpu_id in range(torch.cuda.device_count())]
+        device = torch.device(f'cuda:{gpu_ids[0]}')
+        torch.cuda.set_device(device)
+    else:
+        device = torch.device('cpu')
+
+    return device, gpu_ids
 
 def main(args):
-    misc.init_distributed_mode(args)
+    ddp_setup()
+    #misc.init_distributed_mode(args)
 
     print('job dir: {}'.format(os.path.dirname(os.path.realpath(__file__))))
     print("{}".format(args).replace(', ', ',\n'))
@@ -157,8 +178,6 @@ def main(args):
     
     print("training", len(data_loader_train.dataset) )
     print("Datasets loaded")
-
-    
     
      # define the model
     model = models_mae.__dict__[args.model](norm_pix_loss=args.norm_pix_loss)
@@ -193,10 +212,12 @@ def main(args):
 
     print("accumulate grad iterations: %d" % args.accum_iter)
     print("effective batch size: %d" % eff_batch_size)
-
-    if args.distributed:
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], find_unused_parameters=True)
+    
+    if True:
+        device, gpu_ids = get_available_devices()
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[gpu_ids], find_unused_parameters=True)
         model_without_ddp = model.module
+        print("args.gpu??", gpu_ids)
     
     # following timm: set wd as 0 for bias and norm layers
     param_groups = optim_factory.add_weight_decay(model_without_ddp, args.weight_decay)
@@ -209,7 +230,7 @@ def main(args):
     print(f"Start training for {args.epochs} epochs")
     start_time = time.time()
     for epoch in range(args.start_epoch, args.epochs):
-        if args.distributed:
+        if True:
             data_loader_train.sampler.set_epoch(epoch)
         train_stats = train_one_epoch(
             model, data_loader_train,
@@ -225,7 +246,7 @@ def main(args):
                 loss_scaler=loss_scaler, epoch=epoch)
             
             # create filenames
-            local_file = os.path.join(args.output_dir, '/checkpoint-%s.pth' % epoch)
+            local_file = os.path.join(args.output_dir, 'checkpoint-%s.pth' % epoch)
             s3_file = os.path.join("s3://llc/mae", local_file)
             if local_file[:2] == './':    # remove ./ if hidden output folder
                 s3_file = os.path.join('s3://llc/mae', local_file[2:]) 
