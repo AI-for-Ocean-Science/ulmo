@@ -225,7 +225,7 @@ def main(args):
                 loss_scaler=loss_scaler, epoch=epoch)
             
             # create filenames
-            local_file = os.path.join(args.output_dir, '/checkpoint-%s.pth' % epoch)
+            local_file = os.path.join(args.output_dir, 'checkpoint-%s.pth' % epoch)
             s3_file = os.path.join("s3://llc/mae", local_file)
             if local_file[:2] == './':    # remove ./ if hidden output folder
                 s3_file = os.path.join('s3://llc/mae', local_file[2:]) 
