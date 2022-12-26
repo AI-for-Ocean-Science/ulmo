@@ -47,7 +47,7 @@ def train_one_epoch(model: torch.nn.Module,
         with torch.cuda.amp.autocast():
             loss, _, _ = model(samples, mask_ratio=args.mask_ratio)
         
-        #loss = loss.mean()
+        loss = loss.mean() # comment this out when testing DDP
         loss_value = loss.item()
 
         if not math.isfinite(loss_value):

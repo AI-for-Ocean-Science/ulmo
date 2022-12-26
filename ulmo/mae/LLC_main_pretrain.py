@@ -128,8 +128,8 @@ def get_available_devices():
     return device, gpu_ids
 
 def main(args):
-    ddp_setup()
-    #misc.init_distributed_mode(args)
+    #ddp_setup()
+    misc.init_distributed_mode(args)
 
     print('job dir: {}'.format(os.path.dirname(os.path.realpath(__file__))))
     print("{}".format(args).replace(', ', ',\n'))
@@ -178,7 +178,7 @@ def main(args):
     
     print("training", len(data_loader_train.dataset) )
     print("Datasets loaded")
-    
+    '''
      # define the model
     model = models_mae.__dict__[args.model](norm_pix_loss=args.norm_pix_loss)
 
@@ -187,7 +187,7 @@ def main(args):
     model_without_ddp = model
     print("Model = %s" % str(model_without_ddp))
     
-    ''' OLD: testing if multiple gpu's works by changing world_size
+    ''' # OLD: testing if multiple gpu's works by changing world_size
     # define the model
     model = models_mae.__dict__[args.model](norm_pix_loss=args.norm_pix_loss)
     
@@ -200,7 +200,7 @@ def main(args):
 
     model_without_ddp = model
     print("Model = %s" % str(model_without_ddp))
-    '''
+    
 
     eff_batch_size = args.batch_size * args.accum_iter * misc.get_world_size()
     
@@ -213,11 +213,9 @@ def main(args):
     print("accumulate grad iterations: %d" % args.accum_iter)
     print("effective batch size: %d" % eff_batch_size)
     
-    if True:
-        device, gpu_ids = get_available_devices()
+    if args.distrubuted:
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[gpu_ids], find_unused_parameters=True)
         model_without_ddp = model.module
-        print("args.gpu??", gpu_ids)
     
     # following timm: set wd as 0 for bias and norm layers
     param_groups = optim_factory.add_weight_decay(model_without_ddp, args.weight_decay)
@@ -230,7 +228,7 @@ def main(args):
     print(f"Start training for {args.epochs} epochs")
     start_time = time.time()
     for epoch in range(args.start_epoch, args.epochs):
-        if True:
+        if args.distributed:
             data_loader_train.sampler.set_epoch(epoch)
         train_stats = train_one_epoch(
             model, data_loader_train,
