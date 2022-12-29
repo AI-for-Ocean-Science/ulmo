@@ -160,7 +160,8 @@ def fig_augmenting(outfile='fig_augmenting.png', use_s3=False):
     # No augmentation
     ax0 = plt.subplot(gs[0])
     sns.heatmap(img[0,...], ax=ax0, xticklabels=[], 
-                yticklabels=[], cmap=cm, cbar=False)
+                yticklabels=[], cmap=cm, cbar=False,
+                square=True)
 
     # Temperature range
     Trange = img[0,...].min(), img[0,...].max()
@@ -168,7 +169,7 @@ def fig_augmenting(outfile='fig_augmenting.png', use_s3=False):
     
     # Augment me
     loader = ssl_simage.image_loader(img, version='v4')
-    test_batch = iter(loader).next()
+    test_batch = next(iter(loader))
     img1, img2 = test_batch
     # Should be: Out[2]: torch.Size([1, 3, 64, 64])
 
@@ -184,13 +185,15 @@ def fig_augmenting(outfile='fig_augmenting.png', use_s3=False):
     ax1 = plt.subplot(gs[1])
     sns.heatmap(img1[0,0,...], ax=ax1, xticklabels=[], 
                 yticklabels=[], cbar=False, cmap=cm,
-                vmin=Trange[0], vmax=Trange[1])
+                vmin=Trange[0], vmax=Trange[1],
+                square=True)
     ax2 = plt.subplot(gs[2])
     sns.heatmap(img2[0,0,...], ax=ax2, xticklabels=[], 
                 yticklabels=[], cbar=False, cmap=cm,
-                vmin=Trange[0], vmax=Trange[1])
+                vmin=Trange[0], vmax=Trange[1],
+                square=True)
 
-    # plt.tight_layout(pad=0.5, h_pad=0.5, w_pad=0.5)
+    plt.tight_layout(pad=0.5, h_pad=0.5, w_pad=0.5)
     plt.savefig(outfile, dpi=300)
     plt.close()
     print('Wrote {:s}'.format(outfile))
@@ -837,7 +840,7 @@ def fig_umap_geo(outfile:str, table:str, umap_rngs:list,
         color = 'Blues'
     else:
         hp_plot = ratio
-        lbl = "Relative Frequency"
+        lbl = r"Relative Fraction ($f_r$)"
         vmax = 2.
 
 
@@ -916,8 +919,9 @@ def fig_geo_umap(outfile:str, geo_region:str,
                      min_counts=200,
                      umap_dim=2, cmap='bwr',
                      show_cbar:bool=False,
+                     verbose:bool=False,
                      debug=False): 
-    """ Relative frequency in umap space of a particulare
+    """ Relative frequency in umap space of a particular
     geographic region
 
     Args:
@@ -941,7 +945,7 @@ def fig_geo_umap(outfile:str, geo_region:str,
                              umap_comp=umap_comp)
     # Grid
     grid = ssl_paper_analy.grid_umap(modis_tbl[umap_keys[0]].values, 
-        modis_tbl[umap_keys[1]].values)
+        modis_tbl[umap_keys[1]].values, verbose=verbose)
  
     # cut
     good = (modis_tbl[umap_keys[0]] > grid['xmin']) & (
@@ -989,16 +993,18 @@ def fig_geo_umap(outfile:str, geo_region:str,
     plt.clf()
     ax = plt.gca()
 
+    ax.set_xlabel(r'$U_0$')
+    ax.set_ylabel(r'$U_1$')
 
-    ax.set_xlabel(r'$'+umap_keys[0]+'$')
-    ax.set_ylabel(r'$'+umap_keys[1]+'$')
+    #ax.set_xlabel(r'$'+umap_keys[0]+'$')
+    #ax.set_ylabel(r'$'+umap_keys[1]+'$')
 
     #ax.set_xlim(xmin, xmax)
     #ax.set_ylim(ymin, ymax)
 
     cm = plt.get_cmap(cmap)
     values = rtio_counts.transpose()
-    lbl = 'Relative Frequency'
+    lbl = r'Relative Frequency ($f_b$)'
     vmin, vmax = 0, 2.
     mplt = ax.pcolormesh(xedges, yedges, values, 
                          cmap=cm, vmin=vmin, vmax=vmax) 
@@ -1299,19 +1305,22 @@ def fig_yearly_geo_umap(outfile, geo_region,
     if slope_pos == 'top':
         ysl = 0.9
     else:
-        ysl = 0.1
+        ysl = 0.05
     ax_time.text(0.02, ysl,
             f"slope={result_dict['slope']:0.5f} +/- {result_dict['slope_err']:0.5f}",
             transform=ax_time.transAxes,
             fontsize=15, ha='left', color='k')
     ax_time.set_xlabel('Time')
+    ax_time.set_ylabel(r'$f_c$')
 
     # Seasonal
     ax_seasonal = plt.subplot(gs[1])
     xval = np.arange(12) + 1
     ax_seasonal.plot(xval, result_dict['seasonal'], 'g')
+    #embed(header='1317 of figs')
 
     ax_seasonal.set_xlabel('Month')
+    ax_seasonal.set_ylabel(r'$\Delta f_c$')
 
     # Finish
     for ax in [ax_time, ax_seasonal]:
@@ -1626,10 +1635,10 @@ def fig_learn_curve(outfile='fig_learn_curve.png'):
 
     ax = plt.subplot(gs[0])
 
-    ax.plot(loss_valid, label='valid', lw=3)
-    ax.plot(loss_train, c='red', label='train', lw=3)
+    ax.plot(loss_valid, label='validation', lw=3)
+    ax.plot(loss_train, c='red', label='training', lw=3)
 
-    ax.legend(fontsize=19.)
+    ax.legend(fontsize=23.)
 
     # Label
     ax.set_xlabel("Epoch")
@@ -1846,7 +1855,8 @@ def main(pargs):
 
         fig_geo_umap(pargs.outfile, pargs.region,
             debug=pargs.debug, local=pargs.local,
-            table=pargs.table, show_cbar=True)
+            table=pargs.table, show_cbar=True,
+            verbose=pargs.verbose)
 
         # Coastal California
         #fig_geo_umap('fig_geo_umap_DT15_california.png',
@@ -2037,6 +2047,8 @@ def parse_option():
                         help='Table to load: [std, CF, CF_DT2')
     parser.add_argument('--debug', default=False, action='store_true',
                         help='Debug?')
+    parser.add_argument('--verbose', default=False, action='store_true',
+                        help='Verbose?')
     args = parser.parse_args()
     
     return args

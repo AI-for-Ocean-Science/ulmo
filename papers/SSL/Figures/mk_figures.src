@@ -10,11 +10,25 @@
 # Slope vs DT -- python py/fig_ssl_modis.py slopevsDT --local --table 96_v4
 
 # FIGURE 4
-#  python py/fig_ssl_modis.py augment 
+# python py/fig_ssl_modis.py augment 
+ # Last run on 2022-Dec-27 by JXP
+# Temperature range: (-1.0876675, 0.90483284)
+# Shape of image: (64, 64, 1)
+# RandomFlip: [1 0]
+# RandomRotate: [320.93488]
+# Shape of image input to JitterCrop: (64, 64, 1)
+# JitterCrop: (32, 27)
+# Shape exiting JitterCrop: (64, 64, 1)
+# Shape of image: (64, 64, 1)
+# RandomFlip: [0 0]
+# RandomRotate: [17.870785]
+# Shape of image input to JitterCrop: (64, 64, 1)
+# JitterCrop: (30, 34)
+# Shape exiting JitterCrop: (64, 64, 1)
 
 
 # FIGURE 5 -- Learning curve
-#  python py/fig_ssl_modis.py learning_curve
+# python py/fig_ssl_modis.py learning_curve
 
 # Figure 6
 # UMAP DTAll colored by DT (all) -- 
@@ -40,20 +54,20 @@
 # python py/fig_ssl_modis.py umap_geo --local --outfile fig_umap_geo_global_DT1_strong.png --table 96clear_v4_DT1  --umap_rngs=strong_DT1 --min_counts=5 --umap_rngs strong_DT1
 
 # Figure 13 Equator and Med
-# python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_eqpacific.png --table 96clear_v4_DT1  --region=eqpacific
-# python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_med.png --table 96clear_v4_DT1  --region=med
+python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_eqpacific.png --table 96clear_v4_DT1  --region=eqpacific --verbose
+python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_med.png --table 96clear_v4_DT1  --region=med
 
 # Figure 14 South Atlantic/Pacific 
-# python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_southatlantic.png --table 96clear_v4_DT1  --region=south_atlantic
-# python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_southpacific.png --table 96clear_v4_DT1  --region=south_pacific
-# python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_eqindian.png --table 96clear_v4_DT1  --region=eqindian
-# python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_gulfstream.png --table 96clear_v4_DT1  --region=gulfstream
+python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_southatlantic.png --table 96clear_v4_DT1  --region=south_atlantic
+python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_southpacific.png --table 96clear_v4_DT1  --region=south_pacific
+python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_eqindian.png --table 96clear_v4_DT1  --region=eqindian
+python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_gulfstream.png --table 96clear_v4_DT1  --region=gulfstream
 
 # Figure 15 Time Series EqPacific, Med
 # python py/fig_ssl_modis.py yearly_geo --local --region eqpacific --table 96clear_v4_DT1
 # python py/fig_ssl_modis.py yearly_geo --local --region med --table 96clear_v4_DT1
 
-python py/fig_ssl_modis.py yearly_geo --local --region gulfstream --table 96clear_v4_DT1
+# python py/fig_ssl_modis.py yearly_geo --local --region gulfstream --table 96clear_v4_DT1
 
 
 # APPENDIX

@@ -295,8 +295,8 @@ def gen_umap_keys(umap_dim:int, umap_comp:str):
     return umap_keys
 
 
-def grid_umap(U0, U1, nxy:int=16, 
-              percent:list=[0.1, 99.9]):
+def grid_umap(U0:np.ndarray, U1:np.ndarray, nxy:int=16, 
+              percent:list=[0.05, 99.95], verbose=False):
     """ 
     """
 
@@ -305,6 +305,9 @@ def grid_umap(U0, U1, nxy:int=16,
     ymin, ymax = np.percentile(U1, percent)
     dxv = (xmax-xmin)/nxy
     dyv = (ymax-ymin)/nxy
+
+    if verbose:
+        print(f"DU_0={dxv} and DU_1={dyv}")
 
     # Edges
     xmin -= dxv
