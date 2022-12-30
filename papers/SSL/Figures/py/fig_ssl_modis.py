@@ -269,13 +269,15 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
         lmetric = r'$\Delta T$'
     elif metric == 'DT40':
         values = modis_tbl.DT40.values
-        lmetric = r'$\Delta T_{\rm 40}$'
+        lmetric = r'$\log \Delta T$'
+        #lmetric = r'$\Delta T_{\rm 40}$'
     elif metric == 'logDT40':
         values = np.log10(modis_tbl.DT40.values)
         lmetric = r'$\log \Delta T_{\rm 40}$'
     elif metric == 'clouds':
         values = modis_tbl.clear_fraction
     elif metric == 'slope':
+        lmetric = r'slope ($\alpha_{\rm min}$)'
         values = modis_tbl.min_slope.values
     else:
         raise IOError("Bad metric!")
@@ -795,6 +797,7 @@ def fig_umap_geo(outfile:str, table:str, umap_rngs:list,
                             
     # Evaluate full table in healpix
     hp_events, hp_lons, hp_lats = image_utils.evals_to_healpix(modis_tbl, nside)
+    embed(header='798 of figs')
 
     if min_counts is not None:
         bad = hp_events < min_counts
@@ -982,6 +985,8 @@ def fig_geo_umap(outfile:str, geo_region:str,
         geo_tbl[umap_keys[0]], 
         geo_tbl[umap_keys[1]], bins=(grid['xval'], 
                                      grid['yval']))
+    print(f"There are {len(geo_tbl)} cutouts in the geographic region")
+
     # Normalize
     counts_geo /= np.sum(counts_geo)
 

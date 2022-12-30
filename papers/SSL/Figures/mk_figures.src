@@ -39,7 +39,7 @@
 
 # Figure 8 -- UMAP DT1 colored by DT40  
 # UMAP DT15 colored by DT40 -- python py/fig_ssl_modis.py umap_DT40 --local --table 96clear_v4_DT15 --umap_comp S0,S1 --outfile fig_umap_DT40_DT15_96clear_v4_S1.png
-# python py/fig_ssl_modis.py umap_DT40 --local --table 96clear_v4_DT1 --umap_comp S0,S1 --outfile fig_umap_DT40_DT1_96clear_v4_S1.png
+python py/fig_ssl_modis.py umap_DT40 --local --table 96clear_v4_DT1 --umap_comp S0,S1 --outfile fig_umap_DT40_DT1_96clear_v4_S1.png
 
 # Figure 9 DT1 gallery
 # python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT1 --umap_comp S0,S1 --vmnx=-0.75,0.75 --outfile fig_umap_gallery_DT1.png --umap_rngs=weak_DT1 --extra_umap_rngs=strong_DT1 # --debug
@@ -54,14 +54,14 @@
 # python py/fig_ssl_modis.py umap_geo --local --outfile fig_umap_geo_global_DT1_strong.png --table 96clear_v4_DT1  --umap_rngs=strong_DT1 --min_counts=5 --umap_rngs strong_DT1
 
 # Figure 13 Equator and Med
-python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_eqpacific.png --table 96clear_v4_DT1  --region=eqpacific --verbose
-python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_med.png --table 96clear_v4_DT1  --region=med
+# python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_eqpacific.png --table 96clear_v4_DT1  --region=eqpacific --verbose
+# python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_med.png --table 96clear_v4_DT1  --region=med
 
 # Figure 14 South Atlantic/Pacific 
-python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_southatlantic.png --table 96clear_v4_DT1  --region=south_atlantic
-python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_southpacific.png --table 96clear_v4_DT1  --region=south_pacific
-python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_eqindian.png --table 96clear_v4_DT1  --region=eqindian
-python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_gulfstream.png --table 96clear_v4_DT1  --region=gulfstream
+# python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_southatlantic.png --table 96clear_v4_DT1  --region=south_atlantic
+# python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_southpacific.png --table 96clear_v4_DT1  --region=south_pacific
+# python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_eqindian.png --table 96clear_v4_DT1  --region=eqindian
+# python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_gulfstream.png --table 96clear_v4_DT1  --region=gulfstream
 
 # Figure 15 Time Series EqPacific, Med
 # python py/fig_ssl_modis.py yearly_geo --local --region eqpacific --table 96clear_v4_DT1
@@ -71,11 +71,11 @@ python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_gulfstrea
 
 
 # APPENDIX
-#python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT0 --umap_comp S0,S1 --vmnx=-0.5,0.5 --outfile fig_umap_gallery_DT0.png
-#python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT15 --umap_comp S0,S1 --vmnx=-1,1 --outfile fig_umap_gallery_DT15.png --umap_rngs weak
-#python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT2 --umap_comp S0,S1 --vmnx=-1.5,1.5 --outfile fig_umap_gallery_DT2.png
-#python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT4 --umap_comp S0,S1 --vmnx=-2,2 --outfile fig_umap_gallery_DT4.png
-#python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT5 --umap_comp S0,S1 --vmnx=-3,3 --outfile fig_umap_gallery_DT5.png
+# python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT0 --umap_comp S0,S1 --vmnx=-0.5,0.5 --outfile fig_umap_gallery_DT0.png
+# python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT15 --umap_comp S0,S1 --vmnx=-1,1 --outfile fig_umap_gallery_DT15.png # --umap_rngs weak
+# python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT2 --umap_comp S0,S1 --vmnx=-1.5,1.5 --outfile fig_umap_gallery_DT2.png
+# python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT4 --umap_comp S0,S1 --vmnx=-2,2 --outfile fig_umap_gallery_DT4.png
+# python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DT5 --umap_comp S0,S1 --vmnx=-3,3 --outfile fig_umap_gallery_DT5.png
 
 # OTHER
 
