@@ -3,7 +3,6 @@
 import os, sys
 
 
-#from IPython import embed
 
 # Local
 sys.path.append(os.path.abspath("../Analysis/py"))
@@ -11,6 +10,8 @@ import ssl_paper_analy
 
 # ulmo needs to come after the above!
 from ulmo.utils import catalog
+
+from IPython import embed
 
 def mktab_cutouts(outfile='tab_cutouts.tex', sub=False, local=True):
 
@@ -38,9 +39,8 @@ def mktab_cutouts(outfile='tab_cutouts.tex', sub=False, local=True):
                 idx = catalog.match_ids(tbl_dict[key].UID.values, 
                                         tbl_dict[subset].UID.values)
                 # Fill in
-                tbl_dict[subset].SU0.values[idx] = tbl_dict[key].U0.values
-                tbl_dict[subset].SU1.values[idx] = tbl_dict[key].U1.values
-
+                tbl_dict[subset].SU0.values[idx] = tbl_dict[key].US0.values
+                tbl_dict[subset].SU1.values[idx] = tbl_dict[key].US1.values
     
 
     # Open
@@ -97,7 +97,7 @@ def mktab_cutouts(outfile='tab_cutouts.tex', sub=False, local=True):
     tbfil.write('\\\\ \n')
     tbfil.write('Notes: The \\DT\\ value listed here is measured from the inner $40 \\times 40$\,pixel$^2$ region of the cutout. \\\\ \n')
     tbfil.write('LL is the log-likelihood metric calculated from the \\ulmo\\ algorithm. \\\\ \n')
-    tbfil.write('$U_{0,all}, U_{1,all}$ are the UMAP values for the UMAP analysis on the full dataset. \\\\ \n')
+    tbfil.write('$U_{0,\\rm all}, U_{1,\\rm all}$ are the UMAP values for the UMAP analysis on the full dataset. \\\\ \n')
     tbfil.write('$U_0, U_1$ are the UMAP values for the UMAP analysis in the \\DT\\ bin for this cutout. \\\\ \n')
     #tbfil.write('{$^b$}Assumes $\\nu=1$GHz, $n_e = 4 \\times 10^{-3} \\cm{-3}$, $z_{\\rm DLA} = 1$, $z_{\\rm source} = 2$.\\\\ \n')
     tbfil.write('\\end{table*} \n')
