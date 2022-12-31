@@ -213,7 +213,7 @@ def main(args):
         
         # Save model and upload to s3 storage every 3 epochs
         # TODO: this is crashing because it's trying to save on all GPU's. Save only on rank 0
-        if args.output_dir and (epoch % 3 == 0 or epoch + 1 == args.epochs):
+        if args.output_dir and (epoch % 2 == 0 or epoch + 1 == args.epochs):
             misc.save_model(
                 args=args, model=model, model_without_ddp=model_without_ddp, optimizer=optimizer,
                 loss_scaler=loss_scaler, epoch=epoch)
