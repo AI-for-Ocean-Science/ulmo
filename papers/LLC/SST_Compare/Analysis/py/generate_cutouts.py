@@ -63,6 +63,21 @@ def grab_rectangular_cutouts(dataset:str, outfile:str,
     # Write
     write_cutouts(cut_tbl, outfile, local=local)
 
+def grab_cutout(cutout, local:bool=False):
+    if local:
+        if 'viirs' in cutout.pp_file:
+            path = os.path.join(os.getenv('SST_OOD'), 'VIIRS')
+        elif 'llc' in cutout.pp_file:
+            path = os.path.join(os.getenv('SST_OOD'), 'LLC')
+        else:
+            raise ValueError("Not ready for this")
+        lppfile = os.path.join(path, 'PreProc', 
+                                    os.path.basename(cutout.pp_file))
+    else:
+        lppfile = None
+    # Grab it
+    img = image_utils.grab_image(cutout, local_file=lppfile)
+    return img
 
 def write_cutouts(cut_tbl:pandas.DataFrame, outfile:str,
                   debug=False, local:bool=False):
@@ -71,20 +86,9 @@ def write_cutouts(cut_tbl:pandas.DataFrame, outfile:str,
     ii = 0
     for idx in cut_tbl.index:
         print(f'{ii} of {len(cut_tbl)}')
-        cutout = cut_tbl.loc[idx]
-        if local:
-            if 'viirs' in cutout.pp_file:
-                path = os.path.join(os.getenv('SST_OOD'), 'VIIRS')
-            elif 'llc' in cutout.pp_file:
-                path = os.path.join(os.getenv('SST_OOD'), 'LLC')
-            else:
-                raise ValueError("Not ready for this")
-            lppfile = os.path.join(path, 'PreProc', 
-                                      os.path.basename(cutout.pp_file))
-        else:
-            lppfile = None
         # Grab it
-        img = image_utils.grab_image(cutout, local_file=lppfile)
+        cutout = cut_tbl.loc[idx]
+        img = grab_cutout(cutout, local=local)
         # Save it
         images.append(img)
         ii += 1

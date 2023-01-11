@@ -28,6 +28,7 @@ from ulmo.plotting import plotting
 
 from ulmo.ssl import single_image as ssl_simage
 from ulmo.utils import image_utils
+from ulmo.llc import io as llc_io
 
 from IPython import embed
 
@@ -35,6 +36,7 @@ from IPython import embed
 
 sys.path.append(os.path.abspath("../Analysis/py"))
 import sst_compare_utils
+import generate_cutouts
 
 
 def load_hp_files(hp_type, hp_root:str):
@@ -585,6 +587,135 @@ def fig_eq_pacific(outfile='fig_equator_histograms.png',
     print('Wrote {:s}'.format(outfile))
 
 
+def fig_decile_gallery(outfile = 'entire_distribution_by_deciles.png', local=False):
+
+    # Color map
+    _, cm = plotting.load_palette()
+
+    # Load
+    #v98 = ulmo_io.load_main_table('s3://viirs/Tables/VIIRS_all_98clear_std.parquet')
+    #llc = ulmo_io.load_main_table('s3://llc/Tables/llc_viirs_match.parquet')
+
+    llc = sst_compare_utils.load_table('llc_match', local=local)
+    v98 = sst_compare_utils.load_table('viirs', local=local)
+
+    # Figure inputs
+    tmin=True
+    tmax=True
+    title=True
+
+    # divvy up cutouts into percentiles
+    l10, l20, l30, l40, l50, l60, l70, l80, l90, l100 = np.percentile(llc.dropna( subset='LL').LL.to_numpy(), [10, 20, 30, 40, 50, 60, 70, 80, 90, 100])
+    v10, v20, v30, v40, v50, v60, v70, v80, v90, v100 = np.percentile(v98.LL.to_numpy(), [10, 20, 30, 40, 50, 60, 70, 80, 90, 100])
+
+    lr10  = llc[ (llc.LL < l10 ) ]
+    lr20  = llc[ (llc.LL > l10 ) & (llc.LL < l20) ]
+    lr30  = llc[ (llc.LL > l20 ) & (llc.LL < l30) ]
+    lr40  = llc[ (llc.LL > l30 ) & (llc.LL < l40) ]
+    lr50  = llc[ (llc.LL > l40 ) & (llc.LL < l50) ]
+    lr60  = llc[ (llc.LL > l50 ) & (llc.LL < l60) ]
+    lr70  = llc[ (llc.LL > l60 ) & (llc.LL < l70) ]
+    lr80  = llc[ (llc.LL > l70 ) & (llc.LL < l80) ]
+    lr90  = llc[ (llc.LL > l80 ) & (llc.LL < l90) ]
+    lr100 = llc[ (llc.LL > l90 ) & (llc.LL < l100) ]
+
+    llc_rs = [lr10, lr20, lr30, lr40, lr50, lr60, lr70, lr80, lr90, lr100]
+
+    vr10  = v98[ (v98.LL < v10 ) ]
+    vr20  = v98[ (v98.LL > v10 ) & (v98.LL < v20) ]
+    vr30  = v98[ (v98.LL > v20 ) & (v98.LL < v30) ]
+    vr40  = v98[ (v98.LL > v30 ) & (v98.LL < v40) ]
+    vr50  = v98[ (v98.LL > v40 ) & (v98.LL < v50) ]
+    vr60  = v98[ (v98.LL > v50 ) & (v98.LL < v60) ]
+    vr70  = v98[ (v98.LL > v60 ) & (v98.LL < v70) ]
+    vr80  = v98[ (v98.LL > v70 ) & (v98.LL < v80) ]
+    vr90  = v98[ (v98.LL > v80 ) & (v98.LL < v90) ]
+    vr100 = v98[ (v98.LL > v90 ) & (v98.LL < v100) ]
+
+    v98_rs = [vr10, vr20, vr30, vr40, vr50, vr60, vr70, vr80, vr90, vr100]
+
+    # pick 1 cutout from each percentile region
+    limgs = []
+    vimgs = []
+
+    for reg in llc_rs: 
+        img = np.random.choice( reg.index.to_numpy(), size = 1)
+        limgs.append(img[0])
+        
+    for reg in v98_rs:
+        img = np.random.choice( reg.index.to_numpy(), size = 1)
+        vimgs.append(img[0])
+
+    # Figure
+    fig, axes = plt.subplots(2, 10, figsize = (14,3) )
+
+    fig.suptitle( 'Gallery of the Entire Distribution', fontsize=15)
+
+    cbar_ax = fig.add_axes([0.95, 0.15, 0.02, 0.7])
+    cbar_kws={"orientation": "vertical", "shrink":1, "aspect":40, "label": "T - T$_{mean}$"}
+    pal, cm = plotting.load_palette()
+
+    #determine tmax and tmin
+    imgs = np.empty((64,64,20))
+    LLs  = np.empty(20)
+
+    for i in range(0,10):
+        lidx = limgs[ i ]
+        vidx = vimgs[ i ]
+        
+        lcutout = llc.iloc[ lidx ] 
+        vcutout = v98.iloc[ vidx ] 
+        
+        limg= generate_cutouts.grab_cutout(lcutout, local=local) # llc_io.grab_image(lcutout)
+        vimg= generate_cutouts.grab_cutout(vcutout, local=local) # llc_io.grab_image(vcutout)
+        
+        imgs[:,:,i] = vimg
+        imgs[:,:,10 + i] = limg
+        LLs[i] = vcutout.LL
+        LLs[10 + i] = lcutout.LL
+
+    if tmax: 
+        tmax = np.max(imgs)
+
+    if tmin:
+        tmin = np.min(imgs)
+    print('Temperature scale is {} to {}.'.format(tmin, tmax))
+
+    # Set by hand?
+    tmin, tmax = -2., 2.
+
+    # plot
+    for i, ax in enumerate(axes.flat):
+        
+        # VIIRS
+        if i in range(0, 10):
+            img = imgs[:,:,i]
+
+            sns.heatmap(ax=ax, data=img, xticklabels=[], yticklabels=[], cmap=cm, #'viridis',
+                        cbar=i == 0, vmin=tmin, vmax=tmax,
+                        cbar_ax=None if i else cbar_ax,
+                        cbar_kws=None if i else cbar_kws)
+
+        # LLC
+        elif i in range(10, 20):
+
+            img = imgs[:, :, i]
+            sns.heatmap(ax=ax, data=img, xticklabels=[], yticklabels=[], cmap=cm, #'viridis',
+                        cbar=i == 0, vmin=tmin, vmax=tmax,
+                        cbar_ax=None if i else cbar_ax,
+                        cbar_kws=None if i else cbar_kws)
+
+            #ax.contour(img, levels = 10)
+        
+        ax.set_title('LL = {}'.format(round(LLs[i])))
+        ax.figure.axes[-1].yaxis.label.set_size(15)
+        ax.set_aspect('equal', 'datalim')
+
+    fig.tight_layout(rect=[0, 0, .9, 1])
+
+    plt.savefig(outfile, dpi = 300)
+    print('Wrote {:s}'.format(outfile))
+
 #### ########################## #########################
 def main(pargs):
 
@@ -623,6 +754,11 @@ def main(pargs):
     # Equatorial Pacific
     if pargs.figure == 'eq_pacific':
         fig_eq_pacific(local=pargs.local)
+
+    # Equatorial Pacific
+    if pargs.figure == 'decile_gallery':
+        fig_decile_gallery(local=pargs.local)
+
 
 def parse_option():
     """
@@ -680,3 +816,6 @@ if __name__ == '__main__':
 
 # Equatorial Pacific
 # python py/figs_llc_viirs.py eq_pacific --local
+
+# Decile gallery
+# python py/figs_llc_viirs.py decile_gallery --local
