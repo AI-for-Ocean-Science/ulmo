@@ -949,6 +949,7 @@ def fig_geo_umap(outfile:str, geo_region:str,
     # Grid
     grid = ssl_paper_analy.grid_umap(modis_tbl[umap_keys[0]].values, 
         modis_tbl[umap_keys[1]].values, verbose=verbose)
+    embed(header='952 of fig')
  
     # cut
     good = (modis_tbl[umap_keys[0]] > grid['xmin']) & (
