@@ -57,6 +57,9 @@ def load_table(dataset:str, local:bool=False, cut_lat_max:float=57.,
     # Load
     tbl = ulmo_io.load_main_table(tbl_file)
 
+    # DT
+    tbl['DT'] = tbl.T90 - tbl.T10
+
     # Cut?
     if cut_lat_max is not None:
         tbl = tbl[tbl.lat < cut_lat_max].copy()

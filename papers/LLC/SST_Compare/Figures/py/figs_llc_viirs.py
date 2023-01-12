@@ -587,7 +587,7 @@ def fig_eq_pacific(outfile='fig_equator_histograms.png',
     print('Wrote {:s}'.format(outfile))
 
 
-def fig_decile_gallery(outfile = 'entire_distribution_by_deciles.png', local=False):
+def fig_decile_gallery(local=False, cut=None):
 
     # Color map
     _, cm = plotting.load_palette()
@@ -599,33 +599,61 @@ def fig_decile_gallery(outfile = 'entire_distribution_by_deciles.png', local=Fal
     llc = sst_compare_utils.load_table('llc_match', local=local)
     v98 = sst_compare_utils.load_table('viirs', local=local)
 
+    # Cut on Temperature?
+    T0 = None
+    if cut == 'full_5':
+        title = '(a) Gallery of the Full Distribution'
+        outfile = 'fig_gallery_full_5.png'
+        seed = 1236
+    elif cut == 'full_10':
+        title = '(a) Gallery of the Full Distribution'
+        outfile = 'fig_gallery_full_10.png'
+        seed = 1237
+    elif cut == 'DT125_5':
+        title = r'(b) Gallery of $\Delta T = [1,1.5]$ K'
+        outfile = 'fig_gallery_DT125_5.png'
+        seed = 1236
+        T0, dT = 1.25, 0.25
+    elif cut == 'DT125_10':
+        title = r'(b) Gallery of $\Delta T = [1,1.5]$ K'
+        outfile = 'fig_gallery_DT125_10.png'
+        seed = 1236
+        T0, dT = 1.25, 0.25
+    else:
+        raise IOError(f"Bad cut: {cut}")
+
+    # T cut?
+    if T0 is not None:
+        llc = llc[np.abs(llc.DT-T0) < dT]
+        v98 = v98[np.abs(v98.DT-T0) < dT]
+
+    # Rnadom seed
+    np.random.seed(seed)
+
+    # Indices
+    llc.reset_index(drop=True, inplace=True)
+    v98.reset_index(drop=True, inplace=True)
+
     # Figure inputs
     tmin=True
     tmax=True
-    title=True
+
+    # 5 or 10
+    # Decile on VIIRS
+    # Median LL of decile
+    # Random from 50 closest to median
+
+    ndecile = int(cut.split('_')[-1])
+    ddecile = 100//ndecile
+    pdeciles = np.arange(ddecile, 100+ddecile, ddecile)
 
     # divvy up cutouts into percentiles
-    l10, l20, l30, l40, l50, l60, l70, l80, l90, l100 = np.percentile(llc.dropna( subset='LL').LL.to_numpy(), [10, 20, 30, 40, 50, 60, 70, 80, 90, 100])
-    v10, v20, v30, v40, v50, v60, v70, v80, v90, v100 = np.percentile(v98.LL.to_numpy(), [10, 20, 30, 40, 50, 60, 70, 80, 90, 100])
+    #l10, l20, l30, l40, l50, l60, l70, l80, l90, l100 = np.percentile(llc.dropna( subset='LL').LL.to_numpy(), [10, 20, 30, 40, 50, 60, 70, 80, 90, 100])
+    # v10, v20, v30, v40, v50, v60, v70, v80, v90, v100 = np.percentile(v98.LL.to_numpy(), [10, 20, 30, 40, 50, 60, 70, 80, 90, 100])
 
-    lr10  = llc[ (llc.LL < l10 ) ]
-    lr20  = llc[ (llc.LL > l10 ) & (llc.LL < l20) ]
-    lr30  = llc[ (llc.LL > l20 ) & (llc.LL < l30) ]
-    lr40  = llc[ (llc.LL > l30 ) & (llc.LL < l40) ]
-    lr50  = llc[ (llc.LL > l40 ) & (llc.LL < l50) ]
-    lr60  = llc[ (llc.LL > l50 ) & (llc.LL < l60) ]
-    lr70  = llc[ (llc.LL > l60 ) & (llc.LL < l70) ]
-    lr80  = llc[ (llc.LL > l70 ) & (llc.LL < l80) ]
-    lr90  = llc[ (llc.LL > l80 ) & (llc.LL < l90) ]
-    lr100 = llc[ (llc.LL > l90 ) & (llc.LL < l100) ]
+    deciles = np.percentile(v98.LL.to_numpy(), pdeciles)
 
-    llc_rs = [lr10, lr20, lr30, lr40, lr50, lr60, lr70, lr80, lr90, lr100]
-
-    vr10  = v98[ (v98.LL < v10 ) ]
-    vr20  = v98[ (v98.LL > v10 ) & (v98.LL < v20) ]
-    vr30  = v98[ (v98.LL > v20 ) & (v98.LL < v30) ]
-    vr40  = v98[ (v98.LL > v30 ) & (v98.LL < v40) ]
-    vr50  = v98[ (v98.LL > v40 ) & (v98.LL < v50) ]
+    '''
     vr60  = v98[ (v98.LL > v50 ) & (v98.LL < v60) ]
     vr70  = v98[ (v98.LL > v60 ) & (v98.LL < v70) ]
     vr80  = v98[ (v98.LL > v70 ) & (v98.LL < v80) ]
@@ -633,11 +661,31 @@ def fig_decile_gallery(outfile = 'entire_distribution_by_deciles.png', local=Fal
     vr100 = v98[ (v98.LL > v90 ) & (v98.LL < v100) ]
 
     v98_rs = [vr10, vr20, vr30, vr40, vr50, vr60, vr70, vr80, vr90, vr100]
+    '''
 
     # pick 1 cutout from each percentile region
     limgs = []
     vimgs = []
 
+    for kk, decile in enumerate(deciles):
+        if kk == 0:
+            v_decile  = v98[ (v98.LL.values < decile ) ]
+        else:
+            v_decile  = v98[ (v98.LL.values < decile ) & (v98.LL.values >= deciles[kk-1]) ]
+        # Median
+        med_LL = np.median(v_decile.LL.values)
+
+        # Find 50 closest to median
+        closest_v = np.abs(v98.LL.values - med_LL).argsort()[:50]
+        choice = np.random.choice(closest_v, size = 1)
+        vimgs.append(choice[0])
+
+        closest_L = np.abs(llc.LL.values - med_LL).argsort()[:50]
+        choice = np.random.choice(closest_L, size = 1)
+        limgs.append(choice[0])
+
+
+    '''
     for reg in llc_rs: 
         img = np.random.choice( reg.index.to_numpy(), size = 1)
         limgs.append(img[0])
@@ -645,13 +693,15 @@ def fig_decile_gallery(outfile = 'entire_distribution_by_deciles.png', local=Fal
     for reg in v98_rs:
         img = np.random.choice( reg.index.to_numpy(), size = 1)
         vimgs.append(img[0])
+    '''
 
     # Figure
-    fig, axes = plt.subplots(2, 10, figsize = (14,3) )
+    ysize = 14 / (10/ndecile)
+    fig, axes = plt.subplots(2, ndecile, figsize = (ysize,3) )
 
-    fig.suptitle( 'Gallery of the Entire Distribution', fontsize=15)
+    fig.suptitle(title, fontsize=15)
 
-    cbar_ax = fig.add_axes([0.95, 0.15, 0.02, 0.7])
+    cbar_ax = fig.add_axes([0.90, 0.15, 0.02, 0.7])
     cbar_kws={"orientation": "vertical", "shrink":1, "aspect":40, "label": "T - T$_{mean}$"}
     pal, cm = plotting.load_palette()
 
@@ -659,7 +709,7 @@ def fig_decile_gallery(outfile = 'entire_distribution_by_deciles.png', local=Fal
     imgs = np.empty((64,64,20))
     LLs  = np.empty(20)
 
-    for i in range(0,10):
+    for i in range(0,ndecile):
         lidx = limgs[ i ]
         vidx = vimgs[ i ]
         
@@ -670,9 +720,9 @@ def fig_decile_gallery(outfile = 'entire_distribution_by_deciles.png', local=Fal
         vimg= generate_cutouts.grab_cutout(vcutout, local=local) # llc_io.grab_image(vcutout)
         
         imgs[:,:,i] = vimg
-        imgs[:,:,10 + i] = limg
+        imgs[:,:,ndecile + i] = limg
         LLs[i] = vcutout.LL
-        LLs[10 + i] = lcutout.LL
+        LLs[ndecile + i] = lcutout.LL
 
     if tmax: 
         tmax = np.max(imgs)
@@ -688,7 +738,7 @@ def fig_decile_gallery(outfile = 'entire_distribution_by_deciles.png', local=Fal
     for i, ax in enumerate(axes.flat):
         
         # VIIRS
-        if i in range(0, 10):
+        if i in range(0, ndecile):
             img = imgs[:,:,i]
 
             sns.heatmap(ax=ax, data=img, xticklabels=[], yticklabels=[], cmap=cm, #'viridis',
@@ -696,8 +746,12 @@ def fig_decile_gallery(outfile = 'entire_distribution_by_deciles.png', local=Fal
                         cbar_ax=None if i else cbar_ax,
                         cbar_kws=None if i else cbar_kws)
 
+            # Label
+            ax.set_title('LL = {}'.format(round(LLs[i])))
+            ax.figure.axes[-1].yaxis.label.set_size(15)
+
         # LLC
-        elif i in range(10, 20):
+        elif i in range(ndecile, ndecile*2):
 
             img = imgs[:, :, i]
             sns.heatmap(ax=ax, data=img, xticklabels=[], yticklabels=[], cmap=cm, #'viridis',
@@ -705,10 +759,6 @@ def fig_decile_gallery(outfile = 'entire_distribution_by_deciles.png', local=Fal
                         cbar_ax=None if i else cbar_ax,
                         cbar_kws=None if i else cbar_kws)
 
-            #ax.contour(img, levels = 10)
-        
-        ax.set_title('LL = {}'.format(round(LLs[i])))
-        ax.figure.axes[-1].yaxis.label.set_size(15)
         ax.set_aspect('equal', 'datalim')
 
     fig.tight_layout(rect=[0, 0, .9, 1])
@@ -757,7 +807,8 @@ def main(pargs):
 
     # Equatorial Pacific
     if pargs.figure == 'decile_gallery':
-        fig_decile_gallery(local=pargs.local)
+        fig_decile_gallery(local=pargs.local,
+                           cut=pargs.cut)
 
 
 def parse_option():
@@ -772,6 +823,7 @@ def parse_option():
                         help="function to execute: 'slopes, 2d_stats, slopevsDT, umap_LL, learning_curve'")
     parser.add_argument('--metric', type=str, help="Metric for the figure: 'DT, T10'")
     parser.add_argument('--cmap', type=str, help="Color map")
+    parser.add_argument('--cut', type=str, help="Cut ")
     parser.add_argument('--vmnx', default='-1,1', type=str, help="Color bar scale")
     parser.add_argument('--outfile', type=str, help="Outfile")
     parser.add_argument('--local', default=False, action='store_true', 
