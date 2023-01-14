@@ -65,6 +65,7 @@ def main(pargs):
     server = portal.Server({'/': get_session}, num_procs=1)
     server.start()
     print('Opening Bokeh application for OS data on http://localhost:5006/')
+    # If Addrses in use, do:  lsof -i :5006   and kill the job
 
     server.io_loop.add_callback(server.show, "/")
     server.io_loop.start()
