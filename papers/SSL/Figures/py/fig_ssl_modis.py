@@ -15,7 +15,7 @@ import healpy as hp
 import matplotlib as mpl
 import matplotlib.gridspec as gridspec
 from matplotlib import pyplot as plt
-from matplotlib.patches import Rectangle
+from matplotlib.patches import Rectangle, Ellipse
 
 
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
@@ -90,7 +90,7 @@ def parse_umap_rngs(inp):
 
 
 def update_outfile(outfile, table, umap_dim=2,
-                   umap_comp=None):
+                   umap_comp=None, annotate=False):
     # Table
     if table is None or table == 'std':
         pass
@@ -100,11 +100,13 @@ def update_outfile(outfile, table, umap_dim=2,
             base1 = '_CF'
         elif '96_v4' in table:
             base1 = '_96clear_v4'
+        elif '96clear_v4' in table:
+            base1 = '_96clear_v4'
         elif '96' in table:
             base1 = '_96clear'
         # DT
         if 'DT' in table:
-            dtstr = table.split('_')[1]
+            dtstr = table.split('_')[-1]
             base2 = '_'+dtstr
         else:
             base2 = ''
@@ -134,6 +136,10 @@ def update_outfile(outfile, table, umap_dim=2,
     if umap_comp is not None:
         if umap_comp != '0,1':
             outfile = outfile.replace('.png', f'_{umap_comp[0]}{umap_comp[-1]}.png')
+
+    # Annotate?
+    if annotate:
+        outfile = outfile.replace('.png', '_an.png')
     # Return
     return outfile
     
@@ -263,7 +269,7 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
         values = modis_tbl.LL 
     elif metric == 'logDT':
         values = np.log10(modis_tbl.DT.values)
-        lmetric = r'$\log \, \Delta T$'
+        lmetric = r'$\log_{10} \, \Delta T$'
     elif metric == 'DT':
         values = modis_tbl.DT.values
         lmetric = r'$\Delta T$'
@@ -437,10 +443,12 @@ def fig_umap_density(outfile='fig_umap_density.png',
 def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
                      local=False, table='std', in_vmnx=None,
                      umap_comp='0,1', nxy=16,
-                     min_pts=10,
+                     min_pts=None,
                      umap_dim=2,
                      umap_rngs=None,
                      extra_umap_rngs=None,
+                     seed=None,
+                     annotate=False,
                      use_std_lbls=True,
                      cut_to_inner:int=None,
                      debug=False): 
@@ -457,12 +465,18 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
     Raises:
         IOError: [description]
     """
+    if min_pts is None: 
+        min_pts = 10
+    # Seed
+    if seed is not None:
+        np.random.seed(seed)
     # Load
     modis_tbl = ssl_paper_analy.load_modis_tbl(local=local, table=table)
 
     umap_keys = ssl_paper_analy.gen_umap_keys(umap_dim, umap_comp)
     outfile = update_outfile(outfile, table, umap_dim,
-                             umap_comp=umap_comp)
+                             umap_comp=umap_comp,
+                             annotate=annotate)
 
     if debug:
         nxy = 4
@@ -548,10 +562,17 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
     # Fig
     _, cm = plotting.load_palette()
     fsz = 15.
-    fig = plt.figure(figsize=(12, 8))
+    if annotate:
+        fsize = (9,8)
+    else:
+        fsize = (12,8)
+    fig = plt.figure(figsize=fsize)
     plt.clf()
 
-    ax_gallery = fig.add_axes([0.05, 0.1, 0.6, 0.90])
+    if annotate:
+        ax_gallery = fig.add_axes([0.10, 0.12, 0.75, 0.85])
+    else:
+        ax_gallery = fig.add_axes([0.05, 0.1, 0.6, 0.90])
 
     if use_std_lbls:
         ax_gallery.set_xlabel(r'$U_0$')
@@ -645,6 +666,7 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
                      yticklabels=[], cmap=cm, cbar=plt_cbar,
                      cbar_ax=ax_cbar, cbar_kws=cbar_kws,
                      ax=axins)
+            sns_ax.set_aspect('equal', 'datalim')
             # Only do this once
             if plt_cbar:
                 plt_cbar = False
@@ -666,7 +688,7 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
         rect = Rectangle((umap_rngs[0][0], umap_rngs[1][0]),
             umap_rngs[0][1]-umap_rngs[0][0],
             umap_rngs[1][1]-umap_rngs[1][0],
-            linewidth=2, edgecolor='k', facecolor='none', ls='--',
+            linewidth=2, edgecolor='k', facecolor='none', ls='-',
             zorder=10)
         ax_gallery.add_patch(rect)
 
@@ -677,15 +699,15 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
         rect2 = Rectangle((umap_rngs[0][0], umap_rngs[1][0]),
             umap_rngs[0][1]-umap_rngs[0][0],
             umap_rngs[1][1]-umap_rngs[1][0],
-            linewidth=2, edgecolor='k', facecolor='none', ls='dotted',
+            linewidth=2, edgecolor='k', facecolor='none', ls='--',
             zorder=10)
         ax_gallery.add_patch(rect2)
 
-
     # Incidence plot
-    ax_incidence = fig.add_axes([0.71, 0.45, 0.25, 0.36])
+    if not annotate:
+        ax_incidence = fig.add_axes([0.71, 0.45, 0.25, 0.36])
 
-    fig_umap_density(outfile=None, modis_tbl=modis_tbl,
+        fig_umap_density(outfile=None, modis_tbl=modis_tbl,
                      umap_grid=umap_grid, umap_comp=umap_comp,
                      show_cbar=True, ax=ax_incidence, fsz=12.)
     #ax_incidence.plot(np.arange(10), np.arange(10))
@@ -1387,7 +1409,7 @@ def fig_LLvsDT(outfile='fig_LLvsDT.png', local=False, vmax=None,
 
 
 def fig_slopevsDT(outfile='fig_slopevsDT.png', table=None,
-                  local=False, vmax=None, 
+                  local=False, vmax=None, xscale=None,
                     cmap=None, cuts=None, scl = 1, debug=False):
     """ Bivariate of slope_min vs. DT
 
@@ -1404,18 +1426,31 @@ def fig_slopevsDT(outfile='fig_slopevsDT.png', table=None,
     # Load table
     modis_tbl = ssl_paper_analy.load_modis_tbl(
         local=local, cuts=cuts, table=table)
+
+    # Outfile
     outfile = update_outfile(outfile, table)
+    if xscale is None:
+        xscale = 'log'
+    else:
+        outfile = outfile.replace('.png', f'_{xscale}.png')
+        xscale = None
 
     # Debug?
     if debug:
         modis_tbl = modis_tbl.loc[np.arange(1000000)].copy()
 
+    # Metric
+    if 'DT' in table:
+        xmetric = 'DT40'
+    else:
+        xmetric = 'DT'
+
     # Plot
     fig = plt.figure(figsize=(12, 12))
     plt.clf()
 
-    jg = sns.jointplot(data=modis_tbl, x='DT', y='min_slope', kind='hex',
-                       bins='log', gridsize=250, xscale='log',
+    jg = sns.jointplot(data=modis_tbl, x=xmetric, y='min_slope', kind='hex',
+                       bins='log', gridsize=250, xscale=xscale,
                        cmap=plt.get_cmap('winter'), mincnt=1,
                        marginal_kws=dict(fill=False, color='black', bins=100)) 
     jg.ax_joint.set_xlabel(r'$\Delta T$')
@@ -1792,6 +1827,9 @@ def main(pargs):
             umap_dim=pargs.umap_dim,
             umap_comp=pargs.umap_comp,
             umap_rngs=pargs.umap_rngs,
+            min_pts=pargs.min_counts,
+            seed=pargs.seed,
+            annotate=pargs.annotate,
             extra_umap_rngs=pargs.extra_umap_rngs,
             cut_to_inner=40)
 
@@ -1973,7 +2011,8 @@ def main(pargs):
                     region='Med',
                     local=pargs.local,
                     point_size=1., 
-                    lbl=r'Mediterranean')#, vmnx=(-400, 400))
+                    lbl=r'Mediterranean')
+        #, vmnx=(-400, 400))
         #fig_umap_2dhist(outfile='fig_umap_2dhist_Med.png', 
         #                cmap='Reds',
         #           table=pargs.table,
@@ -2003,7 +2042,7 @@ def main(pargs):
     # Slope vs DT
     if pargs.figure == 'slopevsDT':
         fig_slopevsDT(local=pargs.local, debug=pargs.debug,
-                    table=pargs.table)
+                    table=pargs.table, xscale=pargs.xscale)
     
     # 2D Stats
     if pargs.figure == '2d_stats':
@@ -2044,9 +2083,13 @@ def parse_option():
     parser.add_argument('--vmnx', default='-1,1', type=str, help="Color bar scale")
     parser.add_argument('--region', type=str, help="Geographic region")
     parser.add_argument('--min_counts', type=int, help="Minimum counts for analysis")
+    parser.add_argument('--seed', type=int, help="Seed for random number generator")
     parser.add_argument('--outfile', type=str, help="Outfile")
+    parser.add_argument('--xscale', type=str, help="X scale") 
     parser.add_argument('--distr', type=str, default='normal',
                         help='Distribution to fit [normal, lognorm]')
+    parser.add_argument('--annotate', default=False, action='store_true',
+                        help='Annotate?')
     parser.add_argument('--local', default=False, action='store_true', 
                         help='Use local file(s)?')
     parser.add_argument('--table', type=str, default='std', 
