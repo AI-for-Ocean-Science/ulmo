@@ -100,13 +100,13 @@ def update_outfile(outfile, table, umap_dim=2,
             base1 = '_CF'
         elif '96_v4' in table:
             base1 = '_96clear_v4'
-        elif '96clear_v4' in table:
-            base1 = '_96clear_v4'
+        #elif '96clear_v4' in table:
+        #    base1 = '_96clear_v4'
         elif '96' in table:
             base1 = '_96clear'
         # DT
         if 'DT' in table:
-            dtstr = table.split('_')[-1]
+            dtstr = table.split('_')[1]
             base2 = '_'+dtstr
         else:
             base2 = ''
@@ -1043,6 +1043,10 @@ def fig_geo_umap(outfile:str, geo_region:str,
     # Title
     if geo_region == 'eqpacific':
         title = f'Pacific ECT: '
+    elif geo_region == 'eqindian':
+        title = 'Equatorial Indian Ocean: '
+    elif geo_region == 'gulfstream':
+        title = 'Gulf Stream: '
     else:
         embed(header='777 of figs')
     # Add lon, lat
@@ -1052,6 +1056,7 @@ def fig_geo_umap(outfile:str, geo_region:str,
     title += f'{ssl_paper_analy.lat_to_lbl(lats[1])}'
 
     ax.set_title(title)
+    ax.grid(alpha=0.3)
 
     plotting.set_fontsize(ax, 19.)
     plt.savefig(outfile, dpi=200)
@@ -1351,11 +1356,13 @@ def fig_yearly_geo_umap(outfile, geo_region,
             fontsize=15, ha='left', color='k')
     ax_time.set_xlabel('Time')
     ax_time.set_ylabel(r'$f_c$')
+    ax_time.grid(alpha=0.5)
 
     # Seasonal
     ax_seasonal = plt.subplot(gs[1])
     xval = np.arange(12) + 1
     ax_seasonal.plot(xval, result_dict['seasonal'], 'g')
+    ax_seasonal.grid()
     #embed(header='1317 of figs')
 
     ax_seasonal.set_xlabel('Month')
@@ -1442,9 +1449,11 @@ def fig_slopevsDT(outfile='fig_slopevsDT.png', table=None,
     outfile = update_outfile(outfile, table)
     if xscale is None:
         xscale = 'log'
-    else:
+        bins = 'log'
+    elif xscale == 'nolog':
         outfile = outfile.replace('.png', f'_{xscale}.png')
         xscale = None
+        bins=None
 
     # Debug?
     if debug:
@@ -1461,7 +1470,7 @@ def fig_slopevsDT(outfile='fig_slopevsDT.png', table=None,
     plt.clf()
 
     jg = sns.jointplot(data=modis_tbl, x=xmetric, y='min_slope', kind='hex',
-                       bins='log', gridsize=250, xscale=xscale,
+                       bins=bins, gridsize=250, xscale=xscale,
                        cmap=plt.get_cmap('winter'), mincnt=1,
                        marginal_kws=dict(fill=False, color='black', bins=100)) 
     jg.ax_joint.set_xlabel(r'$\Delta T$')
