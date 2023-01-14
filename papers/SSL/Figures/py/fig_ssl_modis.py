@@ -819,7 +819,6 @@ def fig_umap_geo(outfile:str, table:str, umap_rngs:list,
                             
     # Evaluate full table in healpix
     hp_events, hp_lons, hp_lats = image_utils.evals_to_healpix(modis_tbl, nside)
-    embed(header='798 of figs')
 
     if min_counts is not None:
         bad = hp_events < min_counts
@@ -914,7 +913,7 @@ def fig_umap_geo(outfile:str, table:str, umap_rngs:list,
 
     # Rectangle?
     if 'weak' in show_regions:
-        regions = ['eqpacific', 'south_atlantic']
+        regions = ['eqpacific']#, 'south_atlantic']
     elif 'strong' in show_regions:
         regions = ['gulfstream', 'eqindian'] #'south_pacific']
     else:
@@ -971,7 +970,6 @@ def fig_geo_umap(outfile:str, geo_region:str,
     # Grid
     grid = ssl_paper_analy.grid_umap(modis_tbl[umap_keys[0]].values, 
         modis_tbl[umap_keys[1]].values, verbose=verbose)
-    embed(header='952 of fig')
  
     # cut
     good = (modis_tbl[umap_keys[0]] > grid['xmin']) & (
@@ -1041,6 +1039,19 @@ def fig_geo_umap(outfile:str, geo_region:str,
     if show_cbar:
         cbaxes = plt.colorbar(mplt, pad=0., fraction=0.030)
         cbaxes.set_label(lbl, fontsize=15.)
+
+    # Title
+    if geo_region == 'eqpacific':
+        title = f'Pacific ECT: '
+    else:
+        embed(header='777 of figs')
+    # Add lon, lat
+    title += f'lon={ssl_paper_analy.lon_to_lbl(lons[0])},'
+    title += f'{ssl_paper_analy.lon_to_lbl(lons[1])};'
+    title += f' lat={ssl_paper_analy.lat_to_lbl(lats[0])},'
+    title += f'{ssl_paper_analy.lat_to_lbl(lats[1])}'
+
+    ax.set_title(title)
 
     plotting.set_fontsize(ax, 19.)
     plt.savefig(outfile, dpi=200)

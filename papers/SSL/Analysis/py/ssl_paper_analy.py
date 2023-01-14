@@ -69,6 +69,18 @@ umap_rngs_dict['weak_DT1'] = [[0, 2.0],  # DT1, new UMAP
 umap_rngs_dict['strong_DT1'] = [[4.0,8-0.7],  # DT1, new UMAP
                           [2.4,4]]
 
+def lon_to_lbl(lon):
+    if lon < 0:
+        return '{:d}W'.format(int(-lon))
+    else:
+        return '{:d}E'.format(int(lon))
+        
+def lat_to_lbl(lat):
+    if lat < 0:
+        return '{:d}S'.format(int(-lat))
+    else:
+        return '{:d}N'.format(int(lat))
+
 def load_modis_tbl(table:str=None, 
                    local=False, cuts:str=None, 
                    region:str=None, percentiles:list=None):
