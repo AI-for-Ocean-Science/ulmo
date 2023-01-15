@@ -1315,9 +1315,13 @@ def fig_yearly_geo_umap(outfile, geo_region,
 
     # Plot
     #fig = plt.figure(figsize=(12, 6))
+    if geo_region == 'eqpacific' and False:
+        nplt = 3
+    else:
+        nplt = 2
     fig = plt.figure(figsize=(8, 12))
     plt.clf()
-    gs = gridspec.GridSpec(2,1)
+    gs = gridspec.GridSpec(nplt,1)
 
     ax_time = plt.subplot(gs[0])
 
@@ -1368,9 +1372,28 @@ def fig_yearly_geo_umap(outfile, geo_region,
     ax_seasonal.set_xlabel('Month')
     ax_seasonal.set_ylabel(r'$\Delta f_c$')
 
+    axes = [ax_time, ax_seasonal]
+
+    if nplt == 3:
+        ax_months = plt.subplot(gs[2])
+        for month, clr in zip([3, 6,10], 
+                              ['k', 'r', 'b']):
+            idx = time_series['month'] == month
+            ax_months.plot(time_series['year'][idx], 
+                           time_series['fracs'][idx], 
+                           clr, label=f'{month}')
+        # Label
+        ax_months.set_xlabel('year')
+        ax_months.set_ylabel(r'$\Delta f_c$')
+        ax_months.legend()
+        #
+        axes += [ax_months]
+
     # Finish
-    for ax in [ax_time, ax_seasonal]:
+    for ax in axes:
         plotting.set_fontsize(ax, 19.)
+
+    plt.tight_layout(pad=0.5, h_pad=0.5, w_pad=0.5)
     plt.savefig(outfile, dpi=200)
     plt.close()
     print('Wrote {:s}'.format(outfile))

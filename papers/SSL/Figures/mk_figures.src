@@ -63,12 +63,12 @@
 # python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_southatlantic.png --table 96clear_v4_DT1  --region=south_atlantic
 
 # Figure 15 Gulf Stream, Indian Ocean
-python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_eqindian.png --table 96clear_v4_DT1  --region=eqindian
-python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_gulfstream.png --table 96clear_v4_DT1  --region=gulfstream
+# python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_eqindian.png --table 96clear_v4_DT1  --region=eqindian
+# python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_gulfstream.png --table 96clear_v4_DT1  --region=gulfstream
 # python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_southpacific.png --table 96clear_v4_DT1  --region=south_pacific
 
 # Figure 16 Time Series EqPacific, Med
-# python py/fig_ssl_modis.py yearly_geo --local --region eqpacific --table 96clear_v4_DT1
+python py/fig_ssl_modis.py yearly_geo --local --region eqpacific --table 96clear_v4_DT1
 # python py/fig_ssl_modis.py yearly_geo --local --region med --table 96clear_v4_DT1
 
 # python py/fig_ssl_modis.py yearly_geo --local --region gulfstream --table 96clear_v4_DT1
