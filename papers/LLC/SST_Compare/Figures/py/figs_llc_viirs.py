@@ -750,6 +750,12 @@ def fig_decile_gallery(local=False, cut=None):
             ax.set_title('LL = {}'.format(round(LLs[i])))
             ax.figure.axes[-1].yaxis.label.set_size(15)
 
+            # VIIRS
+            if i == 0:
+                ax.text(-0.1, 0.5, 'VIIRS',
+                    transform=ax.transAxes, rotation=90.,
+                    fontsize=15, va='center', color='k')
+
         # LLC
         elif i in range(ndecile, ndecile*2):
 
@@ -758,6 +764,12 @@ def fig_decile_gallery(local=False, cut=None):
                         cbar=i == 0, vmin=tmin, vmax=tmax,
                         cbar_ax=None if i else cbar_ax,
                         cbar_kws=None if i else cbar_kws)
+
+            # LLC
+            if i == ndecile:
+                ax.text(-0.1, 0.5, 'LLC',
+                    transform=ax.transAxes, rotation=90.,
+                    fontsize=15, va='center', color='k')
 
         ax.set_aspect('equal', 'datalim')
 
@@ -871,3 +883,6 @@ if __name__ == '__main__':
 
 # Decile gallery
 # python py/figs_llc_viirs.py decile_gallery --local
+
+# python py/figs_llc_viirs.py decile_gallery --local --cut full_5
+# python py/figs_llc_viirs.py decile_gallery --local --cut DT125_5
