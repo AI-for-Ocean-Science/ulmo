@@ -396,7 +396,7 @@ def regional_analysis(geo_region:str, tbl:pandas.DataFrame, nxy:int,
     rtio_counts = counts_geo / counts
 
     # Return
-    return counts, counts_geo, tbl, grid
+    return counts, counts_geo, tbl, grid, xedges, yedges
 
 
 def old_latents_umap(latents:np.ndarray, train:np.ndarray, 

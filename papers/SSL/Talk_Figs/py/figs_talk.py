@@ -35,6 +35,7 @@ from ulmo.utils import utils as utils
 from ulmo import io as ulmo_io
 from ulmo.ssl import single_image as ssl_simage
 from ulmo.ssl import ssl_umap
+from ulmo.ssl import defs as ssl_defs
 from ulmo.utils import image_utils
 
 from IPython import embed
@@ -134,8 +135,9 @@ def fig_uniform_gallery(outfile:str, table:str,
     print('Wrote {:s}'.format(outfile))
 
 def fig_regional_with_gallery(geo_region:str, outfile:str, table:str, 
-                     umap_comp='S0,S1', 
-                     umap_dim=2, cmap='bwr', nxy=16):
+                     umap_comp='S0,S1', min_pts=200, cut_to_inner=None,
+                     in_vmnx=None,
+                     umap_dim=2, cmap='bwr', nxy=8):
 
     # Load
     local=True
@@ -146,24 +148,189 @@ def fig_regional_with_gallery(geo_region:str, outfile:str, table:str,
     umap_keys = ssl_paper_analy.gen_umap_keys(
         umap_dim, umap_comp)
 
-
     # UMAP the region
-    counts, counts_geo, modis_tbl, grid = ssl_umap.regional_analysis(
-        geo_region, modis_tbl, nxy, umap_keys)
-
+    counts, counts_geo, modis_tbl, umap_grid, xedges, yedges, = ssl_umap.regional_analysis(
+        geo_region, modis_tbl, nxy, umap_keys, min_counts=min_pts)
     rtio_counts = counts_geo / counts
 
     # Figure
-    _, cm = plotting.load_palette()
-    fig = plt.figure(figsize=(10,9))
+    fig = plt.figure(figsize=(12,5.5))
     plt.clf()
     gs = gridspec.GridSpec(1,2)
 
     ax_regional = plt.subplot(gs[0])
 
+    values = rtio_counts.transpose()
+    lbl = r'Relative Frequency ($f_b$)'
+    vmin, vmax = 0, 2.
+    mplt = ax_regional.pcolormesh(xedges, yedges, values, 
+                         cmap=cmap, vmin=vmin, vmax=vmax) 
+    cbaxes = plt.colorbar(mplt, pad=0., fraction=0.030)
+    cbaxes.set_label(lbl, fontsize=15.)
+
+    # Title
+    if geo_region == 'eqpacific':
+        title = f'Pacific ECT: '
+    elif geo_region == 'eqindian':
+        title = 'Equatorial Indian Ocean: '
+    elif geo_region == 'gulfstream':
+        title = 'Gulf Stream: '
+    else:
+        embed(header='777 of figs')
+
+    # Add lon, lat
+    lons = ssl_defs.geo_regions[geo_region]['lons']
+    lats = ssl_defs.geo_regions[geo_region]['lats']
+    title += f'lon={ssl_paper_analy.lon_to_lbl(lons[0])},'
+    title += f'{ssl_paper_analy.lon_to_lbl(lons[1])};'
+    title += f' lat={ssl_paper_analy.lat_to_lbl(lats[0])},'
+    title += f'{ssl_paper_analy.lat_to_lbl(lats[1])}'
+    ax_regional.set_title(title)
+
+    # ##############################################3
+    # Gallery
+    _, cm = plotting.load_palette()
+    ax_gallery = plt.subplot(gs[1])
+
+
+    # Color bar
+    xmin, xmax = umap_grid['xmin'], umap_grid['xmax']
+    ymin, ymax = umap_grid['ymin'], umap_grid['ymax']
+    dxv = umap_grid['dxv']
+    dyv = umap_grid['dyv']
+    xval = umap_grid['xval']
+    yval = umap_grid['yval']
+
+
+    ax_gallery.set_xlim(xmin, xmax+dxv)
+    ax_gallery.set_ylim(ymin, ymax)
+
+    plt_cbar = True
+    ax_cbar = ax_gallery.inset_axes(
+                    [xmax + dxv + dxv/10, ymin, dxv/2, (ymax-ymin)*0.2],
+                    transform=ax_gallery.transData)
+    cbar_kws = dict(label=r'$\Delta T$ (K)')
+
+    ndone = 0
+    for ii, x in enumerate(xval[:-1]):
+        for jj, y in enumerate(yval[:-1]):
+            pts = np.where((modis_tbl[umap_keys[0]] >= x) & (
+                modis_tbl[umap_keys[0]] < x+dxv) & (
+                modis_tbl[umap_keys[1]] >= y) & (modis_tbl[umap_keys[1]] < y+dxv)
+                           & np.isfinite(modis_tbl.LL))[0]
+            if len(pts) < min_pts or counts[ii,jj] <= 0.:
+                continue
+
+            # Pick a random one
+            ichoice = np.random.choice(len(pts), size=1)
+            idx = int(pts[ichoice])
+            cutout = modis_tbl.iloc[idx]
+
+            # Image
+            axins = ax_gallery.inset_axes(
+                    [x+0.05*dxv, y+0.05*dyv, 0.9*dxv, 0.9*dyv], 
+                    transform=ax_gallery.transData)
+            # Load
+            try:
+                if local:
+                    parsed_s3 = urlparse(cutout.pp_file)
+                    local_file = os.path.join(os.getenv('SST_OOD'),
+                                              'MODIS_L2',
+                                              parsed_s3.path[1:])
+                    cutout_img = image_utils.grab_image(
+                        cutout, close=True, local_file=local_file)
+                else:
+                    cutout_img = image_utils.grab_image(cutout, close=True)
+            except:
+                embed(header='598 of plotting')                                                    
+            # Cut down?
+            if cut_to_inner is not None:
+                imsize = cutout_img.shape[0]
+                x0, y0 = [imsize//2-cut_to_inner//2]*2
+                x1, y1 = [imsize//2+cut_to_inner//2]*2
+                cutout_img = cutout_img[x0:x1,y0:y1]
+            # Limits
+            if in_vmnx[0] == -999:
+                DT = cutout.T90 - cutout.T10
+                vmnx = (-1*DT, DT)
+            elif in_vmnx is not None:
+                vmnx = in_vmnx
+            else:
+                imin, imax = cutout_img.min(), cutout_img.max()
+                amax = max(np.abs(imin), np.abs(imax))
+                vmnx = (-1*amax, amax)
+            # Plot
+            sns_ax = sns.heatmap(np.flipud(cutout_img), 
+                            xticklabels=[], 
+                     vmin=vmnx[0], vmax=vmnx[1],
+                     yticklabels=[], cmap=cm, cbar=plt_cbar,
+                     cbar_ax=ax_cbar, cbar_kws=cbar_kws,
+                     ax=axins)
+            sns_ax.set_aspect('equal', 'datalim')
+            # Only do this once
+            if plt_cbar:
+                plt_cbar = False
+            ndone += 1
+            print(f'ndone= {ndone}, LL={cutout.LL}, npts={len(pts)}')
+
+    # Fonts
+    fsz = 15.
+    plotting.set_fontsize(ax_gallery, fsz)
+    plotting.set_fontsize(ax_regional, fsz)
+
+
+    # Outline
+    #https://stackoverflow.com/questions/24539296/outline-a-region-in-a-graph
+    region = (values > 1.5) & np.isfinite(values)
+    segments = mk_segments(region, xmax-xmin+dxv, ymax-ymin,
+                           x0=xmin, y0=ymin)
+    ax_gallery.plot(segments[:, 0], segments[:, 1], color='k', linewidth=2.0,
+                    zorder=10)
+
+
+    plt.tight_layout(pad=0.5, h_pad=0.5, w_pad=0.5)
     plt.savefig(outfile, dpi=300)
     plt.close()
     print('Wrote {:s}'.format(outfile))
+
+def mk_segments(mapimg,dx,dy,x0=-0.5,y0=-0.5):
+    # a vertical line segment is needed, when the pixels next to each other horizontally
+    #   belong to diffferent groups (one is part of the mask, the other isn't)
+    # after this ver_seg has two arrays, one for row coordinates, the other for column coordinates
+    ver_seg = np.where(mapimg[:, 1:] != mapimg[:, :-1])
+
+    # the same is repeated for horizontal segments
+    hor_seg = np.where(mapimg[1:, :] != mapimg[:-1, :])
+
+    # if we have a horizontal segment at 7,2, it means that it must be drawn between pixels
+    #   (2,7) and (2,8), i.e. from (2,8)..(3,8)
+    # in order to draw a discountinuous line, we add Nones in between segments
+    l = []
+    for p in zip(*hor_seg):
+        l.append((p[1], p[0] + 1))
+        l.append((p[1] + 1, p[0] + 1))
+        l.append((np.nan, np.nan))
+
+    # and the same for vertical segments
+    for p in zip(*ver_seg):
+        l.append((p[1] + 1, p[0]))
+        l.append((p[1] + 1, p[0] + 1))
+        l.append((np.nan, np.nan))
+
+    # now we transform the list into a numpy array of Nx2 shape
+    segments = np.array(l)
+
+    # now we need to know something about the image which is shown
+    #   at this point let's assume it has extents (x0, y0)..(x1,y1) on the axis
+    #   drawn with origin='lower'
+    # with this information we can rescale our points
+    try:
+        segments[:, 0] = x0 + dx * segments[:, 0] / mapimg.shape[1]
+        segments[:, 1] = y0 + dy * segments[:, 1] / mapimg.shape[0]
+    except:
+        embed(header='2346 of figs')
+
+    return segments
 
 #### ########################## #########################
 def main(flg_fig):
@@ -225,7 +392,7 @@ def main(flg_fig):
         fig_regional_with_gallery(
             'eqpacific',
             'fig_regional_with_gallery_eqpacific.png',
-            '96clear_v4_DT1')
+            '96clear_v4_DT1', in_vmnx=(-0.75, 0.75))
 
 
 # Command line execution
