@@ -291,8 +291,11 @@ def grid_umap(U0:np.ndarray, U1:np.ndarray, nxy:int=16,
                 xval=xval, yval=yval, dxv=dxv, dyv=dyv)
     return grid
 
+
 def cutouts_on_umap_grid(tbl:pandas.DataFrame, nxy:int, 
                          umap_keys:tuple, min_pts:int=1):
+    """ Genreate a list of cuotuts uniformly distributed on the UMAP grid
+    """
 
     # Grid
     umap_grid = grid_umap(
@@ -317,8 +320,8 @@ def cutouts_on_umap_grid(tbl:pandas.DataFrame, nxy:int,
     print(f"We have {num_samples} making the cuts.")
 
     # Grid
-    xval = np.arange(xmin, xmax+dxv, dxv)
-    yval = np.arange(ymin, ymax+dyv, dyv)
+    xval = umap_grid['xval']
+    yval = umap_grid['yval']
 
     # Grab cutouts
     cutouts = []
@@ -329,6 +332,7 @@ def cutouts_on_umap_grid(tbl:pandas.DataFrame, nxy:int,
                 tbl[umap_keys[1]] >= y) & (tbl[umap_keys[1]] < y+dxv)
                            & np.isfinite(tbl.LL))[0]
             if len(pts) < min_pts:
+                cutouts.append(None)
                 continue
 
             # Pick a random one
@@ -339,7 +343,7 @@ def cutouts_on_umap_grid(tbl:pandas.DataFrame, nxy:int,
             cutouts.append(cutout)
 
     # Return
-    return cutouts
+    return tbl, cutouts, umap_grid
 
 def old_latents_umap(latents:np.ndarray, train:np.ndarray, 
          valid:np.ndarray, valid_tbl:pandas.DataFrame,

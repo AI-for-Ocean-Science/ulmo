@@ -35,6 +35,7 @@ from ulmo.utils import utils as utils
 from ulmo import io as ulmo_io
 from ulmo.ssl import single_image as ssl_simage
 from ulmo.utils import image_utils
+from ulmo.ssl import ssl_umap
 
 from IPython import embed
 
@@ -372,7 +373,7 @@ def fig_umap_density(outfile='fig_umap_density.png',
 
     # Boundaries of the box
     if umap_grid is None:
-        umap_grid = grid_umap(modis_tbl[umap_keys[0]].values, modis_tbl[umap_keys[0]].values,
+        umap_grid = ssl_umap.grid_umap(modis_tbl[umap_keys[0]].values, modis_tbl[umap_keys[0]].values,
                   nxy=nxy)
 
     xmin, xmax = umap_grid['xmin'], umap_grid['xmax']
@@ -451,6 +452,7 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
                      annotate=False,
                      use_std_lbls=True,
                      cut_to_inner:int=None,
+                     skip_incidence=False,
                      debug=False): 
     """ UMAP gallery
 
@@ -525,7 +527,7 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
             dxv = 0.5 
             dyv = 0.25
         else:
-            umap_grid = ssl_paper_analy.grid_umap(modis_tbl[umap_keys[0]].values,
+            umap_grid = ssl_umap.grid_umap(modis_tbl[umap_keys[0]].values,
                                   modis_tbl[umap_keys[1]].values, nxy=nxy)
             # Unpack
             xmin, xmax = umap_grid['xmin'], umap_grid['xmax']
@@ -562,7 +564,7 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
     # Fig
     _, cm = plotting.load_palette()
     fsz = 15.
-    if annotate:
+    if annotate or skip_incidence:
         fsize = (9,8)
     else:
         fsize = (12,8)
@@ -570,6 +572,8 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
     plt.clf()
 
     if annotate:
+        ax_gallery = fig.add_axes([0.10, 0.12, 0.75, 0.85])
+    elif skip_incidence:
         ax_gallery = fig.add_axes([0.10, 0.12, 0.75, 0.85])
     else:
         ax_gallery = fig.add_axes([0.05, 0.1, 0.6, 0.90])
@@ -704,7 +708,7 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
         ax_gallery.add_patch(rect2)
 
     # Incidence plot
-    if not annotate:
+    if not annotate and not skip_incidence:
         ax_incidence = fig.add_axes([0.71, 0.45, 0.25, 0.36])
 
         fig_umap_density(outfile=None, modis_tbl=modis_tbl,
@@ -968,7 +972,7 @@ def fig_geo_umap(outfile:str, geo_region:str,
     outfile = update_outfile(outfile, table, umap_dim,
                              umap_comp=umap_comp)
     # Grid
-    grid = ssl_paper_analy.grid_umap(modis_tbl[umap_keys[0]].values, 
+    grid = ssl_umap.grid_umap(modis_tbl[umap_keys[0]].values, 
         modis_tbl[umap_keys[1]].values, verbose=verbose)
  
     # cut
@@ -1078,7 +1082,7 @@ def fig_seasonal_geo_umap(outfile, geo_region,
     outfile = update_outfile(outfile, table, umap_dim,
                              umap_comp=umap_comp)
     # Grid
-    grid = ssl_paper_analy.grid_umap(modis_tbl[umap_keys[0]].values, 
+    grid = ssl_umap.grid_umap(modis_tbl[umap_keys[0]].values, 
         modis_tbl[umap_keys[1]].values)
  
     # cut
@@ -1200,7 +1204,7 @@ def fig_yearly_geo_umap(outfile, geo_region,
     outfile = update_outfile(outfile, table, umap_dim,
                              umap_comp=umap_comp)
     # Grid
-    grid = ssl_paper_analy.grid_umap(modis_tbl[umap_keys[0]].values, 
+    grid = ssl_umap.grid_umap(modis_tbl[umap_keys[0]].values, 
         modis_tbl[umap_keys[1]].values)
  
     # cut on UMAP space
