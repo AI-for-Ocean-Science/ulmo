@@ -261,6 +261,86 @@ def umap_subset(modis_tbl:pandas.DataFrame,
     if not debug:
         ulmo_io.write_main_table(modis_tbl, outfile, to_s3=to_s3)
 
+def grid_umap(U0:np.ndarray, U1:np.ndarray, nxy:int=16, 
+              percent:list=[0.05, 99.95], verbose=False):
+    """ 
+    Generate a grid on the UMAP domain
+    """
+
+    # Boundaries of the grid
+    xmin, xmax = np.percentile(U0, percent)
+    ymin, ymax = np.percentile(U1, percent)
+    dxv = (xmax-xmin)/nxy
+    dyv = (ymax-ymin)/nxy
+
+    if verbose:
+        print(f"DU_0={dxv} and DU_1={dyv}")
+
+    # Edges
+    xmin -= dxv
+    xmax += dxv
+    ymin -= dyv
+    ymax += dyv
+
+    # Grid
+    xval = np.arange(xmin, xmax+dxv, dxv)
+    yval = np.arange(ymin, ymax+dyv, dyv)
+
+    # Return
+    grid = dict(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax,
+                xval=xval, yval=yval, dxv=dxv, dyv=dyv)
+    return grid
+
+def cutouts_on_umap_grid(tbl:pandas.DataFrame, nxy:int, 
+                         umap_keys:tuple, min_pts:int=1):
+
+    # Grid
+    umap_grid = grid_umap(
+        tbl[umap_keys[0]].values,
+        tbl[umap_keys[1]].values, 
+        nxy=nxy)
+
+    # Unpack
+    xmin, xmax = umap_grid['xmin'], umap_grid['xmax']
+    ymin, ymax = umap_grid['ymin'], umap_grid['ymax']
+    dxv = umap_grid['dxv']
+    dyv = umap_grid['dyv']
+
+    # Cut
+    good = (tbl[umap_keys[0]] > xmin) & (
+        tbl[umap_keys[0]] < xmax) & (
+        tbl[umap_keys[1]] > ymin) & (
+            tbl[umap_keys[1]] < ymax) & np.isfinite(tbl.LL)
+
+    tbl = tbl.loc[good].copy()
+    num_samples = len(tbl)
+    print(f"We have {num_samples} making the cuts.")
+
+    # Grid
+    xval = np.arange(xmin, xmax+dxv, dxv)
+    yval = np.arange(ymin, ymax+dyv, dyv)
+
+    # Grab cutouts
+    cutouts = []
+    for x in xval[:-1]:
+        for y in yval[:-1]:
+            pts = np.where((tbl[umap_keys[0]] >= x) & (
+                tbl[umap_keys[0]] < x+dxv) & (
+                tbl[umap_keys[1]] >= y) & (tbl[umap_keys[1]] < y+dxv)
+                           & np.isfinite(tbl.LL))[0]
+            if len(pts) < min_pts:
+                continue
+
+            # Pick a random one
+            ichoice = np.random.choice(len(pts), size=1)
+            idx = int(pts[ichoice])
+            cutout = tbl.iloc[idx]
+            # Save
+            cutouts.append(cutout)
+
+    # Return
+    return cutouts
+
 def old_latents_umap(latents:np.ndarray, train:np.ndarray, 
          valid:np.ndarray, valid_tbl:pandas.DataFrame,
          fig_root='', transformer_file=None):
