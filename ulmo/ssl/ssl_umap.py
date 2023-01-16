@@ -345,6 +345,60 @@ def cutouts_on_umap_grid(tbl:pandas.DataFrame, nxy:int,
     # Return
     return tbl, cutouts, umap_grid
 
+
+def regional_analysis(geo_region:str, tbl:pandas.DataFrame, nxy:int, 
+                      umap_keys:tuple, min_counts:int=200):
+    # Grid
+    grid = grid_umap(tbl[umap_keys[0]].values, 
+        tbl[umap_keys[1]].values, nxy=nxy)
+ 
+    # cut
+    good = (tbl[umap_keys[0]] > grid['xmin']) & (
+        tbl[umap_keys[0]] < grid['xmax']) & (
+        tbl[umap_keys[1]] > grid['ymin']) & (
+            tbl[umap_keys[1]] < grid['ymax']) & np.isfinite(tbl.LL)
+
+    tbl = tbl.loc[good].copy()
+    num_samples = len(tbl)
+    print(f"We have {num_samples} making the cuts.")
+
+    # All
+    counts, xedges, yedges = np.histogram2d(
+        tbl[umap_keys[0]], 
+        tbl[umap_keys[1]], bins=(grid['xval'], 
+        grid['yval']))
+
+    # Normalize
+    if min_counts > 0:
+        counts[counts < min_counts] = 0.
+    counts /= np.sum(counts)
+
+    # Geographic
+    lons = ssl_defs.geo_regions[geo_region]['lons']
+    lats = ssl_defs.geo_regions[geo_region]['lats']
+    #embed(header='739 of figs')
+    geo = ( (tbl.lon > lons[0]) &
+        (tbl.lon < lons[1]) &
+        (tbl.lat > lats[0]) &
+        (tbl.lat < lats[1]) )
+
+    geo_tbl = tbl.loc[good & geo].copy()
+    counts_geo, xedges, yedges = np.histogram2d(
+        geo_tbl[umap_keys[0]], 
+        geo_tbl[umap_keys[1]], bins=(grid['xval'], 
+                                     grid['yval']))
+    print(f"There are {len(geo_tbl)} cutouts in the geographic region")
+
+    # Normalize
+    counts_geo /= np.sum(counts_geo)
+
+    # Ratio
+    rtio_counts = counts_geo / counts
+
+    # Return
+    return counts, counts_geo, tbl, grid
+
+
 def old_latents_umap(latents:np.ndarray, train:np.ndarray, 
          valid:np.ndarray, valid_tbl:pandas.DataFrame,
          fig_root='', transformer_file=None):

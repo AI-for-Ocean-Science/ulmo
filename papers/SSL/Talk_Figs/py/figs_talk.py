@@ -133,6 +133,37 @@ def fig_uniform_gallery(outfile:str, table:str,
     plt.close()
     print('Wrote {:s}'.format(outfile))
 
+def fig_regional_with_gallery(geo_region:str, outfile:str, table:str, 
+                     umap_comp='S0,S1', 
+                     umap_dim=2, cmap='bwr', nxy=16):
+
+    # Load
+    local=True
+    modis_tbl = ssl_paper_analy.load_modis_tbl(
+        local=local, table=table)
+
+    # UMAP
+    umap_keys = ssl_paper_analy.gen_umap_keys(
+        umap_dim, umap_comp)
+
+
+    # UMAP the region
+    counts, counts_geo, modis_tbl, grid = ssl_umap.regional_analysis(
+        geo_region, modis_tbl, nxy, umap_keys)
+
+    rtio_counts = counts_geo / counts
+
+    # Figure
+    _, cm = plotting.load_palette()
+    fig = plt.figure(figsize=(10,9))
+    plt.clf()
+    gs = gridspec.GridSpec(1,2)
+
+    ax_regional = plt.subplot(gs[0])
+
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
 
 #### ########################## #########################
 def main(flg_fig):
@@ -189,6 +220,13 @@ def main(flg_fig):
                 umap_dim=2, umap_comp='S0,S1',
                 skip_incidence=True, min_pts=200, cut_to_inner=40, nxy=8)
 
+    # Regional, Pacific ECT
+    if flg_fig & (2 ** 4):
+        fig_regional_with_gallery(
+            'eqpacific',
+            'fig_regional_with_gallery_eqpacific.png',
+            '96clear_v4_DT1')
+
 
 # Command line execution
 if __name__ == '__main__':
@@ -198,7 +236,8 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 0  # Gallery of 16 with DT = all
         #flg_fig += 2 ** 1  # Gallery of 16 with DT = 1
         #flg_fig += 2 ** 2  # Gallery of 16 with DT = 4
-        flg_fig += 2 ** 3  # Full set of UMAP galleries
+        #flg_fig += 2 ** 3  # Full set of UMAP galleries
+        flg_fig += 2 ** 4  # Regional + Gallery -- Pacific ECT
     else:
         flg_fig = sys.argv[1]
 

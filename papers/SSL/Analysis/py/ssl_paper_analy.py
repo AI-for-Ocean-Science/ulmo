@@ -13,6 +13,7 @@ from statsmodels.stats.stattools import durbin_watson
 import statsmodels.formula.api as smf
 
 from ulmo import io as ulmo_io
+from ulmo.ssl import defs as ulmo_ssl_defs
 
 import ssl_defs
 
@@ -28,35 +29,8 @@ if os.getenv('SST_OOD'):
     local_modis_96_file = os.path.join(os.getenv('SST_OOD'),
                                     'MODIS_L2/Tables/MODIS_SSL_96clear.parquet')
 
-# Geo graphical regions
-geo_regions = {}
-geo_regions['eqpacific'] = dict(
-    lons=[-140, -90.],   # W
-    lats=[-5, 5.])    # Equitorial 
-geo_regions['eqindian'] = dict(
-    lons=[60, 90.],   # E
-    lats=[-5, 5.])    # Equitorial 
-geo_regions['baybengal'] = dict(
-    lons=[79, 95.],   # E
-    lats=[16, 23.])    # N
-geo_regions['gulfstream'] = dict(
-    lons=[-70, -40.],   # W
-    lats=[40, 50.])    # N
-geo_regions['med'] = dict(
-    lons=[0, 20.],   # E
-    lats=[30, 45.])    # N
-geo_regions['south_atlantic'] = dict(
-    lons=[-35, 10.],   # W (Pretty crude)
-    lats=[-30, -20.])      # N
-geo_regions['south_pacific'] = dict(
-    lons=[-140, -90.],   # W (Pretty crude)
-    lats=[-30, -20.])      # S
-geo_regions['global'] = dict(
-    lons=[-999., 999.],   # E
-    lats=[-999, 999.])    # N
-geo_regions['north'] = dict(
-    lons=[-999., 999.],   # E
-    lats=[0, 999.])    # N
+# Geography
+geo_regions = ulmo_ssl_defs.geo_regions
 
 # UMAP ranges for the paper
 umap_rngs_dict = {}
