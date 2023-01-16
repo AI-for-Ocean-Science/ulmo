@@ -52,7 +52,7 @@
 # python py/fig_ssl_modis.py umap_slope --local --table 96clear_v4_DT1 --umap_comp S0,S1
 
 # Figure 12 Global geo for DT1 and large-scale variance
-# python py/fig_ssl_modis.py umap_geo --local --outfile fig_umap_geo_global_DT1_weak.png --table 96clear_v4_DT1  --umap_rngs=weak_DT1 --min_counts=5 
+python py/fig_ssl_modis.py umap_geo --local --outfile fig_umap_geo_global_DT1_weak.png --table 96clear_v4_DT1  --umap_rngs=weak_DT1 --min_counts=5 
 
 # Figure 13 Global geo for DT1 and strong gradients
 # python py/fig_ssl_modis.py umap_geo --local --outfile fig_umap_geo_global_DT1_strong.png --table 96clear_v4_DT1  --umap_rngs=strong_DT1 --min_counts=5 --umap_rngs strong_DT1
@@ -68,7 +68,7 @@
 # python py/fig_ssl_modis.py geo_umap --local --outfile fig_geo_umap_DT1_southpacific.png --table 96clear_v4_DT1  --region=south_pacific
 
 # Figure 16 Time Series EqPacific, Med
-python py/fig_ssl_modis.py yearly_geo --local --region eqpacific --table 96clear_v4_DT1
+# python py/fig_ssl_modis.py yearly_geo --local --region eqpacific --table 96clear_v4_DT1
 # python py/fig_ssl_modis.py yearly_geo --local --region med --table 96clear_v4_DT1
 
 # python py/fig_ssl_modis.py yearly_geo --local --region gulfstream --table 96clear_v4_DT1
