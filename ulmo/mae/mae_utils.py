@@ -1,0 +1,23 @@
+""" Utility methods for MAE """
+
+import os
+
+def parse_mae_img_file(img_file:str):
+    """_summary_
+
+    Args:
+        img_file (str): 
+            Assumes mae_reconstruct_tXX_pXX.h5 format
+    """
+
+    prs = os.path.basename(img_file).parse('_')
+
+    # Train %
+    assert prs[2][0] == 't'
+    t_per = prs[2][1:]
+
+    # Patch %
+    assert prs[3][0] == 'p'
+    p_per = prs[3][1:]
+
+    return t_per, p_per
