@@ -102,15 +102,13 @@ def main(flg):
         # Ulmo model
         model='viirs-98'
 
-        # Image parameters -- use str for the values
-        img_pers = [('10', '10')]  
+        # Image parameters -- (train_percenntage, patch_percentage)
+        img_pers = [(10, 10)]  
 
         # Generate the file names
         img_files = []
         for img_per in img_pers:
-            base_name = f'mae_reconstruct_t{img_per[0]}_p{img_per[1]}.h5'
-            img_file = os.path.join(mae_img_path, base_name)
-            #
+            img_file = mae_utils.img_filename(img_per[0], img_per[1])
             img_files.append(img_file)
         
         # Run
