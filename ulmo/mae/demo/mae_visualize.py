@@ -63,7 +63,7 @@ def prepare_model(chkpt_dir, arch='mae_vit_LLC_patch4'):
     print(msg)
     return model
 
-def run_one_image(img, model, mask_ratio):
+def run_one_image(img, model, mask_ratio, file):
     x = torch.tensor(img)
 
     # make it a batch-like
@@ -92,7 +92,6 @@ def run_one_image(img, model, mask_ratio):
     #from IPython import embed; embed(header='225 of extract')
     im = np.squeeze(temp, axis=3)
     
-    file = HDF5Store('reconstructions.h5', 'valid', shape=im.shape)
     file.append(im)
 
 
@@ -110,16 +109,18 @@ print('Model loaded.')
 print('running')
 # Run MAE
 filepath = 'LLC_uniform144_nonoise_preproc.h5'
+#filepath = '../LLC_uniform144_test_preproc.h5'
 with h5py.File(filepath, 'r') as f:
     len_valid = f['valid'].shape[0]
+    file = HDF5Store('reconstructions.h5', 'valid', shape=f['valid'][0].shape)
     for i in range(10):
-        if i%100 == 0:
-            print('Reconstructing image ', i)
+        #if i%100 == 0:
+        print('Reconstructing image ', i, ' out of ', len_valid)
         img = f['valid'][i][0]
         img.resize((64,64,1))
         
         assert img.shape == (64, 64, 1)
-        run_one_image(img, model_mae, 0.10)
+        run_one_image(img, model_mae, 0.10, file)
     
     
 
