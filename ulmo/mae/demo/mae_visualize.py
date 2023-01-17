@@ -113,7 +113,7 @@ print('running')
 filepath = '../LLC_uniform144_test_preproc.h5'
 with h5py.File(filepath, 'r') as f:
     len_valid = f['valid'].shape[0]
-    for i in range(len_valid):
+    for i in range(10):
         if i%100 == 0:
             print('Reconstructing image ', i)
         img = f['valid'][i][0]
