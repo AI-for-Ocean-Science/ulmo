@@ -43,7 +43,7 @@ def gen_mae_tbl(tbl_file:str, outfile:str):
     assert disallowed_keys[0] == 'LL_orig'
 
     # Write
-    mae_tbl.to_parquet(outfile)
+    ulmo_io.write_main_table(mae_tbl, outfile)
 
 
 def mae_ulmo_evaluate(tbl_file:str, img_files:list,
