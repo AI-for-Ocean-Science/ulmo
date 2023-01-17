@@ -35,30 +35,15 @@ else:
 import models_mae
 
 
-# ### Define utils
-
-# In[2]:
-
-
-# define the utils
-
-imagenet_mean = np.array([0.485, 0.456, 0.406])
-imagenet_std = np.array([0.229, 0.224, 0.225])
-
-def show_image(image, title=''):
-    # image is [H, W, 3]
-    assert image.shape[2] == 1
-    plt.imshow(torch.clip((image * imagenet_std + imagenet_mean) * 255, 0, 255).int())
-    plt.title(title, fontsize=16)
-    plt.axis('off')
-    return
-
 def prepare_model(chkpt_dir, arch='mae_vit_LLC_patch4'):
     # build model
-    model = getattr(models_mae, arch)()
+    model = getattr(models_mae, arch)() # gets model attributes from models_mae
+    model.to('cuda')
+    
     # load model
-    #checkpoint = torch.load(chkpt_dir, map_location='cpu')
-    checkpoint = torch.load(chkpt_dir)
+    checkpoint = torch.load(chkpt_dir, map_location='cpu')
+    
+    
     msg = model.load_state_dict(checkpoint['model'], strict=False)
     print(msg)
     return model
@@ -68,18 +53,19 @@ def run_one_image(img, model, mask_ratio, file):
 
     # make it a batch-like
     x = x.unsqueeze(dim=0)
+    x = x.cuda()
     x = torch.einsum('nhwc->nchw', x)
 
     # run MAE
     loss, y, mask = model(x.float(), mask_ratio)
     y = model.unpatchify(y)
-    y = torch.einsum('nchw->nhwc', y).detach().cpu()
+    y = torch.einsum('nchw->nhwc', y).detach()
 
     # visualize the mask
     mask = mask.detach()
     mask = mask.unsqueeze(-1).repeat(1, 1, model.patch_embed.patch_size[0]**2 *1)  # (N, H*W, p*p*3)
     mask = model.unpatchify(mask)  # 1 is removing, 0 is keeping
-    mask = torch.einsum('nchw->nhwc', mask).detach().cpu()
+    mask = torch.einsum('nchw->nhwc', mask).detach()
     
     x = torch.einsum('nchw->nhwc', x)
 
@@ -114,8 +100,8 @@ with h5py.File(filepath, 'r') as f:
     len_valid = f['valid'].shape[0]
     file = HDF5Store('reconstructions-model10-mask10.h5', 'valid', shape=f['valid'][0].shape)
     for i in range(len_valid):
-        #if i%100 == 0:
-        print('Reconstructing image ', i, ' out of ', len_valid)
+        if i%10 == 0:
+            print('Reconstructing image ', i, ' out of ', len_valid)
         img = f['valid'][i][0]
         img.resize((64,64,1))
         
