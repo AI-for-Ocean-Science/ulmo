@@ -212,8 +212,8 @@ def save_on_master(*args, **kwargs):
     if is_main_process():
         torch.save(*args, **kwargs)
 
-
 def init_distributed_mode(args):
+    
     if args.dist_on_itp:
         args.rank = int(os.environ['OMPI_COMM_WORLD_RANK'])
         args.world_size = int(os.environ['OMPI_COMM_WORLD_SIZE'])
@@ -235,15 +235,21 @@ def init_distributed_mode(args):
         setup_for_distributed(is_master=True)  # hack
         args.distributed = False
         return
-
+    
+    print("Rank: ", int(os.environ["RANK"]))
+    print("World_size: ", int(os.environ["WORLD_SIZE"]))
+    print("Local Rank: ", int(os.environ["LOCAL_RANK"]))
+    
     args.distributed = True
+    print(args.distributed)
 
     torch.cuda.set_device(args.gpu)
     args.dist_backend = 'nccl'
     print('| distributed init (rank {}): {}, gpu {}'.format(
         args.rank, args.dist_url, args.gpu), flush=True)
-    torch.distributed.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
-                                         world_size=args.world_size, rank=args.rank)
+    #torch.distributed.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
+    #                                     world_size=args.world_size, rank=args.rank)
+    torch.distributed.init_process_group(backend=args.dist_backend)
     torch.distributed.barrier()
     setup_for_distributed(args.rank == 0)
 

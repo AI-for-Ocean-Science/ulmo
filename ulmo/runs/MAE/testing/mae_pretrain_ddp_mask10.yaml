@@ -3,7 +3,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: aagabin-mae-pretrain-test
+  name: aagabin-mae-pretrain-patch4-mask10
 spec:
   backoffLimit: 0
   template:
@@ -20,7 +20,7 @@ spec:
               - key: nvidia.com/gpu.product
                 operator: In
                 values:
-                  - NVIDIA-GeForce-GTX-3090
+                  - NVIDIA-A10
       containers:
       - name: container
         image: localhost:30081/profxj/mae_nvidia:latest  # UPDATE
@@ -28,17 +28,18 @@ spec:
         resources:
           requests:
             cpu: "4"   # Using at least 4
-            memory: "10Gi"  # Using ~7
+            memory: "75Gi"  # Using ~7
             ephemeral-storage: 50Gi
           limits:
             cpu: "8"
-            memory: "25Gi"
-            ephemeral-storage: 100Gi
-            nvidia.com/gpu:  "2"  # See docs to exlude certain types
+            memory: "100Gi"
+            ephemeral-storage: 300Gi
+            nvidia.com/gpu:  "8"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]
             #command: ["sh", "-c", "sleep infinity"]
         args:
           - pip install tensorboard;
+            pip3 install torch torchvision torchaudio --force-reinstall  --extra-index-url https://download.pytorch.org/whl/cu116;
             cd ulmo; 
             git fetch;
             git checkout mae; 
@@ -46,10 +47,8 @@ spec:
             python setup.py develop;
             cp ulmo/mae/correct_helpers.py /root/miniconda3/lib/python3.8/site-packages/timm/models/layers/helpers.py;
             cd ulmo/mae;
-            aws --endpoint https://s3-west.nrp-nautilus.io s3 cp s3://llc/PreProc/LLC_uniform144_test_preproc.h5 ./;
-            python ./testh5.py;
-            python main_pretrain.py --epochs 10 --model mae_vit_LLC_patch4 --mask_ratio 0.10;
-            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp output_dir s3://viirs --recursive --force;
+            aws --endpoint https://s3-west.nrp-nautilus.io s3 cp s3://llc/PreProc/LLC_uniform144_nonoise_preproc.h5 ./;
+            torchrun --standalone --nproc_per_node=8 LLC_main_pretrain_DDP.py --epochs 400 --data_path LLC_uniform144_nonoise_preproc.h5 --output_dir ./mae_pretrain_ddp_mask10 --blr 1.5e-4 --mask_ratio 0.10;
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"

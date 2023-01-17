@@ -14,6 +14,8 @@ from functools import partial
 
 import torch
 import torch.nn as nn
+import numpy as np
+import h5py
 
 from timm.models.vision_transformer import PatchEmbed, Block
 
@@ -215,15 +217,18 @@ class MaskedAutoencoderViT(nn.Module):
 
     def forward(self, imgs, mask_ratio=0.75):
         latent, mask, ids_restore = self.forward_encoder(imgs, mask_ratio)
+        size = len(latent)
+        print("Latent size: ", size)
+        lat = latent.cpu().detach().numpy()
+        
+        with h5py.File('.\latents.h5', 'a') as hf:
+            data_file.create_dataset("valid", data=lat)
+        
+        np.save('latent.npy', lat, allow_pickle=False)
+        
         pred = self.forward_decoder(latent, ids_restore)  # [N, L, p*p*3] --> [N, L, p*p*1]?
         loss = self.forward_loss(imgs, pred, mask)
         return loss, pred, mask
-    
-    def return_latent(self, imgs, mask_ration=0.75):
-        latent, mask, ids_restore = self.forward_encoder(imgs, mask_ratio)
-        # debugging step to check the latent (do numpy.save)
-        # check to shape
-        # format to file
         
         
 # MAE Model

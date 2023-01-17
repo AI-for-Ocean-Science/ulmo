@@ -19,10 +19,12 @@ from pathlib import Path
 import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
+import torch.multiprocessing as mp
 from torch.utils.tensorboard import SummaryWriter
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 from ulmo.utils import HDF5Dataset, id_collate, get_quantiles
+from ulmo import io as ulmo_io
 
 import timm
 
@@ -36,6 +38,8 @@ import models_mae
 
 from engine_pretrain import train_one_epoch
 
+from torch.distributed.elastic.multiprocessing.errors import record
+
 
 def get_args_parser():
     parser = argparse.ArgumentParser('MAE pre-training', add_help=False)
@@ -46,10 +50,10 @@ def get_args_parser():
                         help='Accumulate gradient iterations (for increasing the effective batch size under memory constraints)')
 
     # Model parameters
-    parser.add_argument('--model', default='mae_vit_large_patch16', type=str, metavar='MODEL',
+    parser.add_argument('--model', default='mae_vit_LLC_patch4', type=str, metavar='MODEL',
                         help='Name of model to train')
 
-    parser.add_argument('--input_size', default=224, type=int,
+    parser.add_argument('--input_size', default=64, type=int,
                         help='images input size')
 
     parser.add_argument('--mask_ratio', default=0.75, type=float,
@@ -65,7 +69,7 @@ def get_args_parser():
 
     parser.add_argument('--lr', type=float, default=None, metavar='LR',
                         help='learning rate (absolute lr)')
-    parser.add_argument('--blr', type=float, default=1e-3, metavar='LR',
+    parser.add_argument('--blr', type=float, default=1.5e-4, metavar='LR',
                         help='base learning rate: absolute_lr = base_lr * total_batch_size / 256')
     parser.add_argument('--min_lr', type=float, default=0., metavar='LR',
                         help='lower lr bound for cyclic schedulers that hit 0')
@@ -74,7 +78,7 @@ def get_args_parser():
                         help='epochs to warmup LR')
 
     # Dataset parameters
-    parser.add_argument('--data_path', default='/datasets01/imagenet_full_size/061417/', type=str,
+    parser.add_argument('--data_path', default='LLC_uniform144_nonoise_preproc_split.h5', type=str,
                         help='dataset path')
 
     parser.add_argument('--output_dir', default='./output_dir',
@@ -105,8 +109,15 @@ def get_args_parser():
 
     return parser
 
-
+@record
 def main(args):
+    """
+    Parameters:
+        rank: rank of process
+        world_size: number of processes
+        args: args passed
+    """
+    #if torch.cuda.device_count() > 1:
     misc.init_distributed_mode(args)
 
     print('job dir: {}'.format(os.path.dirname(os.path.realpath(__file__))))
@@ -121,16 +132,9 @@ def main(args):
 
     cudnn.benchmark = True
 
-    '''
-    # simple augmentation
-    transform_train = transforms.Compose([
-            transforms.RandomResizedCrop(args.input_size, scale=(0.2, 1.0), interpolation=3),  # 3 is bicubic
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
-    dataset_train = datasets.ImageFolder(os.path.join(args.data_path, 'train'), transform=transform_train)
-    print(dataset_train)
-
+    filepath = "LLC_uniform144_nonoise_preproc.h5"
+    dataset_train = HDF5Dataset(args.data_path, partition='valid')
+    
     if True:  # args.distributed:
         num_tasks = misc.get_world_size()
         global_rank = misc.get_rank()
@@ -141,34 +145,16 @@ def main(args):
     else:
         sampler_train = torch.utils.data.RandomSampler(dataset_train)
     
-
-    
+    # ???
     if global_rank == 0 and args.log_dir is not None:
         os.makedirs(args.log_dir, exist_ok=True)
         log_writer = SummaryWriter(log_dir=args.log_dir)
     else:
         log_writer = None
     
+    
     data_loader_train = torch.utils.data.DataLoader(
         dataset_train, sampler=sampler_train,
-        batch_size=args.batch_size,
-        num_workers=args.num_workers,
-        pin_memory=args.pin_mem,
-        drop_last=True,
-    )
-    
-    '''
-    
-
-    #filepath = "LLC_uniform_test_preproc_split.h5" # hardcoded for now
-    #filepath = "LLC_uniform144_test_preproc.h5"
-    filepath = "LLC_uniform144_nonoise_preproc.h5"
-    dataset_train = HDF5Dataset(filepath, partition='valid')
-    #dataset_train = HDF5Dataset(filepath, partition='train')
-    #valid_dset = HDF5Dataset(filepath, partition='valid')
-    
-    data_loader_train = torch.utils.data.DataLoader(
-        dataset_train, 
         batch_size=args.batch_size,
         num_workers=args.num_workers,
         pin_memory=args.pin_mem,
@@ -181,21 +167,14 @@ def main(args):
     
     print("training", len(data_loader_train.dataset) )
     print("Datasets loaded")
-
     
-    # define the model
+     # define the model
     model = models_mae.__dict__[args.model](norm_pix_loss=args.norm_pix_loss)
-    #model= torch.nn.DataParallel(model) # TODO: testing if this works
-    
-    if torch.cuda.device_count() > 1:
-        print("Let's use", torch.cuda.device_count(), "GPUs!")
-        # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
-        model = nn.DataParallel(model)
-    
+
     model.to(device)
 
     model_without_ddp = model
-    print("Model = %s" % str(model_without_ddp))
+    #print("Model = %s" % str(model_without_ddp))
 
     eff_batch_size = args.batch_size * args.accum_iter * misc.get_world_size()
     
@@ -207,9 +186,9 @@ def main(args):
 
     print("accumulate grad iterations: %d" % args.accum_iter)
     print("effective batch size: %d" % eff_batch_size)
-
-    if args.distributed:
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], find_unused_parameters=True)
+    
+    if args.distributed: # args.distributed:
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], output_device=args.gpu)
         model_without_ddp = model.module
     
     # following timm: set wd as 0 for bias and norm layers
@@ -223,7 +202,7 @@ def main(args):
     print(f"Start training for {args.epochs} epochs")
     start_time = time.time()
     for epoch in range(args.start_epoch, args.epochs):
-        if args.distributed:
+        if args.distributed: # args.distributed:??
             data_loader_train.sampler.set_epoch(epoch)
         train_stats = train_one_epoch(
             model, data_loader_train,
@@ -231,10 +210,22 @@ def main(args):
             log_writer=log_writer,
             args=args
         )
-        if args.output_dir and (epoch % 20 == 0 or epoch + 1 == args.epochs):
+        
+        # Save model and upload to s3 storage every 3 epochs
+        # TODO: this is crashing because it's trying to save on all GPU's. Save only on rank 0
+        if args.output_dir and (epoch % 2 == 0 or epoch + 1 == args.epochs):
             misc.save_model(
                 args=args, model=model, model_without_ddp=model_without_ddp, optimizer=optimizer,
                 loss_scaler=loss_scaler, epoch=epoch)
+            
+            # create filenames
+            local_file = os.path.join(args.output_dir, 'checkpoint-%s.pth' % epoch)
+            s3_file = os.path.join("s3://llc/mae", local_file)
+            if local_file[:2] == './':    # remove ./ if hidden output folder
+                s3_file = os.path.join('s3://llc/mae', local_file[2:]) 
+            # upload to s3
+            if args.rank == 0:
+                ulmo_io.upload_file_to_s3(local_file, s3_file)
 
         log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
                         'epoch': epoch,}
@@ -244,6 +235,14 @@ def main(args):
                 log_writer.flush()
             with open(os.path.join(args.output_dir, "log.txt"), mode="a", encoding="utf-8") as f:
                 f.write(json.dumps(log_stats) + "\n")
+        
+        # upload and update log file per epoch
+        log_file = os.path.join(args.output_dir, 'log.txt')
+        s3_log_file = os.path.join('s3://llc/mae', log_file)
+        if local_file[:2] == './':    # remove ./ if hidden folder
+            s3_log_file = os.path.join('s3://llc/mae', log_file[2:]) 
+        if args.rank == 0:
+            ulmo_io.upload_file_to_s3(log_file, s3_log_file)
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
@@ -255,4 +254,6 @@ if __name__ == '__main__':
     args = args.parse_args()
     if args.output_dir:
         Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+    # I think this works now. Any errors spat out by this is cause something later in the code failed.
+    world_size = torch.cuda.device_count()
     main(args)
