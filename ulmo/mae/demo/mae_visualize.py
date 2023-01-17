@@ -22,7 +22,6 @@ import h5py
 
 import matplotlib.pyplot as plt
 from PIL import Image
-from ulmo.plotting import plotting
 from hdfstore import HDF5Store
 
 # check whether run in Colab
