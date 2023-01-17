@@ -10,12 +10,16 @@ from IPython import embed
 def match_ids(IDs, match_IDs, require_in_match=True):
     """ Match input IDs to another array of IDs (usually in a table)
     Return the rows aligned with input IDs
+
     Parameters
     ----------
     IDs : ndarray
+        IDs that are to be found in match_IDs
     match_IDs : ndarray
+        IDs to be searched
     require_in_match : bool, optional
-      Require that each of the input IDs occurs within the match_IDs
+        Require that each of the input IDs occurs within the match_IDs
+
     Returns
     -------
     rows : ndarray
@@ -45,7 +49,8 @@ def vet_main_table(table:pandas.DataFrame, cut_prefix=None,
 
     Args:
         table (pandas.DataFrame or dict): [description]
-        cut_prefix (str or list, optional): . Defaults to None.
+        cut_prefix (str or list, optional): 
+            Allow this prefix on the standard datamodel
         data_model (dict, optional): Data model to test
             against.  If None, use the main Ulmo data model
 

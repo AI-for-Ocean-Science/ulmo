@@ -19,6 +19,7 @@ from ulmo import io as ulmo_io
 from ulmo.preproc import utils as pp_utils
 from ulmo.preproc import extract as pp_extract
 from ulmo.preproc import io as pp_io
+from ulmo.utils import catalog
 
 from ulmo.llc import io as llc_io
 from ulmo.llc import kinematics
@@ -107,9 +108,11 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
                          local_file:str,
                          preproc_root='llc_std', 
                          field_size=(64,64), 
+                         fixed_km=None,
                          n_cores=10,
                          valid_fraction=1., 
                          dlocal=False,
+                         override_RAM=False,
                          s3_file=None, debug=False):
     """Main routine to extract and pre-process LLC data for later SST analysis
     The llc_table is modified in place.
@@ -118,16 +121,24 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         llc_table (pandas.DataFrame): cutout table
         local_file (str): path to PreProc file
         preproc_root (str, optional): Preprocessing steps. Defaults to 'llc_std'.
-        field_size (tuple, optional): Defines cutout size. Defaults to (64,64).
+        field_size (tuple, optional): Defines cutout shape. Defaults to (64,64).
+        fixed_km (float, optional): Require cutout to be this size in km
         n_cores (int, optional): Number of cores for parallel processing. Defaults to 10.
         valid_fraction (float, optional): [description]. Defaults to 1..
         dlocal (bool, optional): Data files are local? Defaults to False.
+        override_RAM (bool, optional): Over-ride RAM warning?
         s3_file (str, optional): s3 URL for file to write. Defaults to None.
 
     Raises:
         IOError: [description]
 
     """
+    # Load coords?
+    if fixed_km is not None:
+        coords_ds = llc_io.load_coords()
+        R_earth = 6371. # km
+        circum = 2 * np.pi* R_earth
+        km_deg = circum / 360.
     
     # Preprocess options
     pdict = pp_io.load_options(preproc_root)
@@ -137,19 +148,19 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
 
     # Setup for dates
     uni_date = np.unique(llc_table.datetime)
-    if len(llc_table) > 1000000:
+    if len(llc_table) > 1000000 and not override_RAM:
         raise IOError("You are likely to exceed the RAM.  Deal")
 
     # Init
-    pp_fields, meta, img_idx = [], [], []
+    pp_fields, meta, img_idx, all_sub = [], [], [], []
 
     # Prep LLC Table
     llc_table = pp_utils.prep_table_for_preproc(llc_table, 
                                                 preproc_root,
-                                                field_size=field_size[0])
+                                                field_size=field_size)
     # Loop
     if debug:
-        uni_date = uni_date[0:5]
+        uni_date = uni_date[0:1]
     for udate in uni_date:
         # Parse filename
         filename = llc_io.grab_llc_datafile(udate, local=dlocal)
@@ -160,6 +171,7 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         # Parse 
         gd_date = llc_table.datetime == udate
         sub_idx = np.where(gd_date)[0]
+        all_sub += sub_idx.tolist()  # These really should be the indices of the Table
         coord_tbl = llc_table[gd_date]
 
         # Add to table
@@ -168,12 +180,21 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         # Load up the cutouts
         fields = []
         for r, c in zip(coord_tbl.row, coord_tbl.col):
-            fields.append(sst[r:r+field_size[0], c:c+field_size[1]])
+            if fixed_km is None:
+                dr = field_size[0]
+                dc = field_size[1]
+            else:
+                dlat_km = (coords_ds.lat.data[r+1,c]-coords_ds.lat.data[r,c]) * km_deg
+                dr = int(np.round(fixed_km / dlat_km))
+                dc = dr
+            #
+            if (r+dr >= sst.shape[0]) or (c+dc > sst.shape[1]):
+                fields.append(None)
+            else:
+                fields.append(sst[r:r+dr, c:c+dc])
         print("Cutouts loaded for {}".format(filename))
 
         # Multi-process time
-        #sub_idx = np.arange(idx, idx+len(fields)).tolist()
-        #idx += len(fields)
         # 
         items = [item for item in zip(fields,sub_idx)]
 
@@ -193,15 +214,15 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         del answers, fields, items, sst
         ds.close()
 
-    # Reorder llc_table (probably no change)
-    #llc_table = llc_table.iloc[img_idx].copy()
-    #llc_table.reset_index(drop=True, inplace=True)
-
-    # Warning -- This is not tested for LLC!
-    pp_utils.write_pp_fields(pp_fields, meta, llc_table, 
-                            sub_idx, img_idx,
-                             valid_fraction,
-                             s3_file, local_file)
+    # Fuss with indices
+    ex_idx = np.array(all_sub)
+    ppf_idx = []
+    ppf_idx = catalog.match_ids(np.array(img_idx), ex_idx)
+    # Write
+    llc_table = pp_utils.write_pp_fields(pp_fields, meta, llc_table, 
+                            ex_idx, ppf_idx,
+                            valid_fraction,
+                            s3_file, local_file)
 
     # Clean up
     del pp_fields

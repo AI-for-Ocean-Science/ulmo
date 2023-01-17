@@ -4,6 +4,7 @@ import io, json
 import h5py
 import pickle
 import sklearn
+import time
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -212,13 +213,13 @@ class ProbabilisticAutoencoder:
         
     def _train_module(self, module, n_epochs, batch_size, lr,
                      summary_interval=50, eval_interval=500,
-                     show_plots=True):
+                     show_plots=True, force_save=False):
         """
         Train one of the sub-systems, either autoencoder or flow
 
         Parameters
         ----------
-        module
+        module : str
         n_epochs
         batch_size
         lr
@@ -287,7 +288,10 @@ class ProbabilisticAutoencoder:
                         epoch_pbar.set_description(f"Validation Loss: {valid_loss:.3f}")
                         valid_losses.append((global_step, valid_loss))
                         model.train()
-            save = input("Training stopped. Save model (y/n)?").strip().lower() == 'y'
+            if not force_save:
+                save = input("Training stopped. Save model (y/n)?").strip().lower() == 'y'
+            else:
+                save = True
             if save:
                 save_model()
                 print("Model saved.")
@@ -308,6 +312,9 @@ class ProbabilisticAutoencoder:
                 plt.xlabel('Global Step')
                 plt.ylabel('Loss')
                 plt.legend()
+                plt.savefig(os.path.join(
+                    self.datadir, f'{module}_loss.png'), 
+                            dpi=150)
                 plt.show()
     
     def train_autoencoder(self, **kwargs):
@@ -343,7 +350,11 @@ class ProbabilisticAutoencoder:
                                           desc='Computing valid latents')]
                     valid = self.scaler.transform(np.concatenate(z))
                     f.create_dataset('valid', data=valid); del valid
-            
+            # Sleep to let file flush
+            print("Sleeping for 30 to flush latents file...")
+            time.sleep(30)
+
+            # Scaler
             scaler_path = os.path.join(self.logdir, self.stem + '_scaler.pkl')
             with open(scaler_path, 'wb') as f:
                 pickle.dump(self.scaler, f)
@@ -530,7 +541,7 @@ class ProbabilisticAutoencoder:
 
     def eval_data_file(self, data_file:str, dataset:str, output_file:str,
                        csv=False, **kwargs):
-        """ Make PyTorch dataset from HDF5 file
+        """ Evaluate all of the images in the input data file
 
         Args:
             data_file (str): PreProc data file. Must have .h5 extension
@@ -600,7 +611,9 @@ class ProbabilisticAutoencoder:
         print("Calculating latents..")
         with torch.no_grad():
             pre_latents = [self.autoencoder.encode(data[0].to(self.device)).detach().cpu().numpy()
-                     for data in loader]
+                     for data in tqdm(loader, total=len(loader),
+                                      unit='batch',
+                                      desc=f'Computing latents!')]
 
         # Sscaling
         print("Scaling..")
@@ -660,7 +673,7 @@ class ProbabilisticAutoencoder:
 
 
 
-    def plot_reconstructions(self, save_figure=False):
+    def plot_reconstructions(self, save_figure=False, skipmeta=False):
         """
         Generate a grid of plots of reconstructed images
 
@@ -670,14 +683,17 @@ class ProbabilisticAutoencoder:
 
         """
         pal, cm = load_palette()
-        
+        #embed(header='673 of ood.py')
         with h5py.File(self.filepath['data'], 'r') as f:
             fields = f['valid']
             n = fields.shape[0]
             idx = sorted(np.random.choice(n, replace=False, size=16))
             fields = fields[idx]
             recons = self.reconstruct(fields)
-            df = self.load_meta('valid_metadata')
+            if not skipmeta:
+                df = self.load_meta('valid_metadata')
+            else: 
+                df = None
 
         fig, axes = grid_plot(nrows=4, ncols=4)
 
@@ -692,7 +708,7 @@ class ProbabilisticAutoencoder:
                 t = ax.text(0.12, 0.89, f'({row}, {col})', color='k', size=12, transform=ax.transAxes)
                 t.set_path_effects([PathEffects.withStroke(linewidth=3, foreground='w')])
             else:
-                ax.set_title(f'Image {i}\n{logL_title}')
+                ax.set_title(f'Image {i}\n')
             sns.heatmap(x, ax=ax, xticklabels=[], yticklabels=[], cmap=cm, vmin=-2, vmax=2)
             sns.heatmap(rx, ax=r_ax, xticklabels=[], yticklabels=[], cmap=cm, vmin=-2, vmax=2)
         if save_figure:
@@ -700,12 +716,22 @@ class ProbabilisticAutoencoder:
             plt.savefig(os.path.join(self.logdir, fig_name), bbox_inches='tight')
         plt.show()
     
-    def plot_log_probs(self, sample_size=10000, save_figure=False):
+    def plot_log_probs(self, sample_size=10000, save_figure=False,
+                       logdir=None):
+        """Plot log probs
+
+        Args:
+            sample_size (int, optional): _description_. Defaults to 10000.
+            save_figure (bool, optional): _description_. Defaults to False.
+            logdir (str, optional): Output directory for the figure
+        """
         if not self.up_to_date_log_probs:
             self._compute_log_probs()
         
+        # Load up
         with h5py.File(self.filepath['log_probs'], 'r') as f:
             logL = f['valid'][:].flatten()
+        # Plot
         if len(logL) > sample_size:
             logL = sklearn.utils.shuffle(logL)[:sample_size]
         low_logL = np.quantile(logL, 0.05)
@@ -717,7 +743,9 @@ class ProbabilisticAutoencoder:
         plt.ylabel('Probability Density')
         if save_figure:
             fig_name = 'log_probs_' + self.stem + '.png'
-            plt.savefig(os.path.join(self.logdir, fig_name), bbox_inches='tight')
+            if logdir is None:
+                logdir = self.logdir 
+            plt.savefig(os.path.join(logdir, fig_name), bbox_inches='tight')
         plt.show()
 
     def plot_grid(self, kind, save_metadata=False, save_figure=False,
@@ -789,7 +817,8 @@ class ProbabilisticAutoencoder:
             ax.axis('equal')
             grad_ax.axis('equal')
             if meta is not None:
-                file, row, col = df.iloc[i][['filename', 'row', 'column']]
+                #file, row, col = df.iloc[i][['filename', 'row', 'column']]
+                file, row, col = df.iloc[i][['filename', 'row', 'col']]
                 ax.set_title(f'{file}\n{logL_title}')
                 t = ax.text(0.12, 0.89, f'({row}, {col})', color='k', size=12, transform=ax.transAxes)
                 t.set_path_effects([PathEffects.withStroke(linewidth=3, foreground='w')])

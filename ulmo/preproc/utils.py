@@ -9,7 +9,7 @@ import h5py
 from skimage.restoration import inpaint as sk_inpaint
 from scipy.ndimage import median_filter
 from scipy import special
-from skimage.transform import downscale_local_mean
+from skimage.transform import downscale_local_mean, resize_local_mean
 from skimage import filters
 from sklearn.utils import shuffle
 
@@ -88,6 +88,17 @@ def build_mask(dfield, qual, qual_thresh=2, lower_qual=True,
     return masks
 
 def prep_table_for_preproc(tbl, preproc_root, field_size=None):
+    """Prep the table for pre-processing
+    e.g. add a few columns
+
+    Args:
+        tbl (pandas.DataFrame): _description_
+        preproc_root (_type_): _description_
+        field_size (tuple, optional): Field size. Defaults to None.
+
+    Returns:
+        _type_: _description_
+    """
     # Prep Table
     for key in ['filename', 'pp_file']:
         if key not in tbl.keys():
@@ -136,6 +147,10 @@ def preproc_image(item:tuple, pdict:dict, use_mask=False,
         field, idx = item
         mask = None
 
+    # Junk field?  (e.g. LLC)
+    if field is None:
+        return None
+
     # Run
     pp_field, meta = preproc_field(field, mask, **pdict)
 
@@ -151,26 +166,29 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
                   downscale=True, dscale_size=(2,2), sigmoid=False, scale=None,
                   expon=None, only_inpaint=False, gradient=False,
                   min_mean=None, de_mean=True,
+                  field_size=None,
+                  fixed_km=None,
                   noise=None,
                   log_scale=False, **kwargs):
     """
     Preprocess an input field image with a series of steps:
         1. Inpainting
-        2. Add noise
-        3. Median
-        4. Downscale
-        5. Sigmoid
-        6. Scale
-        7. Remove mean
-        8. Sobel
-        9. Log
+        2. Resize based on fixed_km (LLC)
+        3. Add noise
+        4. Median
+        5. Downscale
+        6. Sigmoid
+        7. Scale
+        8. Remove mean
+        9. Sobel
+        10. Log
 
     Parameters
     ----------
     field : np.ndarray
     mask : np.ndarray or None
         Data mask.  True = masked
-        Required for inpainting
+        Required for inpainting but otherwise ignored
     inpaint : bool, optional
         if True, inpaint masked values
     median : bool, optional
@@ -193,6 +211,8 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
         If True, subtract the mean
     min_mean : float, optional
         If provided, require the image has a mean exceeding this value
+    fixed_km : float, optional
+        If provided the input image is smaller than desired, so cut it down!
     **kwargs : catches extraction keywords
 
     Returns
@@ -223,11 +243,16 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
     meta_dict['T10'] = field.flatten()[srt[i10]]
     meta_dict['T90'] = field.flatten()[srt[i90]]
 
+    # Resize?
+    if fixed_km is not None:
+        field = resize_local_mean(field, (field_size, field_size))
+
     # Add noise?
     if noise is not None:
         field += np.random.normal(loc=0., 
                                   scale=noise, 
                                   size=field.shape)
+
     # Median
     if median:
         field = median_filter(field, size=med_size)
@@ -295,7 +320,8 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
     return pp_field, meta_dict
 
 
-def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float, 
+def preproc_tbl(data_tbl:pandas.DataFrame, 
+                valid_fraction:float, 
                 s3_bucket:str,
                 preproc_root='standard',
                 debug=False, 
@@ -307,7 +333,7 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
                 clobber=False, 
                 inpainted_mask=False,
                 n_cores=10):
-    """ PreProcess a set of images
+    """ Pre-process a Table of extracted files
 
     Args:
         data_tbl (pandas.DataFrame): 
@@ -322,7 +348,7 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
         extract_folder (str, optional): _description_. Defaults to 'Extract'.
         preproc_folder (str, optional): _description_. Defaults to 'PreProc'.
         nsub_fields (int, optional): _description_. Defaults to 10000.
-        use_mask (bool, optional): _description_. Defaults to True.
+        use_mask (bool, optional): Passed to preproc_image(). Defaults to True.
         inpainted_mask (bool, optional): _description_. Defaults to False.
         n_cores (int, optional): _description_. Defaults to 10.
         clobber (bool, optional): Defaults to False.
@@ -361,7 +387,8 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
             ulmo_io.download_file_from_s3(local_file, ex_file)
 
         # Output file -- This is prone to crash
-        local_outfile = local_file.replace('inpaint', 
+        srep = 'inpaintT' if 'inpaintT' in local_file else 'inpaint'
+        local_outfile = local_file.replace(srep,
                                            'preproc_'+preproc_root).replace(
                                                extract_folder, preproc_folder)
         s3_file = os.path.join(s3_bucket, preproc_folder, 
@@ -378,6 +405,8 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
         # Write the file locally
         # Process them all, then deal with train/validation
         pp_fields, meta, img_idx = [], [], []
+        if debug:
+            nloop = 3
         for kk in range(nloop):
             f = h5py.File(local_file, mode='r')
 
@@ -387,10 +416,11 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
             print('Fields: {}:{} of {}'.format(i0, i1, nimages))
             fields = f['fields'][i0:i1]
             shape =fields.shape
-            if inpainted_mask:
-                masks = f['inpainted_masks'][i0:i1]
-            else:
-                masks = f['masks'][i0:i1].astype(np.uint8)
+            if use_mask:
+                if inpainted_mask:
+                    masks = f['inpainted_masks'][i0:i1]
+                else:
+                    masks = f['masks'][i0:i1].astype(np.uint8)
             sub_idx = np.arange(i0, i1).tolist()
 
             # Convert to lists
@@ -399,10 +429,13 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
             fields = [field.reshape(shape[1:]) for field in fields]
 
             # These may be inpainted_masks
-            masks = np.vsplit(masks, shape[0])
-            masks = [mask.reshape(shape[1:]) for mask in masks]
+            if use_mask:
+                masks = np.vsplit(masks, shape[0])
+                masks = [mask.reshape(shape[1:]) for mask in masks]
 
-            items = [item for item in zip(fields,masks,sub_idx)]
+                items = [item for item in zip(fields,masks,sub_idx)]
+            else:
+                items = [item for item in zip(fields,sub_idx)]
 
             print('Process time')
             # Do it
@@ -419,7 +452,14 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
             img_idx += [item[1] for item in answers]
             meta += [item[2] for item in answers]
 
-            del answers, fields, masks, items
+            #if debug:
+            #    from ulmo.plotting import plotting
+            #    embed(header='426 of preproc')
+
+            # Clean up
+            del answers, fields, items
+            if use_mask:
+                del masks
             f.close()
 
         # Remove local_file
@@ -428,7 +468,6 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
             print("Removed: {}".format(local_file))
 
         # Write
-        embed(header='431 of utils of preproc')
         data_tbl = write_pp_fields(pp_fields, 
                                  meta, 
                                  data_tbl, 
@@ -436,10 +475,12 @@ def preproc_tbl(data_tbl:pandas.DataFrame, valid_fraction:float,
                                  img_idx,
                                  valid_fraction, 
                                  s3_file, 
-                                 local_outfile)
+                                 local_outfile,
+                                 debug=debug)
 
         # Write to s3
-        ulmo_io.upload_file_to_s3(local_outfile, s3_file)
+        if not debug:
+            ulmo_io.upload_file_to_s3(local_outfile, s3_file)
 
     print("Done with generating pre-processed files..")
     return data_tbl
@@ -450,6 +491,7 @@ def write_pp_fields(pp_fields:list, meta:list,
                     ppf_idx:np.ndarray,
                     valid_fraction:float,
                     s3_file:str, local_file:str,
+                    debug:bool=False,
                     skip_meta=False):
     """Write a set of pre-processed cutouts to disk
 
@@ -468,11 +510,11 @@ def write_pp_fields(pp_fields:list, meta:list,
     Returns:
         pandas.DataFrame: Updated main table
     """
-    
     # Recast
     pp_fields = np.stack(pp_fields)
     pp_fields = pp_fields[:, None, :, :]  # Shaped for training
     pp_fields = pp_fields.astype(np.float32) # Recast
+
 
     print("After pre-processing, there are {} images ready for analysis".format(pp_fields.shape[0]))
     
@@ -485,24 +527,48 @@ def write_pp_fields(pp_fields:list, meta:list,
     # Mu
     clms = list(main_tbl.keys())
     if not skip_meta:
-        main_tbl['mean_temperature'] = [imeta['mu'] for imeta in meta]
-        clms += ['mean_temperature']
         # Others
-        for key in ['Tmin', 'Tmax', 'T90', 'T10']:
+        all_tf = np.array([False]*len(main_tbl))
+        all_tf[idx_idx] = True
+        for key in ['mu', 'Tmin', 'Tmax', 'T90', 'T10']:
+            ikey = 'mean_temperature' if key == 'mu' else key
+
             if key in meta[0].keys():
-                main_tbl.loc[idx_idx, key] = [imeta[key] for imeta in meta]
+                # Init?
+                if ikey not in clms:
+                    main_tbl[ikey] = 0.
+                # unravel em
+                mvalues = []
+                for jj in ppf_idx:
+                    mvalues.append(meta[jj][key])
+                # Assign
+                main_tbl.loc[all_tf, ikey] = mvalues
                 # Add to clms
                 if key not in clms:
                     clms += [key]
-
     # Train/validation
     n = int(valid_fraction * pp_fields.shape[0])
     idx = shuffle(np.arange(pp_fields.shape[0]))
     valid_idx, train_idx = idx[:n], idx[n:]
 
-    # Update table
-    main_tbl.loc[idx_idx[valid_idx], 'pp_idx'] = np.arange(valid_idx.size)
-    main_tbl.loc[idx_idx[train_idx], 'pp_idx'] = np.arange(train_idx.size)
+    if debug:
+        embed(header='526 of preproc')
+
+    # Update table (this indexing is brutal..)
+    #all_tf = np.array([False]*len(main_tbl))
+    #all_tf[idx_idx[valid_idx]] = True
+    #main_tbl.loc[all_tf, 'pp_idx'] = np.arange(valid_idx.size)
+    for kk, ii in enumerate(idx_idx[valid_idx]):
+        main_tbl.loc[ii, 'pp_idx'] = kk
+    if len(train_idx) > 0:
+        for kk, ii in enumerate(idx_idx[train_idx]):
+            main_tbl.loc[ii, 'pp_idx'] = kk
+    #main_tbl.loc[idx_idx[valid_idx], 'pp_idx'] = np.arange(valid_idx.size)
+    #all_tf = np.array([False]*len(main_tbl))
+    #all_tf[idx_idx[train_idx]] = True
+    #main_tbl.loc[all_tf, 'pp_idx'] = np.arange(train_idx.size)
+    #main_tbl.loc[idx_idx[train_idx], 'pp_idx'] = np.arange(train_idx.size)
+
     main_tbl.loc[idx_idx[valid_idx], 'pp_type'] = ulmo_defs.mtbl_dmodel['pp_type']['valid']
     main_tbl.loc[idx_idx[train_idx], 'pp_type'] = ulmo_defs.mtbl_dmodel['pp_type']['train']
 

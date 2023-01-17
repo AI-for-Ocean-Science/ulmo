@@ -7,12 +7,10 @@ from ulmo import io as ulmo_io
 def load_nc(filename, verbose=True):
     """
     Load a VIIRS .nc file
-
     Parameters
     ----------
     filename : str
     verbose : bool, optional
-
     Returns
     -------
     sst, qual, latitude, longitude : np.ndarray, np.ndarray, np.ndarray np.ndarray
@@ -21,7 +19,6 @@ def load_nc(filename, verbose=True):
         Latitutides
         Longitudes
         or None's if the data is corrupt!
-
     """
     if filename[0:5] == 's3://':
         #inp = ulmo_io.load_to_bytes(filename)

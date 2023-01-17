@@ -16,13 +16,15 @@ from IPython import embed
 
 def eval_from_main(main_table: pandas.DataFrame,
                    model='modis-l2-std',
-                   clobber_local=False):
+                   clobber_local=False,
+                   debug=False):
     """Evaluate a set of cutouts guided by the input table
 
     Args:
         main_table (pandas.DataFrame): main table describing the cutous
         model (str, optional): Name of Ulmo model to apply. Defaults to 'modis-l2-std'.
         clobber_local (bool, optional): Over-write local pre-process file, if True. Defaults to False.
+        debug (bool, optional): Debug?
 
     Raises:
         IOError: [description]
@@ -39,10 +41,7 @@ def eval_from_main(main_table: pandas.DataFrame,
         main_table['LL'] = np.nan
 
     # Load model
-    if model == 'modis-l2-std':
-        pae = model_io.load_modis_l2(flavor='std', local=False)
-    else:
-        raise IOError("Bad Ulmo model")
+    pae = model_io.load_ulmo_model(model, local=False)
     print("Model loaded!")
 
     # Prep
@@ -55,7 +54,9 @@ def eval_from_main(main_table: pandas.DataFrame,
         os.mkdir(output_folder)
 
     # Loop on PreProc files
-    for pp_file in uni_pp_files:
+    for kk, pp_file in enumerate(uni_pp_files):
+        if debug and kk > 0:
+            continue
         # Parse me
         parsed_s3 = urlparse(pp_file)
         local_file = os.path.join(preproc_folder, os.path.basename(pp_file))
@@ -88,7 +89,8 @@ def eval_from_main(main_table: pandas.DataFrame,
         main_table.loc[using_pp & valid, 'LL'] = LL[pp_idx]
 
         # Remove
-        os.remove(local_file)
+        if not debug:
+            os.remove(local_file)
         print("Removed: {}".format(local_file))
 
     # Return
