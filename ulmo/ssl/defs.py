@@ -101,6 +101,9 @@ umap_alpha['a4'] = (-3.0, -1)
 
 # Geography
 geo_regions = {}
+geo_regions['coastalcali'] = dict(
+    lons=[-128, -118.],   # W
+    lats=[32, 40])    # Equitorial 
 geo_regions['eqpacific'] = dict(
     lons=[-140, -90.],   # W
     lats=[-5, 5.])    # Equitorial 

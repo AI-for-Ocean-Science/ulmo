@@ -154,7 +154,7 @@ def fig_regional_with_gallery(geo_region:str, outfile:str, table:str,
     rtio_counts = counts_geo / counts
 
     # Figure
-    fig = plt.figure(figsize=(12,5.5))
+    fig = plt.figure(figsize=(12,5.3))
     plt.clf()
     gs = gridspec.GridSpec(1,2)
 
@@ -175,6 +175,8 @@ def fig_regional_with_gallery(geo_region:str, outfile:str, table:str,
         title = 'Equatorial Indian Ocean: '
     elif geo_region == 'gulfstream':
         title = 'Gulf Stream: '
+    elif geo_region == 'coastalcali':
+        title = 'Coastal California: '
     else:
         embed(header='777 of figs')
 
@@ -394,6 +396,13 @@ def main(flg_fig):
             'fig_regional_with_gallery_eqpacific.png',
             '96clear_v4_DT1', in_vmnx=(-0.75, 0.75))
 
+    # Regional, Pacific ECT
+    if flg_fig & (2 ** 5):
+        fig_regional_with_gallery(
+            'coastalcali',
+            'fig_regional_with_gallery_coastalcali.png',
+            '96clear_v4_DT1', in_vmnx=(-0.75, 0.75))
+
 
 # Command line execution
 if __name__ == '__main__':
@@ -404,7 +413,8 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 1  # Gallery of 16 with DT = 1
         #flg_fig += 2 ** 2  # Gallery of 16 with DT = 4
         #flg_fig += 2 ** 3  # Full set of UMAP galleries
-        flg_fig += 2 ** 4  # Regional + Gallery -- Pacific ECT
+        #flg_fig += 2 ** 4  # Regional + Gallery -- Pacific ECT
+        flg_fig += 2 ** 5  # Regional + Gallery -- Coastal california
     else:
         flg_fig = sys.argv[1]
 
