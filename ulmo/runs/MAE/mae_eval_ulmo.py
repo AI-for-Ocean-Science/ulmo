@@ -38,7 +38,8 @@ def gen_mae_tbl(tbl_file:str, outfile:str):
     mae_tbl['LL_orig'] = mae_tbl.LL
 
     # Vet
-    chk, disallowed_keys = cat_utils.vet_main_table(mae_tbl)
+    chk, disallowed_keys = cat_utils.vet_main_table(
+        mae_tbl, return_disallowed=True)
     assert disallowed_keys[0] == 'LL_orig'
 
     # Write
@@ -78,7 +79,8 @@ def mae_ulmo_evaluate(tbl_file:str, img_files:list,
         # Could save after each eval..
 
     # Vet
-    chk, disallowed_keys = cat_utils.vet_main_table(mae_table)
+    chk, disallowed_keys = cat_utils.vet_main_table(
+        mae_table, return_disallowed=True)
     for key in disallowed_keys:
         assert key[0:2] == 'LL'
 
