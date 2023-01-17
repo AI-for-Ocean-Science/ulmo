@@ -109,7 +109,7 @@ print('Model loaded.')
 
 print('running')
 # Run MAE
-filepath = '../LLC_uniform144_test_preproc.h5'
+filepath = 'LLC_uniform144_nonoise_preproc.h5'
 with h5py.File(filepath, 'r') as f:
     len_valid = f['valid'].shape[0]
     for i in range(10):
