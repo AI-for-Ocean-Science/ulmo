@@ -112,7 +112,7 @@ filepath = 'LLC_uniform144_nonoise_preproc.h5'
 #filepath = '../LLC_uniform144_test_preproc.h5'
 with h5py.File(filepath, 'r') as f:
     len_valid = f['valid'].shape[0]
-    file = HDF5Store('reconstructions.h5', 'valid', shape=f['valid'][0].shape)
+    file = HDF5Store('reconstructions-model10-mask10.h5', 'valid', shape=f['valid'][0].shape)
     for i in range(len_valid):
         #if i%100 == 0:
         print('Reconstructing image ', i, ' out of ', len_valid)
