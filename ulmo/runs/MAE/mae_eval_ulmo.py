@@ -122,21 +122,12 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg = 0
-        #flg += 2 ** 0  # 1 -- Setup Table
+        flg += 2 ** 0  # 1 -- Setup Table
         #flg += 2 ** 1  # 2 -- Evaluate 
     else:
         flg = sys.argv[1]
 
     main(flg)
 
-# Setup
-# python -u llc_uniform_144km.py 1
-
-# Extract with noise
-# python -u llc_uniform_144km.py 2 
-
-# Evaluate -- run in Nautilus
-# python -u llc_uniform_144km.py 4
-
-# Evaluate without noise -- run in Nautilus
-# python -u llc_uniform_144km.py 8
+# Generate the table
+# python -u mae_eval_ulmo.py 1

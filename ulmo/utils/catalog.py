@@ -83,6 +83,7 @@ def vet_main_table(table:pandas.DataFrame, cut_prefix=None,
         if not skey in data_model.keys():
             disallowed_keys.append(key)
             chk = False
+            continue
         # Allow for dict
         item = table[key] if isinstance(
             table, dict) else table.iloc[0][key] 
