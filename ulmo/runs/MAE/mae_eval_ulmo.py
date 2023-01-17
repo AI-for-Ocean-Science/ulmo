@@ -18,8 +18,8 @@ llc_full_file = 's3://llc/Tables/LLC_uniform144_r0.5.parquet'
 llc_nonoise_file = 's3://llc/Tables/LLC_uniform144_r0.5_nonoise.parquet'
 
 # MAE
-mae_nonoise_file = 's3://llc/MAE/Tables/MAE_uniform144_nonoise.parquet'
-mae_img_path = 's3://llc/MAE/PreProc'
+mae_nonoise_file = 's3://llc/mae/Tables/MAE_uniform144_nonoise.parquet'
+mae_img_path = 's3://llc/mae/PreProc'
 
 def gen_mae_tbl(tbl_file:str, outfile:str):
     """ Generate an MAE table

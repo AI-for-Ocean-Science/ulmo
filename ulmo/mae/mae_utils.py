@@ -3,7 +3,7 @@
 import os
 
 def img_filename(t_per:int, p_per:int,
-                 mae_img_path = 's3://llc/MAE/PreProc'):
+                 mae_img_path = 's3://llc/mae/PreProc'):
     img_file = os.path.join(mae_img_path, base_name)
     base_name = f'mae_reconstruct_t{t_per}_p{p_per}.h5'
 
