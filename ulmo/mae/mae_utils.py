@@ -4,7 +4,8 @@ import os
 
 def img_filename(t_per:int, p_per:int,
                  mae_img_path = 's3://llc/mae/PreProc'):
-    """Generate the image filename 
+    """Generate the image filename from the
+    percentiles
 
     Args:
         t_per (int):
@@ -15,7 +16,7 @@ def img_filename(t_per:int, p_per:int,
             s3 path to the image file
 
     Returns:
-        str
+        str: filename with s3 path
     
     """
     base_name = f'mae_reconstruct_t{t_per:02d}_p{p_per:02d}.h5'
