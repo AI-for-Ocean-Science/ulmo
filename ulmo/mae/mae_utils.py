@@ -18,7 +18,7 @@ def img_filename(t_per:int, p_per:int,
         str
     
     """
-    base_name = f'mae_reconstruct_t{t_per}_p{p_per}.h5'
+    base_name = f'mae_reconstruct_t{t_per:02d}_p{p_per:02d}.h5'
     img_file = os.path.join(mae_img_path, base_name)
 
     return img_file
