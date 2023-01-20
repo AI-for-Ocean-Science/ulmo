@@ -85,7 +85,7 @@ def run_one_image(img, model, mask_ratio, file):
 
 
 # Load model
-chkpt_dir = 'checkpoint-200.pth'
+chkpt_dir = 'checkpoint-270.pth'
 #chkpt_dir = 'checkpoint-100.pth'
 model_mae = prepare_model(chkpt_dir, 'mae_vit_LLC_patch4')
 print('Model loaded.')
