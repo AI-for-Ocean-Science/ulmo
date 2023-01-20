@@ -23,6 +23,7 @@ import h5py
 import matplotlib.pyplot as plt
 from PIL import Image
 from hdfstore import HDF5Store
+from ulmo import io as ulmo_io
 
 # check whether run in Colab
 if 'google.colab' in sys.modules:
@@ -33,6 +34,7 @@ if 'google.colab' in sys.modules:
 else:
     sys.path.append('..')
 import models_mae
+from mae_utils import img_filename
 
 
 def prepare_model(chkpt_dir, arch='mae_vit_LLC_patch4'):
@@ -98,7 +100,10 @@ filepath = 'LLC_uniform144_nonoise_preproc.h5'
 #filepath = '../LLC_uniform144_test_preproc.h5'
 with h5py.File(filepath, 'r') as f:
     len_valid = f['valid'].shape[0]
-    file = HDF5Store('reconstructions-model10-mask10.h5', 'valid', shape=f['valid'][0].shape)
+    upload_path = img_filename(10,10)
+    file = os.path.basename(upload_path)
+
+    file = HDF5Store(file, 'valid', shape=f['valid'][0].shape)
     for i in range(len_valid):
         if i%10 == 0:
             print('Reconstructing image ', i, ' out of ', len_valid)
@@ -107,6 +112,8 @@ with h5py.File(filepath, 'r') as f:
         
         assert img.shape == (64, 64, 1)
         run_one_image(img, model_mae, 0.10, file)
+        if i%10000 == 0 or i+1 == len_valid:
+            ulmo_io.upload_file_to_s3(file, upload_path)
     
     
 
