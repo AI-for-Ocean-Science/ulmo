@@ -104,7 +104,7 @@ with h5py.File(filepath, 'r') as f:
     file = os.path.basename(upload_path)
 
     file = HDF5Store(file, 'valid', shape=f['valid'][0].shape)
-    for i in range(len_valid):
+    for i in range(10):
         if i%10 == 0:
             print('Reconstructing image ', i, ' out of ', len_valid)
         img = f['valid'][i][0]
@@ -112,8 +112,6 @@ with h5py.File(filepath, 'r') as f:
         
         assert img.shape == (64, 64, 1)
         run_one_image(img, model_mae, 0.10, file)
-        if i%10000 == 0 or i+1 == len_valid:
-            ulmo_io.upload_file_to_s3(file, upload_path)
     
     
 
