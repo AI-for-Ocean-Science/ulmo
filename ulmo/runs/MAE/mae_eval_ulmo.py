@@ -80,7 +80,6 @@ def mae_ulmo_evaluate(tbl_file:str, img_files:list,
         mae_table.pp_file = img_file
 
         # Evaluate
-        embed(header='81 of mae_eval_ulmo')
         mae_table = ulmo_evaluate.eval_from_main(mae_table,
                                  model=model)
 
@@ -119,7 +118,7 @@ def main(flg):
 
         # Ulmo model
         model='viirs-98'
-        debug = True
+        debug = False
 
         # Image parameters -- (train_percenntage, patch_percentage)
         img_pers = [(10, 10)]  
