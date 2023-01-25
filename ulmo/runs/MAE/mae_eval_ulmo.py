@@ -62,7 +62,8 @@ def mae_ulmo_evaluate(tbl_file:str, img_files:list,
         f = h5py.File(os.path.basename(img_files[0]), 'r')
         nimg = f['valid'].shape[0]
         # Chop down table
-        mae_table = mae_table[0:nimg].copy()
+        gd_tbl = (mae_table.pp_idx >= 0) & (mae_table.pp_idx < nimg)
+        mae_table = mae_table[gd_tbl].copy()
 
     # Loop on eval_files
     for img_file in img_files:
