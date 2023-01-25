@@ -69,8 +69,6 @@ def get_args_parser():
     parser.add_argument('--seed', default=0, type=int)
     parser.add_argument('--resume', default='', help='checkpoint to load')
     
-    #TODO create resume option?
-    
     # ????? just in case it's important
     parser.add_argument('--num_workers', default=10, type=int)
     parser.add_argument('--pin_mem', action='store_true',
@@ -109,39 +107,6 @@ def prepare_model(args):
     return model, optimizer, device, loss_scaler
 
 
-def run_one_image2(img, model, mask_ratio, file):
-    x = torch.tensor(img)
-
-    # make it a batch-like
-    x = x.unsqueeze(dim=0)
-    x = x.cuda()
-    x = torch.einsum('nhwc->nchw', x)
-
-    # run MAE
-    loss, y, mask = model(x.float(), mask_ratio)
-    y = model.unpatchify(y)
-    y = torch.einsum('nchw->nhwc', y).detach()
-
-    # visualize the mask
-    mask = mask.detach()
-    mask = mask.unsqueeze(-1).repeat(1, 1, model.patch_embed.patch_size[0]**2 *1)  # (N, H*W, p*p*3)
-    mask = model.unpatchify(mask)  # 1 is removing, 0 is keeping
-    mask = torch.einsum('nchw->nhwc', mask).detach()
-    
-    x = torch.einsum('nchw->nhwc', x)
-
-    # masked image
-    im_masked = x * (1 - mask)
-
-    # MAE reconstruction pasted with visible patches (image of interest)
-    im_paste = x * (1 - mask) + y * mask
-    temp = im_paste.cpu().detach().numpy()
-    #from IPython import embed; embed(header='225 of extract')
-    im = np.squeeze(temp, axis=3)
-    
-    file.append(im)
-
-
 def main(args):
     misc.init_distributed_mode(args)
     
@@ -168,7 +133,7 @@ def main(args):
     
     # set up file and upload path
     upload_path = img_filename(int(100*args.model_training_mask), int(100*args.mask_ratio))
-    filepath = os.path.basename(upload_path)
+    filepath = os.path.join(args.output_dir, os.path.basename(upload_path))
     file = HDF5Store(filepath, 'valid', shape=dshape)
     print(f"Saving to file {filepath} and uploading to {upload_path}")
     
@@ -182,49 +147,8 @@ def main(args):
         file=file,
         args=args
     )
+    ulmo_io.upload_file_to_s3(filepath, upload_path)
     
-    '''
-
-# Load model
-chkpt_dir = 'checkpoint-270.pth'
-#chkpt_dir = 'checkpoint-100.pth'
-model_mae = prepare_model(chkpt_dir, 'mae_vit_LLC_patch4')
-print('Model loaded.')
-
-
-# make random mask reproducible (comment out to make it change)
-#torch.manual_seed(2)
-
-print('running')
-# Run MAE
-filepath = 'LLC_uniform144_nonoise_preproc.h5'
-#filepath = '../LLC_uniform144_test_preproc.h5'
-with h5py.File(filepath, 'r') as f:
-    len_valid = f['valid'].shape[0]
-    upload_path = img_filename(10,10)
-    file = os.path.basename(upload_path)
-
-    file = HDF5Store(file, 'valid', shape=f['valid'][0].shape)
-    for i in range(10):
-        if i%10 == 0:
-            print('Reconstructing image ', i, ' out of ', len_valid)
-        img = f['valid'][i][0]
-        img.resize((64,64,1))
-        
-        assert img.shape == (64, 64, 1)
-        run_one_image(img, model_mae, 0.10, file)
-    
-    
-
-
-
-'''
-
-    
-
-    
-    
-
     
 if __name__ == '__main__':
     args = get_args_parser()
