@@ -135,7 +135,7 @@ def fig_uniform_gallery(outfile:str, table:str,
     # Plot
     sel_cutouts = [cutouts[ii] for ii in choices]
 
-    cutout = sel_cutouts[0]
+    cutout = sel_cutouts[11]
     parsed_s3 = urlparse(cutout.pp_file)
     local_file = os.path.join(os.getenv('SST_OOD'),
                                     'MODIS_L2',
@@ -463,6 +463,11 @@ def main(flg_fig):
         fig_matched_gallery(UID, 'fig_matched_gallery_DT1.png',
             '96clear_v4_DT1', in_vmnx=(-1., 1.))
 
+    # Matched gallery for a boring image
+    if flg_fig & (2 ** 7):
+        UID = 1144107015424153521
+        fig_matched_gallery(UID, 'fig_matched_gallery_boring.png',
+            '96clear_v4_DT0', in_vmnx=(-2., 2.))
 
 # Command line execution
 if __name__ == '__main__':
@@ -475,7 +480,8 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 3  # Full set of UMAP galleries
         #flg_fig += 2 ** 4  # Regional + Gallery -- Pacific ECT
         #flg_fig += 2 ** 5  # Regional + Gallery -- Coastal california
-        flg_fig += 2 ** 6  # Matched gallery for DT = 1
+        #flg_fig += 2 ** 6  # Matched gallery for DT = 1
+        flg_fig += 2 ** 7  # Matched gallery for boring images
     else:
         flg_fig = sys.argv[1]
 
