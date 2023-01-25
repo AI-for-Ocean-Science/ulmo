@@ -18,6 +18,7 @@ llc_full_file = 's3://llc/Tables/LLC_uniform144_r0.5.parquet'
 llc_nonoise_file = 's3://llc/Tables/LLC_uniform144_r0.5_nonoise.parquet'
 
 # MAE
+mae_tst_nonoise_file = 's3://llc/mae/Tables/MAE_uniform144_test.parquet'
 mae_nonoise_file = 's3://llc/mae/Tables/MAE_uniform144_nonoise.parquet'
 mae_img_path = 's3://llc/mae/PreProc'
 
@@ -78,6 +79,7 @@ def mae_ulmo_evaluate(tbl_file:str, img_files:list,
         mae_table.pp_file = img_file
 
         # Evaluate
+        embed(header='81 of mae_eval_ulmo')
         mae_table = ulmo_evaluate.eval_from_main(mae_table,
                                  model=model)
 
@@ -107,7 +109,9 @@ def main(flg):
 
     # Generate the MAE Table
     if flg & (2**0):
-        gen_mae_tbl(llc_nonoise_file, mae_nonoise_file)
+        #gen_mae_tbl(llc_nonoise_file, mae_nonoise_file)
+        # Debug table
+        gen_mae_tbl(llc_tst_file, mae_tst_nonoise_file)
 
     # Evaluate LL with ulmo
     if flg & (2**1):
@@ -145,7 +149,7 @@ if __name__ == '__main__':
 
     main(flg)
 
-# Generate the table
+# Generate the table(s)
 # python -u mae_eval_ulmo.py 1
 
 # Evaluate
