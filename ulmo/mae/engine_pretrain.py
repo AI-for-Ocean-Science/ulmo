@@ -80,3 +80,99 @@ def train_one_epoch(model: torch.nn.Module,
     metric_logger.synchronize_between_processes()
     print("Averaged stats:", metric_logger)
     return {k: meter.global_avg for k, meter in metric_logger.meters.items()}
+
+
+
+def reconstruct_one_epoch(model: torch.nn.Module,
+                         data_loader: Iterable, optimizer: torch.optim.Optimizer,
+                         device: torch.device, loss_scaler,
+                         file=None,
+                         log_writer=None,
+                         args=None):
+    model.train(True)
+    metric_logger = misc.MetricLogger(delimiter="  ")
+    metric_logger.add_meter('lr', misc.SmoothedValue(window_size=1, fmt='{value:.6f}'))
+    header = 'Reconstructing:'
+    print_freq = 20
+
+    accum_iter = args.accum_iter
+    
+    optimizer.zero_grad()
+
+    if log_writer is not None:
+        print('log_dir: {}'.format(log_writer.log_dir))
+    
+    for data_iter_step, (samples, _) in enumerate(metric_logger.log_every(data_loader, print_freq, header)):
+        
+        samples = samples.to(device, non_blocking=True)
+        
+        with torch.cuda.amp.autocast():
+            loss, y, mask = model(samples, mask_ratio=args.mask_ratio)
+            
+        ## --------------------- New stuff -----------------------
+        # note: despite leaving the setup for it this is not DDP comptible yet
+
+        # unpatchify y
+        y = model.unpatchify(y)
+        #y = y.detach()  # nchw (# images, channels, height, width)
+              
+        # visualize the mask
+        mask = mask.detach()
+        mask = mask.unsqueeze(-1).repeat(1, 1, model.patch_embed.patch_size[0]**2 *1)  # (N, H*W, p*p*3)
+        mask = model.unpatchify(mask)  # 1 is removing, 0 is keeping
+        #mask = mask.detach()  # nchw (# images, channels, height, width)
+
+        im_masked = samples * (1 - mask)
+        im_paste = samples * (1 - mask) + y * mask
+        im = im_paste.cpu().detach().numpy()
+        for i in range(args.batch_size):
+            file.append(im[i])
+        
+        
+        '''
+        for i in range(args.batch_size):
+            x = samples[i]
+            maski = mask[i]
+            yi = y[i]
+            
+            # masked image
+            im_masked = x * (1 - maski)
+
+            # MAE reconstruction pasted with visible patches (image of interest)
+            im_paste = x * (1 - maski) + yi * maski
+            im = im_paste.cpu().detach().numpy()
+            #print(im.shape)
+            #from IPython import embed; embed(header='225 of extract')
+            file.append(im)
+        '''
+        
+        # --------------------------------------------------------
+        
+        # just extra. Leaving this in case removing it breaks it
+        loss_value = loss.item()
+
+        if not math.isfinite(loss_value):
+            print("Loss is {}, stopping training".format(loss_value))
+            sys.exit(1)
+
+        loss /= accum_iter
+        loss_scaler(loss, optimizer, parameters=model.parameters(),
+                    update_grad=(data_iter_step + 1) % accum_iter == 0)
+        if (data_iter_step + 1) % accum_iter == 0:
+            optimizer.zero_grad()
+        
+        torch.cuda.synchronize()
+
+        metric_logger.update(loss=loss_value)
+
+        lr = optimizer.param_groups[0]["lr"]
+        metric_logger.update(lr=lr)
+
+        loss_value_reduce = misc.all_reduce_mean(loss_value)
+
+
+
+    # gather the stats from all processes
+    metric_logger.synchronize_between_processes()
+    print("Averaged stats:", metric_logger)
+    return {k: meter.global_avg for k, meter in metric_logger.meters.items()}
