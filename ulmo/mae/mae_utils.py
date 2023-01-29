@@ -32,7 +32,7 @@ def parse_mae_img_file(img_file:str):
             Assumes mae_reconstruct_tXX_pXX.h5 format
     """
 
-    prs = os.path.basename(img_file).parse('_')
+    prs = os.path.basename(img_file).split('_')
 
     # Train %
     assert prs[2][0] == 't'

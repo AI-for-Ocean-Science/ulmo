@@ -4,7 +4,7 @@
 import os
 import numpy as np
 
-import pandas
+import h5py
 
 from ulmo import io as ulmo_io
 from ulmo.analysis import evaluate as ulmo_evaluate
@@ -18,6 +18,7 @@ llc_full_file = 's3://llc/Tables/LLC_uniform144_r0.5.parquet'
 llc_nonoise_file = 's3://llc/Tables/LLC_uniform144_r0.5_nonoise.parquet'
 
 # MAE
+mae_tst_nonoise_file = 's3://llc/mae/Tables/MAE_uniform144_test.parquet'
 mae_nonoise_file = 's3://llc/mae/Tables/MAE_uniform144_nonoise.parquet'
 mae_img_path = 's3://llc/mae/PreProc'
 
@@ -54,6 +55,15 @@ def mae_ulmo_evaluate(tbl_file:str, img_files:list,
     
     # Load
     mae_table = ulmo_io.load_main_table(tbl_file)
+    print("Loaded MAE table")
+
+    # Debug?
+    if debug:
+        f = h5py.File(os.path.basename(img_files[0]), 'r')
+        nimg = f['valid'].shape[0]
+        # Chop down table
+        gd_tbl = (mae_table.pp_idx >= 0) & (mae_table.pp_idx < nimg)
+        mae_table = mae_table[gd_tbl].copy()
 
     # Loop on eval_files
     for img_file in img_files:
@@ -85,6 +95,9 @@ def mae_ulmo_evaluate(tbl_file:str, img_files:list,
         assert key[0:2] == 'LL'
 
     # Write 
+    if debug:
+        tbl_file = tbl_file.replace('.parquet', '_small.parquet')
+        embed(header='99 of mae_eval_ulmo')
     ulmo_io.write_main_table(mae_table, tbl_file)
 
 
@@ -96,13 +109,16 @@ def main(flg):
 
     # Generate the MAE Table
     if flg & (2**0):
-        gen_mae_tbl(llc_nonoise_file, mae_nonoise_file)
+        #gen_mae_tbl(llc_nonoise_file, mae_nonoise_file)
+        # Debug table
+        gen_mae_tbl(llc_tst_file, mae_tst_nonoise_file)
 
     # Evaluate LL with ulmo
     if flg & (2**1):
 
         # Ulmo model
         model='viirs-98'
+        debug = False
 
         # Image parameters -- (train_percenntage, patch_percentage)
         img_pers = [(10, 10)]  
@@ -111,11 +127,13 @@ def main(flg):
         img_files = []
         for img_per in img_pers:
             img_file = mae_utils.img_filename(img_per[0], img_per[1])
+            if debug:
+                img_file = img_file.replace('.h5', '_small.h5')
             img_files.append(img_file)
         
         # Run
         mae_ulmo_evaluate(mae_nonoise_file, img_files,
-                          model=model, clobber=False)
+                          model=model, clobber=False, debug=debug)
 
 
 # Command line execution
@@ -124,12 +142,15 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg = 0
-        flg += 2 ** 0  # 1 -- Setup Table
+        #flg += 2 ** 0  # 1 -- Setup Table
         #flg += 2 ** 1  # 2 -- Evaluate 
     else:
         flg = sys.argv[1]
 
     main(flg)
 
-# Generate the table
+# Generate the table(s)
 # python -u mae_eval_ulmo.py 1
+
+# Evaluate
+# python -u mae_eval_ulmo.py 2

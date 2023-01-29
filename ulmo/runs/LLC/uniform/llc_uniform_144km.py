@@ -172,7 +172,7 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg = 0
-        #flg += 2 ** 0  # 1 -- Setup Table
+        #flg += 2 ** 0  # 1 -- Setup Table(s)
         #flg += 2 ** 1  # 2 -- Extract
         #flg += 2 ** 2  # 4 -- Evaluate (with noise)
         #flg += 2 ** 3  # 8 -- Evaluate (without noise)
