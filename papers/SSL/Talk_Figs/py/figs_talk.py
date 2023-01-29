@@ -47,7 +47,7 @@ sys.path.append(os.path.abspath("../Figures/py"))
 import fig_ssl_modis
 
 def plot_gallery(outfile:str, nxy:int, cutouts:list,
-                 in_vmnx=(-2,2.)):
+                 in_vmnx=(-2,2.), cut_to_inner=None):
     
     _, cm = plotting.load_palette()
     fig = plt.figure(figsize=(10,9))
@@ -76,7 +76,15 @@ def plot_gallery(outfile:str, nxy:int, cutouts:list,
                                     parsed_s3.path[1:])
         cutout_img = image_utils.grab_image(
             cutout, close=True, local_file=local_file)
-                # Limits
+
+        # Cut down?
+        if cut_to_inner is not None:
+            imsize = cutout_img.shape[0]
+            x0, y0 = [imsize//2-cut_to_inner//2]*2
+            x1, y1 = [imsize//2+cut_to_inner//2]*2
+            cutout_img = cutout_img[x0:x1,y0:y1]
+
+        # Limits
         if in_vmnx[0] == -999:
             DT = cutout.T90 - cutout.T10
             vmnx = (-1*DT, DT)
@@ -317,6 +325,7 @@ def fig_matched_gallery(UID, outfile:str, table:str,
                      umap_comp='S0,S1',
                      seed=1235,
                      min_pts=1000,
+                     cut_to_inner=None,
                      in_vmnx=(-2., 2.),
                      nxy=4):
 
@@ -345,7 +354,7 @@ def fig_matched_gallery(UID, outfile:str, table:str,
 
     # Plot
     plot_gallery(outfile, nxy, cutouts,
-                 in_vmnx=in_vmnx)
+                 in_vmnx=in_vmnx, cut_to_inner=cut_to_inner)
 
 
 def mk_segments(mapimg,dx,dy,x0=-0.5,y0=-0.5):
@@ -461,13 +470,32 @@ def main(flg_fig):
         #UID = 153936855510409019 # Complex DT1
         UID = 119068528522130994 # Simple DT1
         fig_matched_gallery(UID, 'fig_matched_gallery_DT1.png',
-            '96clear_v4_DT1', in_vmnx=(-1., 1.))
+            '96clear_v4_DT1', in_vmnx=(-1., 1.),
+            cut_to_inner=40)
 
     # Matched gallery for a boring image
     if flg_fig & (2 ** 7):
         UID = 1144107015424153521
         fig_matched_gallery(UID, 'fig_matched_gallery_boring.png',
             '96clear_v4_DT0', in_vmnx=(-2., 2.))
+
+    # Time-series, horizontal
+    if flg_fig & (2 ** 8):
+
+        # Pacific ECT
+
+        for region, rcut, slope_pos in zip(['eqpacific', 'coastalcali'],
+                                           [1.5, 1.25], 
+                                           ['bottom', 'bottom']):
+
+            fig_ssl_modis.fig_yearly_geo_umap(
+                f'fig_time_series_{region}.png', 
+                region,
+                table='96clear_v4_DT1',
+                rtio_cut=rcut, slope_pos=slope_pos,
+                local=True, orient='horizontal')
+
+        # Coastal California
 
 # Command line execution
 if __name__ == '__main__':
@@ -480,8 +508,9 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 3  # Full set of UMAP galleries
         #flg_fig += 2 ** 4  # Regional + Gallery -- Pacific ECT
         #flg_fig += 2 ** 5  # Regional + Gallery -- Coastal california
-        #flg_fig += 2 ** 6  # Matched gallery for DT = 1
-        flg_fig += 2 ** 7  # Matched gallery for boring images
+        flg_fig += 2 ** 6  # Matched gallery for DT = 1
+        #flg_fig += 2 ** 7  # Matched gallery for boring images
+        #flg_fig += 2 ** 8  # Time series
     else:
         flg_fig = sys.argv[1]
 

@@ -16,6 +16,7 @@ import matplotlib as mpl
 import matplotlib.gridspec as gridspec
 from matplotlib import pyplot as plt
 from matplotlib.patches import Rectangle, Ellipse
+import matplotlib.dates as mdates
 
 
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
@@ -1171,6 +1172,7 @@ def fig_yearly_geo_umap(outfile, geo_region,
                      min_Nsamp=10,
                      show_annual=False,
                      slope_pos:str='top',
+                     orient = 'vertical',
                      umap_dim=2, cmap='bwr',
                      debug=False): 
     """Generate a time-series plot
@@ -1323,9 +1325,15 @@ def fig_yearly_geo_umap(outfile, geo_region,
         nplt = 3
     else:
         nplt = 2
-    fig = plt.figure(figsize=(8, 12))
-    plt.clf()
-    gs = gridspec.GridSpec(nplt,1)
+
+    if orient == 'vertical':
+        fig = plt.figure(figsize=(8, 12))
+        plt.clf()
+        gs = gridspec.GridSpec(nplt,1)
+    else:
+        fig = plt.figure(figsize=(12, 6))
+        plt.clf()
+        gs = gridspec.GridSpec(1, nplt)
 
     ax_time = plt.subplot(gs[0])
 
@@ -1365,6 +1373,8 @@ def fig_yearly_geo_umap(outfile, geo_region,
     ax_time.set_xlabel('Time')
     ax_time.set_ylabel(r'$f_c$')
     ax_time.grid(alpha=0.5)
+    if orient == 'horizontal':
+        ax_time.xaxis.set_major_locator(mdates.YearLocator(4))
 
     # Seasonal
     ax_seasonal = plt.subplot(gs[1])
