@@ -86,7 +86,6 @@ def get_args_parser():
 
     return parser
 
-
 def prepare_model(args):
     # build model
     device = torch.device(args.device)
@@ -107,6 +106,49 @@ def prepare_model(args):
     return model, optimizer, device, loss_scaler
 
 
+def run_one_image(img, model, mask_ratio, file):
+    x = torch.tensor(img)
+
+    # make it a batch-like
+    x = x.unsqueeze(dim=0)
+    x = x.cuda()
+    x = torch.einsum('nhwc->nchw', x)
+
+    # run MAE
+    loss, y, mask = model(x.float(), mask_ratio)
+    y = model.unpatchify(y)
+    y = torch.einsum('nchw->nhwc', y).detach()
+
+    # visualize the mask
+    mask = mask.detach()
+    mask = mask.unsqueeze(-1).repeat(1, 1, model.patch_embed.patch_size[0]**2 *1)  # (N, H*W, p*p*3)
+    mask = model.unpatchify(mask)  # 1 is removing, 0 is keeping
+    mask = torch.einsum('nchw->nhwc', mask).detach()
+    
+    x = torch.einsum('nchw->nhwc', x)
+
+    # masked image
+    im_masked = x * (1 - mask)
+
+    # MAE reconstruction pasted with visible patches (image of interest)
+    im_paste = x * (1 - mask) + y * mask
+    temp = im_paste.cpu().detach().numpy()
+    #from IPython import embed; embed(header='225 of extract')
+    im = np.squeeze(temp, axis=3)
+    
+    file.append(im)
+
+    
+def run_remainder(args, model, data_length, file):
+    start = (data_length // args.batch_size) * args.batch_size
+    end = data_length
+    with h5py.File(args.data_path, 'r') as f:
+        for i in range(start, end):
+            img = f['valid'][i][0]
+            img.resize((64,64,1))
+            assert img.shape == (64, 64, 1)
+            run_one_image(img, model, args.mask_ratio, file)
+
 def main(args):
     misc.init_distributed_mode(args)
     
@@ -114,7 +156,6 @@ def main(args):
     dataset_train = HDF5Dataset(args.data_path, partition='valid')
     with h5py.File(args.data_path, 'r') as f:
         dshape=f['valid'][0].shape
-        
     data_loader_train = torch.utils.data.DataLoader(
         dataset_train,
         batch_size=args.batch_size,
@@ -147,6 +188,7 @@ def main(args):
         file=file,
         args=args
     )
+    run_remainder(args, model, data_length, file)
     ulmo_io.upload_file_to_s3(filepath, upload_path)
     
     
