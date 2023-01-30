@@ -5,6 +5,7 @@ import os
 import numpy as np
 
 import h5py
+import healpy
 
 from ulmo import io as ulmo_io
 from ulmo.analysis import evaluate as ulmo_evaluate
@@ -112,6 +113,10 @@ def mae_modis_cloud_cover(nside:int=64, debug=False):
         if not os.path.isfile(granule_file):
             ulmo_io.download_file_from_s3(granule_file,
                 s3_granule_file)
+
+    # Healpix
+    npix_hp = healpy.nside2npix(nside)
+    all_pix = np.zeros(npix_hp)
 
     # Evaluate 
     modis_analysis.cloud_cover_granule(
