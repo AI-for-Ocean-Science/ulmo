@@ -121,7 +121,7 @@ def main(flg):
         debug = False
 
         # Image parameters -- (train_percenntage, patch_percentage)
-        img_pers = [(10, 10)]  
+        img_pers = [(10, 10), (10,20)]  
 
         # Generate the file names
         img_files = []
