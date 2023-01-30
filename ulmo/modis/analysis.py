@@ -7,9 +7,13 @@ import datetime
 
 import numpy as np
 import pandas
+from scipy.ndimage import uniform_filter
 import h5py
+import healpy as hp
 
 from ulmo.modis import utils
+from ulmo.modis import io as modis_io
+from ulmo.preproc import extract
 
 from IPython import embed
 
@@ -123,3 +127,49 @@ def build_main_from_old():
 
 #build_main_from_old()
 
+
+def cloud_cover_granule(filename:str,
+    CC_values:list, nside:int,
+                 field='SST',
+                 field_size=(128,128),
+                 nadir_offset=480,
+                 qual_thresh=2,
+                 temp_bounds = (-2, 33)):
+
+    # Load
+    sst, latitude, longitude, masks = modis_io.load_granule(
+        filename, field=field, qual_thresh=qual_thresh,
+        temp_bounds=temp_bounds)
+    if sst is None:
+        return
+
+    # Restrict to near nadir
+    nadir_pix = sst.shape[1] // 2
+    lb = nadir_pix - nadir_offset
+    ub = nadir_pix + nadir_offset
+    masks = masks[:, lb:ub].astype(float)
+    latitude = latitude[:, lb:ub]
+    longitude = longitude[:, lb:ub]
+
+    # Calculate the CC mask
+    CC_mask, mask_edge = extract.clear_grid(
+        masks, field_size[0], None, return_CC_mask=True)
+
+    # Healpix
+    theta = (90 - latitude) * np.pi / 180.
+    phi = longitude * np.pi / 180.
+    idx_all = hp.pixelfunc.ang2pix(nside, theta, phi)
+
+
+    # Loop on em
+    tot_pix = []
+    hp_idx = []
+    for CC_value in CC_values:
+        # Clear
+        clear = (CC_mask <= CC_value) & np.invert(mask_edge)  # Added the = sign on 2021-01-12
+        # Evaluate
+        tot_pix.append(np.sum(clear))
+        hp_idx.append(np.unique(idx_all[clear]))
+
+    # Return
+    return tot_pix, hp_idx

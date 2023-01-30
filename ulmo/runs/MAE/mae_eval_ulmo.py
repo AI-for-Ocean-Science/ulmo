@@ -10,6 +10,7 @@ from ulmo import io as ulmo_io
 from ulmo.analysis import evaluate as ulmo_evaluate
 from ulmo.utils import catalog as cat_utils
 from ulmo.mae import mae_utils
+from ulmo.modis import analysis as modis_analysis
 
 from IPython import embed
 
@@ -100,6 +101,21 @@ def mae_ulmo_evaluate(tbl_file:str, img_files:list,
         embed(header='99 of mae_eval_ulmo')
     ulmo_io.write_main_table(mae_table, tbl_file)
 
+def mae_modis_cloud_cover(nside:int=64, debug=False):
+    
+    CC_values = [0., 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 
+                 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0]
+
+    if debug:
+        s3_granule_file = 's3://modis-l2/data/2020/AQUA_MODIS.20201231T235500.L2.SST.nc'
+        granule_file = os.path.basename(s3_granule_file)
+        if not os.path.isfile(granule_file):
+            ulmo_io.download_file_from_s3(granule_file,
+                s3_granule_file)
+
+    # Evaluate 
+    modis_analysis.cloud_cover_granule(
+        granule_file, CC_values, nside)
 
 def main(flg):
     if flg== 'all':
@@ -135,6 +151,10 @@ def main(flg):
         mae_ulmo_evaluate(mae_nonoise_file, img_files,
                           model=model, clobber=False, debug=debug)
 
+    # Calcualte MODIS cloud cover
+    if flg & (2**2):
+        debug = True
+        mae_modis_cloud_cover(debug=debug)
 
 # Command line execution
 if __name__ == '__main__':
@@ -144,6 +164,7 @@ if __name__ == '__main__':
         flg = 0
         #flg += 2 ** 0  # 1 -- Setup Table
         #flg += 2 ** 1  # 2 -- Evaluate 
+        #flg += 2 ** 2  # 4 -- Cloud cover
     else:
         flg = sys.argv[1]
 
