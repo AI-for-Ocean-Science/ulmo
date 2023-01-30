@@ -128,13 +128,14 @@ def build_main_from_old():
 #build_main_from_old()
 
 
-def cloud_cover_granule(filename:str,
-    CC_values:list, nside:int,
-                 field='SST',
-                 field_size=(128,128),
-                 nadir_offset=480,
-                 qual_thresh=2,
-                 temp_bounds = (-2, 33)):
+def cloud_cover_granule(filename:str, 
+                        CC_values:list=None,  # Required but a parameter to allow for multiprocessing
+                        nside:int=None, # Required but a parameter to allow for multiprocessing
+                        field='SST',
+                        field_size=(128,128),
+                        nadir_offset=480,
+                        qual_thresh=2,
+                        temp_bounds = (-2, 33)):
 
     # Load
     sst, latitude, longitude, masks = modis_io.load_granule(
@@ -156,20 +157,26 @@ def cloud_cover_granule(filename:str,
         masks, field_size[0], None, return_CC_mask=True)
 
     # Healpix
-    theta = (90 - latitude) * np.pi / 180.
-    phi = longitude * np.pi / 180.
-    idx_all = hp.pixelfunc.ang2pix(nside, theta, phi)
+    idx_all = np.zeros_like(latitude, dtype=int) - 1  # init
+    finite = np.isfinite(latitude) & np.isfinite(longitude)
 
+    theta = (90 - latitude[finite]) * np.pi / 180.
+    phi = longitude[finite] * np.pi / 180.
+    idx_finite = hp.pixelfunc.ang2pix(nside, theta, phi)
+    idx_all[finite] = idx_finite
 
     # Loop on em
     tot_pix = []
     hp_idx = []
     for CC_value in CC_values:
         # Clear
-        clear = (CC_mask <= CC_value) & np.invert(mask_edge)  # Added the = sign on 2021-01-12
+        clear = (CC_mask <= CC_value) & np.invert(mask_edge)  
         # Evaluate
         tot_pix.append(np.sum(clear))
-        hp_idx.append(np.unique(idx_all[clear]))
+
+        # Deal with bad values
+        uni = np.unique(idx_all[clear])
+        hp_idx.append(uni[uni>=0])
 
     # Return
     return tot_pix, hp_idx

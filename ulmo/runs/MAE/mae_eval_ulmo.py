@@ -7,6 +7,10 @@ import numpy as np
 import h5py
 import healpy
 
+from functools import partial
+from concurrent.futures import ProcessPoolExecutor
+from tqdm import tqdm
+
 from ulmo import io as ulmo_io
 from ulmo.analysis import evaluate as ulmo_evaluate
 from ulmo.utils import catalog as cat_utils
@@ -102,25 +106,97 @@ def mae_ulmo_evaluate(tbl_file:str, img_files:list,
         embed(header='99 of mae_eval_ulmo')
     ulmo_io.write_main_table(mae_table, tbl_file)
 
-def mae_modis_cloud_cover(nside:int=64, debug=False):
+def mae_modis_cloud_cover(outfile='modis_2020_cloudcover.npz',
+    year:int=2020, nside:int=64, debug=False, local=True,
+    n_cores=10,
+    nsub_files=1000):
+
     
     CC_values = [0., 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 
                  0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0]
 
-    if debug:
-        s3_granule_file = 's3://modis-l2/data/2020/AQUA_MODIS.20201231T235500.L2.SST.nc'
-        granule_file = os.path.basename(s3_granule_file)
-        if not os.path.isfile(granule_file):
-            ulmo_io.download_file_from_s3(granule_file,
-                s3_granule_file)
+    #if debug:
+    #    modis_analysis.cloud_cover_granule('/tank/xavier/Oceanography/data/MODIS/SST/night/2020/AQUA_MODIS.20200822T095001.L2.SST.nc',
+    #        CC_values=CC_values, nside=nside)
+
+    # Setup for preproc
+    map_fn = partial(modis_analysis.cloud_cover_granule, 
+                     CC_values=CC_values, nside=nside)
 
     # Healpix
     npix_hp = healpy.nside2npix(nside)
-    all_pix = np.zeros(npix_hp)
+    all_pix_CC = np.zeros((npix_hp, len(CC_values)), dtype=int)
+    tot_pix_CC = np.zeros(len(CC_values), dtype=int)
 
-    # Evaluate 
-    modis_analysis.cloud_cover_granule(
-        granule_file, CC_values, nside)
+
+    files = []
+    if local:
+        local_path = os.path.join(os.getenv('MODIS_DATA'), 'night', f'{year}') 
+        for root, dirs, ifiles in os.walk(os.path.abspath(local_path)):
+            for ifile in ifiles:
+                files.append(os.path.join(root,ifile))
+    if debug:
+        # Grab 100 random
+        #files = shuffle(files, random_state=1234)
+        ndebug_files=16
+        files = files[:ndebug_files]  # 10%
+        n_cores = 4
+        #files = files[:100]
+
+    nloop = len(files) // nsub_files + ((len(files) % nsub_files) > 0)
+    bad_files = []
+    for kk in range(nloop):
+        #
+        i0 = kk*nsub_files
+        i1 = min((kk+1)*nsub_files, len(files))
+        print('Files: {}:{} of {}'.format(i0, i1, len(files)))
+        sub_files = files[i0:i1]
+
+        # Download
+        basefiles = []
+        if not local:
+            print("Downloading files from s3...")
+        for ifile in sub_files:
+            if local:
+                basefiles = sub_files
+            else:
+                basename = os.path.basename(ifile)
+                basefiles.append(basename)
+                # Already here?
+                if os.path.isfile(basename):
+                    continue
+                try:
+                    ulmo_io.download_file_from_s3(basename, ifile, verbose=False)
+                except:
+                    print(f'Downloading {basename} failed')
+                    bad_files.append(basename)
+                    # Remove from sub_files
+                    sub_files.remove(ifile)
+                    continue
+                
+        if not local:
+            print("All Done!")
+
+        with ProcessPoolExecutor(max_workers=n_cores) as executor:
+            chunksize = len(sub_files) // n_cores if len(sub_files) // n_cores > 0 else 1
+            answers = list(tqdm(executor.map(map_fn, basefiles,
+                                            chunksize=chunksize), 
+                                total=len(sub_files)))
+        # Parse
+        print("Parsing results...")
+        for items in answers:
+            if items is None:
+                continue
+            tot_pix, hp_idx = items
+            # Parse
+            for kk, idx in enumerate(hp_idx):
+                all_pix_CC[idx, kk] += 1
+                tot_pix_CC[kk] += tot_pix[kk]
+
+    # Save
+    np.savez(outfile, CC_values=CC_values, hp_pix_CC=all_pix_CC, 
+             tot_pix_CC=tot_pix_CC, nside=nside)
+    print(f"Wrote: {outfile}")
 
 def main(flg):
     if flg== 'all':
@@ -158,7 +234,7 @@ def main(flg):
 
     # Calcualte MODIS cloud cover
     if flg & (2**2):
-        debug = True
+        debug = False
         mae_modis_cloud_cover(debug=debug)
 
 # Command line execution
