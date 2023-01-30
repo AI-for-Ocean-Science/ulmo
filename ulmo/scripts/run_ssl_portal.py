@@ -1,13 +1,12 @@
 """ Script to run Web Portal"""
 
-import enum
 from IPython import embed
 
 def parser(options=None):
     import argparse
     # Parse
     parser = argparse.ArgumentParser(description='Run Web Portal')
-    parser.add_argument("input_file", type=str, help="Input JSON file")
+    parser.add_argument("--table_file", type=str, help="Run the Web Portal on this Table")
 
     if options is None:
         pargs = parser.parse_args()
@@ -34,6 +33,7 @@ def main(pargs):
     # Parse the JSON file
     with open(pargs.input_file, 'rt') as fh:
         idict = json.load(fh)
+    
 
     # Table
     main_tbl = ulmo_io.load_main_table(idict['table_file'])
@@ -48,8 +48,12 @@ def main(pargs):
         main_tbl = main_tbl[keep].copy()
 
     # Cut down further?
-    keep = np.array([False]*len(main_tbl))
-    keep[np.arange(min(idict['Nimages'], len(main_tbl)))] = True 
+    if idict['Nimages'] == 0:
+        keep = np.array([True]*len(main_tbl))
+    else:
+        keep = np.array([False]*len(main_tbl))
+        keep[np.arange(min(idict['Nimages'], 
+                       len(main_tbl)))] = True 
     main_tbl = main_tbl[keep].copy()
 
     # Indices
@@ -57,6 +61,7 @@ def main(pargs):
     sub_idx = main_tbl[pp_idx].values
     
     print("Loading images")
+
     f = h5py.File(idict['image_file'], 'r') 
     images = f[idict['image_key']][sub_idx, 0,:,:]
     f.close()
@@ -82,7 +87,7 @@ def main(pargs):
 
     # Odd work-around
     def get_session(doc):
-        sess = os_portal.os_web(data_dict)
+        sess = os_portal.OSPortal(data_dict)
         return sess(doc)
 
     # Do me!

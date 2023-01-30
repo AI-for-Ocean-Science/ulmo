@@ -28,7 +28,8 @@ from ulmo.preproc import utils as pp_utils
 from ulmo.ssl.util import adjust_learning_rate
 from ulmo.ssl.util import set_optimizer, save_model
 from ulmo.ssl import latents_extraction
-from ulmo.ssl import umap as ssl_umap
+from ulmo.ssl import ssl_umap
+from ulmo.ssl import defs as ssl_defs
 
 from ulmo.ssl.train_util import option_preprocess
 from ulmo.ssl.train_util import modis_loader, set_model
@@ -740,6 +741,8 @@ def calc_dt40(opt_path, debug:bool=False, local:bool=False,
         opt_path (str): Path to the options file 
         debug (bool, optional): _description_. Defaults to False.
         local (bool, optional): _description_. Defaults to False.
+        redo (bool, optional): 
+            Redo the calculation for 2020 and 2021
     """
     # Options (for the Table name)
     opt = option_preprocess(ulmo_io.Params(opt_path))
@@ -782,6 +785,9 @@ def calc_dt40(opt_path, debug:bool=False, local:bool=False,
         print("Done..")
 
     # Fix s3 in 2020
+    if debug:
+        embed(header='789 of v4')
+
     new_pp_files = []
     for pp_file in modis_tbl.pp_file:
         if 's3' not in pp_file:
@@ -819,7 +825,7 @@ def calc_dt40(opt_path, debug:bool=False, local:bool=False,
         f = h5py.File(basename, 'r')
 
         # Load it all
-        DT40(f, modis_tbl, pfile, itype='valid', verbose=debug)
+        DT40(f, modis_tbl, pfile, itype='valid', verbose=debug, debug=debug)
         if 'train' in f.keys():
             DT40(f, modis_tbl, pfile, itype='train', verbose=debug)
 
@@ -845,7 +851,8 @@ def calc_dt40(opt_path, debug:bool=False, local:bool=False,
     print("All done")
 
 def DT40(f:h5py.File, modis_tbl:pandas.DataFrame, 
-         pfile:str, itype:str='train', verbose=False):
+         pfile:str, itype:str='train', verbose=False,
+         debug=False):
     """Calculate DT40 for a given file
 
     Args:
@@ -854,6 +861,7 @@ def DT40(f:h5py.File, modis_tbl:pandas.DataFrame,
         pfile (str): _description_
         itype (str, optional): _description_. Defaults to 'train'.
     """
+    embed(header='863 of v4; IMPLEMENT calc_DT40 in ssl.analyze_image')
     fields = f[itype][:]
     if verbose:
         print("Calculating T90")
@@ -868,10 +876,12 @@ def DT40(f:h5py.File, modis_tbl:pandas.DataFrame,
     ppt = 0 if itype == 'valid' else 1
     idx = (modis_tbl.pp_file == pfile) & (modis_tbl.ulmo_pp_type == ppt)
     pp_idx = modis_tbl[idx].ulmo_pp_idx.values
+    if debug:
+        embed(header='878 of v4')
     modis_tbl.loc[idx, 'DT40'] = DT_40[pp_idx]
     return 
 
-def ssl_v4_umap(opt_path:str, debug=False, local=False):
+def ssl_v4_umap(opt_path:str, debug=False, local=False, metric:str='DT40'):
     """Run a UMAP analysis on all the MODIS L2 data
     v4 model
 
@@ -895,12 +905,24 @@ def ssl_v4_umap(opt_path:str, debug=False, local=False):
         tbl_file = opt.tbl_file
     modis_tbl = ulmo_io.load_main_table(tbl_file)
 
+    # Add slope
+    modis_tbl['min_slope'] = np.minimum(
+        modis_tbl.zonal_slope, modis_tbl.merid_slope)
+
     # Base
     base1 = '96clear_v4'
 
-    #for subset in ['DTall']:
-    #for subset in ['DT5']:
-    for subset in ['DT15', 'DTall', 'DT0', 'DT1', 'DT2', 'DT4', 'DT5']:
+    if 'DT' in metric: 
+        subsets =  ['DT15', 'DT0', 'DT1', 'DT2', 'DT4', 'DT5', 'DTall']
+    elif metric == 'alpha':
+        subsets = list(ssl_defs.umap_alpha.keys())
+        if debug:
+            subsets = ['a0']
+    else:
+        raise ValueError("Bad metric")
+
+    # Loop me
+    for subset in subsets:
         # Files
         outfile = os.path.join(
             os.getenv('SST_OOD'), 
@@ -909,20 +931,40 @@ def ssl_v4_umap(opt_path:str, debug=False, local=False):
             os.getenv('SST_OOD'), 
             f'MODIS_L2/UMAP/MODIS_SSL_{base1}_{subset}_UMAP.pkl')
 
-        # DT cut
-        DT_cut = None if subset == 'DTall' else subset
+        DT_cut = None 
+        alpha_cut = None 
+        if 'DT' in metric:
+            # DT cut
+            DT_cut = None if subset == 'DTall' else subset
+        elif metric == 'alpha':
+            alpha_cut = subset
+        else:
+            raise ValueError("Bad metric")
 
         if debug:
-            embed(header='786 of v4')
+            embed(header='940 of v4')
 
         # Run
+        if os.path.isfile(umap_savefile):
+            print(f"Skipping UMAP training as {umap_savefile} already exists")
+            train_umap = False
+        else:
+            train_umap = True
+        # Can't do both so quick check
+        if DT_cut is not None and alpha_cut is not None:
+            raise ValueError("Can't do both DT and alpha cuts")
+
+        # Do it
         ssl_umap.umap_subset(modis_tbl.copy(),
                              opt_path, 
                              outfile, 
                              local=local,
-                             DT_cut=DT_cut, debug=debug, 
-                            umap_savefile=umap_savefile,
-                            remove=False, CF=False)
+                             DT_cut=DT_cut, 
+                             alpha_cut=alpha_cut, 
+                             debug=debug, 
+                             train_umap=train_umap, 
+                             umap_savefile=umap_savefile,
+                             remove=False, CF=False)
 
 def parse_option():
     """
@@ -1011,3 +1053,9 @@ if __name__ == "__main__":
     # python ssl_modis_v4.py --func_flag umap --debug --local
     if args.func_flag == 'umap':
         ssl_v4_umap(args.opt_path, debug=args.debug, local=args.local)
+
+    # Repeat UMAP analysis by DT using alpha instead
+    # python ssl_modis_v4.py --func_flag alpha --debug --local
+    if args.func_flag == 'alpha':
+        ssl_v4_umap(args.opt_path, metric='alpha', debug=args.debug, local=args.local)
+
