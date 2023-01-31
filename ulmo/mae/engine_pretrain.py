@@ -11,6 +11,7 @@
 import math
 import sys
 from typing import Iterable
+import numpy as np
 
 import torch
 
@@ -46,7 +47,7 @@ def train_one_epoch(model: torch.nn.Module,
         
         with torch.cuda.amp.autocast():
             loss, _, _ = model(samples, mask_ratio=args.mask_ratio)
-        #loss = loss.mean() # comment this out when testing DDP
+        
         loss_value = loss.item()
 
         if not math.isfinite(loss_value):
@@ -87,6 +88,7 @@ def reconstruct_one_epoch(model: torch.nn.Module,
                          data_loader: Iterable, optimizer: torch.optim.Optimizer,
                          device: torch.device, loss_scaler,
                          file=None,
+                         mask_file=None,
                          log_writer=None,
                          args=None):
     model.train(True)
@@ -125,26 +127,11 @@ def reconstruct_one_epoch(model: torch.nn.Module,
         im_masked = samples * (1 - mask)
         im_paste = samples * (1 - mask) + y * mask
         im = im_paste.cpu().detach().numpy()
+        m = mask.cpu().detach().numpy()
+        m = np.squeeze(m, axis=1)
         for i in range(args.batch_size):
             file.append(im[i])
-        
-        
-        '''
-        for i in range(args.batch_size):
-            x = samples[i]
-            maski = mask[i]
-            yi = y[i]
-            
-            # masked image
-            im_masked = x * (1 - maski)
-
-            # MAE reconstruction pasted with visible patches (image of interest)
-            im_paste = x * (1 - maski) + yi * maski
-            im = im_paste.cpu().detach().numpy()
-            #print(im.shape)
-            #from IPython import embed; embed(header='225 of extract')
-            file.append(im)
-        '''
+            mask_file.append(m[i])
         
         # --------------------------------------------------------
         
