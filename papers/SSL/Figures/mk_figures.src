@@ -2,13 +2,13 @@
 # 96 v4
 
 # FIGURE 1: LL vs DT -- 
-python py/fig_ssl_modis.py LLvsDT --local --table 96_v4
+# python py/fig_ssl_modis.py LLvsDT --local --table 96_v4
 
 # FIGURE 2:  Slopes
-python py/fig_ssl_modis.py slopes --local --table 96_v4 
+# python py/fig_ssl_modis.py slopes --local --table 96_v4 
 
 # FIGURE 3: Slope vs DT 
-python py/fig_ssl_modis.py slopevsDT --local --table 96_v4
+# python py/fig_ssl_modis.py slopevsDT --local --table 96_v4
 
 # FIGURE 4
 # python py/fig_ssl_modis.py augment 
@@ -127,3 +127,7 @@ python py/fig_ssl_modis.py slopevsDT --local --table 96_v4
 # More Slope vs DT -- 
 #python py/fig_ssl_modis.py slopevsDT --local --table 96clear_v4_DT1
 # python py/fig_ssl_modis.py slopevsDT --local --table 96clear_v4_DT1 --xscale nolog
+
+# Multi stats
+#python py/fig_ssl_modis.py multi_stats --local --table 96clear_v4_DT1 --umap_comp S0,S1 --stat median
+python py/fig_ssl_modis.py multi_stats --local --table 96clear_v4_DT1 --umap_comp S0,S1 --stat std
