@@ -24,6 +24,28 @@ def img_filename(t_per:int, p_per:int,
 
     return img_file
 
+def mask_filename(t_per:int, p_per:int,
+                 mae_mask_path = 's3://llc/mae/PreProc'):
+    """Generate the image filename from the
+    percentiles
+
+    Args:
+        t_per (int):
+            Patch percentile of the model used 
+        p_per (int):
+            Patch percentile of the data
+        mae_img_path (str, optional):
+            s3 path to the image file
+
+    Returns:
+        str: filename with s3 path
+    
+    """
+    base_name = f'mae_mask_t{t_per:02d}_p{p_per:02d}.h5'
+    mask_file = os.path.join(mae_mask_path, base_name)
+
+    return mask_file
+
 def parse_mae_img_file(img_file:str):
     """ Grab the train and patch percentages from the image filename
 
