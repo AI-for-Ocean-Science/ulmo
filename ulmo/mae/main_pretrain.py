@@ -162,7 +162,7 @@ def main(args):
 
     #filepath = "LLC_uniform_test_preproc_split.h5" # hardcoded for now
     #filepath = "LLC_uniform144_test_preproc.h5"
-    filepath = "LLC_uniform144_nonoise_preproc.h5"
+    filepath = "LLC_uniform_test_preproc_split.h5"
     dataset_train = HDF5Dataset(filepath, partition='valid')
     #dataset_train = HDF5Dataset(filepath, partition='train')
     #valid_dset = HDF5Dataset(filepath, partition='valid')

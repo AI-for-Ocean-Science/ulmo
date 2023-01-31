@@ -32,7 +32,7 @@ from ulmo import io as ulmo_io
 from ulmo.utils import HDF5Dataset, id_collate, get_quantiles
 
 import models_mae
-from mae_utils import img_filename
+from mae_utils import img_filename, mask_filename
 from engine_pretrain import reconstruct_one_epoch
 
 def get_args_parser():
@@ -106,7 +106,7 @@ def prepare_model(args):
     return model, optimizer, device, loss_scaler
 
 
-def run_one_image(img, model, mask_ratio, file):
+def run_one_image(img, model, mask_ratio, file, mask_file):
     x = torch.tensor(img)
 
     # make it a batch-like
@@ -135,11 +135,16 @@ def run_one_image(img, model, mask_ratio, file):
     temp = im_paste.cpu().detach().numpy()
     #from IPython import embed; embed(header='225 of extract')
     im = np.squeeze(temp, axis=3)
+    m = mask.cpu().detach().numpy()
+    m = np.squeeze(m, axis=3)
+    m = np.squeeze(m, axis=0)
+    # TODO: check mask size
     
     file.append(im)
+    mask_file.append(m)
 
     
-def run_remainder(args, model, data_length, file):
+def run_remainder(args, model, data_length, file, mask_file):
     start = (data_length // args.batch_size) * args.batch_size
     end = data_length
     with h5py.File(args.data_path, 'r') as f:
@@ -147,7 +152,7 @@ def run_remainder(args, model, data_length, file):
             img = f['valid'][i][0]
             img.resize((64,64,1))
             assert img.shape == (64, 64, 1)
-            run_one_image(img, model, args.mask_ratio, file)
+            run_one_image(img, model, args.mask_ratio, file, mask_file)
 
 def main(args):
     misc.init_distributed_mode(args)
@@ -176,6 +181,12 @@ def main(args):
     upload_path = img_filename(int(100*args.model_training_mask), int(100*args.mask_ratio))
     filepath = os.path.join(args.output_dir, os.path.basename(upload_path))
     file = HDF5Store(filepath, 'valid', shape=dshape)
+    
+    # set up mask file and upload path
+    mask_upload_path = mask_filename(int(100*args.model_training_mask), int(100*args.mask_ratio))
+    mask_filepath = os.path.join(args.output_dir, os.path.basename(mask_upload_path))
+    mask_file = HDF5Store(mask_filepath, 'valid', shape=dshape)
+    
     print(f"Saving to file {filepath} and uploading to {upload_path}")
     
     print(f"Start reconstructing for {data_length} images")
@@ -186,10 +197,13 @@ def main(args):
         model, data_loader_train,
         optimizer, device, loss_scaler,
         file=file,
+        mask_file=mask_file,
         args=args
     )
-    run_remainder(args, model, data_length, file)
+    print("Reconstructing batch remainder")
+    run_remainder(args, model, data_length, file, mask_file)
     ulmo_io.upload_file_to_s3(filepath, upload_path)
+    ulmo_io.upload_file_to_s3(mask_filepath, mask_upload_path)
     
     
 if __name__ == '__main__':
