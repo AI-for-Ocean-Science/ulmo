@@ -10,8 +10,11 @@ from IPython import embed
 
 def clear_grid(mask, field_size, method, CC_max=0.05,
                  nsgrid_draw=1, return_fracCC=False,
+                 return_CC_mask=False,
                  sub_grid_step=4):
     """
+    Identify grid locations in the granule where the cloud 
+    fraction is satisfied 
 
     Parameters
     ----------
@@ -29,6 +32,8 @@ def clear_grid(mask, field_size, method, CC_max=0.05,
         Number of fields to draw per sub-grid
     return_fracCC : bool, optional
         Return the fraction of the image satisfying the CC value
+    return_CC_mask : bool, optional
+        Simply Return the CC_mask
 
     Returns
     -------
@@ -43,11 +48,16 @@ def clear_grid(mask, field_size, method, CC_max=0.05,
     CC_mask = uniform_filter(mask.astype(float), field_size, mode='constant', cval=1.)
 
     # Clear
-    mask_edge = np.zeros_like(mask)
+    mask_edge = np.zeros_like(mask, dtype=bool)
     mask_edge[:field_size//2,:] = True
     mask_edge[-field_size//2:,:] = True
     mask_edge[:,-field_size//2:] = True
     mask_edge[:,:field_size//2] = True
+
+    if return_CC_mask:
+        return CC_mask, mask_edge
+
+    # Evaluate
     clear = (CC_mask <= CC_max) & np.invert(mask_edge)  # Added the = sign on 2021-01-12
     if return_fracCC:
         return np.sum(clear)/((clear.shape[0]-field_size)*(clear.shape[1]-field_size))

@@ -62,6 +62,6 @@ def parse_mae_img_file(img_file:str):
 
     # Patch %
     assert prs[3][0] == 'p'
-    p_per = prs[3][1:]
+    p_per = prs[3][1:3]
 
     return t_per, p_per
