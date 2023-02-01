@@ -10,7 +10,7 @@ def find_patches(mask_img, p_sz:int):
     flat_mask = mask_img.flatten().astype(int)
     patches = []
     for ss in range(mask_img.size):
-        if flat_mask[ss] == 0:
+        if flat_mask[ss] == 1:
             patches.append(ss)
             # Fill in the patch
             i, j = np.unravel_index(ss, mask_img.shape)
@@ -20,7 +20,7 @@ def find_patches(mask_img, p_sz:int):
             for kk in range(p_sz):
                 j_s.extend([j+kk]*p_sz)
             f_idx = np.ravel_multi_index((i_s, j_s), mask_img.shape)
-            flat_mask[f_idx] = 1
+            flat_mask[f_idx] = 0
 
     # Return
     return patches
@@ -48,11 +48,15 @@ def patch_stats_img(data_img, recon_img, mask_img,
     # Diff
     std_diff = np.std(ptch_data-ptch_recon, axis=(1,2))
     mean_diff = np.mean(ptch_data-ptch_recon, axis=(1,2))
-    embed(header='57 of anly_patches.py')
+    max_diff = np.max(np.abs(ptch_data-ptch_recon), axis=(1,2))
+
+    embed(header='124 of anly_patches')
+    # Return
+    return meanT, stdT, mean_diff, std_diff, max_diff
 
 if __name__ == "__main__":
-    # Testing
 
+    # Testing
     f_mask = h5py.File('mae_mask_t75_p75_small.h5', 'r')
     f_recon = h5py.File('mae_reconstruct_t75_p75_small.h5', 'r')
     f_data = h5py.File('mae_reconstruct_t75_p75_small.h5', 'r')
