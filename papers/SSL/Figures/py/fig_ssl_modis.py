@@ -1862,7 +1862,7 @@ def parse_metric(metric:str, modis_tbl:pandas.DataFrame):
         lmetric = r'$\Delta T$'
     elif metric == 'DT40':
         values = modis_tbl.DT40.values
-        lmetric = r'$\log \Delta T$'
+        lmetric = r'$\Delta T$'
         #lmetric = r'$\Delta T_{\rm 40}$'
     elif metric == 'logDT40':
         values = np.log10(modis_tbl.DT40.values)
