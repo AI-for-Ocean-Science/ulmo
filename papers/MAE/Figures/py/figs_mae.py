@@ -178,6 +178,8 @@ def fig_numhp_clouds(outfile:str, analy_file:str):
     ax.set_xlabel('Cloud Cover')
     ax.set_ylabel('Number')
     plotting.set_fontsize(ax, 17.)
+    ax.set_yscale('log')
+    ax.set_ylim(1., 7e4)
 
     plt.savefig(outfile, dpi=300)
     plt.close()
