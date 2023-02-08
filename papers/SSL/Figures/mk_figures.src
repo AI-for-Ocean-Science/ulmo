@@ -129,5 +129,5 @@
 # python py/fig_ssl_modis.py slopevsDT --local --table 96clear_v4_DT1 --xscale nolog
 
 # Multi stats
-# python py/fig_ssl_modis.py multi_stats --local --table 96clear_v4_DT1 --umap_comp S0,S1 --stat median
+python py/fig_ssl_modis.py multi_stats --local --table 96clear_v4_DT1 --umap_comp S0,S1 --stat median
 # python py/fig_ssl_modis.py multi_stats --local --table 96clear_v4_DT1 --umap_comp S0,S1 --stat std

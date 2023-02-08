@@ -1803,15 +1803,18 @@ def fig_umap_multi_metric(stat='median',
 
     # Inputs
     if cmap is None:
-        cmap = 'inferno'
+        # failed = 'inferno, brg,gnuplot'
+        cmap = 'gist_rainbow'
+        cmap = 'rainbow'
 
-    metrics = ['slope', 'DT40', 'clouds', 'meanT']
+    metrics = ['DT40', 'slope', 'clouds', 'meanT', 'abslat', 'counts']
 
     # Start the figure
-    fig = plt.figure(figsize=(8, 7))
+    fig = plt.figure(figsize=(12, 6.5))
     plt.clf()
-    gs = gridspec.GridSpec(2, 2)
+    gs = gridspec.GridSpec(2, 3)
 
+    a_lbls = ['(a)', '(b)', '(c)', '(d)', '(e)', '(f)']
     for ss, metric in enumerate(metrics):
         ax = plt.subplot(gs[ss])
         lmetric, values = parse_metric(metric, modis_tbl)
@@ -1832,15 +1835,23 @@ def fig_umap_multi_metric(stat='median',
         # Require at least 50
         bad_counts = counts < 50
         stat2d[bad_counts] = np.nan
-        img = ax.pcolormesh(xedges, yedges, 
+        if metric == 'counts':
+            img = ax.pcolormesh(xedges, yedges, 
+                             counts.T, cmap=cmap) 
+        else:
+            img = ax.pcolormesh(xedges, yedges, 
                              stat2d.T, cmap=cmap) 
 
         # Color bar
         cb = plt.colorbar(img, pad=0., fraction=0.030)
-        cb.set_label(lmetric, fontsize=14.)
-        ax.set_xlabel(r'$'+umap_keys[0]+'$')
-        ax.set_ylabel(r'$'+umap_keys[1]+'$')
-        fsz = 17.
+        cb.set_label(lmetric, fontsize=15.)
+        #ax.set_xlabel(r'$'+umap_keys[0]+'$')
+        #ax.set_ylabel(r'$'+umap_keys[1]+'$')
+        ax.set_xlabel(r'$U_0$')
+        ax.set_ylabel(r'$U_1$')
+        fsz = 14.
+        ax.text(0.95, 0.9, a_lbls[ss], transform=ax.transAxes,
+              fontsize=14, ha='right', color='k')
         plotting.set_fontsize(ax, fsz)
 
     plt.tight_layout(pad=0.0, h_pad=0.0, w_pad=0.0)
@@ -1862,19 +1873,26 @@ def parse_metric(metric:str, modis_tbl:pandas.DataFrame):
         lmetric = r'$\Delta T$'
     elif metric == 'DT40':
         values = modis_tbl.DT40.values
-        lmetric = r'$\Delta T$'
+        lmetric = r'$\Delta T$ (K)'
         #lmetric = r'$\Delta T_{\rm 40}$'
     elif metric == 'logDT40':
         values = np.log10(modis_tbl.DT40.values)
         lmetric = r'$\log \Delta T_{\rm 40}$'
     elif metric == 'clouds':
         values = modis_tbl.clear_fraction
+        lmetric = 'Cloud Coverage'
     elif metric == 'slope':
         lmetric = r'slope ($\alpha_{\rm min}$)'
         values = modis_tbl.min_slope.values
     elif metric == 'meanT':
         lmetric = r'$<T>$ (K)'
         values = modis_tbl.mean_temperature.values
+    elif metric == 'abslat':
+        lmetric = r'|latitude| (deg)'
+        values = np.abs(modis_tbl.lat.values)
+    elif metric == 'counts':
+        lmetric = 'Counts'
+        values = np.ones(len(modis_tbl))
     else:
         raise IOError("Bad metric!")
 
