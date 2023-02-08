@@ -27,6 +27,7 @@ def mktab_cutouts(outfile='tab_cutouts.tex', sub=False, local=True):
         tbl_dict[subset] = ssl_paper_analy.load_modis_tbl(
             local=local, region=None, table=f'96clear_v4_{subset}',
             percentiles=None)
+        print(f"Subset {subset} has {len(tbl_dict[subset])} entries")
         # Fill in DT subsets
         if subset == 'DTall':
             # Sort by date
