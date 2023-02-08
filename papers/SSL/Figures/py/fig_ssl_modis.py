@@ -1807,7 +1807,7 @@ def fig_umap_multi_metric(stat='median',
         cmap = 'gist_rainbow'
         cmap = 'rainbow'
 
-    metrics = ['DT40', 'slope', 'clouds', 'meanT', 'abslat', 'counts']
+    metrics = ['DT40', 'stdDT40', 'slope', 'clouds', 'abslat', 'counts']
 
     # Start the figure
     fig = plt.figure(figsize=(12, 6.5))
@@ -1880,6 +1880,9 @@ def parse_metric(metric:str, modis_tbl:pandas.DataFrame):
         values = modis_tbl.DT40.values
         lmetric = r'$\Delta T$ (K)'
         #lmetric = r'$\Delta T_{\rm 40}$'
+    elif metric == 'stdDT40':
+        values = modis_tbl.DT40.values
+        lmetric = r'$\sigma(\Delta T_{\rm 40}) (K)$'
     elif metric == 'logDT40':
         values = np.log10(modis_tbl.DT40.values)
         lmetric = r'$\log \Delta T_{\rm 40}$'
@@ -1893,7 +1896,7 @@ def parse_metric(metric:str, modis_tbl:pandas.DataFrame):
         lmetric = r'$<T>$ (K)'
         values = modis_tbl.mean_temperature.values
     elif metric == 'abslat':
-        lmetric = r'|latitude| (deg)'
+        lmetric = r'$|$ latitude $|$ (deg)'
         values = np.abs(modis_tbl.lat.values)
     elif metric == 'counts':
         lmetric = 'Counts'
