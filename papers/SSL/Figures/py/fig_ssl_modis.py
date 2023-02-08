@@ -1818,12 +1818,17 @@ def fig_umap_multi_metric(stat='median',
     for ss, metric in enumerate(metrics):
         ax = plt.subplot(gs[ss])
         lmetric, values = parse_metric(metric, modis_tbl)
+        if 'std' in metric: 
+            istat = 'std'
+        else:
+            istat = stat
+        # Do it
         stat2d, xedges, yedges, _ =\
             stats.binned_statistic_2d(
                 modis_tbl[umap_keys[0]], 
                 modis_tbl[umap_keys[1]],
                 values,
-                stat,
+                istat,
                 bins=[hist_param['binx'], 
                     hist_param['biny']])
         counts, _, _ = np.histogram2d(
