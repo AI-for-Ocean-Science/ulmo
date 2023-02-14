@@ -61,12 +61,13 @@ def patch_stats_img(items:list, p_sz:int=4):
 
     # Diff
     std_diff = np.std(ptch_data-ptch_recon, axis=(1,2))
-    mean_diff = np.mean(ptch_data-ptch_recon, axis=(1,2))
+    #mean_diff = np.mean(ptch_data-ptch_recon, axis=(1,2))
+    median_diff = np.median(ptch_data-ptch_recon, axis=(1,2))
     max_diff = np.max(np.abs(ptch_data-ptch_recon), axis=(1,2))
 
     # Return
-    stats = ['meanT', 'stdT', 'mean_diff', 'std_diff', 'max_diff', 'i', 'j']
-    return meanT, stdT, mean_diff, std_diff, max_diff, i_patches, j_patches, stats
+    stats = ['meanT', 'stdT', 'median_diff', 'std_diff', 'max_diff', 'i', 'j']
+    return meanT, stdT, median_diff, std_diff, max_diff, i_patches, j_patches, stats
 
 def anlayze_full_test(t_per:int, p_per:int, 
     orig_file='MAE_LLC_valid_nonoise_preproc.h5',
