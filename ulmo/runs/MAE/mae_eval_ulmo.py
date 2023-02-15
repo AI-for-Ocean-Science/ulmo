@@ -206,7 +206,7 @@ def mae_patch_analysis(img_files:list, n_cores,
     """
     stats=['meanT', 'stdT', 'DT', 'median_diff', 
            'std_diff', 'max_diff', 'i_patch', 'j_patch',
-           'DT_recon'],
+           'DT_recon']
     
     # Loop on reconstructed files
     for recon_file in img_files:
