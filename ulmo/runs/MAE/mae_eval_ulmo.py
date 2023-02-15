@@ -211,7 +211,7 @@ def mae_patch_analysis(img_files:list, n_cores,
     # Loop on reconstructed files
     for recon_file in img_files:
         #t_per, p_per = mae_utils.parse_mae_img_file(recon_file)
-        patch_analysis(recon_file, n_cores=n_cores,
+        patch_analysis.anlayze_full_test(recon_file, n_cores=n_cores,
                        stats=stats,
                        p_sz=p_sz,
                        debug=debug)
@@ -288,7 +288,7 @@ if __name__ == '__main__':
         #flg += 2 ** 0  # 1 -- Setup Table
         #flg += 2 ** 1  # 2 -- Evaluate 
         #flg += 2 ** 2  # 4 -- Cloud cover
-        #flg += 2 ** 2  # 8 -- Patch analysis
+        #flg += 2 ** 3  # 8 -- Patch analysis
     else:
         flg = sys.argv[1]
 
