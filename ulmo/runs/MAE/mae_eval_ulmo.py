@@ -261,7 +261,7 @@ def main(flg):
     if flg & (2**3):
 
         # Ulmo model
-        debug = True
+        debug = False
         n_cores = 6
 
         # Image parameters -- (train_percenntage, patch_percentage)
