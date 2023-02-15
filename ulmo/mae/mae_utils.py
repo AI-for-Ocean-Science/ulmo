@@ -3,7 +3,7 @@
 import os
 
 def img_filename(t_per:int, p_per:int,
-                 mae_img_path = 's3://llc/mae/PreProc'):
+                 mae_img_path = 's3://llc/mae/Recon'):
     """Generate the image filename from the
     percentiles
 
@@ -25,7 +25,7 @@ def img_filename(t_per:int, p_per:int,
     return img_file
 
 def mask_filename(t_per:int, p_per:int,
-                 mae_mask_path = 's3://llc/mae/PreProc'):
+                 mae_mask_path = 's3://llc/mae/Recon'):
     """Generate the image filename from the
     percentiles
 
@@ -41,7 +41,8 @@ def mask_filename(t_per:int, p_per:int,
         str: filename with s3 path
     
     """
-    base_name = f'mae_mask_t{t_per:02d}_p{p_per:02d}.h5'
+    recon_file = img_filename(t_per, p_per, mae_img_path='')
+    base_name = recon_file.replace('reconstruct', 'mask')
     mask_file = os.path.join(mae_mask_path, base_name)
 
     return mask_file

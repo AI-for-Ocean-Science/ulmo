@@ -16,6 +16,7 @@ from ulmo.analysis import evaluate as ulmo_evaluate
 from ulmo.utils import catalog as cat_utils
 from ulmo.mae import mae_utils
 from ulmo.modis import analysis as modis_analysis
+from ulmo.mae import patch_analysis
 
 from IPython import embed
 
@@ -198,6 +199,25 @@ def mae_modis_cloud_cover(outfile='modis_2020_cloudcover.npz',
              tot_pix_CC=tot_pix_CC, nside=nside)
     print(f"Wrote: {outfile}")
 
+def mae_patch_analysis(img_files:list, n_cores,
+                  clobber=False, debug=False,
+                  p_sz=4): 
+    """ Evaluate paches in the reconstruction outputs
+    """
+    stats=['meanT', 'stdT', 'DT', 'median_diff', 
+           'std_diff', 'max_diff', 'i_patch', 'j_patch',
+           'DT_recon'],
+    
+    # Loop on reconstructed files
+    for recon_file in img_files:
+        #t_per, p_per = mae_utils.parse_mae_img_file(recon_file)
+        patch_analysis(recon_file, n_cores=n_cores,
+                       stats=stats,
+                       p_sz=p_sz,
+                       debug=debug)
+
+
+
 def main(flg):
     if flg== 'all':
         flg= np.sum(np.array([2 ** ii for ii in range(25)]))
@@ -237,6 +257,26 @@ def main(flg):
         debug = False
         mae_modis_cloud_cover(debug=debug)
 
+    # Patch analysis
+    if flg & (2**3):
+
+        # Ulmo model
+        debug = False
+
+        # Image parameters -- (train_percenntage, patch_percentage)
+        img_pers = [(10, 20)]
+
+        # Generate the file names
+        img_files = []
+        for img_per in img_pers:
+            img_file = mae_utils.img_filename(img_per[0], img_per[1])
+            img_files.append(img_file)
+        
+        # Run
+        mae_patch_analysis(
+            img_files, clobber=False, debug=debug)
+
+
 # Command line execution
 if __name__ == '__main__':
     import sys
@@ -246,6 +286,7 @@ if __name__ == '__main__':
         #flg += 2 ** 0  # 1 -- Setup Table
         #flg += 2 ** 1  # 2 -- Evaluate 
         #flg += 2 ** 2  # 4 -- Cloud cover
+        #flg += 2 ** 2  # 8 -- Patch analysis
     else:
         flg = sys.argv[1]
 
