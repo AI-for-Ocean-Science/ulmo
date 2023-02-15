@@ -105,9 +105,8 @@ def anlayze_full_test(recon_file,
     print(f'Wrote: {outfile}')
 
     # Upload
-    if not debug:
-        ulmo_io.upload_file_to_s3(outfile, 
-                                  's3://llc/mae/Recon/'+outfile)
+    ulmo_io.upload_file_to_s3(
+        outfile, 's3://llc/mae/Recon/'+outfile)
 
     # Clean up
     if not debug:
