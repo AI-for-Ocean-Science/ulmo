@@ -261,7 +261,8 @@ def main(flg):
     if flg & (2**3):
 
         # Ulmo model
-        debug = False
+        debug = True
+        n_cores = 6
 
         # Image parameters -- (train_percenntage, patch_percentage)
         img_pers = [(10, 20)]
@@ -274,7 +275,8 @@ def main(flg):
         
         # Run
         mae_patch_analysis(
-            img_files, clobber=False, debug=debug)
+            img_files, clobber=False, debug=debug,
+            n_cores=n_cores, p_sz=4)
 
 
 # Command line execution
