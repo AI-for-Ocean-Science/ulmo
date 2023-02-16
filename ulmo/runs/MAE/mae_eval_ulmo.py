@@ -26,7 +26,8 @@ llc_nonoise_file = 's3://llc/Tables/LLC_uniform144_r0.5_nonoise.parquet'
 
 # MAE
 mae_tst_nonoise_file = 's3://llc/mae/Tables/MAE_uniform144_test.parquet'
-mae_nonoise_file = 's3://llc/mae/Tables/MAE_uniform144_nonoise.parquet'
+#mae_nonoise_file = 's3://llc/mae/Tables/MAE_uniform144_nonoise.parquet'
+mae_valid_nonoise_file = 's3://llc/mae/Tables/MAE_LLC_valid_nonoise.parquet'
 mae_img_path = 's3://llc/mae/PreProc'
 
 def gen_mae_tbl(tbl_file:str, outfile:str):
@@ -252,7 +253,8 @@ def main(flg):
             img_files.append(img_file)
         
         # Run
-        mae_ulmo_evaluate(mae_nonoise_file, img_files,
+        mae_ulmo_evaluate(mae_valid_nonoise_file, 
+                          img_files,
                           model=model, clobber=False, 
                           debug=debug)
 
