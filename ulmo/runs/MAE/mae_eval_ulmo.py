@@ -69,7 +69,8 @@ def mae_ulmo_evaluate(tbl_file:str, img_files:list,
         f = h5py.File(os.path.basename(img_files[0]), 'r')
         nimg = f['valid'].shape[0]
         # Chop down table
-        gd_tbl = (mae_table.pp_idx >= 0) & (mae_table.pp_idx < nimg)
+        gd_tbl = (mae_table.pp_idx >= 0) & (
+            mae_table.pp_idx < nimg)
         mae_table = mae_table[gd_tbl].copy()
 
     # Loop on eval_files
@@ -238,7 +239,9 @@ def main(flg):
         debug = False
 
         # Image parameters -- (train_percenntage, patch_percentage)
-        img_pers = [(10, 10), (10,20)]  
+        #img_pers = [(10, 10), (10,20)]  
+        img_pers = [(75, 10), (75, 20), (75, 30), 
+                    (75, 40), (75, 50)]
 
         # Generate the file names
         img_files = []
@@ -250,7 +253,8 @@ def main(flg):
         
         # Run
         mae_ulmo_evaluate(mae_nonoise_file, img_files,
-                          model=model, clobber=False, debug=debug)
+                          model=model, clobber=False, 
+                          debug=debug)
 
     # Calcualte MODIS cloud cover
     if flg & (2**2):
@@ -270,7 +274,8 @@ def main(flg):
         # Generate the file names
         img_files = []
         for img_per in img_pers:
-            img_file = mae_utils.img_filename(img_per[0], img_per[1])
+            img_file = mae_utils.img_filename(
+                img_per[0], img_per[1])
             img_files.append(img_file)
         
         # Run
