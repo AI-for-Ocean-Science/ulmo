@@ -85,10 +85,7 @@ def eval_from_main(main_table: pandas.DataFrame,
 
         # Add to table
         pp_idx = main_table[using_pp & valid]['pp_idx']
-        try:
-            assert len(pp_idx) == len(LL)
-        except:
-            embed(header='Problem with pp_idx in evaluate.py') 
+        assert len(pp_idx) == len(LL)
         main_table.loc[using_pp & valid, 'LL'] = LL[pp_idx]
 
         # Remove
