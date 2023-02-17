@@ -271,7 +271,9 @@ def main(flg):
         n_cores = 6
 
         # Image parameters -- (train_percenntage, patch_percentage)
-        img_pers = [(10, 20)]
+        #img_pers = [(10, 20)]
+        img_pers = [(75, 10), (75, 20), (75, 30), 
+                    (75, 40), (75, 50)]
 
         # Generate the file names
         img_files = []
