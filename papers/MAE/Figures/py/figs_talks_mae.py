@@ -45,7 +45,8 @@ from IPython import embed
 #sys.path.append(os.path.abspath("../Figures/py"))
 #import fig_ssl_modis
 
-def fig_recon_slide(outfile:str, show_title=True):
+def fig_recon_slide(outfile:str, show_title=True,
+                    full_recon=False):
 
     preproc_path = '/home/xavier/Projects/Oceanography/data/MAE/PreProc'
     recon_path = '/home/xavier/Projects/Oceanography/data/MAE/Recon'
@@ -94,6 +95,7 @@ def fig_recon_slide(outfile:str, show_title=True):
     sub_recon = np.ones_like(recon_img) * np.nan
     # Difference
     diff = np.ones_like(recon_img) * np.nan
+    frecon = recon_img.copy()
 
     # Plot/fill the patches
     for kk, patch in enumerate(patches):
@@ -105,12 +107,15 @@ def fig_recon_slide(outfile:str, show_title=True):
         ax0.add_patch(rect)
         # Fill
         sub_recon[i:i+p_sz, j:j+p_sz] = recon_img[i:i+p_sz, j:j+p_sz] - bias
+        frecon[i:i+p_sz, j:j+p_sz] -= bias
         # TODO -- Turn this off
         diff[i:i+p_sz, j:j+p_sz] = diff_true[i:i+p_sz, j:j+p_sz] - bias
 
     # Recon image
     ax1 = plt.subplot(gs[1])
 
+    if full_recon:
+        sub_recon = frecon.copy()
     _ = sns.heatmap(np.flipud(sub_recon), xticklabels=[], 
                      vmin=vmnx[0], vmax=vmnx[1],
                      yticklabels=[], cmap=cm, cbar=True, 
@@ -156,8 +161,10 @@ def main(flg_fig):
     # Uniform, non UMAP gallery for DTall
     if flg_fig & (2 ** 0):
         #fig_recon_slide('fig_recon_slide.png')
+        fig_recon_slide('fig_recon_slide_full.png',
+                        full_recon=True)
         fig_recon_slide('fig_recon_slide_notitle.png',
-                        show_title=False)
+                        show_title=False, full_recon=True)
 
 
 # Command line execution
