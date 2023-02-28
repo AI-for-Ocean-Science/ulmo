@@ -16,6 +16,7 @@ from ulmo.analysis import evaluate as ulmo_evaluate
 from ulmo.utils import catalog as cat_utils
 from ulmo.mae import mae_utils
 from ulmo.modis import analysis as modis_analysis
+from ulmo.mae import patch_analysis
 
 from IPython import embed
 
@@ -25,7 +26,8 @@ llc_nonoise_file = 's3://llc/Tables/LLC_uniform144_r0.5_nonoise.parquet'
 
 # MAE
 mae_tst_nonoise_file = 's3://llc/mae/Tables/MAE_uniform144_test.parquet'
-mae_nonoise_file = 's3://llc/mae/Tables/MAE_uniform144_nonoise.parquet'
+#mae_nonoise_file = 's3://llc/mae/Tables/MAE_uniform144_nonoise.parquet'
+mae_valid_nonoise_file = 's3://llc/mae/Tables/MAE_LLC_valid_nonoise.parquet'
 mae_img_path = 's3://llc/mae/PreProc'
 
 def gen_mae_tbl(tbl_file:str, outfile:str):
@@ -68,7 +70,8 @@ def mae_ulmo_evaluate(tbl_file:str, img_files:list,
         f = h5py.File(os.path.basename(img_files[0]), 'r')
         nimg = f['valid'].shape[0]
         # Chop down table
-        gd_tbl = (mae_table.pp_idx >= 0) & (mae_table.pp_idx < nimg)
+        gd_tbl = (mae_table.pp_idx >= 0) & (
+            mae_table.pp_idx < nimg)
         mae_table = mae_table[gd_tbl].copy()
 
     # Loop on eval_files
@@ -198,6 +201,25 @@ def mae_modis_cloud_cover(outfile='modis_2020_cloudcover.npz',
              tot_pix_CC=tot_pix_CC, nside=nside)
     print(f"Wrote: {outfile}")
 
+def mae_patch_analysis(img_files:list, n_cores,
+                  clobber=False, debug=False,
+                  p_sz=4): 
+    """ Evaluate paches in the reconstruction outputs
+    """
+    stats=['meanT', 'stdT', 'DT', 'median_diff', 
+           'std_diff', 'max_diff', 'i_patch', 'j_patch',
+           'DT_recon']
+    
+    # Loop on reconstructed files
+    for recon_file in img_files:
+        #t_per, p_per = mae_utils.parse_mae_img_file(recon_file)
+        patch_analysis.anlayze_full_test(recon_file, n_cores=n_cores,
+                       stats=stats,
+                       p_sz=p_sz,
+                       debug=debug)
+
+
+
 def main(flg):
     if flg== 'all':
         flg= np.sum(np.array([2 ** ii for ii in range(25)]))
@@ -218,7 +240,9 @@ def main(flg):
         debug = False
 
         # Image parameters -- (train_percenntage, patch_percentage)
-        img_pers = [(10, 10), (10,20)]  
+        #img_pers = [(10, 10), (10,20)]  
+        img_pers = [(75, 10), (75, 20), (75, 30), 
+                    (75, 40), (75, 50)]
 
         # Generate the file names
         img_files = []
@@ -229,13 +253,38 @@ def main(flg):
             img_files.append(img_file)
         
         # Run
-        mae_ulmo_evaluate(mae_nonoise_file, img_files,
-                          model=model, clobber=False, debug=debug)
+        mae_ulmo_evaluate(mae_valid_nonoise_file, 
+                          img_files,
+                          model=model, clobber=False, 
+                          debug=debug)
 
     # Calcualte MODIS cloud cover
     if flg & (2**2):
         debug = False
         mae_modis_cloud_cover(debug=debug)
+
+    # Patch analysis
+    if flg & (2**3):
+
+        # Ulmo model
+        debug = False
+        n_cores = 6
+
+        # Image parameters -- (train_percenntage, patch_percentage)
+        img_pers = [(10, 20)]
+
+        # Generate the file names
+        img_files = []
+        for img_per in img_pers:
+            img_file = mae_utils.img_filename(
+                img_per[0], img_per[1])
+            img_files.append(img_file)
+        
+        # Run
+        mae_patch_analysis(
+            img_files, clobber=False, debug=debug,
+            n_cores=n_cores, p_sz=4)
+
 
 # Command line execution
 if __name__ == '__main__':
@@ -246,6 +295,7 @@ if __name__ == '__main__':
         #flg += 2 ** 0  # 1 -- Setup Table
         #flg += 2 ** 1  # 2 -- Evaluate 
         #flg += 2 ** 2  # 4 -- Cloud cover
+        #flg += 2 ** 3  # 8 -- Patch analysis
     else:
         flg = sys.argv[1]
 

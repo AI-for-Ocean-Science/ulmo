@@ -111,13 +111,6 @@ def get_args_parser():
 
 @record
 def main(args):
-    """
-    Parameters:
-        rank: rank of process
-        world_size: number of processes
-        args: args passed
-    """
-    #if torch.cuda.device_count() > 1:
     misc.init_distributed_mode(args)
 
     print('job dir: {}'.format(os.path.dirname(os.path.realpath(__file__))))
@@ -132,7 +125,7 @@ def main(args):
 
     cudnn.benchmark = True
 
-    filepath = "LLC_uniform144_nonoise_preproc.h5"
+    
     dataset_train = HDF5Dataset(args.data_path, partition='valid')
     
     if True:  # args.distributed:
@@ -211,8 +204,8 @@ def main(args):
             args=args
         )
         
-        # Save model and upload to s3 storage every 3 epochs
-        # TODO: this is crashing because it's trying to save on all GPU's. Save only on rank 0
+        # Save model and upload to s3 storage every 2 epochs
+        # Uploads to s3 storage if rank 0
         if args.output_dir and (epoch % 2 == 0 or epoch + 1 == args.epochs):
             misc.save_model(
                 args=args, model=model, model_without_ddp=model_without_ddp, optimizer=optimizer,
@@ -239,7 +232,7 @@ def main(args):
         # upload and update log file per epoch
         log_file = os.path.join(args.output_dir, 'log.txt')
         s3_log_file = os.path.join('s3://llc/mae', log_file)
-        if local_file[:2] == './':    # remove ./ if hidden folder
+        if log_file[:2] == './':    # remove ./ if hidden folder
             s3_log_file = os.path.join('s3://llc/mae', log_file[2:]) 
         if args.rank == 0:
             ulmo_io.upload_file_to_s3(log_file, s3_log_file)

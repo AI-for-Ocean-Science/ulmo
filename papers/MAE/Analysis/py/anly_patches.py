@@ -3,60 +3,41 @@ import numpy as np
 
 import h5py
 
+
+from ulmo.mae import patch_analysis
+
 from IPython import embed
 
-def find_patches(mask_img, p_sz:int):
+def parse_metric(tbl, metric):
 
-    flat_mask = mask_img.flatten().astype(int)
-    patches = []
-    for ss in range(mask_img.size):
-        if flat_mask[ss] == 1:
-            patches.append(ss)
-            # Fill in the patch
-            i, j = np.unravel_index(ss, mask_img.shape)
-            #import pdb; pdb.set_trace()
-            i_s = (i+np.arange(p_sz)).tolist() * p_sz
-            j_s = []
-            for kk in range(p_sz):
-                j_s.extend([j+kk]*p_sz)
-            f_idx = np.ravel_multi_index((i_s, j_s), mask_img.shape)
-            flat_mask[f_idx] = 0
+    if metric == 'abs_median_diff':
+        values = np.abs(tbl.median_diff)
+        label = r'$|\rm median\_diff |$'
+    elif metric == 'median_diff':
+        values = tbl.median_diff
+        label = 'median_diff'
+    elif metric == 'std_diff':
+        values = tbl.std_diff
+        label = 'rms_diff'
+    elif metric == 'log10_std_diff':
+        values = np.log10(tbl.std_diff)
+        label = 'log10_rms_diff'
+    elif metric == 'log10_stdT':
+        values = np.log10(tbl.stdT)
+        label = 'log10_stdT'
+    else:
+        raise IOError(f"bad metric: {metric}")
 
     # Return
-    return patches
+    return values, label
 
-def patch_stats_img(data_img, recon_img, mask_img, 
-                    p_sz:int):
 
-    # Find the patches
-    patches = find_patches(mask_img, p_sz)
 
-    # Build the data
-    ptch_data = np.zeros(((len(patches), p_sz, p_sz)))
-    ptch_recon = np.zeros(((len(patches), p_sz, p_sz)))
-
-    # Fill me up for each patch
-    for kk, patch in enumerate(patches):
-        i, j = np.unravel_index(patch, mask_img.shape)
-        ptch_data[kk,...] = data_img[i:i+p_sz, j:j+p_sz]
-        ptch_recon[kk,...] = recon_img[i:i+p_sz, j:j+p_sz]
-
-    # Time for stats
-    meanT = np.mean(ptch_data, axis=(1,2))
-    stdT = np.std(ptch_data, axis=(1,2))
-
-    # Diff
-    std_diff = np.std(ptch_data-ptch_recon, axis=(1,2))
-    mean_diff = np.mean(ptch_data-ptch_recon, axis=(1,2))
-    max_diff = np.max(np.abs(ptch_data-ptch_recon), axis=(1,2))
-
-    embed(header='124 of anly_patches')
-    # Return
-    return meanT, stdT, mean_diff, std_diff, max_diff
 
 if __name__ == "__main__":
 
-    # Testing
+    '''
+    # Testing single image
     f_mask = h5py.File('mae_mask_t75_p75_small.h5', 'r')
     f_recon = h5py.File('mae_reconstruct_t75_p75_small.h5', 'r')
     f_data = h5py.File('mae_reconstruct_t75_p75_small.h5', 'r')
@@ -66,4 +47,12 @@ if __name__ == "__main__":
     t_recon = f_recon['valid'][idx, 0, ...]
     t_data = f_data['valid'][idx, 0, ...]
 
-    patch_stats_img(t_data, t_recon, t_mask, 4)
+    stats=['meanT', 'stdT', 'median_diff', 
+           'std_diff', 'max_diff', 'i_patch', 'j_patch', 'DT']
+    stat_dict = patch_analysis.patch_stats_img([t_data, t_recon, t_mask], p_sz=4,
+                                   stats=stats)
+    '''
+
+    # Testing full set
+    patch_analysis.anlayze_full_test(
+        10, 20, debug=True, nsub=1000)
