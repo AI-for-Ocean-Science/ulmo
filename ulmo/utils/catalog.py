@@ -10,12 +10,16 @@ from IPython import embed
 def match_ids(IDs, match_IDs, require_in_match=True):
     """ Match input IDs to another array of IDs (usually in a table)
     Return the rows aligned with input IDs
+
     Parameters
     ----------
     IDs : ndarray
+        IDs that are to be found in match_IDs
     match_IDs : ndarray
+        IDs to be searched
     require_in_match : bool, optional
-      Require that each of the input IDs occurs within the match_IDs
+        Require that each of the input IDs occurs within the match_IDs
+
     Returns
     -------
     rows : ndarray
@@ -41,8 +45,25 @@ def match_ids(IDs, match_IDs, require_in_match=True):
 
 def vet_main_table(table:pandas.DataFrame, cut_prefix=None,
                    data_model=None):
+    """Check that the main table is AOK
+
+    Args:
+        table (pandas.DataFrame or dict): [description]
+        cut_prefix (str or list, optional): . Defaults to None.
+        data_model (dict, optional): Data model to test
+            against.  If None, use the main Ulmo data model
+
+    Returns:
+        bool: True = passed the vetting
+    """
     if data_model is None:
         data_model = defs.mtbl_dmodel
+    if cut_prefix is not None:
+        # Make the list
+        if not isinstance(cut_prefix, list):
+            list_cut_prefix = [cut_prefix]
+        else:
+            list_cut_prefix = cut_prefix
 
     chk = True
     # Loop on the keys
@@ -50,18 +71,22 @@ def vet_main_table(table:pandas.DataFrame, cut_prefix=None,
     badtype_keys = []
     for key in table.keys():
         # Allow for cut prefix
-        if cut_prefix is not None and len(key) > len(cut_prefix) and (
-                key[:len(cut_prefix)] == cut_prefix):
-            skey = key[len(cut_prefix):]
-        else:
-            skey = key
+        skey = key
+        if cut_prefix is not None: 
+            # Loop over em
+            for icut_prefix in list_cut_prefix:
+                if len(key) > len(icut_prefix) and (
+                    key[:len(icut_prefix)] == icut_prefix):
+                    skey = key[len(icut_prefix):]
         # In data model?
         if not skey in data_model.keys():
             disallowed_keys.append(key)
             chk = False
+        # Allow for dict
+        item = table[key] if isinstance(
+            table, dict) else table.iloc[0][key] 
         # Check datat type
-        if not isinstance(table.iloc[0][key], 
-                          data_model[skey]['dtype']):
+        if not isinstance(item, data_model[skey]['dtype']):
             badtype_keys.append(key)
             chk = False
     # Required

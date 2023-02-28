@@ -36,6 +36,8 @@ tmp.*
 *.nc
 *.h5
 *.csv
+*.parquet
+*.pth
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

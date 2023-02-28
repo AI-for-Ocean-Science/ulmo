@@ -4,6 +4,7 @@ import os
 import numpy as np
 import xarray as xr
 
+import json
 import pandas
 import h5py 
 from urllib.parse import urlparse
@@ -25,6 +26,40 @@ client = boto3.client('s3', endpoint_url=endpoint_url)
 tparams = {'client': client}
 open = functools.partial(smart_open.open, 
                          transport_params=tparams)
+
+import boto3
+
+class Params():
+    """Class that loads hyperparameters from a json file.
+    Example:
+    ```
+    params = Params(json_path)
+    print(params.learning_rate)
+    params.learning_rate = 0.5  # change the value of learning_rate in params
+    ```
+    This module comes from:
+    https://github.com/cs230-stanford/cs230-code-examples/blob/master/pytorch/vision/utils.py
+    """
+
+    def __init__(self, json_path):
+        with open(json_path) as f:
+            params = json.load(f)
+            self.__dict__.update(params)
+
+    def save(self, json_path):
+        with open(json_path, 'w') as f:
+            json.dump(self.__dict__, f, indent=4)
+            
+    def update(self, json_path):
+        """Loads parameters from json file"""
+        with open(json_path) as f:
+            params = json.load(f)
+            self.__dict__.update(params)
+
+    @property
+    def dict(self):
+        """Gives dict-like access to Params instance by `params.dict['learning_rate']"""
+        return self.__dict__
 
 def grab_cutout(cutout:pandas.core.series.Series, 
                close=True, pp_hf=None):                
@@ -52,17 +87,24 @@ def grab_cutout(cutout:pandas.core.series.Series,
         return img, pp_hf
 
 
-def list_of_bucket_files(bucket_name:str, prefix='/', delimiter='/'):
+def list_of_bucket_files(inp:str, prefix='/', delimiter='/'):
     """Generate a list of files in the bucket
 
     Args:
-        bucket_name (str): name of bucket
+        inp (str): name of bucket or full s3 path
         prefix (str, optional): Folder(s) path. Defaults to '/'.
         delimiter (str, optional): [description]. Defaults to '/'.
 
     Returns:
-        list: List of files matching with full s3 path
+        list: List of files without s3 bucket prefix
     """
+    if inp[0:2] == 's3':
+        parsed_s3 = urlparse(inp)
+        bucket_name = parsed_s3.netloc
+        prefix = parsed_s3.path
+    else:
+        bucket_name = inp
+    # Do it        
     prefix = prefix[1:] if prefix.startswith(delimiter) else prefix
     bucket = s3.Bucket(bucket_name)
     return list(_.key for _ in bucket.objects.filter(Prefix=prefix))                                
@@ -90,6 +132,7 @@ def load_nc(filename, field='SST', verbose=True):
     or None's if the data is corrupt!
 
     """
+    raise DeprecationWarning("Use ulmo.modis.io.load_nc instead")
     geo = xr.open_dataset(
         filename_or_obj=filename,
         group='geophysical_data',
@@ -183,21 +226,25 @@ def load_to_bytes(s3_uri:str):
 
 
 def download_file_from_s3(local_file:str, s3_uri:str, 
-                          clobber_local=True):
+                          clobber_local=True, verbose=True):
     """ Grab an s3 file
 
     Args:
-        local_file (str): [description]
-        s3_uri (str): [description]
+        local_file (str): 
+            Name of file to be dropped on local drive
+        s3_uri (str): 
+            Full s3 path
         clobber_local (bool, optional): [description]. Defaults to True.
     """
     parsed_s3 = urlparse(s3_uri)
     # Download preproc file for speed
     if not os.path.isfile(local_file) or clobber_local:
-        print("Downloading from s3: {}".format(local_file))
+        if verbose:
+            print("Downloading from s3: {}".format(local_file))
         s3.Bucket(parsed_s3.netloc).download_file(
             parsed_s3.path[1:], local_file)
-        print("Done!")
+        if verbose:
+            print("Done!")
     
 def upload_file_to_s3(local_file:str, s3_uri:str):
     """Upload a single file to s3 storage

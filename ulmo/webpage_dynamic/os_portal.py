@@ -2,55 +2,35 @@
 and further modified by Kate Storrey-Fisher"""
 from bokeh.models.widgets.tables import StringFormatter
 import numpy as np
-import os
 
-import h5py
 import pandas
 
 from bokeh.layouts import column, gridplot, row
-from bokeh.models import ColumnDataSource, Slider
-from bokeh.sampledata.sea_surface_temperature import sea_surface_temperature
+from bokeh.models import ColumnDataSource, Plot
 from bokeh.palettes import Viridis256, Plasma256, Inferno256, Magma256, all_palettes
 from bokeh.models import LinearColorMapper, ColorBar, ColumnDataSource, Range1d, CustomJS, Div, \
-    CDSView, BasicTicker, \
-    IndexFilter, BooleanFilter, Span, Label, BoxZoomTool, TapTool
-from bokeh.models.widgets import TextInput, RadioButtonGroup, DataTable, TableColumn, AutocompleteInput, NumberFormatter
+    CDSView, BasicTicker
+from bokeh.models.widgets import TextInput, DataTable, TableColumn, NumberFormatter
 from bokeh.models.widgets import Select, Button, Dropdown
 from bokeh.plotting import figure
-from bokeh.server.server import Server
-from bokeh.themes import Theme
 from bokeh.models.annotations import Title
 from bokeh.colors import RGB
 from bokeh.transform import transform
-from bokeh.events import DoubleTap, PinchEnd, PanEnd, Reset
+from bokeh.events import DoubleTap, PanEnd, Reset
+
+from bokeh.server.server import Server  # THIS NEEDS TO STAY!
 
 # For the geography figure
 from bokeh.tile_providers import get_provider, Vendors
 from bokeh.transform import linear_cmap
 
+from ulmo.webpage_dynamic import utils as portal_utils
 
 from IPython import embed
 
-def mercator_coord(lat, lon):
-    """Function to switch from lat/long to mercator coordinates
-
-    Args:
-        lat (float or np.ndarray): [description]
-        lon (float or np.ndarray): [description]
-
-    Returns:
-        tuple: x, y values in mercator
-    """
-    r_major = 6378137.000
-    x = r_major * np.radians(lon)
-    scale = x/lon
-    y = 180.0/np.pi * np.log(np.tan(np.pi/4.0 + 
-        lat * (np.pi/180.0)/2.0)) * scale
-    return x, y
-
-class os_web(object):
+class OSPortal(object):
     """ Primary class for the web site """
-    def __init__(self, data_dict, config=None, verbose=False): #images, obj_ids, metric_dict, umap_data):
+    def __init__(self, data_dict, verbose=True): 
 
         # Slurp
         self.verbose = verbose
@@ -99,6 +79,12 @@ class os_web(object):
         self.stacks_colors = ['#fde725', '#90d743', '#35b779', '#21908d', '#31688e', '#443983', '#440154'][::-1]
         self.nrow, self.ncol = 2, 5
         self.first_im_index = 0
+        self.zero_gallery = 0
+        #self.nonselection_fill_color = 'moccasin'
+        self.nonselection_fill_color = transform('color_data', self.color_mapper)
+
+        # For selecting on a specific source (or location)
+        self.select_on_source = False
 
         # TODO -- ELIMINATE THIS
         self.selected_objects = ColumnDataSource(
@@ -108,7 +94,11 @@ class os_web(object):
         #self.dropdown_dict['embedding'] = 'UMAP'
         self.dropdown_dict['metric'] = 'LL'
 
+        # Complete the init
+        self.init_bits_and_pieces()
 
+    def init_bits_and_pieces(self):
+        """ Allow for some customization """
         self.init_title_text_tables()
         self.generate_buttons()
         self.generate_sources()
@@ -121,6 +111,7 @@ class os_web(object):
         doc.add_root(column(row(self.main_title_div ), 
                             row(column(self.info_div), 
                                 column(self.umap_figure, self.gallery_figure,
+                                    row(self.prev_set, self.next_set), 
                                        self.geo_figure), 
                                 column(
                                     row(self.x_text, self.y_text),
@@ -129,7 +120,7 @@ class os_web(object):
                                     self.search_object, 
                                     self.data_figure, 
                                     self.selected_objects_table,
-                                    self.print_table), #, self.title_div  
+                                    self.print_table),
                             )
                                    #row(self.prev_button, self.next_button)),
                             )
@@ -138,7 +129,9 @@ class os_web(object):
 
     def init_title_text_tables(self):
 
-        self.main_title_div = Div(text='<center>OS Image Visualization Tool</center>', style={'font-size': '299%', 'color': 'black'}, sizing_mode="stretch_width")
+        self.main_title_div = Div(text='<center>OS Image Visualization Tool</center>', 
+                                  styles={'font-size': '299%', 'color': 'black'}, 
+                                  sizing_mode="stretch_width")
         info_text = """
         <p><b>What is this?</b></p>
         <p>This is an interactive tool for visualizing the results of pattern analysis of Ocean Science imagery</p>
@@ -155,7 +148,7 @@ class os_web(object):
         <p><b>Author:</b> X</p>
         <p><i>Adapted from the <a href="https://toast-docs.readthedocs.io/en/latest/">SDSS galaxy portal</a> by Itamar Reis and Kate Storey-Fisher</i></p>
         """
-        self.info_div = Div(text=info_text, style={'font-size': '119%', 'color': 'black'})#, sizing_mode="stretch_width")
+        self.info_div = Div(text=info_text, styles={'font-size': '119%', 'color': 'black'})#, sizing_mode="stretch_width")
 
         self.selected_objects_columns = []
         for key in self.metric_dict.keys():
@@ -198,6 +191,8 @@ class os_web(object):
         self.internal_reset = Select(title="Inactive", value="",
                                          options=[])
         self.print_table = Button(label="Print Table", button_type="default")
+        self.next_set = Button(label="Next Set", button_type="default")
+        self.prev_set = Button(label="Previous Set", button_type="default")
         # 
         select_metric_menu = []
         for key in self.metric_dict.keys():
@@ -209,11 +204,11 @@ class os_web(object):
 
     def generate_figures(self):
 
-        umap_plot_width = 800
+        self.umap_plot_width = 800
         column_width = 500
         self.umap_figure = figure(tools='lasso_select,tap,box_zoom,pan,save,reset',
-                                  plot_width=umap_plot_width,
-                                  plot_height=600,
+                                  width=self.umap_plot_width,
+                                  height=600,
                                   toolbar_location="above", output_backend='webgl', )  # x_range=(-10, 10),
         self.umap_colorbar = ColorBar(color_mapper=self.color_mapper, location=(0, 0), 
                                       major_label_text_font_size='15pt', 
@@ -224,27 +219,17 @@ class os_web(object):
 
         # Snapshot figure
         self.data_figure = figure(tools="box_zoom,save,reset", 
-                                  plot_width=column_width,
-                                  plot_height=column_width,
+                                  width=column_width,
+                                  height=column_width,
                                   toolbar_location="above", 
                                   output_backend='webgl',
                                   x_range=(0,self.imsize[0]), 
                                   y_range=(0,self.imsize[1]))
                                   #x_range=(0,96), y_range=(0,96))
 
-        # Gallery figure 
-        title_height = 20
-        buffer = 10*self.ncol
-        collage_im_width = int((umap_plot_width-buffer)/self.ncol)
-        self.gallery_figures = []
-        for _ in range(self.nrow*self.ncol):
-            sfig = figure(tools="box_zoom,save,reset", plot_width=collage_im_width, plot_height=collage_im_width+title_height, 
-            toolbar_location="above", output_backend='webgl', 
-            x_range=(0,self.imsize[0]), 
-            y_range=(0,self.imsize[1]))
-            self.gallery_figures.append(sfig)
+        # Gallery
+        self.init_gallery_figure()
 
-        self.gallery_figure = gridplot(self.gallery_figures, ncols=self.ncol)
 
         # TODO: make this the index
         t = Title()
@@ -270,8 +255,8 @@ class os_web(object):
         # Geography figure
         tooltips = [("ID", "@obj_ID"), ("Lat","@lat"), ("Lon", "@lon")]
         self.geo_figure = figure(tools='box_zoom,pan,save,reset',
-                                  plot_width=umap_plot_width,
-                                  plot_height=600,
+                                  width=self.umap_plot_width,
+                                  height=600,
                                   toolbar_location="above", 
                                   x_axis_type="mercator", 
                                   y_axis_type="mercator", 
@@ -279,6 +264,22 @@ class os_web(object):
                                   y_axis_label = 'Latitude', 
                                   tooltips=tooltips,
                                   output_backend='webgl', )  # x_range=(-10, 10),
+
+    def init_gallery_figure(self):
+        # Gallery figure 
+        title_height = 20
+        buffer = 10*self.ncol
+        collage_im_width = int((self.umap_plot_width-buffer)/self.ncol)
+        self.gallery_figures = []
+        for kk in range(self.nrow*self.ncol):
+            sfig = figure(tools="box_zoom,save,reset", 
+                          width=collage_im_width, 
+                          height=collage_im_width+title_height, 
+                          toolbar_location="above", #output_backend='webgl', 
+                          x_range=(0,self.imsize[0]), y_range=(0,self.imsize[1]))
+            self.gallery_figures.append(sfig)
+
+        self.gallery_figure = gridplot(self.gallery_figures, ncols=self.ncol)
 
     def generate_plots(self):
         """Generate/init plots
@@ -289,12 +290,12 @@ class os_web(object):
         self.umap_scatter = self.umap_figure.scatter(
             'xs', 'ys', source=self.umap_source_view,
             color=transform('color_data', self.color_mapper),
-            nonselection_fill_color = 'moccasin',
+            nonselection_fill_color = self.nonselection_fill_color, 
             nonselection_line_color = 'moccasin',
-            nonselection_alpha = 1,
+            nonselection_alpha = 0.2,
             nonselection_line_alpha = 0,
-            alpha=0.5,
-            line_color=None,
+            alpha=0.7,
+            line_color=None, #'black',
             size='radius',
             view=self.umap_view)
 
@@ -303,8 +304,8 @@ class os_web(object):
 
         # Gallery
         self.plot_gallery()
-        self.gallery_figure = gridplot(self.gallery_figures, 
-                                       ncols=self.ncol)
+        #self.gallery_figure = gridplot(self.gallery_figures, 
+        #                               ncols=self.ncol)
 
         # Search circle
         self.umap_search_galaxy = self.umap_figure.circle(
@@ -361,7 +362,7 @@ class os_web(object):
             self.ylim_all[umap] = temp_ylim
         '''
 
-        points = get_decimated_region_points(self.xlim[0], self.xlim[1], self.ylim[0], self.ylim[1],
+        points = portal_utils.get_decimated_region_points(self.xlim[0], self.xlim[1], self.ylim[0], self.ylim[1],
                                              self.umap_source.data, self.DECIMATE_NUMBER)
 
         self.umap_source_view = ColumnDataSource(
@@ -468,10 +469,8 @@ class os_web(object):
 
         # Buttons
         self.print_table.on_click(self.print_table_callback)
-        '''
-        self.next_button.on_click(self.next_stack_index)
-        self.prev_button.on_click(self.prev_stack_index)        
-        '''
+        self.prev_set.on_click(self.prev_set_callback)
+        self.next_set.on_click(self.next_set_callback)
 
         # Non-dropdowns
         self.select_object.on_change('value', self.select_object_callback())
@@ -493,7 +492,7 @@ class os_web(object):
         self.select_colormap.on_click(self.select_colormap_callback)
         '''
 
-        self.umap_figure.on_event(PanEnd, self.reset_stack_index)
+        self.umap_figure.on_event(PanEnd, self.reset_gallery_index)
         self.umap_figure.on_event(PanEnd, self.select_stacks_callback())
 
         self.selected_objects_source.selected.on_change(
@@ -569,10 +568,10 @@ class os_web(object):
         self.umap_figure.on_event(Reset, self.update_umap_filter_reset())
 
 
-    def reset_stack_index(self):
+    def reset_gallery_index(self):
         """ Reset stack index
         """
-        self.stack_index = 0
+        self.gallery_index = 0
 
 
     def remove_ticks_and_labels(self, figure):
@@ -672,6 +671,37 @@ class os_web(object):
         df.to_csv('OS_viz.csv')
         print("Table written to: OS_viz.csv")
 
+    def prev_set_callback(self, event):
+        """Callback to previous gallery images
+
+        Args:
+            event ([type]): [description]
+        """
+        if len(self.selected_objects_source.data['index']) == 0:
+            print("Need to use the lasso first!")
+            return
+        # 
+        self.gallery_index -= self.nrow*self.ncol
+        self.gallery_index = max(self.gallery_index, 0)
+        print(f"Previous set of gallery images; zero={self.gallery_index}")
+        self.stacks_callback()
+
+    def next_set_callback(self, event):
+        """Callback to next gallery images
+
+        Args:
+            event ([type]): [description]
+        """
+        if len(self.selected_objects_source.data['index']) == 0:
+            print("Need to use the lasso first!")
+            return
+        # 
+        nobj = len(self.selected_objects.data['index'])
+        self.gallery_index += self.nrow*self.ncol
+        self.gallery_index = min(self.gallery_index, nobj-1)
+        print(f"Next set of gallery images; zero={self.gallery_index}")
+        self.stacks_callback()
+
     def select_object_callback(self):
         if self.verbose:
             print('select object')
@@ -746,7 +776,9 @@ class os_web(object):
 
         return callback
 
-
+    # 
+    def set_selected_from_source(self):
+        pass
 
     # TODO: can this be simplified?
     def select_stacks_callback(self):
@@ -759,6 +791,7 @@ class os_web(object):
         self.select_object.value = str(self.selected_objects.data['index'][new[0]])
     
     def umap_source_callback(self, attr, old, new):
+        print("In umap_source_callback")
         # Init
         tdict = {}
         for key in ['index']+list(self.metric_dict.keys()):
@@ -778,7 +811,7 @@ class os_web(object):
 
         # Geo map
         if self.geo:
-            mercator_x, mercator_y =  mercator_coord(
+            mercator_x, mercator_y =  portal_utils.mercator_coord(
                 np.array(tdict['lat']), np.array(tdict['lon']))
             #print(mercator_y)
             geo_dict = dict(mercator_x=mercator_x.tolist(), 
@@ -789,14 +822,15 @@ class os_web(object):
             self.geo_source.data = geo_dict.copy()
 
     def stacks_callback(self):
-        """ Callback method for stacks
+        """ Callback method for lasso objects
         """
         if self.verbose: 
-            print('select_stacks_callback')
+            print('select_objects_callback')
         selected_objects = self.selected_objects.data['index']
         selected_inds = np.array([int(s) for s in selected_objects])
         nof_selected = selected_inds.size
-        inds_visible = selected_inds[self.stack_index:self.stack_index+self.nrow*self.ncol]
+        inds_visible = selected_inds[self.gallery_index:self.gallery_index+
+                                     self.nrow*self.ncol]
 
         xsize, ysize = self.imsize
         self.stacks_sources = []
@@ -819,6 +853,10 @@ class os_web(object):
             self.gallery_figures[count].title.text = new_title
             #self.spectrum_stacks[count].data_source.data = dict(self.stacks_sources[count].data)
 
+            if self.verbose:
+                print(f'Loaded image: {count}, {np.std(im)}')
+
+            # Increment
             count += 1
         self.plot_gallery()
 
@@ -851,10 +889,13 @@ class os_web(object):
                 source=self.stacks_sources[i],
                 color_mapper=self.snap_color_mapper)
             self.spectrum_stacks.append(spec_stack)
+            if self.verbose:
+                print(f"Updated gallery {i}")
 
     def update_snapshot(self):
         """ Update the Zoom-in image
         """
+        print("inside snapshot")
         if self.verbose:
             print("update snapshot")
         #TODO: BE CAREFUL W INDEX VS ID
@@ -941,7 +982,7 @@ class os_web(object):
                  (py_start > np.min(uy) ) or
                  (py_end   < np.max(uy) )   ):
 
-                background_objects = get_decimated_region_points(
+                background_objects = portal_utils.get_decimated_region_points(
                     self.umap_figure.x_range.start,
                     self.umap_figure.x_range.end,
                     self.umap_figure.y_range.start,
@@ -971,7 +1012,7 @@ class os_web(object):
 
         #embedding = self.dropdown_dict['embedding']
         print('get_new_view_keep_selected')
-        _, _, is_relevant = get_relevant_objects_coords(self.umap_source.data)
+        _, _, is_relevant = portal_utils.get_relevant_objects_coords(self.umap_source.data)
         selected_objects = [s for s in selected_objects_ if is_relevant[int(s)]]
         selected_objects = np.array(selected_objects)
         background_objects = np.array(background_objects)
@@ -1009,21 +1050,16 @@ class os_web(object):
             for key in self.metric_dict.keys():
                 new_dict[key] = [self.metric_dict[key][s] for s in selected_objects]
             self.selected_objects.data = new_dict
-            #order = np.array([float(o) for o in self.selected_objects.data['order']])
-            #self.selected_objects.data = dict(
-            #    index=list(selected_objects), 
-            #    score=[-999999 if np.isnan(metric[s]) else metric[s] for s in selected_objects],
-            #    order=list(order), 
-            #    info_id=[self.obj_links[s] for s in selected_objects],
-            #    object_id=[self.obj_ids[s] for s in selected_objects]
-            #)
             self.update_table.value = str(np.random.rand())
+            self.umap_source_view.selected.indices = np.arange(nof_selected_objects).tolist()
         elif len(selected_objects_) > 0:
             self.selected_objects = ColumnDataSource(data=dict(index=[], score=[], order=[], info_id=[], object_id=[]))
             self.update_table.value = str(np.random.rand())
             self.internal_reset.value = str(np.random.rand())
         else:
             self.update_table.value = str(np.random.rand())
+
+        # Update indices?
 
         # Update circle
         index = self.select_object.value
@@ -1066,7 +1102,7 @@ class os_web(object):
             if self.verbose:
                 print('reset double tap')
 
-            background_objects = get_decimated_region_points(
+            background_objects = portal_utils.get_decimated_region_points(
                 self.xlim[0],
                 self.xlim[1],
                 self.ylim[0],
@@ -1078,11 +1114,8 @@ class os_web(object):
             self.get_new_view_keep_selected(background_objects, selected_objects)
 
             self.umap_figure.x_range.start = self.xlim[0]
-
             self.umap_figure.x_range.end = self.xlim[1]
-
             self.umap_figure.y_range.start = self.ylim[0]
-
             self.umap_figure.y_range.end = self.ylim[1]
 
             xsize, ysize = self.imsize
@@ -1143,184 +1176,3 @@ class os_web(object):
 
         return
 
-
-def get_region_points(x_min, x_max, y_min, y_max, datasource):
-    """ Get the points within the box
-
-    Args:
-        x_min ([type]): [description]
-        x_max ([type]): [description]
-        y_min ([type]): [description]
-        y_max ([type]): [description]
-        datasource ([type]): [description]
-
-    Returns:
-        [type]: [description]
-    """
-    IGNORE_TH = -9999
-    xs = np.array(datasource['xs'])
-    ys = np.array(datasource['ys'])
-    cd = datasource['color_data']
-    nof_objects = len(cd)
-    if True:
-        is_in_box = np.logical_and.reduce([xs >= x_min, xs <= x_max, ys >= y_min, ys <= y_max, ys > IGNORE_TH, xs > IGNORE_TH])
-    else:
-        is_in_box = np.logical_and.reduce([xs >= x_min, xs <= x_max, ys >= y_min, ys <= y_max])
-    return np.where(is_in_box)[0]
-
-
-def get_relevant_objects_coords(datasource):
-    """ ??
-
-    Args:
-        datasource ([type]): [description]
-
-    Returns:
-        [type]: [description]
-    """
-    IGNORE_TH = -999
-    xs = np.array(datasource['xs'])
-    ys = np.array(datasource['ys'])
-    relevant_objects = np.logical_and.reduce([ys > IGNORE_TH, xs > IGNORE_TH])
-    return xs[relevant_objects], ys[relevant_objects], relevant_objects
-
-
-def get_decimated_region_points(x_min, x_max, y_min, y_max, datasource, DECIMATE_NUMBER):
-    """ ??
-
-    Args:
-        x_min ([type]): [description]
-        x_max ([type]): [description]
-        y_min ([type]): [description]
-        y_max ([type]): [description]
-        datasource ([type]): [description]
-        DECIMATE_NUMBER ([type]): [description]
-
-    Returns:
-        [type]: [description]
-    """
-    is_in_box_inds = get_region_points(x_min, x_max, y_min, y_max, datasource)
-    print('total points before decimation', len(is_in_box_inds))
-    if len(is_in_box_inds) < DECIMATE_NUMBER:
-        return is_in_box_inds
-    random_objects_ = np.random.choice(is_in_box_inds, DECIMATE_NUMBER, replace=False)
-    random_objects = [datasource['names'][r] for r in random_objects_]
-    return random_objects
-
-
-
-# CODE HERE AND DOWN IS FOR TESTING
-def get_test_os_session(doc):
-    images, objids, metric, umapd = grab_dum_data()
-    # Instantiate
-    sess = os_web(images, objids, metric, umapd)
-    return sess(doc)
-
-def get_modis_subset_os_session(doc):
-    data_dict = grab_modis_subset()
-    # Instantiate
-    sess = os_web(data_dict)
-    return sess(doc)
-
-def grab_dum_data():
-    nobj = 100
-    dum_images = np.random.uniform(size=(nobj, 64, 64))
-    dum_objids = np.arange(nobj)
-    dum_umap = np.random.uniform(size=(nobj,2)) 
-    dum_LL = np.random.uniform(low=0., high=100., size=nobj)
-    dum_metric = dict(LL=dum_LL)
-    dum_umapd = dict(UMAP=dum_umap)
-    embed(header='NEED TO REFACTOR')
-    #
-    return dum_images, dum_objids, dum_metric, dum_umapd
-
-def grab_modis_subset():
-    # Load up 
-    sst_dir='/data/Projects/Oceanography/AI/OOD/SST/MODIS_L2/PreProc/'
-    data_file = os.path.join(sst_dir, 
-                             'MODIS_R2019_2010_95clear_128x128_preproc_std.h5')
-    results_path = '/data/Projects/Oceanography/AI/SSL/portal/'
-    umaps_path = os.path.join(results_path, 'embeddings')
-
-    # Images
-    nimgs = 100000
-    sub_idx = np.arange(nimgs)
-    f = h5py.File(data_file, 'r') 
-    images = f["valid"][sub_idx,0,:,:]
-    f.close()
-
-    # UMAP
-    umap_file = os.path.join(umaps_path, 'UMAP_2010_valid_v1.npz')
-    f = np.load(umap_file, allow_pickle=False)
-    e1, e2 = f['e1'], f['e2']
-
-    # Metrics
-    results_file = os.path.join(results_path, 'ulmo_2010_valid_v1.parquet')
-    res = pandas.read_parquet(results_file)
-    metric_dict = {'LL': res.LL.values[sub_idx], 
-                   'lat': res.lat.values[sub_idx],
-                   'lon': res.lon.values[sub_idx],
-                   'avgT': res.mean_temperature.values[sub_idx],
-                   'DT': (res.T90-res.T10).values[sub_idx],
-                   'obj_ID': sub_idx,
-    }
-
-    # Repack
-    data_dict = {
-        'images': images,
-        'xy_scatter': dict(UMAP=(np.array([e1, e2]).T)[sub_idx]),
-        'metrics': metric_dict,
-    }
-
-    return data_dict
-
-
-def main(flg):
-    flg = int(flg)
-
-    # Deprecated test
-    if flg & (2 ** 0):
-        pass
-    
-    # Test main class
-    if flg & (2 ** 1):
-        dum_images, dum_objids, dum_metric, dum_umapd = grab_dum_data()
-        sess = os_web(dum_images, dum_objids, dum_metric, dum_umapd)
-        print("Success!")
-
-    # Real deal
-    if flg & (2 ** 2):
-        server = Server({'/': get_test_os_session}, num_procs=1)
-        server.start()
-        print('Opening Bokeh application for test data on http://localhost:5006/')
-
-        server.io_loop.add_callback(server.show, "/")
-        server.io_loop.start()
-
-    # Test modis subset
-    if flg & (2 ** 3):
-        data_dict = grab_modis_subset()
-        sess = os_web(data_dict)
-
-    if flg & (2 ** 4):
-        server = Server({'/': get_modis_subset_os_session}, num_procs=1)
-        server.start()
-        print('Opening Bokeh application for MODIS subset on http://localhost:5006/')
-
-        server.io_loop.add_callback(server.show, "/")
-        server.io_loop.start()
-
-
-if __name__ == '__main__':
-    import sys
-    if len(sys.argv) == 1:
-        flg = 0
-        #flg += 2 ** 0  # Test bokeh
-        #flg += 2 ** 1  # Test object
-        #flg += 2 ** 2  # Full Test 
-        #flg += 2 ** 3  # Test load MODIS subset
-        flg += 2 ** 4  # Full MODIS subset
-    else:
-        flg = sys.argv[1]
-
-    main(flg)
