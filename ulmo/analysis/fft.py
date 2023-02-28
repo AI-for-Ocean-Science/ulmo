@@ -93,7 +93,7 @@ def analyze_cutout(img, dtdm=True):
     """Analyze an input cutout
 
     Args:
-        img (np.ndarra): Input cutout
+        img (np.ndarray): Input cutout
         dtdm (bool, optional): _description_. Defaults to True.
 
     Returns:

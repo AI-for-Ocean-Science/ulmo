@@ -19,7 +19,7 @@ from ulmo.ssl.train_util import modis_loader_v2, set_model
 from ulmo.ssl.train_util import train_model
 
 from ulmo import io as ulmo_io
-from ulmo.ssl import analysis as ssl_analysis
+from ulmo.ssl import umap as ssl_umap
 
 from IPython import embed
 
@@ -217,7 +217,7 @@ def generate_umap(debug=False, orig=False):
     valid = valid_tbl.pp_idx.values
 
     # Stack em
-    ssl_analysis.latents_umap(
+    ssl_umap.old_latents_umap(
         latents, train, valid, valid_tbl, 
         fig_root='LLC_v1', 
         write_to_file='s3://llc/Tables/LLC_MODIS2012_SSL_v1.parquet',
