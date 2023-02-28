@@ -1,0 +1,490 @@
+From https://github.com/AI-for-Ocean-Science/ulmo
+   2baef21..efce6bd  main                 -> origin/main
+ * [new branch]      F_S                  -> origin/F_S
+ * [new branch]      LLC_paper            -> origin/LLC_paper
+ * [new branch]      SSH                  -> origin/SSH
+ * [new branch]      llc_viirs_evaluation -> origin/llc_viirs_evaluation
+ * [new branch]      ssl_paper            -> origin/ssl_paper
+ * [new branch]      viirs_viz            -> origin/viirs_viz
+Switched to a new branch 'ssl_paper'
+Branch 'ssl_paper' set up to track remote branch 'ssl_paper' from 'origin'.
+Already up to date.
+Collecting torch==1.11.0
+  Downloading torch-1.11.0-cp38-cp38-manylinux1_x86_64.whl (750.6 MB)
+Requirement already satisfied: typing-extensions in /root/miniconda3/lib/python3.8/site-packages (from torch==1.11.0) (3.7.4.3)
+Installing collected packages: torch
+  Attempting uninstall: torch
+    Found existing installation: torch 1.8.0
+    Uninstalling torch-1.8.0:
+      Successfully uninstalled torch-1.8.0
+Successfully installed torch-1.11.0
+Collecting smart-open[s3]
+  Downloading smart_open-6.0.0-py3-none-any.whl (58 kB)
+Requirement already satisfied, skipping upgrade: boto3; extra == "s3" in /root/miniconda3/lib/python3.8/site-packages (from smart-open[s3]) (1.17.27)
+Requirement already satisfied, skipping upgrade: jmespath<1.0.0,>=0.7.1 in /root/miniconda3/lib/python3.8/site-packages (from boto3; extra == "s3"->smart-open[s3]) (0.10.0)
+Requirement already satisfied, skipping upgrade: s3transfer<0.4.0,>=0.3.0 in /root/miniconda3/lib/python3.8/site-packages (from boto3; extra == "s3"->smart-open[s3]) (0.3.4)
+Requirement already satisfied, skipping upgrade: botocore<1.21.0,>=1.20.27 in /root/miniconda3/lib/python3.8/site-packages (from boto3; extra == "s3"->smart-open[s3]) (1.20.27)
+Requirement already satisfied, skipping upgrade: python-dateutil<3.0.0,>=2.1 in /root/miniconda3/lib/python3.8/site-packages (from botocore<1.21.0,>=1.20.27->boto3; extra == "s3"->smart-open[s3]) (2.8.1)
+Requirement already satisfied, skipping upgrade: urllib3<1.27,>=1.25.4 in /root/miniconda3/lib/python3.8/site-packages (from botocore<1.21.0,>=1.20.27->boto3; extra == "s3"->smart-open[s3]) (1.25.11)
+Requirement already satisfied, skipping upgrade: six>=1.5 in /root/miniconda3/lib/python3.8/site-packages (from python-dateutil<3.0.0,>=2.1->botocore<1.21.0,>=1.20.27->boto3; extra == "s3"->smart-open[s3]) (1.15.0)
+Installing collected packages: smart-open
+  Attempting uninstall: smart-open
+    Found existing installation: smart-open 4.2.0
+    Uninstalling smart-open-4.2.0:
+      Successfully uninstalled smart-open-4.2.0
+Successfully installed smart-open-6.0.0
+running develop
+running egg_info
+writing ulmo.egg-info/PKG-INFO
+writing dependency_links to ulmo.egg-info/dependency_links.txt
+writing requirements to ulmo.egg-info/requires.txt
+writing top-level names to ulmo.egg-info/top_level.txt
+reading manifest file 'ulmo.egg-info/SOURCES.txt'
+writing manifest file 'ulmo.egg-info/SOURCES.txt'
+running build_ext
+Creating /root/miniconda3/lib/python3.8/site-packages/ulmo.egg-link (link to .)
+ulmo 0.0.dev0 is already the active version in easy-install.pth
+Installing ulmo_LL_modis script to /root/miniconda3/bin
+Installing ulmo_eval script to /root/miniconda3/bin
+Installing ulmo_extract_modis script to /root/miniconda3/bin
+Installing ulmo_grab_llc script to /root/miniconda3/bin
+Installing ulmo_preproc_h5 script to /root/miniconda3/bin
+Installing ulmo_preproc_modis script to /root/miniconda3/bin
+Installing ulmo_reconstruct script to /root/miniconda3/bin
+Installing ssl_similar_images script to /root/miniconda3/bin
+Installing ulmo_collect_images script to /root/miniconda3/bin
+Installing ulmo_convert_table script to /root/miniconda3/bin
+Installing ulmo_portal script to /root/miniconda3/bin
+
+Installed /ulmo
+Processing dependencies for ulmo==0.0.dev0
+Searching for llvmlite
+Reading https://pypi.org/simple/llvmlite/
+Downloading https://files.pythonhosted.org/packages/36/93/6e1026f0640d413805064a2bd48fb4a1c103fafb545936efb2d1a604e68d/llvmlite-0.38.1-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl#sha256=f95f455697c44d7c04ef95fdfce04629f48df08a832d0a0d9eb2363186dbb969
+Best match: llvmlite 0.38.1
+Processing llvmlite-0.38.1-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+Installing llvmlite-0.38.1-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl to /root/miniconda3/lib/python3.8/site-packages
+Adding llvmlite 0.38.1 to easy-install.pth file
+
+Installed /root/miniconda3/lib/python3.8/site-packages/llvmlite-0.38.1-py3.8-linux-x86_64.egg
+Searching for umap-learn
+Reading https://pypi.org/simple/umap-learn/
+Downloading https://files.pythonhosted.org/packages/e1/eb/dca6cfd872e8542fb57dd56ff2d5d67baed270aee6db739c6414d8d5b3b5/umap-learn-0.5.3.tar.gz#sha256=dbd57cb181c2b66d238acb5635697526bf24c798082daed0cf9b87f6a3a6c0c7
+Best match: umap-learn 0.5.3
+Processing umap-learn-0.5.3.tar.gz
+Writing /tmp/easy_install-dkcdqnuw/umap-learn-0.5.3/setup.cfg
+Running umap-learn-0.5.3/setup.py -q bdist_egg --dist-dir /tmp/easy_install-dkcdqnuw/umap-learn-0.5.3/egg-dist-tmp-77izb9ak
+creating /root/miniconda3/lib/python3.8/site-packages/umap_learn-0.5.3-py3.8.egg
+Extracting umap_learn-0.5.3-py3.8.egg to /root/miniconda3/lib/python3.8/site-packages
+Adding umap-learn 0.5.3 to easy-install.pth file
+
+Installed /root/miniconda3/lib/python3.8/site-packages/umap_learn-0.5.3-py3.8.egg
+Searching for bokeh
+Reading https://pypi.org/simple/bokeh/
+Downloading https://files.pythonhosted.org/packages/f5/1f/2e44924df3f528cb355ab38abcf1bf52879c18cac3fc3fa8232a97344e48/bokeh-3.0.0.dev6-py3-none-any.whl#sha256=1131c63c16ba23b3f77f314a30fb48c257819f4d7bb55c65665ca6b0804125e1
+Best match: bokeh 3.0.0.dev6
+Processing bokeh-3.0.0.dev6-py3-none-any.whl
+Installing bokeh-3.0.0.dev6-py3-none-any.whl to /root/miniconda3/lib/python3.8/site-packages
+Adding bokeh 3.0.0.dev6 to easy-install.pth file
+Installing bokeh script to /root/miniconda3/bin
+
+Installed /root/miniconda3/lib/python3.8/site-packages/bokeh-3.0.0.dev6-py3.8.egg
+Searching for cftime
+Reading https://pypi.org/simple/cftime/
+Downloading https://files.pythonhosted.org/packages/2a/ec/ab13ec7f3b9c5d1391703ca9089cd68beb96ca30114614de16c35c7c702d/cftime-1.6.0-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl#sha256=519d1c391ed7be3bb4d84990a51a76cbb1cc894bd776637c0227dfe1f6274f39
+Best match: cftime 1.6.0
+Processing cftime-1.6.0-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+Installing cftime-1.6.0-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl to /root/miniconda3/lib/python3.8/site-packages
+Adding cftime 1.6.0 to easy-install.pth file
+
+Installed /root/miniconda3/lib/python3.8/site-packages/cftime-1.6.0-py3.8-linux-x86_64.egg
+Searching for healpy
+Reading https://pypi.org/simple/healpy/
+Downloading https://files.pythonhosted.org/packages/91/e1/7f60a41572a18342e789ff3a1b898528c2e6683e99fcd03e930897733127/healpy-1.15.2-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl#sha256=790959ac1e5a88b3e0cffed3743c87f7d00e43021c6391b830368721e565a045
+Best match: healpy 1.15.2
+Processing healpy-1.15.2-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+Installing healpy-1.15.2-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl to /root/miniconda3/lib/python3.8/site-packages
+Adding healpy 1.15.2 to easy-install.pth file
+Installing healpy_get_wmap_maps.sh script to /root/miniconda3/bin
+
+Installed /root/miniconda3/lib/python3.8/site-packages/healpy-1.15.2-py3.8-linux-x86_64.egg
+Searching for smart-open[s3]==5.1.0
+Reading https://pypi.org/simple/smart-open/
+Downloading https://files.pythonhosted.org/packages/e9/90/6ca525991e281ecdf204c5c1de854da6334068e44121c384b68c6a838e14/smart_open-5.1.0-py3-none-any.whl#sha256=2059b07f530c8c9e2158e4e1575309aacb74bd813da2325c1f348015d04f3bd6
+Best match: smart-open 5.1.0
+Processing smart_open-5.1.0-py3-none-any.whl
+Installing smart_open-5.1.0-py3-none-any.whl to /root/miniconda3/lib/python3.8/site-packages
+Adding smart-open 5.1.0 to easy-install.pth file
+
+Installed /root/miniconda3/lib/python3.8/site-packages/smart_open-5.1.0-py3.8.egg
+Searching for torchvision
+Reading https://pypi.org/simple/torchvision/
+Downloading https://files.pythonhosted.org/packages/18/8b/309116c0bdc90ac7036ca331bfec8dd3e6f7f6d00f869fe6552da096e94a/torchvision-0.12.0-cp38-cp38-manylinux1_x86_64.whl#sha256=9017248c7e526c8cdcaaab8cf41d904a520a409d707398189a06d0757901d235
+Best match: torchvision 0.12.0
+Processing torchvision-0.12.0-cp38-cp38-manylinux1_x86_64.whl
+Installing torchvision-0.12.0-cp38-cp38-manylinux1_x86_64.whl to /root/miniconda3/lib/python3.8/site-packages
+Adding torchvision 0.12.0 to easy-install.pth file
+
+Installed /root/miniconda3/lib/python3.8/site-packages/torchvision-0.12.0-py3.8-linux-x86_64.egg
+Searching for pynndescent>=0.5
+Reading https://pypi.org/simple/pynndescent/
+Downloading https://files.pythonhosted.org/packages/fa/bd/aa2c2f52e2152d99ddce9233b1260903094fec7db17600104058da439f05/pynndescent-0.5.7.tar.gz#sha256=ecb395255fa36a748b5870b4ba0300ea0f7da8b1964864b8edd62577a84dfd7d
+Best match: pynndescent 0.5.7
+Processing pynndescent-0.5.7.tar.gz
+Writing /tmp/easy_install-db3eg4pn/pynndescent-0.5.7/setup.cfg
+Running pynndescent-0.5.7/setup.py -q bdist_egg --dist-dir /tmp/easy_install-db3eg4pn/pynndescent-0.5.7/egg-dist-tmp-jr55vbzh
+no previously-included directories found matching 'pynndescent/__pycache__'
+creating /root/miniconda3/lib/python3.8/site-packages/pynndescent-0.5.7-py3.8.egg
+Extracting pynndescent-0.5.7-py3.8.egg to /root/miniconda3/lib/python3.8/site-packages
+Adding pynndescent 0.5.7 to easy-install.pth file
+
+Installed /root/miniconda3/lib/python3.8/site-packages/pynndescent-0.5.7-py3.8.egg
+Searching for numba>=0.49
+Reading https://pypi.org/simple/numba/
+Downloading https://files.pythonhosted.org/packages/c7/4c/551e2105dcdd7fcd7b27ce6a232e6b082a8d254c09d4690dd54d8ec9356d/numba-0.55.2-cp38-cp38-manylinux2014_x86_64.manylinux_2_17_x86_64.whl#sha256=68bb33eaef1d6155fc1ae4fa6c915b8a42e5052c89a58742254eaad072eab118
+Best match: numba 0.55.2
+Processing numba-0.55.2-cp38-cp38-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+Installing numba-0.55.2-cp38-cp38-manylinux2014_x86_64.manylinux_2_17_x86_64.whl to /root/miniconda3/lib/python3.8/site-packages
+Adding numba 0.55.2 to easy-install.pth file
+Installing numba script to /root/miniconda3/bin
+Installing pycc script to /root/miniconda3/bin
+
+Installed /root/miniconda3/lib/python3.8/site-packages/numba-0.55.2-py3.8-linux-x86_64.egg
+Searching for xyzservices>=2021.09.1
+Reading https://pypi.org/simple/xyzservices/
+Downloading https://files.pythonhosted.org/packages/16/5d/b29f6f8aab6fae9d1f8c5079399603410c98afa06b39a445345cb8141873/xyzservices-2022.4.0-py3-none-any.whl#sha256=070d055857cb16fa9e3b53a7b948fc09ba5b2b34a6cf91ee4eed7ffca9321e76
+Best match: xyzservices 2022.4.0
+Processing xyzservices-2022.4.0-py3-none-any.whl
+Installing xyzservices-2022.4.0-py3-none-any.whl to /root/miniconda3/lib/python3.8/site-packages
+Adding xyzservices 2022.4.0 to easy-install.pth file
+
+Installed /root/miniconda3/lib/python3.8/site-packages/xyzservices-2022.4.0-py3.8.egg
+Searching for typing-extensions>=3.10.0
+Reading https://pypi.org/simple/typing-extensions/
+Downloading https://files.pythonhosted.org/packages/75/e1/932e06004039dd670c9d5e1df0cd606bf46e29a28e65d5bb28e894ea29c9/typing_extensions-4.2.0-py3-none-any.whl#sha256=6657594ee297170d19f67d55c05852a874e7eb634f4f753dbd667855e07c1708
+Best match: typing-extensions 4.2.0
+Processing typing_extensions-4.2.0-py3-none-any.whl
+Installing typing_extensions-4.2.0-py3-none-any.whl to /root/miniconda3/lib/python3.8/site-packages
+Adding typing-extensions 4.2.0 to easy-install.pth file
+
+Installed /root/miniconda3/lib/python3.8/site-packages/typing_extensions-4.2.0-py3.8.egg
+Searching for tornado>=5.1
+Reading https://pypi.org/simple/tornado/
+Downloading https://files.pythonhosted.org/packages/7a/4a/4fafa6f032f9e202ce5bc1becacef5588a34fd0f0539fdcc705fa2b5ca4a/tornado-6.1-cp38-cp38-manylinux2010_x86_64.whl#sha256=d14d30e7f46a0476efb0deb5b61343b1526f73ebb5ed84f23dc794bdb88f9d9f
+Best match: tornado 6.1
+Processing tornado-6.1-cp38-cp38-manylinux2010_x86_64.whl
+Installing tornado-6.1-cp38-cp38-manylinux2010_x86_64.whl to /root/miniconda3/lib/python3.8/site-packages
+Adding tornado 6.1 to easy-install.pth file
+
+Installed /root/miniconda3/lib/python3.8/site-packages/tornado-6.1-py3.8-linux-x86_64.egg
+Searching for packaging>=16.8
+Reading https://pypi.org/simple/packaging/
+Downloading https://files.pythonhosted.org/packages/05/8e/8de486cbd03baba4deef4142bd643a3e7bbe954a784dc1bb17142572d127/packaging-21.3-py3-none-any.whl#sha256=ef103e05f519cdc783ae24ea4e2e0f508a9c99b2d4969652eed6a2e1ea5bd522
+Best match: packaging 21.3
+Processing packaging-21.3-py3-none-any.whl
+Installing packaging-21.3-py3-none-any.whl to /root/miniconda3/lib/python3.8/site-packages
+Adding packaging 21.3 to easy-install.pth file
+
+Installed /root/miniconda3/lib/python3.8/site-packages/packaging-21.3-py3.8.egg
+Searching for PyYAML>=3.10
+Reading https://pypi.org/simple/PyYAML/
+Downloading https://files.pythonhosted.org/packages/d7/42/7ad4b6d67a16229496d4f6e74201bdbebcf4bc1e87d5a70c9297d4961bd2/PyYAML-6.0-cp38-cp38-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl#sha256=277a0ef2981ca40581a47093e9e2d13b3f1fbbeffae064c1d21bfceba2030287
+Best match: PyYAML 6.0
+Processing PyYAML-6.0-cp38-cp38-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl
+Installing PyYAML-6.0-cp38-cp38-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl to /root/miniconda3/lib/python3.8/site-packages
+Adding PyYAML 6.0 to easy-install.pth file
+
+Installed /root/miniconda3/lib/python3.8/site-packages/PyYAML-6.0-py3.8-linux-x86_64.egg
+Searching for Jinja2>=2.9
+Reading https://pypi.org/simple/Jinja2/
+Downloading https://files.pythonhosted.org/packages/bc/c3/f068337a370801f372f2f8f6bad74a5c140f6fda3d9de154052708dd3c65/Jinja2-3.1.2-py3-none-any.whl#sha256=6088930bfe239f0e6710546ab9c19c9ef35e29792895fed6e6e31a023a182a61
+Best match: Jinja2 3.1.2
+Processing Jinja2-3.1.2-py3-none-any.whl
+Installing Jinja2-3.1.2-py3-none-any.whl to /root/miniconda3/lib/python3.8/site-packages
+Adding Jinja2 3.1.2 to easy-install.pth file
+
+Installed /root/miniconda3/lib/python3.8/site-packages/Jinja2-3.1.2-py3.8.egg
+Searching for MarkupSafe>=2.0
+Reading https://pypi.org/simple/MarkupSafe/
+Downloading https://files.pythonhosted.org/packages/fd/f4/524d2e8f5a3727cf309c2b7df7c732038375322df1376c9e9ef3aa92fcaf/MarkupSafe-2.1.1-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl#sha256=4b9fe39a2ccc108a4accc2676e77da025ce383c108593d65cc909add5c3bd601
+Best match: MarkupSafe 2.1.1
+Processing MarkupSafe-2.1.1-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+Installing MarkupSafe-2.1.1-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl to /root/miniconda3/lib/python3.8/site-packages
+Adding MarkupSafe 2.1.1 to easy-install.pth file
+
+Installed /root/miniconda3/lib/python3.8/site-packages/MarkupSafe-2.1.1-py3.8-linux-x86_64.egg
+Searching for certifi>=2017.4.17
+Reading https://pypi.org/simple/certifi/
+Downloading https://files.pythonhosted.org/packages/11/dd/e015f3780f42dd9af62cf0107b44ea1298926627ecd70c17b0e484e95bcd/certifi-2022.5.18.1-py3-none-any.whl#sha256=f1d53542ee8cbedbe2118b5686372fb33c297fcd6379b050cca0ef13a597382a
+Best match: certifi 2022.5.18.1
+Processing certifi-2022.5.18.1-py3-none-any.whl
+Installing certifi-2022.5.18.1-py3-none-any.whl to /root/miniconda3/lib/python3.8/site-packages
+Adding certifi 2022.5.18.1 to easy-install.pth file
+
+Installed /root/miniconda3/lib/python3.8/site-packages/certifi-2022.5.18.1-py3.8.egg
+Searching for boto3==1.17.27
+Best match: boto3 1.17.27
+Adding boto3 1.17.27 to easy-install.pth file
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Searching for astropy-healpix==0.6
+Best match: astropy-healpix 0.6
+Adding astropy-healpix 0.6 to easy-install.pth file
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Searching for astropy==4.2
+Best match: astropy 4.2
+Adding astropy 4.2 to easy-install.pth file
+Installing fits2bitmap script to /root/miniconda3/bin
+Installing fitscheck script to /root/miniconda3/bin
+Installing fitsdiff script to /root/miniconda3/bin
+Installing fitsheader script to /root/miniconda3/bin
+Installing fitsinfo script to /root/miniconda3/bin
+Installing samp_hub script to /root/miniconda3/bin
+Installing showtable script to /root/miniconda3/bin
+Installing volint script to /root/miniconda3/bin
+Installing wcslint script to /root/miniconda3/bin
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Searching for tqdm==4.51.0
+Best match: tqdm 4.51.0
+Adding tqdm 4.51.0 to easy-install.pth file
+Installing tqdm script to /root/miniconda3/bin
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Searching for scikit-image==0.18.1
+Best match: scikit-image 0.18.1
+Adding scikit-image 0.18.1 to easy-install.pth file
+Installing skivi script to /root/miniconda3/bin
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Searching for scikit-learn==0.24.1
+Best match: scikit-learn 0.24.1
+Adding scikit-learn 0.24.1 to easy-install.pth file
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Searching for pyarrow==3.0.0
+Best match: pyarrow 3.0.0
+Adding pyarrow 3.0.0 to easy-install.pth file
+Installing plasma_store script to /root/miniconda3/bin
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Searching for seaborn==0.11.1
+Best match: seaborn 0.11.1
+Processing seaborn-0.11.1-py3.8.egg
+seaborn 0.11.1 is already the active version in easy-install.pth
+
+Using /root/miniconda3/lib/python3.8/site-packages/seaborn-0.11.1-py3.8.egg
+Searching for torch==1.11.0
+Best match: torch 1.11.0
+Adding torch 1.11.0 to easy-install.pth file
+Installing convert-caffe2-to-onnx script to /root/miniconda3/bin
+Installing convert-onnx-to-caffe2 script to /root/miniconda3/bin
+Installing torchrun script to /root/miniconda3/bin
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Searching for h5netcdf==0.10.0
+Best match: h5netcdf 0.10.0
+Processing h5netcdf-0.10.0-py3.8.egg
+h5netcdf 0.10.0 is already the active version in easy-install.pth
+
+Using /root/miniconda3/lib/python3.8/site-packages/h5netcdf-0.10.0-py3.8.egg
+Searching for xarray==0.17.0
+Best match: xarray 0.17.0
+Adding xarray 0.17.0 to easy-install.pth file
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Searching for jmespath==0.10.0
+Best match: jmespath 0.10.0
+Adding jmespath 0.10.0 to easy-install.pth file
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Searching for s3transfer==0.3.4
+Best match: s3transfer 0.3.4
+Adding s3transfer 0.3.4 to easy-install.pth file
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Searching for botocore==1.20.27
+Best match: botocore 1.20.27
+Adding botocore 1.20.27 to easy-install.pth file
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Searching for scipy==1.6.1
+Best match: scipy 1.6.1
+Adding scipy 1.6.1 to easy-install.pth file
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Searching for numpy==1.20.1
+Best match: numpy 1.20.1
+Adding numpy 1.20.1 to easy-install.pth file
+Installing f2py script to /root/miniconda3/bin
+Installing f2py3 script to /root/miniconda3/bin
+Installing f2py3.8 script to /root/miniconda3/bin
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Searching for Pillow==8.1.2
+Best match: Pillow 8.1.2
+Adding Pillow 8.1.2 to easy-install.pth file
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Searching for matplotlib==3.3.4
+Best match: matplotlib 3.3.4
+Adding matplotlib 3.3.4 to easy-install.pth file
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Searching for pyerfa==1.7.2
+Best match: pyerfa 1.7.2
+Adding pyerfa 1.7.2 to easy-install.pth file
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Searching for networkx==2.5
+Best match: networkx 2.5
+Adding networkx 2.5 to easy-install.pth file
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Searching for tifffile==2021.3.5
+Best match: tifffile 2021.3.5
+Adding tifffile 2021.3.5 to easy-install.pth file
+Installing lsm2bin script to /root/miniconda3/bin
+Installing tiffcomment script to /root/miniconda3/bin
+Installing tifffile script to /root/miniconda3/bin
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Searching for PyWavelets==1.1.1
+Best match: PyWavelets 1.1.1
+Adding PyWavelets 1.1.1 to easy-install.pth file
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Searching for imageio==2.9.0
+Best match: imageio 2.9.0
+Adding imageio 2.9.0 to easy-install.pth file
+Installing imageio_download_bin script to /root/miniconda3/bin
+Installing imageio_remove_bin script to /root/miniconda3/bin
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Searching for threadpoolctl==2.1.0
+Best match: threadpoolctl 2.1.0
+Adding threadpoolctl 2.1.0 to easy-install.pth file
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Searching for joblib==1.0.1
+Best match: joblib 1.0.1
+Adding joblib 1.0.1 to easy-install.pth file
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Searching for pandas==1.2.3
+Best match: pandas 1.2.3
+Adding pandas 1.2.3 to easy-install.pth file
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Searching for requests==2.24.0
+Best match: requests 2.24.0
+Adding requests 2.24.0 to easy-install.pth file
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Searching for h5py==3.2.1
+Best match: h5py 3.2.1
+Processing h5py-3.2.1-py3.8-linux-x86_64.egg
+h5py 3.2.1 is already the active version in easy-install.pth
+
+Using /root/miniconda3/lib/python3.8/site-packages/h5py-3.2.1-py3.8-linux-x86_64.egg
+Searching for setuptools==50.3.1.post20201107
+Best match: setuptools 50.3.1.post20201107
+Adding setuptools 50.3.1.post20201107 to easy-install.pth file
+Installing easy_install script to /root/miniconda3/bin
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Searching for python-dateutil==2.8.1
+Best match: python-dateutil 2.8.1
+Adding python-dateutil 2.8.1 to easy-install.pth file
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Searching for urllib3==1.25.11
+Best match: urllib3 1.25.11
+Adding urllib3 1.25.11 to easy-install.pth file
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Searching for pyparsing==2.4.7
+Best match: pyparsing 2.4.7
+Adding pyparsing 2.4.7 to easy-install.pth file
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Searching for cycler==0.10.0
+Best match: cycler 0.10.0
+Adding cycler 0.10.0 to easy-install.pth file
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Searching for kiwisolver==1.3.1
+Best match: kiwisolver 1.3.1
+Adding kiwisolver 1.3.1 to easy-install.pth file
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Searching for decorator==4.4.2
+Best match: decorator 4.4.2
+Adding decorator 4.4.2 to easy-install.pth file
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Searching for pytz==2021.1
+Best match: pytz 2021.1
+Adding pytz 2021.1 to easy-install.pth file
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Searching for chardet==3.0.4
+Best match: chardet 3.0.4
+Adding chardet 3.0.4 to easy-install.pth file
+Installing chardetect script to /root/miniconda3/bin
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Searching for idna==2.10
+Best match: idna 2.10
+Adding idna 2.10 to easy-install.pth file
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Searching for six==1.15.0
+Best match: six 1.15.0
+Adding six 1.15.0 to easy-install.pth file
+
+Using /root/miniconda3/lib/python3.8/site-packages
+Finished processing dependencies for ulmo==0.0.dev0
+Evaluation Starts.
+Read main table: s3://modis-l2/Tables/MODIS_SSL_96clear.parquet
+Downloading from s3: last.pth
+Traceback (most recent call last):
+  File "./ssl_modis_v3.py", line 617, in <module>
+    main_evaluate(args.opt_path, args.model,
+  File "./ssl_modis_v3.py", line 348, in main_evaluate
+    ulmo_io.download_file_from_s3(model_base, model_file)
+  File "/ulmo/ulmo/io.py", line 239, in download_file_from_s3
+    s3.Bucket(parsed_s3.netloc).download_file(
+  File "/root/miniconda3/lib/python3.8/site-packages/boto3/s3/inject.py", line 244, in bucket_download_file
+    return self.meta.client.download_file(
+  File "/root/miniconda3/lib/python3.8/site-packages/boto3/s3/inject.py", line 170, in download_file
+    return transfer.download_file(
+  File "/root/miniconda3/lib/python3.8/site-packages/boto3/s3/transfer.py", line 307, in download_file
+    future.result()
+  File "/root/miniconda3/lib/python3.8/site-packages/s3transfer/futures.py", line 106, in result
+    return self._coordinator.result()
+  File "/root/miniconda3/lib/python3.8/site-packages/s3transfer/futures.py", line 265, in result
+    raise self._exception
+  File "/root/miniconda3/lib/python3.8/site-packages/s3transfer/tasks.py", line 255, in _main
+    self._submit(transfer_future=transfer_future, **kwargs)
+  File "/root/miniconda3/lib/python3.8/site-packages/s3transfer/download.py", line 340, in _submit
+    response = client.head_object(
+  File "/root/miniconda3/lib/python3.8/site-packages/botocore/client.py", line 357, in _api_call
+    return self._make_api_call(operation_name, kwargs)
+  File "/root/miniconda3/lib/python3.8/site-packages/botocore/client.py", line 648, in _make_api_call
+    request_dict = self._convert_to_request_dict(
+  File "/root/miniconda3/lib/python3.8/site-packages/botocore/client.py", line 694, in _convert_to_request_dict
+    api_params = self._emit_api_params(
+  File "/root/miniconda3/lib/python3.8/site-packages/botocore/client.py", line 723, in _emit_api_params
+    self.meta.events.emit(
+  File "/root/miniconda3/lib/python3.8/site-packages/botocore/hooks.py", line 356, in emit
+    return self._emitter.emit(aliased_event_name, **kwargs)
+  File "/root/miniconda3/lib/python3.8/site-packages/botocore/hooks.py", line 228, in emit
+    return self._emit(event_name, kwargs)
+  File "/root/miniconda3/lib/python3.8/site-packages/botocore/hooks.py", line 211, in _emit
+    response = handler(**kwargs)
+  File "/root/miniconda3/lib/python3.8/site-packages/botocore/handlers.py", line 236, in validate_bucket_name
+    raise ParamValidationError(report=error_msg)
+botocore.exceptions.ParamValidationError: Parameter validation failed:
+Invalid bucket name "": Bucket name must match the regex "^[a-zA-Z0-9.\-_]{1,255}$" or be an ARN matching the regex "^arn:(aws).*:s3:[a-z\-0-9]+:[0-9]{12}:accesspoint[/:][a-zA-Z0-9\-]{1,63}$|^arn:(aws).*:s3-outposts:[a-z\-0-9]+:[0-9]{12}:outpost[/:][a-zA-Z0-9\-]{1,63}[/:]accesspoint[/:][a-zA-Z0-9\-]{1,63}$"

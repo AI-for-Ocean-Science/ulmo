@@ -74,3 +74,60 @@ ssl_opt_dmodel = {
     'cuda_use': dict(dtype=bool,
                 help='Use CUDA in the analysis, if possible'),
 }
+
+# UMAP DT CUTS
+umap_DT = {}
+
+umap_DT['DT0'] = (0.25, 0.25)
+umap_DT['DT1'] = (0.75, 0.25)
+umap_DT['DT15'] = (1.25, 0.25)
+umap_DT['DT2'] = (2.0, 0.5)
+umap_DT['DT4'] = (3.25, 0.75)
+umap_DT['DT5'] = (4.0, -1)
+umap_DT['all'] = None
+umap_DT['DT10'] = (1.0, 0.05)
+
+# UMAP alpha CUTS
+umap_alpha = {}
+
+umap_alpha['a0'] = (-0.25, 0.25)
+umap_alpha['a1'] = (-0.75, 0.25)
+umap_alpha['a15'] = (-1.25, 0.25)
+umap_alpha['a2'] = (-1.75, 0.25)
+umap_alpha['a25'] = (-2.25, 0.25)
+umap_alpha['a3'] = (-2.75, 0.25)
+umap_alpha['a4'] = (-3.0, -1)
+#umap_alpha['all'] = None   # SAME AS DT all
+
+# Geography
+geo_regions = {}
+geo_regions['coastalcali'] = dict(
+    lons=[-128, -118.],   # W
+    lats=[32, 40])    # Equitorial 
+geo_regions['eqpacific'] = dict(
+    lons=[-140, -90.],   # W
+    lats=[-5, 5.])    # Equitorial 
+geo_regions['eqindian'] = dict(
+    lons=[60, 90.],   # E
+    lats=[-5, 5.])    # Equitorial 
+geo_regions['baybengal'] = dict(
+    lons=[79, 95.],   # E
+    lats=[16, 23.])    # N
+geo_regions['gulfstream'] = dict(
+    lons=[-70, -40.],   # W
+    lats=[40, 50.])    # N
+geo_regions['med'] = dict(
+    lons=[0, 20.],   # E
+    lats=[30, 45.])    # N
+geo_regions['south_atlantic'] = dict(
+    lons=[-35, 10.],   # W (Pretty crude)
+    lats=[-30, -20.])      # N
+geo_regions['south_pacific'] = dict(
+    lons=[-140, -90.],   # W (Pretty crude)
+    lats=[-30, -20.])      # S
+geo_regions['global'] = dict(
+    lons=[-999., 999.],   # E
+    lats=[-999, 999.])    # N
+geo_regions['north'] = dict(
+    lons=[-999., 999.],   # E
+    lats=[0, 999.])    # N

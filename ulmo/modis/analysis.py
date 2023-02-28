@@ -9,6 +9,8 @@ import numpy as np
 import pandas
 import h5py
 
+from ulmo.modis import utils
+
 from IPython import embed
 
 def build_main_from_old():
@@ -88,14 +90,8 @@ def build_main_from_old():
 
     # Unique identifier
     df['date'] = dtimes
-    tlong = df['date'].values.astype(np.int64) // 10000000000
-    lats = np.round((df.latitude.values.astype(float) + 90)*10000).astype(int)
-    lons = np.round((df.longitude.values.astype(float) + 180)*100000).astype(int)
-    uid = [np.int64('{:s}{:d}{:d}'.format(str(t)[:-5],lat,lon))
-            for t,lat,lon in zip(tlong, lats, lons)]
-    if len(uid) != len(np.unique(uid)):
-        embed(header='67 of results')
-    df['UID'] = np.array(uid).astype(np.int64)
+    df['UID'] = utils.modis_uid(df)
+    #df['UID'] = np.array(uid).astype(np.int64)
 
 
     train = pandas.DataFrame()
