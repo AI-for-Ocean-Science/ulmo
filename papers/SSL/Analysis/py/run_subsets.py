@@ -9,6 +9,7 @@ from ulmo import io as ulmo_io
 from ulmo.utils import catalog as cat_utils
 
 import ssl_paper_analy
+import ssl_defs
 
 from IPython import embed
 
@@ -19,23 +20,69 @@ opt_path_96 = os.path.join(resource_filename('ulmo', 'runs'),
                         'SSL', 'MODIS', 'v3', 
                         'opts_96clear_ssl.json')
 
-def run_subset(subset, remove=True, CF=False):                    
-    if subset == 'DT0':
-        DT_cut = (0.25, 0.25)
-    elif subset == 'DT10':
-        DT_cut = (1.0, 0.05)
-    elif subset == 'DT1':
-        DT_cut = (0.75, 0.25)
-    elif subset == 'DT15':
-        DT_cut = (1.25, 0.25)
-    elif subset == 'DT2':
-        DT_cut = (2.0, 0.5)
-    elif subset == 'DT4':
-        DT_cut = (3.25, 0.75)
-    elif subset == 'DT5':
-        DT_cut = (5.0, -1)
-    elif subset == 'all':
-        DT_cut = None
+def generate_full_table(outroot='MODIS_SSL_96clear_DTu.parquet'):
+    """ Generate a full table with U0, U1 values from
+    all and the DT subsets are in US0 and US1
+
+    And add DT entry
+    """
+    # Load the DTall table
+    tblfile = os.path.join(
+        os.getenv('SST_OOD'), 
+        f'MODIS_L2/Tables/MODIS_SSL_96clear_DTall.parquet')
+    tbl_DTall = ulmo_io.load_main_table(tblfile)
+
+    # Push all into U0, U1 
+    new_tbl = tbl_DTall.copy()
+    new_tbl.U0 = new_tbl.US0
+    new_tbl.U1 = new_tbl.US1
+
+    # DT
+    DT = new_tbl.T90.values - new_tbl.T10.values
+    max_lbl = np.max([len(key) for key in ssl_defs.umap_DT.keys()])
+    DT_cuts = np.array([' '*max_lbl]*DT.size)
+
+    # Loop over em
+    for key in ssl_defs.umap_DT.keys():
+
+        # Cut
+        DT_cut = ssl_defs.umap_DT[key]
+        if key in ['all', 'DT10']:
+            continue
+        elif key == 'DT5':
+            idx = DT > DT_cut[0]
+        else:
+            idx = np.abs(DT - DT_cut[0]) < DT_cut[1]
+        DT_cuts[idx] = key
+
+        # Fill in the rest
+        sub_tbl = ssl_paper_analy.load_modis_tbl(local=True,
+                                                 table=f'96_{key}')
+        # Match on UID                                            
+        try:
+            mt = cat_utils.match_ids(new_tbl.iloc[idx].UID.values,
+                                 sub_tbl.UID.values)
+        except:
+            mt = cat_utils.match_ids(new_tbl.iloc[idx].UID.values,
+                                 sub_tbl.UID.values, require_in_match=False)
+            embed(header='65 of run')                                
+        # Fill in                            
+        new_tbl.US0.values[idx] = sub_tbl.US0.values[mt]
+        new_tbl.US1.values[idx] = sub_tbl.US1.values[mt]
+
+    # Finish
+    new_tbl['DT_cut'] = DT_cuts
+
+    # Write
+    outfile = os.path.join(os.getenv('SST_OOD'), 
+        'MODIS_L2', 'Tables', outroot)
+    new_tbl.to_parquet(outfile)
+    print(f'Wrote: {outfile}')
+    print(f'Upload to s3! s3://modis-l2/Tables/{outroot}')
+
+def run_subset(subset:str, remove=True, CF=False):                    
+
+    DT_cut = ssl_defs.umap_DT[subset]
 
     # Prep
     if CF:
@@ -150,7 +197,7 @@ def build_portal_images(subset, local=True, CF=False, debug=False):
         print("Push the Table to s3 to keep the portal info")
 
 # All
-#run_subset('all', remove=False)
+#run_subset('DTall', remove=False)
 
 # DT cuts
 # DT0  0 - 0.5 :: 656783 cutouts
@@ -168,17 +215,20 @@ def build_portal_images(subset, local=True, CF=False, debug=False):
 # DT4  2.5 - 4 # > 200000
 #run_subset('DT4', remove=False)
 
-# DT5  >5  # 16000 cutouts
+# DT5  >4  # 16000 cutouts
 #run_subset('DT5', remove=False) 
 
 # Build portal image files
-build_portal_images('DT0')
-build_portal_images('DT1')
+#build_portal_images('DT0')
+#build_portal_images('DT1')
 #build_portal_images('DT15')
-build_portal_images('DT2')
-build_portal_images('DT4')
-build_portal_images('DT5')
+#build_portal_images('DT2')
+#build_portal_images('DT4')
+#build_portal_images('DT5')
 
 
 # CF
 # IF WE REDO, SET CF=True
+
+# Generate a useful final table
+generate_full_table()

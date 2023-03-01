@@ -3,11 +3,16 @@
 import os
 import numpy as np
 
-from ulmo import io as ulmo_io
+import xarray
+
 from ulmo.preproc import utils as pp_utils
 from ulmo.preproc import extract
+from ulmo import io as ulmo_io
 
-def extract_file(ifile:str, load_path:str, 
+from IPython import embed
+
+def extract_file(filename:str, 
+                 field='SST',
                  field_size=(128,128),
                  nadir_offset=480,
                  CC_max=0.05, qual_thresh=2,
@@ -19,7 +24,6 @@ def extract_file(ifile:str, load_path:str,
 
     Args:
         ifile (str): MODIS datafile
-        load_path (str): [description]
         field_size (tuple, optional): [description]. Defaults to (128,128).
         nadir_offset (int, optional): [description]. Defaults to 480.
         CC_max (float, optional): [description]. Defaults to 0.05.
@@ -32,12 +36,33 @@ def extract_file(ifile:str, load_path:str,
     Returns:
         tuple: fields, field_masks, metadata
     """
+    if filename[0:5] == 's3://':
+        raise IOError("Not ready for s3 files yet. Multi-process is not working")
+        #inp = ulmo_io.load_to_bytes(filename)
+    else:
+        geo = xarray.open_dataset(
+                filename_or_obj=filename,
+                group='geophysical_data',
+                engine='h5netcdf',
+                mask_and_scale=True)
+        nav = xarray.open_dataset(
+                filename_or_obj=filename,
+                group='navigation_data',
+                engine='h5netcdf',
+                mask_and_scale=True)
 
-    filename = os.path.join(load_path, ifile)
+    # Translate user field to MODIS
+    mfields = dict(SST='sst', aph_443='aph_443_giop')
+
+    # Flags
+    mflags = dict(SST='qual_sst', aph_443='l2_flags')
 
     # Load the image
     try:
-        sst, qual, latitude, longitude = ulmo_io.load_nc(filename, verbose=False)
+        sst = np.array(geo[mfields[field]])
+        qual = np.array(geo[mflags[field]])
+        latitude = np.array(nav['latitude'])
+        longitude = np.array(nav['longitude'])
     except:
         print("File {} is junk".format(filename))
         return
@@ -79,7 +104,7 @@ def extract_file(ifile:str, load_path:str,
         row, col = r, c + lb
         lat = latitude[row + field_size[0] // 2, col + field_size[1] // 2]
         lon = longitude[row + field_size[0] // 2, col + field_size[1] // 2]
-        metadata.append([ifile, str(row), str(col), str(lat), str(lon), str(clear_frac)])
+        metadata.append([filename, str(row), str(col), str(lat), str(lon), str(clear_frac)])
 
     del sst, masks
 

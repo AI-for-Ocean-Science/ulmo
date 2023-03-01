@@ -43,10 +43,12 @@ def process_preproc_file(pp_hf, dtdm=True, debug=False, key='valid'):
     """
 
     # Load up
+    print("Loading up the data...")
     if debug: 
         imgs = pp_hf[key][0:100, ...]
     else:
         imgs = pp_hf[key][()]
+    print("Done loading the data...")
         
     num_of_cutouts = imgs.shape[0]
     print_out_list = np.arange(0, num_of_cutouts, 10000)
@@ -91,7 +93,7 @@ def analyze_cutout(img, dtdm=True):
     """Analyze an input cutout
 
     Args:
-        img (np.ndarra): Input cutout
+        img (np.ndarray): Input cutout
         dtdm (bool, optional): _description_. Defaults to True.
 
     Returns:

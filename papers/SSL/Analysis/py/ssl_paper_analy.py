@@ -1,17 +1,21 @@
 """ Run SSL Analysis specific to the paper """
 
-from pkg_resources import resource_filename
 import os
 import numpy as np
-import pickle
 
-import h5py
-import umap
 import pandas
 
+from matplotlib import pyplot as plt
+
+from statsmodels.tsa.seasonal import seasonal_decompose
+import statsmodels.api as sm
+from statsmodels.stats.stattools import durbin_watson
+import statsmodels.formula.api as smf
+
 from ulmo import io as ulmo_io
-from ulmo.ssl.train_util import option_preprocess
-from ulmo.utils import catalog as cat_utils
+from ulmo.ssl import defs as ulmo_ssl_defs
+
+import ssl_defs
 
 from IPython import embed
 
@@ -24,6 +28,32 @@ if os.getenv('SST_OOD'):
                                     'MODIS_L2/Tables/MODIS_SSL_cloud_free_DT2.parquet')
     local_modis_96_file = os.path.join(os.getenv('SST_OOD'),
                                     'MODIS_L2/Tables/MODIS_SSL_96clear.parquet')
+
+# Geography
+geo_regions = ulmo_ssl_defs.geo_regions
+
+# UMAP ranges for the paper
+umap_rngs_dict = {}
+#umap_rngs_dict['weak_DT15'] = [[1.5,3.],  # DT15, old UMAP
+#                          [1.5,3]]
+umap_rngs_dict['weak_DT1'] = [[0, 2.0],  # DT1, new UMAP
+                          [-2.5,-0.3]]
+#umap_rngs_dict['weak_DT1'] = [[-1, 1.],  # DT1, new UMAP
+#                          [-3.,-0.5]]
+umap_rngs_dict['strong_DT1'] = [[4.0,8-0.7],  # DT1, new UMAP
+                          [2.4,4]]
+
+def lon_to_lbl(lon):
+    if lon < 0:
+        return '{:d}W'.format(int(-lon))
+    else:
+        return '{:d}E'.format(int(lon))
+        
+def lat_to_lbl(lat):
+    if lat < 0:
+        return '{:d}S'.format(int(-lat))
+    else:
+        return '{:d}N'.format(int(lat))
 
 def load_modis_tbl(table:str=None, 
                    local=False, cuts:str=None, 
@@ -56,31 +86,24 @@ def load_modis_tbl(table:str=None,
         # Base 1
         if 'CF' in table:
             base1 = 'MODIS_SSL_cloud_free'
+        elif '96_v4' in table:
+            base1 = 'MODIS_SSL_v4'
         elif '96' in table:
             base1 = 'MODIS_SSL_96clear'
         # DT
         if 'DT' in table:
-            dtstr = table.split('_')[1]
+            if 'v4' in table:
+                base1 = 'MODIS_SSL_96clear_v4'
+            dtstr = table.split('_')[-1]
+            base2 = '_'+dtstr
+        elif 'v4_a' in table:
+            base1 = 'MODIS_SSL_96clear_v4'
+            dtstr = table.split('_')[-1]
             base2 = '_'+dtstr
         else:
             base2 = ''
         # 
         basename = base1+base2+'.parquet'
-
-    '''
-    elif table == 'CF':
-        basename = 'MODIS_SSL_cloud_free.parquet'
-    elif table == 'CF_DT0':
-        basename = 'MODIS_SSL_cloud_free_DT0.parquet'
-    elif table == 'CF_DT1':
-        basename = 'MODIS_SSL_cloud_free_DT1.parquet'
-    elif table == 'CF_DT15':
-        basename = 'MODIS_SSL_cloud_free_DT15.parquet'
-    elif table == 'CF_DT2':
-        basename = 'MODIS_SSL_cloud_free_DT2.parquet'
-    elif table == 'CF_DT1_DT2':
-        basename = 'UT1_2003.parquet'
-    '''
 
     if local:
         tbl_file = os.path.join(os.getenv('SST_OOD'), 'MODIS_L2', 'Tables', basename)
@@ -140,147 +163,119 @@ def load_modis_tbl(table:str=None,
 
     return modis_tbl
 
+def grab_subset(DT:float):
+    raise ValueError("Deal with DT40")
+    for key, item in ssl_defs.umap_DT.items():
+        if item is None:
+            raise ValueError("Should not get to all!!")
+        if item[1] < 0:
+            DTmin = item[0]
+            DTmax = 1e9
+        else:
+            DTmin = item[0] - item[1]
+            DTmax = item[0] + item[1]
+        #
+        if (DT >= DTmin) & (DT < DTmax):
+            break
 
-def umap_subset(opt_path:str, outfile:str, DT_cut=None, 
-                ntrain=200000, remove=True,
-                umap_savefile:str=None,
-                local=True, CF=False, debug=False):
-    """Run UMAP on a subset of the data
-    First 2 dimensions are written to the table
+    # Return
+    return key
+
+def time_series(df, metric, show=False):
+    # Dummy variables for seasonal
+    dummy = np.zeros((len(df), 11), dtype=int)
+    for i in np.arange(11):
+        for j in np.arange(len(df)):
+            if df.month.values[j] == i+1:
+                dummy[j,i] = 1
+
+    # Setup
+    time = np.arange(len(df)) + 1
+
+    # Repack
+    data = pandas.DataFrame()
+    data['fitme'] = df[metric].values
+    data['time'] = time
+    dummies = []
+    for idum in np.arange(11):
+        key = f'dum{idum}'
+        dummies.append(key)
+        data[key] = dummy[:,idum]
+
+    # Cut Nan
+    keep = np.isfinite(df[metric].values)
+    data = data[keep].copy()
+
+    # Fit
+    formula = "fitme ~ dum0 + dum1 + dum2 + dum3 + dum4 + dum5 + dum6 + dum7 + dum8 + dum9 + dum10 + time"
+    glm_model = smf.glm(formula=formula, data=data).fit()#, family=sm.families.Binomial()).fit()
+
+    # Summary
+    glm_model.summary()
+
+    # Show?
+    if show:
+        plt.clf()
+        fig = plt.figure(figsize=(12,8))
+        #
+        ax = plt.gca()
+        ax.plot(data['time'], data['values'], 'o', ms=2)
+        # Fit
+        ax.plot(data['time'], glm_model.fittedvalues)
+        #
+        plt.show()
+
+    # Build some useful stuff
+
+    # Inter-annual fit
+    xval = np.arange(len(df))
+    result_dict = {}
+    result_dict['slope'] = glm_model.params['time']
+    result_dict['slope_err'] = np.sqrt(
+        glm_model.cov_params()['time']['time'])
+
+
+    seas = []
+    seas_err = []
+    for idum in np.arange(11):
+        key = f'dum{idum}'
+        # Value
+        seas.append(glm_model.params[key])
+        # Error
+        seas_err.append(np.sqrt(
+            glm_model.cov_params()[key][key]))
+
+    # Add em all up
+    yval = glm_model.params['Intercept'] + xval * glm_model.params['time'] + (
+        np.mean(seas))
+    result_dict['trend_yvals'] = yval
+
+    # Add one more
+    seas.append(0.)
+    seas_err.append(0.)
+    result_dict['seasonal'] = seas
+    result_dict['seasonal_err'] = seas_err
+
+    # Return
+    return glm_model, result_dict
+
+def gen_umap_keys(umap_dim:int, umap_comp:str):
+    """ Generate the keys for UMAP 
 
     Args:
-        opt_path (str): _description_
-        outfile (str): _description_
-        DT_cut (_type_, optional): _description_. Defaults to None.
-        ntrain (int, optional): _description_. Defaults to 200000.
-        remove (bool, optional): _description_. Defaults to True.
-        umap_savefile (str, optional): _description_. Defaults to None.
-        local (bool, optional): _description_. Defaults to True.
-        CF (bool, optional): Use cloud free (99%) set? Defaults to False.
-        debug (bool, optional): _description_. Defaults to False.
+        umap_dim (int): dimension of UMAP
+        umap_comp (str): 
 
-    Raises:
-        IOError: _description_
-        IOError: _description_
+    Returns:
+        umap_keys (tuple): tuple of keys for UMAP
     """
-
-    opt = option_preprocess(ulmo_io.Params(opt_path))
-
-    # Load main table
-    table='CF' if CF else '96'
-    modis_tbl = load_modis_tbl(local=local, 
-                               table=table)
-    modis_tbl['US0'] = 0.
-    modis_tbl['US1'] = 0.
-
-    # Cut down
-    if DT_cut is not None:
-        if DT_cut[1] < 0: # Lower limit?
-            keep = modis_tbl.DT > DT_cut[0]
+    if umap_dim == 2:
+        if 'T1' in umap_comp:
+            umap_keys = ('UT1_'+umap_comp[0], 'UT1_'+umap_comp[-1])
         else:
-            keep = np.abs(modis_tbl.DT - DT_cut[0]) < DT_cut[1]
-    else: # Do em all!
-        keep = np.ones(len(modis_tbl), dtype=bool)
+            ps = umap_comp.split(',')
+            umap_keys = ('U'+ps[0], 'U'+ps[-1])
+    elif umap_dim == 3:
+        umap_keys = ('U3_'+umap_comp[0], 'U3_'+umap_comp[-1])
+    return umap_keys
 
-    modis_tbl = modis_tbl[keep].copy()
-    print(f"After the cuts, we have {len(modis_tbl)} cutouts to work on.")
-
-    # 
-    if table in ['CF', '96']:
-        valid = modis_tbl.ulmo_pp_type == 0
-        train = modis_tbl.ulmo_pp_type == 1
-        cut_prefix = 'ulmo_'
-    else:
-        raise IOError("Need to deal with this")
-
-    # Prep latent_files
-    print(f"Loading latents from this folder: {opt.latents_folder}")
-    latents_path = os.path.join(opt.s3_outdir, opt.latents_folder)
-    latent_files = ulmo_io.list_of_bucket_files(latents_path)
-    latent_files = ['s3://modis-l2/'+item for item in latent_files]
-
-    # Load up all the latent vectors
-
-    # Loop on em all
-    if debug:
-        latent_files = latent_files[0:2]
-
-    all_latents = []
-    sv_idx = []
-    for latents_file in latent_files:
-        basefile = os.path.basename(latents_file)
-        year = int(basefile[12:16])
-
-        # Download?
-        if not os.path.isfile(basefile):
-            print(f"Downloading {latents_file} (this is *much* faster than s3 access)...")
-            ulmo_io.download_file_from_s3(basefile, latents_file)
-
-        #  Load and apply
-        print(f"Ingesting {basefile}")
-        hf = h5py.File(basefile, 'r')
-
-        # ##############33
-        # Valid
-        all_latents_valid = hf['valid'][:]
-        yidx = modis_tbl.pp_file == f's3://modis-l2/PreProc/MODIS_R2019_{year}_95clear_128x128_preproc_std.h5'
-        valid_idx = valid & yidx
-        pp_idx = modis_tbl[valid_idx].pp_idx.values
-
-        # Grab and save
-        gd_latents = all_latents_valid[pp_idx, :]
-        all_latents.append(gd_latents)
-        sv_idx += np.where(valid_idx)[0].tolist()
-
-        # Train
-        train_idx = train & yidx
-        if 'train' in hf.keys() and (np.sum(train_idx) > 0):
-            pp_idx = modis_tbl[train_idx].pp_idx.values
-            all_latents_train = hf['train'][:]
-            gd_latents = all_latents_train[pp_idx, :]
-            all_latents.append(gd_latents)
-            sv_idx += np.where(train_idx)[0].tolist()
-
-        hf.close()
-        # Clean up
-        if not debug and remove:
-            print(f"Done with {basefile}.  Cleaning up")
-            os.remove(basefile)
-
-    # Concatenate
-    all_latents = np.concatenate(all_latents, axis=0)
-    nlatents = all_latents.shape[0]
-
-    # UMAP me
-    ntrain = min(ntrain, nlatents)
-    print(f"Training UMAP on a random {ntrain} set of the files")
-    random = np.random.choice(np.arange(nlatents), size=ntrain, 
-                              replace=False)
-    reducer_umap = umap.UMAP()
-    latents_mapping = reducer_umap.fit(all_latents[random,...])
-    print("Done..")
-
-    # Save?
-    if umap_savefile is not None:
-        pickle.dump(latents_mapping, open(umap_savefile, "wb" ) )
-        print(f"Saved UMAP to {umap_savefile}")
-
-    # Evaluate all of the latents
-    print("Embedding all of the latents..")
-    embedding = latents_mapping.transform(all_latents)
-
-    # Save
-    srt = np.argsort(sv_idx)
-    gd_idx = np.zeros(len(modis_tbl), dtype=bool)
-    gd_idx[sv_idx] = True
-    modis_tbl.loc[gd_idx, 'US0'] = embedding[srt,0]
-    modis_tbl.loc[gd_idx, 'US1'] = embedding[srt,1]
-
-    # Remove DT
-    modis_tbl.drop(columns=['DT', 'logDT', 'lowDT', 'absDT', 'min_slope'], 
-                   inplace=True)
-    
-    # Vet
-    assert cat_utils.vet_main_table(modis_tbl, cut_prefix=cut_prefix)
-    # Write new table
-    ulmo_io.write_main_table(modis_tbl, outfile, to_s3=False)

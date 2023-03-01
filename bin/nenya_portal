@@ -6,11 +6,11 @@
 
 """
 This script grabs similar images to the input one
-  Uses CF MODIS for now
+  Uses v4 MODIS 
 """
 
-import ulmo.scripts.ssl_similar as ssl_similar
+from ulmo.scripts import run_nenya_portal
 
 if __name__ == '__main__':
-    args = ssl_similar.parser()
-    ssl_similar.main_umap(args)
+    args = run_nenya_portal.parser()
+    run_nenya_portal.main(args)
