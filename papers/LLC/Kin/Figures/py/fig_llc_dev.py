@@ -725,6 +725,7 @@ def fig_umap_gallery(outfile='fig_umap_gallery.png',
     ax = plotting.umap_gallery(llc_tbl, outfile=outfile)
 
 
+
 def set_fontsize(ax,fsz):
     '''
     Generate a Table of columns and so on
@@ -799,10 +800,10 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 1  # Outlier distribution (2012 matched)
         #flg_fig += 2 ** 2  # Brazil
         #flg_fig += 2 ** 3  # Spatial LL metrics
-        flg_fig += 2 ** 4  # Brazil kinematic images
+        #flg_fig += 2 ** 4  # Brazil kinematic images
         #flg_fig += 2 ** 5  # Brazil kinematic distributions
         #flg_fig += 2 ** 6  # UMAP SSL gallery
-        #flg_fig += 2 ** 7  # Generate Brazil cutouts of ocean model data
+        flg_fig += 2 ** 7  # Generate Brazil cutouts of ocean model data
     else:
         flg_fig = sys.argv[1]
 

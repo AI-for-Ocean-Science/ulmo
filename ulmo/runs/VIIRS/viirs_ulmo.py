@@ -389,12 +389,12 @@ def viirs_evaluate(year=2014, debug=False, model='modis-l2-std'):
 
     # MODIS LL
     if model != 'modis-l2-std' and 'LL' in viirs_tbl.keys() \
-        and 'MODIS_LL' not in viirs_tbl.keys():
+            and 'MODIS_LL' not in viirs_tbl.keys():
         viirs_tbl['MODIS_LL'] = viirs_tbl.LL.values
 
     # Evaluate
     print("Starting evaluating..")
-    viirs_tbl = ulmo_evaluate.eval_from_main(viirs_tbl, 
+    viirs_tbl = ulmo_evaluate.eval_from_main(viirs_tbl,
                                              model=model,
                                              debug=debug)
 
@@ -405,6 +405,41 @@ def viirs_evaluate(year=2014, debug=False, model='modis-l2-std'):
     else:
         embed(header='406 of v ulmo')
     print("Done evaluating..")
+
+def viirs_modis_evaluate(debug=False, 
+                         model='viirs-98'):
+    """Evaluate the MODIS data using the VIIRS Ulmo
+
+    Args:
+        debug (bool, optional): [description]. Defaults to False.
+        model (str, optional): [description]. Defaults to 'modis-l2-std'.
+    """
+    # Load table
+    modis_tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
+    modis_tbl = ulmo_io.load_main_table(modis_tbl_file)
+
+    # Save MODIS LL
+    MODIS_LL = modis_tbl.LL.values.copy()
+
+    # Evaluate
+    print("Starting evaluating..")
+    new_modis_tbl = ulmo_evaluate.eval_from_main(modis_tbl,
+                                             model=model,
+                                             debug=debug)
+
+    # Rename LL's
+    new_modis_tbl['VIIRS_LL'] = new_modis_tbl.LL.values.copy()
+    new_modis_tbl['LL'] = MODIS_LL
+
+    # Write
+    new_tbl_file = 's3://modis-l2/Tables/MODIS_L2_viirs.parquet'
+    assert cat_utils.vet_main_table(new_modis_tbl, cut_prefix='VIIRS_')
+    if not debug:
+        ulmo_io.write_main_table(new_modis_tbl, new_tbl_file)
+    else:
+        embed(header='406 of v ulmo')
+    print("Done evaluating..")
+
 
 def viirs_concat_tables(clear_frac=None, debug=False):
     """Put together all the VIIRS tables
@@ -435,7 +470,7 @@ def viirs_concat_tables(clear_frac=None, debug=False):
             all_tbl = viirs_tbl
             first = False
         else:
-            all_tbl = pandas.concat([all_tbl, viirs_tbl])
+            all_tbl = pandas.concat([all_tbl, viirs_tbl], ignore_index=True)
 
     # Write
     if debug:
@@ -497,6 +532,10 @@ if __name__ == "__main__":
         print("Evaluation Starts.")
         viirs_evaluate(year=pargs.year, debug=pargs.debug, model=pargs.model)
         print("Evaluation Ends.")
+    elif pargs.task == 'eval_modis':
+        print("Evaluation of MODIS Starts.")
+        viirs_modis_evaluate(debug=pargs.debug, model=pargs.model)
+        print("Evaluation of MODIS Ends.")
     elif pargs.task == 'concat':
         viirs_concat_tables(debug=pargs.debug, clear_frac=pargs.cf)
     else:
@@ -514,3 +553,6 @@ if __name__ == "__main__":
 
 # Concatanate all of the tables
 # python viirs_ulmo.py --task concat --cf 0.98
+
+# Evaluate MODIS with VIIRS
+# python viirs_ulmo.py --task eval_modis --model viirs-98 --debug

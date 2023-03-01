@@ -107,8 +107,12 @@ def evals_to_healpix(eval_tbl, nside, log=False, mask=True,
 
     Returns
     -------
-    healpix_array, lats, lons, extras (optional) : hp.ma, np.ndarray, 
-        np.ndarray, dict
+    healpix_array, lats, lons, extras (optional) : 
+        hp.ma  -- The number of events in each healpix
+        np.ndarray  -- latitudes of the healpix centers
+        np.ndarray  -- longitudes of the healpix centers
+        dict
+
 
     """
     # Grab lats, lons

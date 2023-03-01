@@ -6,8 +6,8 @@ from matplotlib import pyplot as plt
 
 try:
     import cartopy.crs as ccrs
-except ModuleNotFoundError:
-    print("No cartopy;  not all plotting routines will work")
+except ImportError:
+    print("cartopy not installed..")
 
 # Astronomy tools
 import astropy_healpix

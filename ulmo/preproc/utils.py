@@ -333,7 +333,7 @@ def preproc_tbl(data_tbl:pandas.DataFrame,
                 clobber=False, 
                 inpainted_mask=False,
                 n_cores=10):
-    """ PreProcess a set of images
+    """ Pre-process a Table of extracted files
 
     Args:
         data_tbl (pandas.DataFrame): 
@@ -455,8 +455,11 @@ def preproc_tbl(data_tbl:pandas.DataFrame,
             #if debug:
             #    from ulmo.plotting import plotting
             #    embed(header='426 of preproc')
+
             # Clean up
-            del answers, fields, masks, items
+            del answers, fields, items
+            if use_mask:
+                del masks
             f.close()
 
         # Remove local_file
@@ -526,8 +529,6 @@ def write_pp_fields(pp_fields:list, meta:list,
     # Mu
     clms = list(main_tbl.keys())
     if not skip_meta:
-        #main_tbl['mean_temperature'] = [imeta['mu'] for imeta in meta]
-        #clms += ['mean_temperature']
         # Others
         all_tf = np.array([False]*len(main_tbl))
         all_tf[idx_idx] = True

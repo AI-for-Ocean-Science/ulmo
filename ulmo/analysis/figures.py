@@ -91,7 +91,6 @@ def show_spatial(main_tbl:pandas.DataFrame,
         #gl.xlocator = mticker.FixedLocator([-240., -180., -120, -65, -60, -55, 0, 60, 120.])
         #gl.ylocator = mticker.FixedLocator([0., 15., 30., 45, 60.])
 
-
     # Layout and save
     if show:
         plt.show()

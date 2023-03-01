@@ -85,11 +85,13 @@ def grab_cutout(cutout:pandas.core.series.Series,
         return img, pp_hf
 
 
-def list_of_bucket_files(inp:str, prefix='/', delimiter='/'):
+def list_of_bucket_files(inp:str, prefix='/', delimiter='/',
+                         include_prefix=False):
     """Generate a list of files in the bucket
 
     Args:
         inp (str): name of bucket or full s3 path
+            e.g. s3://viirs/Tables
         prefix (str, optional): Folder(s) path. Defaults to '/'.
         delimiter (str, optional): [description]. Defaults to '/'.
 
@@ -105,7 +107,14 @@ def list_of_bucket_files(inp:str, prefix='/', delimiter='/'):
     # Do it        
     prefix = prefix[1:] if prefix.startswith(delimiter) else prefix
     bucket = s3.Bucket(bucket_name)
-    return list(_.key for _ in bucket.objects.filter(Prefix=prefix))                                
+    files = list(_.key for _ in bucket.objects.filter(Prefix=prefix))                                
+
+    # Add prefix?
+    if include_prefix:
+        files = [os.path.join(inp, os.path.basename(_)) for _ in files]
+
+    # Return
+    return files
 
 def load_nc(filename, field='SST', verbose=True):
     """
@@ -228,10 +237,8 @@ def download_file_from_s3(local_file:str, s3_uri:str,
     """ Grab an s3 file
 
     Args:
-        local_file (str): 
-            Name of file to be dropped on local drive
-        s3_uri (str): 
-            Full s3 path
+        local_file (str): Path+filename for new file on local machine
+        s3_uri (str): s3 path+filename
         clobber_local (bool, optional): [description]. Defaults to True.
     """
     parsed_s3 = urlparse(s3_uri)
