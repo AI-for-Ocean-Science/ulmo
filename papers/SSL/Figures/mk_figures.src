@@ -33,12 +33,15 @@
 
 # Figure 6
 # UMAP DTAll colored by DT (all) -- 
-# python py/fig_ssl_modis.py umap_DT --local --table 96clear_v4_DTall --umap_comp S0,S1
+python py/fig_ssl_modis.py umap_DT --local --table 96clear_v4_DTall --umap_comp S0,S1
 
 # Figure 7 -- Full gallery
 # python py/fig_ssl_modis.py umap_gallery --local --table 96clear_v4_DTall --umap_comp S0,S1 --vmnx=-1,1 --outfile fig_umap_gallery_DTall.png
 
-# Figure 8 -- UMAP DT1 colored by DT40  
+# Figure 8 -- Multi stats
+# python py/fig_ssl_modis.py multi_stats --local --table 96clear_v4_DT1 --umap_comp S0,S1 --stat median
+
+# Figure 9 -- UMAP DT1 colored by DT40  
 # UMAP DT15 colored by DT40 -- python py/fig_ssl_modis.py umap_DT40 --local --table 96clear_v4_DT15 --umap_comp S0,S1 --outfile fig_umap_DT40_DT15_96clear_v4_S1.png
 # python py/fig_ssl_modis.py umap_DT40 --local --table 96clear_v4_DT1 --umap_comp S0,S1 --outfile fig_umap_DT40_DT1_96clear_v4_S1.png
 
@@ -129,5 +132,4 @@
 # python py/fig_ssl_modis.py slopevsDT --local --table 96clear_v4_DT1 --xscale nolog
 
 # Multi stats
-python py/fig_ssl_modis.py multi_stats --local --table 96clear_v4_DT1 --umap_comp S0,S1 --stat median
 # python py/fig_ssl_modis.py multi_stats --local --table 96clear_v4_DT1 --umap_comp S0,S1 --stat std

@@ -1882,7 +1882,8 @@ def parse_metric(metric:str, modis_tbl:pandas.DataFrame):
         #lmetric = r'$\Delta T_{\rm 40}$'
     elif metric == 'stdDT40':
         values = modis_tbl.DT40.values
-        lmetric = r'$\sigma(\Delta T_{\rm 40}) (K)$'
+        #lmetric = r'$\sigma(\Delta T_{\rm 40}) (K)$'
+        lmetric = r'$\sigma(\Delta T) (K)$'
     elif metric == 'logDT40':
         values = np.log10(modis_tbl.DT40.values)
         lmetric = r'$\log \Delta T_{\rm 40}$'
@@ -1930,8 +1931,10 @@ def main(pargs):
                          umap_comp=pargs.umap_comp)
     # UMAP_DT 
     if pargs.figure in ['umap_DT', 'umap_DT40']:
+        vmnx=(None,None)
         if 'all' in pargs.table:
             metric = 'logDT'
+            vmnx = (-0.5, 0.75)
         elif 'DT40' in pargs.figure:
             metric = 'DT40'
         else:
@@ -1939,7 +1942,7 @@ def main(pargs):
         outfile='fig_umap_DT.png' if pargs.outfile is None else pargs.outfile
         fig_umap_colored(local=pargs.local, table=pargs.table,
                          metric=metric, outfile=outfile,
-                         vmnx=(None,None),
+                         vmnx=vmnx,
                          umap_dim=pargs.umap_dim,
                          umap_comp=pargs.umap_comp)
         # Clouds
