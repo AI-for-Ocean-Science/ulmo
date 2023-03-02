@@ -2437,4 +2437,3 @@ if __name__ == '__main__':
 # UMAP temporal
 #  python py/fig_ssl_modis.py yearly_geo --local 
 #  python py/fig_ssl_modis.py seasonal_geo --local 
-

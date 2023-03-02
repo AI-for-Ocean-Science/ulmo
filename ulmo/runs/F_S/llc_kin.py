@@ -74,6 +74,8 @@ def u_extract_kin(tbl_file:str, debug=False,
     And calcualte F_S stats
     And extract divb and F_s cutouts!
 
+    All of the above is true (JXP on 2023-01-Mar)
+
     Args:
         tbl_file (str): _description_
         debug (bool, optional): _description_. Defaults to False.
@@ -143,11 +145,13 @@ def u_extract_kin(tbl_file:str, debug=False,
     print("You should probably remove the PreProc/ folder")
     
 
-def kin_ssl_eval(tbl_file:str, 
+def kin_nenya_eval(tbl_file:str, 
                    clobber_local=False, debug=False):
     # SSL model
+    #opt_path = os.path.join(resource_filename('ulmo', 'runs'), 'SSL',
+                              #'MODIS', 'v3', 'opts_96clear_ssl.json')
     opt_path = os.path.join(resource_filename('ulmo', 'runs'), 'SSL',
-                              'MODIS', 'v3', 'opts_96clear_ssl.json')
+                              'MODIS', 'v4', 'opts_ssl_modis_v4.json')
     
     # Parse the model
     opt = option_preprocess(ulmo_io.Params(opt_path))
@@ -167,7 +171,7 @@ def kin_ssl_eval(tbl_file:str,
     pp_files = np.unique(llc_table.pp_file).tolist()
 
     # New Latents path
-    s3_outdir = 's3://llc/SSL/'
+    s3_outdir = 's3://llc/Nenya/'
     latents_path = os.path.join(s3_outdir, opt.latents_folder)
 
     for ifile in pp_files:
@@ -241,10 +245,7 @@ def main(flg):
         u_extract_kin(full_fileA)
 
     if flg & (2**2):
-        kin_ssl_eval(full_fileA)
-
-    if flg & (2**3):
-        u_add_velocities()
+        kin_nenya_eval(full_fileA)
 
 # Command line execution
 if __name__ == '__main__':
@@ -254,6 +255,7 @@ if __name__ == '__main__':
         flg = 0
         #flg += 2 ** 0  # 1 -- Setup Table
         #flg += 2 ** 1  # 2 -- Extract
+        #flg += 2 ** 2  # 4 -- Evaluate
     else:
         flg = sys.argv[1]
 
