@@ -21,6 +21,7 @@ from IPython import embed
 
 tst_file = 's3://llc/Tables/test_FS_r5.0_test.parquet'
 full_fileA = 's3://llc/Tables/LLC_FS_r0.5A.parquet'
+viirs98_file = 's3://viirs/Tables/VIIRS_all_98clear_std.parquet'
 
 
 def u_init_kin(tbl_file:str, debug=False, 
@@ -171,7 +172,7 @@ def kin_nenya_eval(tbl_file:str,
     pp_files = np.unique(llc_table.pp_file).tolist()
 
     # New Latents path
-    s3_outdir = 's3://llc/Nenya/'
+    s3_outdir = 's3://viirs/Nenya/'
     latents_path = os.path.join(s3_outdir, opt.latents_folder)
 
     for ifile in pp_files:
@@ -247,6 +248,10 @@ def main(flg):
     if flg & (2**2):
         kin_nenya_eval(full_fileA)
 
+    if flg & (2**4):
+        kin_nenya_eval(viirs98_file)
+
+
 # Command line execution
 if __name__ == '__main__':
     import sys
@@ -256,6 +261,7 @@ if __name__ == '__main__':
         #flg += 2 ** 0  # 1 -- Setup Table
         #flg += 2 ** 1  # 2 -- Extract
         #flg += 2 ** 2  # 4 -- Evaluate
+        #flg += 2 ** 8  # 4 -- Evaluate VIIRS 98
     else:
         flg = sys.argv[1]
 
