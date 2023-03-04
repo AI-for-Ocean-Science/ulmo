@@ -3,11 +3,11 @@
 import os
 import numpy as np
 
-import xarray
 
 from ulmo.preproc import utils as pp_utils
 from ulmo.preproc import extract
-from ulmo import io as ulmo_io
+from ulmo.modis import io as modis_io
+
 
 from IPython import embed
 
@@ -15,7 +15,8 @@ def extract_file(filename:str,
                  field='SST',
                  field_size=(128,128),
                  nadir_offset=480,
-                 CC_max=0.05, qual_thresh=2,
+                 CC_max=0.05, 
+                 qual_thresh=2,
                  temp_bounds = (-2, 33),
                  nrepeat=1,
                  inpaint=True, debug=False):
@@ -36,42 +37,12 @@ def extract_file(filename:str,
     Returns:
         tuple: fields, field_masks, metadata
     """
-    if filename[0:5] == 's3://':
-        raise IOError("Not ready for s3 files yet. Multi-process is not working")
-        #inp = ulmo_io.load_to_bytes(filename)
-    else:
-        geo = xarray.open_dataset(
-                filename_or_obj=filename,
-                group='geophysical_data',
-                engine='h5netcdf',
-                mask_and_scale=True)
-        nav = xarray.open_dataset(
-                filename_or_obj=filename,
-                group='navigation_data',
-                engine='h5netcdf',
-                mask_and_scale=True)
-
-    # Translate user field to MODIS
-    mfields = dict(SST='sst', aph_443='aph_443_giop')
-
-    # Flags
-    mflags = dict(SST='qual_sst', aph_443='l2_flags')
-
-    # Load the image
-    try:
-        sst = np.array(geo[mfields[field]])
-        qual = np.array(geo[mflags[field]])
-        latitude = np.array(nav['latitude'])
-        longitude = np.array(nav['longitude'])
-    except:
-        print("File {} is junk".format(filename))
-        return
+    # Load up
+    sst, latitude, longitude, masks = modis_io.load_granule(
+        filename, field=field, qual_thresh=qual_thresh,
+        temp_bounds=temp_bounds)
     if sst is None:
         return
-
-    # Generate the masks
-    masks = pp_utils.build_mask(sst, qual, qual_thresh=qual_thresh,
-                                temp_bounds=temp_bounds)
 
     # Restrict to near nadir
     nadir_pix = sst.shape[1] // 2
@@ -81,8 +52,9 @@ def extract_file(filename:str,
     masks = masks[:, lb:ub].astype(np.uint8)
 
     # Random clear rows, cols
-    rows, cols, clear_fracs = extract.clear_grid(masks, field_size[0], 'center',
-                                                 CC_max=CC_max, nsgrid_draw=nrepeat)
+    rows, cols, clear_fracs = extract.clear_grid(
+        masks, field_size[0], 'center', 
+        CC_max=CC_max, nsgrid_draw=nrepeat)
     if rows is None:
         return
 

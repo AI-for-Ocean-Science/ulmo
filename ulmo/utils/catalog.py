@@ -44,7 +44,7 @@ def match_ids(IDs, match_IDs, require_in_match=True):
 
 
 def vet_main_table(table:pandas.DataFrame, cut_prefix=None,
-                   data_model=None):
+                   data_model=None, return_disallowed=False):
     """Check that the main table is AOK
 
     Args:
@@ -83,6 +83,7 @@ def vet_main_table(table:pandas.DataFrame, cut_prefix=None,
         if not skey in data_model.keys():
             disallowed_keys.append(key)
             chk = False
+            continue
         # Allow for dict
         item = table[key] if isinstance(
             table, dict) else table.iloc[0][key] 
@@ -106,4 +107,7 @@ def vet_main_table(table:pandas.DataFrame, cut_prefix=None,
         print("These required keys were not present: {}".format(missing_required))
 
     # Return
-    return chk
+    if return_disallowed:
+        return chk, disallowed_keys
+    else:
+        return chk

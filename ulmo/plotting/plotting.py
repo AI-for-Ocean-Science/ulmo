@@ -86,10 +86,10 @@ def show_image(img:np.ndarray, cm=None, cbar=True, flipud=True,
         _, cm = load_palette()
     #
     ax = sns.heatmap(np.flipud(img), xticklabels=[], 
-                     ax=ax, vmin=vmnx[0], vmax=vmnx[1],
+                     vmin=vmnx[0], vmax=vmnx[1],
                      yticklabels=[], cmap=cm, cbar=cbar, 
-                     cbar_kws={'label': clbl, 'fontsize': 20})
-    plt.savefig('image', dpi=600)
+                     cbar_kws={'label': clbl})# 'fontsize': 20})
+    #plt.savefig('image', dpi=600)
     
     if show:
         plt.show()

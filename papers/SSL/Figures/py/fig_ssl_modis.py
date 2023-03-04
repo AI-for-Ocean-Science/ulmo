@@ -1,5 +1,4 @@
 """ Figures for SSL paper on MODIS """
-from dataclasses import replace
 from datetime import datetime
 import os, sys
 import numpy as np

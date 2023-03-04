@@ -181,8 +181,9 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
     llc_table = pp_utils.prep_table_for_preproc(
         llc_table, preproc_root, field_size=field_size)
     # Loop
-    if debug:
-        uni_date = uni_date[0:1]
+    #if debug:
+    #    uni_date = uni_date[0:1]
+
     for udate in uni_date:
         # Parse filename
         filename = llc_io.grab_llc_datafile(udate, local=dlocal)
@@ -295,7 +296,7 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         pp_fields, meta, llc_table, 
         ex_idx, ppf_idx, 
         valid_fraction, s3_file, local_file,
-        kin_meta=kin_meta)
+        kin_meta=kin_meta, debug=debug)
     del pp_fields
 
     # Write kin?
