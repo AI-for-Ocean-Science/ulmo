@@ -1,8 +1,9 @@
 # Script to evaluate an SSL model on LLC Kinematic cutouts, sample A
+# kubectl exec -it test-pod -- /bin/bash
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-ssl-llc-kin-a-eval
+  name: xavier-nenya-llc-kin-a-eval
 spec:
   backoffLimit: 0
   template:
@@ -22,7 +23,7 @@ spec:
                   - NVIDIA-GeForce-GTX-1080-Ti
       containers:
       - name: container
-        image: localhost:30081/profxj/ulmo_nvidia:latest  # UPDATE
+        image: localhost:30081/profxj/nenya_nvidia:latest  
         imagePullPolicy: Always
         resources:
           requests:
@@ -41,11 +42,9 @@ spec:
             git fetch;
             git checkout F_S; 
             git pull; 
-            pip install torch==1.11.0;
-            pip install -U smart-open[s3];
-            pip install -U scikit-image;
             python setup.py develop;
             cd ulmo/runs/F_S;
+            sleep 900;
             python ./llc_kin.py 4;
         env:
           - name: "ENDPOINT_URL"
