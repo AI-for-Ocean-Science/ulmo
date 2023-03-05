@@ -3,7 +3,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-nenya-viirs-a-eval
+  name: xavier-nenya-viirs-eval
 spec:
   backoffLimit: 0
   template:

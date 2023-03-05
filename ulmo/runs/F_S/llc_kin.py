@@ -22,6 +22,7 @@ from IPython import embed
 tst_file = 's3://llc/Tables/test_FS_r5.0_test.parquet'
 full_fileA = 's3://llc/Tables/LLC_FS_r0.5A.parquet'
 viirs98_file = 's3://viirs/Tables/VIIRS_all_98clear_std.parquet'
+llc_viirs98_file = 's3://llc/Tables/llc_viirs_match.parquet'
 
 
 def u_init_kin(tbl_file:str, debug=False, 
@@ -146,8 +147,18 @@ def u_extract_kin(tbl_file:str, debug=False,
     print("You should probably remove the PreProc/ folder")
     
 
-def kin_nenya_eval(tbl_file:str, 
+def kin_nenya_eval(tbl_file:str, s3_outdir:str=None,
                    clobber_local=False, debug=False):
+    """ Run Nenya on something
+
+    Args:
+        tbl_file (str): _description_
+        s3_outdir (str, optional): 
+            Path to s3 output directory.  If None, will use the
+            LLC
+        clobber_local (bool, optional): _description_. Defaults to False.
+        debug (bool, optional): _description_. Defaults to False.
+    """
     # SSL model
     #opt_path = os.path.join(resource_filename('ulmo', 'runs'), 'SSL',
                               #'MODIS', 'v3', 'opts_96clear_ssl.json')
@@ -172,7 +183,8 @@ def kin_nenya_eval(tbl_file:str,
     pp_files = np.unique(llc_table.pp_file).tolist()
 
     # New Latents path
-    s3_outdir = 's3://viirs/Nenya/'
+    if s3_outdir is None:
+        s3_outdir = 's3://llc/Nenya/'
     latents_path = os.path.join(s3_outdir, opt.latents_folder)
 
     for ifile in pp_files:
@@ -248,8 +260,12 @@ def main(flg):
     if flg & (2**2):
         kin_nenya_eval(full_fileA)
 
+    if flg & (2**3):
+        kin_nenya_eval(viirs98_file, 
+                       s3_outdir='s3://viirs/Nenya/')
+
     if flg & (2**4):
-        kin_nenya_eval(viirs98_file)
+        kin_nenya_eval(llc_viirs98_file)
 
 
 # Command line execution
@@ -261,7 +277,8 @@ if __name__ == '__main__':
         #flg += 2 ** 0  # 1 -- Setup Table
         #flg += 2 ** 1  # 2 -- Extract
         #flg += 2 ** 2  # 4 -- Evaluate
-        #flg += 2 ** 8  # 4 -- Evaluate VIIRS 98
+        #flg += 2 ** 3  # 8 -- Evaluate VIIRS 98
+        #flg += 2 ** 4  # 16 -- Evaluate LLC matched to VIIRS 98
     else:
         flg = sys.argv[1]
 
