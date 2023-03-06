@@ -16,13 +16,18 @@ from ulmo.preproc import plotting as pp_plotting
 
 from ulmo.ssl.train_util import option_preprocess
 from ulmo.ssl import latents_extraction
+from ulmo.ssl import ssl_umap
 
 from IPython import embed
 
 tst_file = 's3://llc/Tables/test_FS_r5.0_test.parquet'
 full_fileA = 's3://llc/Tables/LLC_FS_r0.5A.parquet'
 viirs98_file = 's3://viirs/Tables/VIIRS_all_98clear_std.parquet'
+local_viirs98_file = os.path.join(os.getenv('SST_OOD'),
+                                  'VIIRS', 'Tables', 'VIIRS_all_98clear_std.parquet')
 llc_viirs98_file = 's3://llc/Tables/llc_viirs_match.parquet'
+nenya_opt_path = os.path.join(resource_filename('ulmo', 'runs'), 'SSL',
+                              'MODIS', 'v4', 'opts_ssl_modis_v4.json')
 
 
 def u_init_kin(tbl_file:str, debug=False, 
@@ -162,11 +167,9 @@ def kin_nenya_eval(tbl_file:str, s3_outdir:str=None,
     # SSL model
     #opt_path = os.path.join(resource_filename('ulmo', 'runs'), 'SSL',
                               #'MODIS', 'v3', 'opts_96clear_ssl.json')
-    opt_path = os.path.join(resource_filename('ulmo', 'runs'), 'SSL',
-                              'MODIS', 'v4', 'opts_ssl_modis_v4.json')
     
     # Parse the model
-    opt = option_preprocess(ulmo_io.Params(opt_path))
+    opt = option_preprocess(ulmo_io.Params(nenya_opt_path))
     model_file = os.path.join(opt.s3_outdir,
         opt.model_folder, 'last.pth')
 
@@ -239,6 +242,45 @@ def kin_nenya_eval(tbl_file:str, s3_outdir:str=None,
             os.remove(data_file)
             print(f'{data_file} removed')
     
+def nenya_umap(tbl_file:str, subset:str, out_path:str, out_root:str,
+            table:str, s3_outdir:str, 
+               clobber_local=False, debug=False, local:bool=True,
+               DT_key='DT40'):
+
+    # Load table
+    tbl = ulmo_io.load_main_table(tbl_file)
+    if 'DT' not in tbl.keys():
+        tbl['DT'] = tbl.T90 - tbl.T10
+
+    #embed(header='254 of llc_kin')
+
+    # UMAP save file
+    base1 = '96clear_v4'
+    umap_savefile = os.path.join(
+            os.getenv('SST_OOD'), 
+            f'MODIS_L2/UMAP/MODIS_SSL_{base1}_{subset}_UMAP.pkl')
+
+    # Output files
+    outfile = os.path.join(
+        out_path, 'Tables',
+        f'{out_root}_{subset}.parquet')
+
+
+    DT_cut = None if subset == 'DTall' else subset
+    ssl_umap.umap_subset(tbl.copy(),
+                         nenya_opt_path, 
+                         outfile, 
+                         local=local,
+                         DT_cut=DT_cut, 
+                         DT_key = DT_key,
+                         debug=debug, 
+                         table=table,
+                         train_umap=False, 
+                         umap_savefile=umap_savefile,
+                         s3_outdir=s3_outdir,
+                         local_dataset_path=out_path,
+                         remove=False, CF=False)
+
 
 def main(flg):
     if flg== 'all':
@@ -267,6 +309,15 @@ def main(flg):
     if flg & (2**4):
         kin_nenya_eval(llc_viirs98_file)
 
+    if flg & (2**5):
+        # VIIRS
+        nenya_umap(local_viirs98_file, 'DT1',
+                   os.path.join(os.getenv('SST_OOD'), 'VIIRS'),
+                   'VIIRS_Nenya', 'viirs', 
+                   's3://viirs/Nenya/',
+                   local=True, DT_key='DT')
+
+
 
 # Command line execution
 if __name__ == '__main__':
@@ -279,6 +330,7 @@ if __name__ == '__main__':
         #flg += 2 ** 2  # 4 -- Evaluate
         #flg += 2 ** 3  # 8 -- Evaluate VIIRS 98
         #flg += 2 ** 4  # 16 -- Evaluate LLC matched to VIIRS 98
+        #flg += 2 ** 5  # 32 -- UMAP Nenya
     else:
         flg = sys.argv[1]
 

@@ -6,6 +6,7 @@ import pickle
 import h5py
 import pandas
 import umap
+from urllib.parse import urlparse
 
 from ulmo import io as ulmo_io
 from ulmo.ssl.train_util import option_preprocess
@@ -83,6 +84,10 @@ def umap_subset(modis_tbl:pandas.DataFrame,
                 ntrain=200000, remove=True,
                 umap_savefile:str=None,
                 train_umap:bool=True,
+                table:str=None,
+                DT_key:str='DT40',
+                s3_outdir:str=None,
+                local_dataset_path:str=os.path.join(os.getenv('SST_OOD'), 'MODIS_L2'),
                 local=True, CF=False, debug=False):
     """Run UMAP on a subset of the data
     First 2 dimensions are written to the table
@@ -91,7 +96,9 @@ def umap_subset(modis_tbl:pandas.DataFrame,
         modis_tbl (pandas.DataFrame): MODIS table
         opt_path (str): _description_
         outfile (str): _description_
-        DT_cut (str, optional): DT40 cut to apply. Defaults to None.
+        DT_cut (str, optional): DT cut to apply. Defaults to None.
+            This uses the DT_key
+        s3_outdir (str, optional): _description_. Defaults to None.
         alpha_cut (str, optional): alpha cut to apply. Defaults to None.
         ntrain (int, optional): _description_. Defaults to 200000.
         remove (bool, optional): _description_. Defaults to True.
@@ -99,6 +106,7 @@ def umap_subset(modis_tbl:pandas.DataFrame,
         local (bool, optional): _description_. Defaults to True.
         CF (bool, optional): Use cloud free (99%) set? Defaults to False.
         train_umap (bool, optional): Train a new UMAP? Defaults to True.
+        DT_key (str, optional): Which DT to use? Defaults to 'DT40'.
         debug (bool, optional): _description_. Defaults to False.
 
     Raises:
@@ -108,8 +116,9 @@ def umap_subset(modis_tbl:pandas.DataFrame,
 
     opt = option_preprocess(ulmo_io.Params(opt_path))
 
-    # Load main table
-    table='CF' if CF else '96'
+    # Prep main table
+    if table is None:
+        table='CF' if CF else '96'
     modis_tbl['US0'] = 0.
     modis_tbl['US1'] = 0.
 
@@ -117,9 +126,9 @@ def umap_subset(modis_tbl:pandas.DataFrame,
     if DT_cut is not None:
         DT_cuts = ssl_defs.umap_DT[DT_cut]
         if DT_cuts[1] < 0: # Lower limit?
-            keep = modis_tbl.DT40 > DT_cuts[0]
+            keep = modis_tbl[DT_key] > DT_cuts[0]
         else:
-            keep = np.abs(modis_tbl.DT40 - DT_cuts[0]) < DT_cuts[1]
+            keep = np.abs(modis_tbl[DT_key] - DT_cuts[0]) < DT_cuts[1]
     else: # Do em all! (or cut on alpha)
         keep = np.ones(len(modis_tbl), dtype=bool)
 
@@ -142,15 +151,28 @@ def umap_subset(modis_tbl:pandas.DataFrame,
         valid = modis_tbl.ulmo_pp_type == 0
         train = modis_tbl.ulmo_pp_type == 1
         cut_prefix = 'ulmo_'
+        yr_idx = 2
+    elif table == 'viirs':
+        valid = modis_tbl.pp_type == 0
+        train = modis_tbl.pp_type == 1
+        yr_idx = 1
     else:
-        raise IOError("Need to deal with this")
+        raise IOError("Bad table")
 
     # Prep latent_files
     print(f"Loading latents from this folder: {opt.latents_folder}")
-    latents_path = os.path.join(opt.s3_outdir, opt.latents_folder)
+    if s3_outdir is None:
+        s3_outdir = opt.s3_outdir
+    latents_path = os.path.join(s3_outdir, opt.latents_folder)
     latent_files = ulmo_io.list_of_bucket_files(latents_path)
-    latent_files = ['s3://modis-l2/'+item for item in latent_files]
+    # Finish
+    parsed_s3 = urlparse(s3_outdir)
+    bucket_name = parsed_s3.netloc
+    latent_files = [f's3://{bucket_name}/'+item for item in latent_files]
 
+    # Prep for year by year analysis
+    pp_years = [os.path.basename(item).split('_')[yr_idx] for item in modis_tbl.pp_file.values]
+    pp_years = np.array(pp_years).astype(int)
     # Load up all the latent vectors
 
     # Loop on em all
@@ -161,15 +183,15 @@ def umap_subset(modis_tbl:pandas.DataFrame,
     sv_idx = []
     for latents_file in latent_files:
         basefile = os.path.basename(latents_file)
-        year = int(basefile[12:16])
+        year = int(basefile.split('_')[yr_idx])
 
         # Download?
         if not os.path.isfile(basefile):
             # Try local if local is True
             if local:
-                local_file = latents_file.replace('s3://modis-l2/SSL',
-                    os.path.join(os.getenv('SST_OOD'),
-                                                  'MODIS_L2', 'SSL'))
+                local_file = latents_file.replace(f's3://{bucket_name}',
+                    local_dataset_path)
+                    #os.path.join(os.getenv('SST_OOD'), 'MODIS_L2')) # I may broken this..
                 print(f"Copying {local_file}")
                 shutil.copyfile(local_file, basefile)
             if not os.path.isfile(basefile):
@@ -183,7 +205,8 @@ def umap_subset(modis_tbl:pandas.DataFrame,
         # ##############33
         # Valid
         all_latents_valid = hf['valid'][:]
-        yidx = modis_tbl.pp_file == f's3://modis-l2/PreProc/MODIS_R2019_{year}_95clear_128x128_preproc_std.h5'
+        #yidx = modis_tbl.pp_file == f's3://modis-l2/PreProc/MODIS_R2019_{year}_95clear_128x128_preproc_std.h5'
+        yidx = pp_years == year
         valid_idx = valid & yidx
         pp_idx = modis_tbl[valid_idx].pp_idx.values
 
