@@ -30,19 +30,14 @@ import seaborn as sns
 import h5py
 
 from ulmo import plotting
-from ulmo.utils import utils as utils
+from ulmo.mae import mae_utils
 
-from ulmo import io as ulmo_io
-from ulmo.ssl import single_image as ssl_simage
-from ulmo.ssl import ssl_umap
-from ulmo.ssl import defs as ssl_defs
-from ulmo.utils import image_utils
 
 from IPython import embed
 
 # Local
-#sys.path.append(os.path.abspath("../Analysis/py"))
-#import ssl_paper_analy
+sys.path.append(os.path.abspath("../Analysis/py"))
+import anly_patches
 #sys.path.append(os.path.abspath("../Figures/py"))
 #import fig_ssl_modis
 
@@ -185,6 +180,69 @@ def fig_numhp_clouds(outfile:str, analy_file:str):
     plt.close()
     print('Wrote {:s}'.format(outfile))
 
+def fig_patch_ij_binned_stats(metric:str,
+    stat:str, patch_file:str, nbins:int=16):
+
+    t_per, p_per = mae_utils.parse_mae_img_file(patch_file)
+
+    # Outfile
+    outfile = f'fig_{metric}_{stat}_t{t_per}_p{p_per}_patch_ij_binned_stats.png'
+    # Load
+    patch_file = os.path.join(os.getenv("OS_DATA"),
+                              'MAE', 'Recon', patch_file)
+    f = np.load(patch_file)
+    data = f['data']
+    data = data.reshape((data.shape[0]*data.shape[1], 
+                         data.shape[2]))
+
+    items = f['items']
+    tbl = pandas.DataFrame(data, columns=items)
+
+    #metric = 'abs_median_diff'
+    #metric = 'median_diff'
+    #metric = 'std_diff'
+    #stat = 'median'
+    #stat = 'mean'
+    #stat = 'std'
+
+    values, lbl = anly_patches.parse_metric(
+        tbl, metric)
+
+    # Do it
+    median, x_edge, y_edge, ibins = scipy.stats.binned_statistic_2d(
+    tbl.i_patch, tbl.j_patch, values,
+        statistic=stat, expand_binnumbers=True, 
+        bins=[nbins,nbins])
+
+    # Figure
+    fig = plt.figure(figsize=(10,8))
+    plt.clf()
+    ax = plt.gca()
+
+    cmap = 'Blues'
+    cm = plt.get_cmap(cmap)
+    mplt = ax.pcolormesh(x_edge, y_edge, 
+                    median.transpose(),
+                    cmap=cm, 
+                    vmax=None) 
+    # Color bar
+    cbaxes = plt.colorbar(mplt, pad=0., fraction=0.030)
+    cbaxes.set_label(f'{stat}({lbl})', fontsize=17.)
+    cbaxes.ax.tick_params(labelsize=15)
+
+    # Axes
+    ax.set_xlabel(r'i')
+    ax.set_ylabel(r'j')
+    ax.set_aspect('equal')
+
+    plotting.set_fontsize(ax, 15)
+
+
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
+
 #### ########################## #########################
 def main(flg_fig):
     if flg_fig == 'all':
@@ -201,6 +259,13 @@ def main(flg_fig):
         fig_numhp_clouds('fig_numhp_clouds.png',
                    '/tank/xavier/Oceanography/Python/ulmo/ulmo/runs/MAE/modis_2020_cloudcover.npz')
 
+    if flg_fig & (2 ** 2):
+        #fig_patch_ij_binned_stats('abs_median_diff', 'median',
+        #                          'mae_patches_t75_p20.npz')
+        #fig_patch_ij_binned_stats('median_diff', 'mean',
+        #                          'mae_patches_t75_p20.npz')
+        fig_patch_ij_binned_stats('median_diff', 'median',
+                                  'mae_patches_t75_p20.npz')
 
 
 # Command line execution
@@ -209,14 +274,8 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         flg_fig = 0
         #flg_fig += 2 ** 0  # Clouds on the sphere
-        flg_fig += 2 ** 1  # Number satisfying
-        #flg_fig += 2 ** 2  # Gallery of 16 with DT = 4
-        #flg_fig += 2 ** 3  # Full set of UMAP galleries
-        #flg_fig += 2 ** 4  # Regional + Gallery -- Pacific ECT
-        #flg_fig += 2 ** 5  # Regional + Gallery -- Coastal california
-        #flg_fig += 2 ** 6  # Matched gallery for DT = 1
-        #flg_fig += 2 ** 7  # Matched gallery for boring images
-        #flg_fig += 2 ** 8  # Time series
+        #flg_fig += 2 ** 1  # Number satisfying
+        flg_fig += 2 ** 2  # Number satisfying
     else:
         flg_fig = sys.argv[1]
 
