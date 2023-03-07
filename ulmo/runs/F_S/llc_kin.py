@@ -307,7 +307,8 @@ def main(flg):
                        s3_outdir='s3://viirs/Nenya/')
 
     if flg & (2**4):
-        kin_nenya_eval(llc_viirs98_file)
+        kin_nenya_eval(llc_viirs98_file,
+                       s3_outdir='s3://llc/Nenya/')
 
     if flg & (2**5):
         # VIIRS

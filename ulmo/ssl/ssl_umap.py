@@ -87,7 +87,7 @@ def umap_subset(modis_tbl:pandas.DataFrame,
                 table:str=None,
                 DT_key:str='DT40',
                 s3_outdir:str=None,
-                local_dataset_path:str=os.path.join(os.getenv('SST_OOD'), 'MODIS_L2'),
+                local_dataset_path:str=None,
                 local=True, CF=False, debug=False):
     """Run UMAP on a subset of the data
     First 2 dimensions are written to the table
@@ -121,6 +121,10 @@ def umap_subset(modis_tbl:pandas.DataFrame,
         table='CF' if CF else '96'
     modis_tbl['US0'] = 0.
     modis_tbl['US1'] = 0.
+
+    # Init
+    if local_dataset_path is None:
+        local_dataset_path = os.path.join(os.getenv('SST_OOD'), 'MODIS_L2')
 
     # Cut down on DT
     if DT_cut is not None:
