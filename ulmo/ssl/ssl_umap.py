@@ -156,6 +156,7 @@ def umap_subset(modis_tbl:pandas.DataFrame,
         valid = modis_tbl.pp_type == 0
         train = modis_tbl.pp_type == 1
         yr_idx = 1
+        cut_prefix = None
     else:
         raise IOError("Bad table")
 
