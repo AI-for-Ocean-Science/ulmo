@@ -76,6 +76,7 @@ def load_modis_tbl(table:str=None,
     Returns:
         pandas.Dataframe: MODIS table
     """
+    raise DeprecationWarning("Use ulmo.utils/table.load instead")
 
     # Which file?
     if table is None:

@@ -160,6 +160,11 @@ def umap_subset(modis_tbl:pandas.DataFrame,
         valid = modis_tbl.pp_type == 0
         train = modis_tbl.pp_type == 1
         yr_idx = 1
+        cut_prefix = 'MODIS_'
+    elif table == 'llc':
+        valid = modis_tbl.pp_type == 0
+        train = modis_tbl.pp_type == 1
+        yr_idx = -1
         cut_prefix = None
     else:
         raise IOError("Bad table")
@@ -176,8 +181,9 @@ def umap_subset(modis_tbl:pandas.DataFrame,
     latent_files = [f's3://{bucket_name}/'+item for item in latent_files]
 
     # Prep for year by year analysis
-    pp_years = [os.path.basename(item).split('_')[yr_idx] for item in modis_tbl.pp_file.values]
-    pp_years = np.array(pp_years).astype(int)
+    if yr_idx >= 0:
+        pp_years = [os.path.basename(item).split('_')[yr_idx] for item in modis_tbl.pp_file.values]
+        pp_years = np.array(pp_years).astype(int)
     # Load up all the latent vectors
 
     # Loop on em all
@@ -188,7 +194,10 @@ def umap_subset(modis_tbl:pandas.DataFrame,
     sv_idx = []
     for latents_file in latent_files:
         basefile = os.path.basename(latents_file)
-        year = int(basefile.split('_')[yr_idx])
+        if yr_idx == -1:
+            year = -1
+        else:
+            year = int(basefile.split('_')[yr_idx])
 
         # Download?
         if not os.path.isfile(basefile):
@@ -210,8 +219,10 @@ def umap_subset(modis_tbl:pandas.DataFrame,
         # ##############33
         # Valid
         all_latents_valid = hf['valid'][:]
-        #yidx = modis_tbl.pp_file == f's3://modis-l2/PreProc/MODIS_R2019_{year}_95clear_128x128_preproc_std.h5'
-        yidx = pp_years == year
+        if year == -1:
+            yidx = np.ones(len(modis_tbl), dtype=bool)
+        else:
+            yidx = pp_years == year
         valid_idx = valid & yidx
         pp_idx = modis_tbl[valid_idx].pp_idx.values
 

@@ -243,7 +243,7 @@ def kin_nenya_eval(tbl_file:str, s3_outdir:str=None,
             print(f'{data_file} removed')
     
 def nenya_umap(tbl_file:str, subset:str, out_path:str, out_root:str,
-            table:str, s3_outdir:str, cut_prefix:str=None,
+            table:str, s3_outdir:str, 
                clobber_local=False, debug=False, local:bool=True,
                DT_key='DT40'):
 
@@ -277,7 +277,6 @@ def nenya_umap(tbl_file:str, subset:str, out_path:str, out_root:str,
                          table=table,
                          train_umap=False, 
                          umap_savefile=umap_savefile,
-                         cut_prefix=cut_prefix,
                          s3_outdir=s3_outdir,
                          local_dataset_path=out_path,
                          remove=False, CF=False)
@@ -305,19 +304,28 @@ def main(flg):
 
     if flg & (2**3):
         kin_nenya_eval(viirs98_file, 
-                       s3_outdir='s3://viirs/Nenya/',
-                       cut_prefix='MODIS_')
+                       s3_outdir='s3://viirs/Nenya/')
 
     if flg & (2**4):
         kin_nenya_eval(llc_viirs98_file,
                        s3_outdir='s3://llc/Nenya/')
 
     if flg & (2**5):
+
+        '''
         # VIIRS
         nenya_umap(local_viirs98_file, 'DT1',
                    os.path.join(os.getenv('SST_OOD'), 'VIIRS'),
                    'VIIRS_Nenya', 'viirs', 
                    's3://viirs/Nenya/',
+                   local=True, DT_key='DT')
+        '''
+
+        # LLC Kin
+        nenya_umap(full_fileA, 'DT1',
+                   os.path.join(os.getenv('SST_OOD'), 'LLC'),
+                   'LLC_A_Nenya', 'llc', 
+                   's3://llc/Nenya/',
                    local=True, DT_key='DT')
 
 
