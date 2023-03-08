@@ -6,12 +6,18 @@ import scipy
 from ulmo.utils import table as table_utils
 from ulmo.ssl import figures
 
+from IPython import embed
 
-def load_viirs():
-    # VIIRS
-    viirs_file = '/data/Projects/Oceanography/AI/OOD/SST/VIIRS/Tables/VIIRS_Nenya_DT1.parquet'
-    viirs = table_utils.load(viirs_file)
-    return viirs
+
+def load_tbl(survey:str, DT:str='DT1'):
+    if survey == 'viirs':
+        # VIIRS
+        tbl_file = f'/data/Projects/Oceanography/AI/OOD/SST/VIIRS/Tables/VIIRS_Nenya_{DT}.parquet'
+    elif survey == 'llc':
+        tbl_file = f'/data/Projects/Oceanography/AI/OOD/SST/LLC/Tables/LLC_A_Nenya_{DT}.parquet'
+    #
+    tbl = table_utils.load(tbl_file)
+    return tbl
 
 def main(flg):
     if flg== 'all':
@@ -22,20 +28,29 @@ def main(flg):
     # Check Nenya with Multi
     if flg & (2**0):
 
+        metrics = ['LL', 'DT', 'stdDT', 'clouds', 'abslat', 'log10counts']
 
-        viirs = load_viirs()
+        # Load
+        #tbl = load_tbl('viirs')
+        #outfile='fig_nenya_viirs_multi_umap_DT1.png'
+
+        tbl = load_tbl('llc')
+        outfile='fig_nenya_llcA_multi_umap_DT1.png'
+
+        metrics = ['DT', 'stdDT', 'abslat', 'log10counts']
+
         # Plot
         binx=np.linspace(-1,10.5,30)
         biny=np.linspace(-3.5,4.5,30)
-        metrics = ['LL', 'DT', 'stdDT', 'clouds', 'abslat', 'log10counts']
+        
         figures.umap_multi_metric(
-            viirs, binx, biny,
+            tbl, binx, biny,
             metrics=metrics,
-            outfile='fig_nenya_viirs_multi_umap_DT1.png')
+            outfile=outfile)
 
     # Galleries
     if flg & (2**1):
-        viirs = load_viirs()
+        viirs = load_tbl('viirs')
         figures.umap_gallery(viirs, 'fig_nenya_viirs_gallery_DT1.png',
                              local=os.path.join(os.getenv('SST_OOD'), 'VIIRS'),
                              in_vmnx=[-0.75, 0.75])

@@ -41,7 +41,10 @@ def load(tbl_file:str,
             tbl.zonal_slope, tbl.merid_slope)
 
     # Cut
-    goodLL = np.isfinite(tbl.LL)
+    if 'LL' in tbl.keys():
+        goodLL = np.isfinite(tbl.LL)
+    else:
+        goodLL = np.ones(len(tbl), dtype=bool)
     if cuts is None:
         good = goodLL
     elif cuts == 'inliers':
@@ -129,6 +132,9 @@ def parse_metric(metric:str, tbl:pandas.DataFrame):
     elif metric == 'abslat':
         lmetric = r'$|$ latitude $|$ (deg)'
         values = np.abs(tbl.lat.values)
+    elif metric == 'lon':
+        lmetric = r'longitude (deg)'
+        values = tbl.lon.values
     elif metric == 'counts':
         lmetric = 'Counts'
         values = np.ones(len(tbl))
