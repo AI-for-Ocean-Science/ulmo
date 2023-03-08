@@ -210,6 +210,11 @@ def load_main_table(tbl_file:str, verbose=True):
         main_table = pandas.read_parquet(inp)
     else:
         raise IOError("Bad table extension: ")
+
+    # Deal with masked int columns
+    for key in ['gradb_Npos', 'FS_Npos', 'UID', 'pp_type']:
+        if key in main_table.keys():
+            main_table[key] = pandas.array(main_table[key].values, dtype='Int64')
     # Report
     if verbose:
         print("Read main table: {}".format(tbl_file))

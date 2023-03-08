@@ -294,7 +294,6 @@ def umap_subset(modis_tbl:pandas.DataFrame,
         modis_tbl.drop(columns=drop_columns, inplace=True)
     
     # Vet
-    embed(header='286 of umap')
     assert cat_utils.vet_main_table(modis_tbl, cut_prefix=cut_prefix)
     # Write new table
     to_s3 = True if 's3' in outfile else False

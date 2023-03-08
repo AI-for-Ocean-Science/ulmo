@@ -267,6 +267,7 @@ def nenya_umap(tbl_file:str, subset:str, out_path:str, out_root:str,
 
 
     DT_cut = None if subset == 'DTall' else subset
+
     ssl_umap.umap_subset(tbl.copy(),
                          nenya_opt_path, 
                          outfile, 
@@ -341,7 +342,7 @@ if __name__ == '__main__':
         #flg += 2 ** 2  # 4 -- Evaluate
         #flg += 2 ** 3  # 8 -- Evaluate VIIRS 98
         #flg += 2 ** 4  # 16 -- Evaluate LLC matched to VIIRS 98
-        #flg += 2 ** 5  # 32 -- UMAP Nenya
+        #flg += 2 ** 5  # 32 -- UMAP Nenya -- This only works on 3.9!!
     else:
         flg = sys.argv[1]
 

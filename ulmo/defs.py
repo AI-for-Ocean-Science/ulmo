@@ -87,9 +87,9 @@ mtbl_dmodel = {
     'UID': dict(dtype=(int, np.integer),
                 help='Unique identifier generated for each cutout'),
     # KINEMATICS
-    'gradb_Npos': dict(dtype=(int, np.integer),
+    'gradb_Npos': dict(dtype=(int, np.integer, pandas.core.arrays.integer.IntegerArray),
                 help='Number of pixels exceeding the |grad b|^2 threshold'),
-    'FS_Npos': dict(dtype=(int, np.integer),
+    'FS_Npos': dict(dtype=(int, np.integer, pandas.core.arrays.integer.IntegerArray),
                 help='Number of pixels exceeding the F_S threshold'),
     'FS_pos_sum': dict(dtype=(float,np.floating),
                 help='Sum of F_s for pixels with F_S>0'),
