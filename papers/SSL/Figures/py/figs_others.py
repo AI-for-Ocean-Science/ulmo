@@ -28,16 +28,16 @@ def main(flg):
     # Check Nenya with Multi
     if flg & (2**0):
 
-        metrics = ['LL', 'DT', 'stdDT', 'clouds', 'abslat', 'log10counts']
+        metrics = ['DT', 'stdDT', 'LL', 'clouds', 'abslat', 'log10counts']
 
         # Load
-        #tbl = load_tbl('viirs')
-        #outfile='fig_nenya_viirs_multi_umap_DT1.png'
+        tbl = load_tbl('viirs')
+        outfile='fig_nenya_viirs_multi_umap_DT1.png'
 
-        tbl = load_tbl('llc')
-        outfile='fig_nenya_llcA_multi_umap_DT1.png'
-
-        metrics = ['DT', 'stdDT', 'abslat', 'log10counts']
+        # LLC
+        #tbl = load_tbl('llc')
+        #outfile='fig_nenya_llcA_multi_umap_DT1.png'
+        #metrics = ['DT', 'stdDT', 'abslat', 'log10counts']
 
         # Plot
         binx=np.linspace(-1,10.5,30)
