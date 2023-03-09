@@ -1,4 +1,4 @@
-""" Routines to analyze patches """
+""" Routines to analyze cutouts """
 import numpy as np
 import os
 
