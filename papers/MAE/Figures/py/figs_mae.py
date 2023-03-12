@@ -309,7 +309,9 @@ def fig_explore_bias(outfile:str='fig_explore_bias.png',
 
     # Plot em
     ax = sns.scatterplot(data=df, x='p', y='median_bias', hue='t',
-                         palette='Set2', s=100, marker='o')
+                         palette='deep', 
+                         s=100, markers='o')
+                         #size='p', sizes=(100, 1000))
 
     # Axes
     ax.set_xlabel('Patch Fraction')
@@ -350,7 +352,7 @@ def main(flg_fig):
 
     # Explore the bias
     if flg_fig & (2 ** 3):
-        fig_explore_bias(clobber=True)
+        fig_explore_bias(clobber=False)
 
 # Command line execution
 if __name__ == '__main__':
