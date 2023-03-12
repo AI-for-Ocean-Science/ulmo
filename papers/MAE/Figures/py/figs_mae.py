@@ -8,14 +8,12 @@ from scipy import stats
 from urllib.parse import urlparse
 import datetime
 
-import argparse
 
 import healpy as hp
 
 import matplotlib as mpl
 import matplotlib.gridspec as gridspec
 from matplotlib import pyplot as plt
-from matplotlib.patches import Rectangle, Ellipse
 
 
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
@@ -31,6 +29,7 @@ import h5py
 
 from ulmo import plotting
 from ulmo.mae import mae_utils
+from ulmo import io as ulmo_io
 
 
 from IPython import embed
@@ -40,6 +39,12 @@ sys.path.append(os.path.abspath("../Analysis/py"))
 import anly_patches
 #sys.path.append(os.path.abspath("../Figures/py"))
 #import fig_ssl_modis
+
+# Globals
+
+preproc_path = os.path.join(os.getenv('OS_AI'), 'MAE', 'PreProc')
+recon_path = os.path.join(os.getenv('OS_AI'), 'MAE', 'Recon')
+orig_file = os.path.join(preproc_path, 'MAE_LLC_valid_nonoise_preproc.h5')
 
 
 def fig_clouds(outfile:str, analy_file:str,
@@ -242,6 +247,82 @@ def fig_patch_ij_binned_stats(metric:str,
     plt.close()
     print('Wrote {:s}'.format(outfile))
 
+def fig_explore_bias(outfile:str='fig_explore_bias.png',
+                     nimg:int=50000, debug:bool=False,
+                     bias_file:str='bias.csv',
+                     clobber:bool=False):
+
+    if os.path.isfile(bias_file) and not clobber:
+        df = pandas.read_csv(bias_file)
+        print(f"Loaded: {bias_file}")
+    else:
+        # Load
+        f_orig = h5py.File(orig_file, 'r')
+        orig_img = f_orig['valid'][0:nimg,0,...]
+
+        # Analyze
+        result_dict = dict(t=[], p=[], median_bias=[], mean_bias=[])
+        for t in [10, 35, 75]:
+            if debug and t > 35:
+                break
+            for p in [10, 20, 30, 40, 50]:
+                if debug and p > 30:
+                    break
+                print(f'Working on t={t} p={p}')
+                #
+                recon_file = mae_utils.img_filename(t, p, mae_img_path=recon_path)
+                mask_file = mae_utils.mask_filename(t, p, mae_mask_path=recon_path)
+                # Load
+                f_recon = h5py.File(recon_file, 'r')
+                f_mask = h5py.File(mask_file, 'r')
+
+                # Load
+                recon_img = f_recon['valid'][0:nimg,0,...]
+                mask_img = f_mask['valid'][0:nimg,0,...].astype(int)
+
+                # Do it
+                diff_true = recon_img - orig_img 
+
+                patches = mask_img == 1
+
+                median_bias = np.median(diff_true[patches])
+                mean_bias = np.mean(diff_true[patches])
+                #mean_img = np.mean(orig_img[np.isclose(mask_img,0.)])
+
+                # Save
+                result_dict['t'].append(t)
+                result_dict['p'].append(p)
+                result_dict['median_bias'].append(median_bias)
+                result_dict['mean_bias'].append(mean_bias)
+
+        # Write
+        df = pandas.DataFrame(result_dict)
+        df.to_csv(bias_file, index=False)
+        print(f'Wrote: {bias_file}')
+
+
+    # Figure
+    sns.set_style("whitegrid")
+
+    fig = plt.figure(figsize=(10,8))
+    plt.clf()
+
+    # Plot em
+    ax = sns.scatterplot(data=df, x='p', y='median_bias', hue='t',
+                         palette='Set2', s=100, marker='o')
+
+    # Axes
+    ax.set_xlabel('Patch Fraction')
+    #ax.set_ylabel(r'j')
+    #ax.set_aspect('equal')
+
+    plotting.set_fontsize(ax, 15)
+
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
+
 
 #### ########################## #########################
 def main(flg_fig):
@@ -267,6 +348,9 @@ def main(flg_fig):
         fig_patch_ij_binned_stats('median_diff', 'median',
                                   'mae_patches_t75_p20.npz')
 
+    # Explore the bias
+    if flg_fig & (2 ** 3):
+        fig_explore_bias(clobber=True)
 
 # Command line execution
 if __name__ == '__main__':
@@ -275,7 +359,8 @@ if __name__ == '__main__':
         flg_fig = 0
         #flg_fig += 2 ** 0  # Clouds on the sphere
         #flg_fig += 2 ** 1  # Number satisfying
-        flg_fig += 2 ** 2  # Number satisfying
+        #flg_fig += 2 ** 2  # Binned stats
+        flg_fig += 2 ** 3  # Bias
     else:
         flg_fig = sys.argv[1]
 
