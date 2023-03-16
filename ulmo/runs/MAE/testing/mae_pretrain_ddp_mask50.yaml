@@ -3,7 +3,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: aagabin-mae-pretrain-patch4-mask75
+  name: aagabin-mae-pretrain-patch4-mask50
 spec:
   backoffLimit: 0
   template:
@@ -49,7 +49,7 @@ spec:
             cd ulmo/mae;
             aws --endpoint https://s3-west.nrp-nautilus.io s3 cp s3://llc/PreProc/LLC_uniform144_nonoise_preproc.h5 ./;
             torchrun --standalone --nproc_per_node=8 LLC_main_pretrain_DDP.py --epochs 400 --data_path 
-            LLC_uniform144_nonoise_preproc.h5 --output_dir ./mae_pretrain_ddp_mask75 --blr 1.5e-4 --mask_ratio 0.75;
+            LLC_uniform144_nonoise_preproc.h5 --output_dir ./mae_pretrain_ddp_mask50 --blr 1e-4 --mask_ratio 0.50;
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"
