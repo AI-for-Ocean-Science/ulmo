@@ -1,0 +1,80 @@
+# Script to evaluate an SSL model on the 96% CF MODIS data
+# kubectl exec -it test-pod -- /bin/bash
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: aagabin-mae-pretrain-ddp
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: NotIn
+                values:
+                  - k8s-chase-ci-01.noc.ucsb.edu
+              - key: nvidia.com/gpu.product
+                operator: In
+                values:
+                  - NVIDIA-A10
+      containers:
+      - name: container
+        image: localhost:30081/profxj/mae_nvidia:latest  # UPDATE
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: "4"   # Using at least 4
+            memory: "75Gi"  # Using ~7
+            ephemeral-storage: 50Gi
+          limits:
+            cpu: "8"
+            memory: "100Gi"
+            ephemeral-storage: 300Gi
+            nvidia.com/gpu:  "8"  # See docs to exlude certain types
+        command: ["/bin/bash", "-c"]
+            #command: ["sh", "-c", "sleep infinity"]
+        args:
+          - pip install tensorboard;
+            pip3 install torch torchvision torchaudio --force-reinstall  --extra-index-url https://download.pytorch.org/whl/cu116;
+            cd ulmo; 
+            git fetch;
+            git checkout mae; 
+            git pull; 
+            python setup.py develop;
+            cp ulmo/mae/correct_helpers.py /root/miniconda3/lib/python3.8/site-packages/timm/models/layers/helpers.py;
+            cd ulmo/mae;
+            aws --endpoint https://s3-west.nrp-nautilus.io s3 cp s3://llc/PreProc/LLC_uniform144_nonoise_preproc.h5 ./;
+            aws --endpoint https://s3-west.nrp-nautilus.io s3 cp s3://llc/mae/mae_pretrain_ddp_test/checkpoint-9.pth ./;
+            torchrun --standalone --nproc_per_node=8 LLC_main_pretrain_DDP.py --epochs 400 --data_path LLC_uniform144_nonoise_preproc.h5 --output_dir ./mae_pretrain_ddp_test --resume checkpoint-9.pth;
+        env:
+          - name: "ENDPOINT_URL"
+            value: "http://rook-ceph-rgw-nautiluss3.rook"
+          - name: "S3_ENDPOINT"
+            value: "rook-ceph-rgw-nautiluss3.rook"
+        volumeMounts:
+          - name: prp-s3-credentials
+            mountPath: "/root/.aws/credentials"
+            subPath: "credentials"
+          - name: ephemeral
+            mountPath: "/tmp"
+          - name: "dshm"
+            mountPath: "/dev/shm"
+      nodeSelector:
+        nautilus.io/disktype: nvme
+      restartPolicy: Never
+      volumes:
+        # Secrets file for nautilus s3 credentials .aws/credentials and .s3cfg
+        - name: prp-s3-credentials
+          secret:
+            secretName: prp-s3-credentials
+        # Shared memory (necessary for Python's multiprocessing.shared_memory module to work)
+        - name: dshm
+          emptyDir:
+            medium: Memory
+        # Ephemeral storage
+        - name: ephemeral
+          emptyDir: {}
