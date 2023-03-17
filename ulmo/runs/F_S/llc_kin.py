@@ -23,6 +23,7 @@ from IPython import embed
 tst_file = 's3://llc/Tables/test_FS_r5.0_test.parquet'
 full_fileA = 's3://llc/Tables/LLC_FS_r0.5A.parquet'
 viirs98_file = 's3://viirs/Tables/VIIRS_all_98clear_std.parquet'
+modis_l2_file = 's3://modis-l2/Tables/MODIS_SSL_96clear.parquet'
 local_viirs98_file = os.path.join(os.getenv('SST_OOD'),
                                   'VIIRS', 'Tables', 'VIIRS_all_98clear_std.parquet')
 llc_viirs98_file = 's3://llc/Tables/llc_viirs_match.parquet'
@@ -303,10 +304,12 @@ def main(flg):
     if flg & (2**2):
         kin_nenya_eval(full_fileA)
 
+    # Nenya on VIIRS
     if flg & (2**3):
         kin_nenya_eval(viirs98_file, 
                        s3_outdir='s3://viirs/Nenya/')
 
+    # Nenya on LLC
     if flg & (2**4):
         kin_nenya_eval(llc_viirs98_file,
                        s3_outdir='s3://llc/Nenya/')
@@ -329,6 +332,10 @@ def main(flg):
                    's3://llc/Nenya/',
                    local=True, DT_key='DT')
 
+    # Nenya on MODIS-L2 (test)
+    if flg & (2**6):
+        kin_nenya_eval(modis_l2_file, 
+                       s3_outdir='s3://modis-l2/Nenya/')
 
 
 # Command line execution
@@ -343,6 +350,7 @@ if __name__ == '__main__':
         #flg += 2 ** 3  # 8 -- Evaluate VIIRS 98
         #flg += 2 ** 4  # 16 -- Evaluate LLC matched to VIIRS 98
         #flg += 2 ** 5  # 32 -- UMAP Nenya -- This only works on 3.9!!
+        #flg += 2 ** 3  # 8 -- Evaluate MODIS 96
     else:
         flg = sys.argv[1]
 
