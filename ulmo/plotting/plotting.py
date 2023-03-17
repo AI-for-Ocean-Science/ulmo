@@ -11,9 +11,13 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.gridspec import GridSpec
 
-from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
-import cartopy.crs as ccrs
-import cartopy
+try:
+    import cartopy
+except:
+    print("No cartopy")
+else:
+    from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
+    import cartopy.crs as ccrs
 
 def load_palette(pfile=None):
     """ Load the color pallette
