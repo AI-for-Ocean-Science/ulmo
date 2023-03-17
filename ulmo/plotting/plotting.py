@@ -5,11 +5,15 @@ from pkg_resources import resource_filename
 import os
 
 import numpy as np
+import pandas
 import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.gridspec import GridSpec
 
+from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
+import cartopy.crs as ccrs
+import cartopy
 
 def load_palette(pfile=None):
     """ Load the color pallette
@@ -224,3 +228,59 @@ def umap_gallery(main_tbl, outfile=None, point_sz_scl=1.,
         print(f"Wrote: {outfile}")
 
     return ax
+
+
+def geo_table(df:pandas.DataFrame, nside:int=64, color:str='Blues',
+              log:bool=False, vmax:float=None, lbl:str=None):
+
+    hp_events, hp_lons, hp_lats = image_utils.evals_to_healpix(df, nside)
+
+    if log:
+        hp_plot = np.log10(hp_events)
+    else:
+        hp_plot = hp_events
+
+   # Figure
+    fig = plt.figure(figsize=(12,8))
+    plt.clf()
+
+    tformM = ccrs.Mollweide()
+    tformP = ccrs.PlateCarree()
+
+    ax = plt.axes(projection=tformM)
+
+    cm = plt.get_cmap(color)
+    # Cut
+    good = np.invert(hp_plot.mask)
+    img = plt.scatter(x=hp_lons[good],
+        y=hp_lats[good],
+        c=hp_plot[good], 
+        cmap=cm,
+        vmax=vmax, 
+        s=1,
+        transform=tformP)
+
+    # Colorbar
+    cb = plt.colorbar(img, orientation='horizontal', pad=0.)
+    if lbl is not None:
+        cb.set_label(lbl, fontsize=20.)
+    cb.ax.tick_params(labelsize=17)
+
+    # Coast lines
+    ax.coastlines(zorder=10)
+    ax.add_feature(cartopy.feature.LAND, 
+        facecolor='gray', edgecolor='black')
+    ax.set_global()
+
+    gl = ax.gridlines(crs=tformP, linewidth=1, 
+        color='black', alpha=0.5, linestyle=':', draw_labels=True)
+    gl.xlabels_top = False
+    gl.ylabels_left = True
+    gl.ylabels_right=False
+    gl.xlines = True
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.yformatter = LATITUDE_FORMATTER
+    gl.xlabel_style = {'color': 'black'}# 'weight': 'bold'}
+    gl.ylabel_style = {'color': 'black'}# 'weight': 'bold'}
+
+    set_fontsize(ax, 19.)
