@@ -24,9 +24,12 @@ tst_file = 's3://llc/Tables/test_FS_r5.0_test.parquet'
 full_fileA = 's3://llc/Tables/LLC_FS_r0.5A.parquet'
 viirs98_file = 's3://viirs/Tables/VIIRS_all_98clear_std.parquet'
 modis_l2_file = 's3://modis-l2/Tables/MODIS_SSL_96clear.parquet'
-local_viirs98_file = os.path.join(os.getenv('SST_OOD'),
-                                  'VIIRS', 'Tables', 'VIIRS_all_98clear_std.parquet')
 llc_viirs98_file = 's3://llc/Tables/llc_viirs_match.parquet'
+
+if os.getenv('SST_OOD') is not None:
+    local_viirs98_file = os.path.join(os.getenv('SST_OOD'),
+                                  'VIIRS', 'Tables', 'VIIRS_all_98clear_std.parquet')
+
 nenya_opt_path = os.path.join(resource_filename('ulmo', 'runs'), 'SSL',
                               'MODIS', 'v4', 'opts_ssl_modis_v4.json')
 
