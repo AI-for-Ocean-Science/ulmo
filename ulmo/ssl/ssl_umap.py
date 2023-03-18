@@ -102,6 +102,7 @@ def umap_subset(modis_tbl:pandas.DataFrame,
         alpha_cut (str, optional): alpha cut to apply. Defaults to None.
         ntrain (int, optional): _description_. Defaults to 200000.
         remove (bool, optional): _description_. Defaults to True.
+        table (str, optional): Describes the dataset
         umap_savefile (str, optional): _description_. Defaults to None.
         local (bool, optional): _description_. Defaults to True.
         CF (bool, optional): Use cloud free (99%) set? Defaults to False.
@@ -151,7 +152,7 @@ def umap_subset(modis_tbl:pandas.DataFrame,
     print(f"After the cuts, we have {len(modis_tbl)} cutouts to work on.")
 
     # 
-    if table in ['CF', '96']:
+    if table in ['CF', '96', 'modis']:
         valid = modis_tbl.ulmo_pp_type == 0
         train = modis_tbl.ulmo_pp_type == 1
         cut_prefix = 'ulmo_'

@@ -246,10 +246,24 @@ def kin_nenya_eval(tbl_file:str, s3_outdir:str=None,
             os.remove(data_file)
             print(f'{data_file} removed')
     
-def nenya_umap(tbl_file:str, subset:str, out_path:str, out_root:str,
-            table:str, s3_outdir:str, 
+def nenya_umap(tbl_file:str, subset:str, out_path:str, out_root:str, 
+               table:str, s3_outdir:str, 
                clobber_local=False, debug=False, local:bool=True,
                DT_key='DT40'):
+    """ Run UMAP on Nenya output
+
+    Args:
+        tbl_file (str): Full table file
+        subset (str): DT subset, e.g. DT1
+        out_path (str): Landing path for the UMAP output
+        out_root (str): Root for the UMAP output table
+        table (str): Descriptor of the dataset, passed to umap_subset()
+        s3_outdir (str): ??
+        clobber_local (bool, optional): _description_. Defaults to False.
+        debug (bool, optional): _description_. Defaults to False.
+        local (bool, optional): _description_. Defaults to True.
+        DT_key (str, optional): _description_. Defaults to 'DT40'.
+    """
 
     # Load table
     tbl = ulmo_io.load_main_table(tbl_file)
@@ -317,6 +331,7 @@ def main(flg):
         kin_nenya_eval(llc_viirs98_file,
                        s3_outdir='s3://llc/Nenya/')
 
+    # UMAPs
     if flg & (2**5):
 
         '''
@@ -326,7 +341,6 @@ def main(flg):
                    'VIIRS_Nenya', 'viirs', 
                    's3://viirs/Nenya/',
                    local=True, DT_key='DT')
-        '''
 
         # LLC Kin
         nenya_umap(full_fileA, 'DT1',
@@ -334,6 +348,15 @@ def main(flg):
                    'LLC_A_Nenya', 'llc', 
                    's3://llc/Nenya/',
                    local=True, DT_key='DT')
+        '''
+
+        # MODIS
+        nenya_umap(modis_l2_file, 'DT1',
+                   os.path.join(os.getenv('SST_OOD'), 'MODIS_L2'),
+                   'MODIS_Nenya', 'modis', 
+                   's3://modis-l2/Nenya/',
+                   local=True)
+
 
     # Nenya on MODIS-L2 (test)
     if flg & (2**6):
