@@ -255,7 +255,7 @@ def nenya_umap(tbl_file:str, subset:str, out_path:str, out_root:str,
     Args:
         tbl_file (str): Full table file
         subset (str): DT subset, e.g. DT1
-        out_path (str): Landing path for the UMAP output
+        out_path (str): Path to the latents
         out_root (str): Root for the UMAP output table
         table (str): Descriptor of the dataset, passed to umap_subset()
         s3_outdir (str): ??
@@ -352,7 +352,8 @@ def main(flg):
 
         # MODIS
         nenya_umap(modis_l2_file, 'DT1',
-                   os.path.join(os.getenv('SST_OOD'), 'MODIS_L2'),
+                   os.path.join(os.getenv('OS_AI'), 'Nenya',
+                                'MODIS'), 
                    'MODIS_Nenya', 'modis', 
                    's3://modis-l2/Nenya/',
                    local=True, DT_key='DT')
