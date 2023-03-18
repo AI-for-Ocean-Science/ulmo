@@ -355,7 +355,7 @@ def main(flg):
                    os.path.join(os.getenv('SST_OOD'), 'MODIS_L2'),
                    'MODIS_Nenya', 'modis', 
                    's3://modis-l2/Nenya/',
-                   local=True)
+                   local=True, DT_key='DT')
 
 
     # Nenya on MODIS-L2 (test)
