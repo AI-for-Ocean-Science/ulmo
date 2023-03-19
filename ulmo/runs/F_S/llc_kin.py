@@ -17,6 +17,7 @@ from ulmo.preproc import plotting as pp_plotting
 from ulmo.ssl.train_util import option_preprocess
 from ulmo.ssl import latents_extraction
 from ulmo.ssl import ssl_umap
+from ulmo.ssl import io as ssl_io
 
 from IPython import embed
 
@@ -337,14 +338,14 @@ def main(flg):
         '''
         # VIIRS
         nenya_umap(local_viirs98_file, 'DT1',
-                   os.path.join(os.getenv('SST_OOD'), 'VIIRS'),
+            ssl_io.latent_path('viirs'),
                    'VIIRS_Nenya', 'viirs', 
                    's3://viirs/Nenya/',
                    local=True, DT_key='DT')
 
         # LLC Kin
         nenya_umap(full_fileA, 'DT1',
-                   os.path.join(os.getenv('SST_OOD'), 'LLC'),
+            ssl_io.latent_path('llc'),
                    'LLC_A_Nenya', 'llc', 
                    's3://llc/Nenya/',
                    local=True, DT_key='DT')
@@ -352,11 +353,10 @@ def main(flg):
 
         # MODIS
         nenya_umap(modis_l2_file, 'DT1',
-                   os.path.join(os.getenv('OS_AI'), 'Nenya',
-                                'MODIS'), 
-                   'MODIS_Nenya', 'modis', 
-                   's3://modis-l2/Nenya/',
-                   local=True, DT_key='DT')
+            ssl_io.latent_path('modis'),
+            'MODIS_Nenya', 'modis', 
+            's3://modis-l2/Nenya/',
+            local=True, DT_key='DT')
 
 
     # Nenya on MODIS-L2 (test)

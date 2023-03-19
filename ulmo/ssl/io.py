@@ -6,6 +6,18 @@ from ulmo import io as ulmo_io
 from ulmo.ssl.train_util import option_preprocess
 
 def load_opt(model:str):
+    """ Load Nenya model
+
+    Args:
+        model (str): name of model
+
+    Raises:
+        IOError: _description_
+
+    Returns:
+        tuple: dict, str
+            Model and path to model file
+    """
     # Prep
     model_file = None
     if model == 'LLC' or model == 'LLC_local':
@@ -31,4 +43,18 @@ def load_opt(model:str):
 
     # Return
     return opt, model_file
+    
+def latent_path(dataset:str):
+    nenya_path = os.path.join(os.getenv('OS_AI'), 'Nenya')
+
+    if dataset == 'modis':
+        latent_path = os.path.join(nenya_path, 'MODIS', 'latents')
+    elif dataset == 'llc':
+        latent_path = os.path.join(nenya_path, 'LLC', 'latents')
+    elif dataset == 'viirs':
+        latent_path = os.path.join(nenya_path, 'VIIRS', 'latents')
+    else:
+        raise IOError(f'Bad dataset: {dataset}')
+
+    return latent_path
     

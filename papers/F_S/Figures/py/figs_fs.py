@@ -15,6 +15,9 @@ def load_tbl(survey:str, DT:str='DT1'):
         tbl_file = f'/data/Projects/Oceanography/AI/OOD/SST/VIIRS/Tables/VIIRS_Nenya_{DT}.parquet'
     elif survey == 'llc':
         tbl_file = f'/data/Projects/Oceanography/AI/OOD/SST/LLC/Tables/LLC_A_Nenya_{DT}.parquet'
+    elif survey == 'modis':
+        tbl_file = os.path.join(os.getenv('OS_AI'),
+                                f'/data/Projects/Oceanography/AI/OOD/SST/LLC/Tables/LLC_A_Nenya_{DT}.parquet'
     #
     tbl = table_utils.load(tbl_file)
     return tbl
