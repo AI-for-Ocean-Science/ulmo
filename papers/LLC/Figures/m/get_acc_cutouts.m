@@ -52,7 +52,7 @@ for iHEALPix=1:length(healpix_cell_number)
     
     % Get the data for this HEALPix cell
     
-    fi.healpix_cell_number{iHEALPix} = ['~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/HEALPic/Southern_Ocean_Cutouts/ACC_cutouts_' healpix_cell_number{iHEALPix} '_'  dataset '.h5'];
+    fi.healpix_cell_number{iHEALPix} = ['~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/HEALPix/Southern_Ocean_Cutouts/ACC_cutouts_' healpix_cell_number{iHEALPix} '_'  dataset '.h5'];
     
     cutouts_tt = h5read( fi.healpix_cell_number{iHEALPix}, '/valid');
     
