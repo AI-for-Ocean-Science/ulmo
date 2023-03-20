@@ -71,11 +71,11 @@ def grid_plot(nrows, ncols):
     
     return fig, axes
 
-def show_image(img:np.ndarray, cm=None, cbar=True, flipud=True,
+
+def show_image(img:np.ndarray, cm=None, cbar:bool=True, flipud=True,
                vmnx=(None,None), show=False, set_aspect=None, clbl=None,
                ax=None):
     """Dispay the cutout image
-
     Args:
         img (np.ndarray): cutout image
         cm ([type], optional): Color map to use. Defaults to None.
@@ -86,7 +86,6 @@ def show_image(img:np.ndarray, cm=None, cbar=True, flipud=True,
         set_aspect (str, optional):
             Passed to ax.set_aspect() if provided
         ax (matplotlib.Axis, optional): axis to use for the plot
-
     Returns:
         matplotlib.Axis: axis containing the plot
     """

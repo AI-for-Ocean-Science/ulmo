@@ -3,7 +3,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: aagabin-mae-pretrain-test-a10
+  name: aagabin-mae-pretrain-ddp
 spec:
   backoffLimit: 0
   template:
@@ -27,13 +27,13 @@ spec:
         imagePullPolicy: Always
         resources:
           requests:
-            cpu: "8"   # Using at least 4
-            memory: "16Gi"  # Using ~7
+            cpu: "4"   # Using at least 4
+            memory: "75Gi"  # Using ~7
             ephemeral-storage: 50Gi
           limits:
-            cpu: "16"
-            memory: "25Gi"
-            ephemeral-storage: 100Gi
+            cpu: "8"
+            memory: "100Gi"
+            ephemeral-storage: 300Gi
             nvidia.com/gpu:  "8"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]
             #command: ["sh", "-c", "sleep infinity"]
@@ -48,8 +48,8 @@ spec:
             cp ulmo/mae/correct_helpers.py /root/miniconda3/lib/python3.8/site-packages/timm/models/layers/helpers.py;
             cd ulmo/mae;
             aws --endpoint https://s3-west.nrp-nautilus.io s3 cp s3://llc/PreProc/LLC_uniform144_nonoise_preproc.h5 ./;
-            python main_pretrain.py --epochs 400 --model mae_vit_LLC_patch4 --mask_ratio 0.10;
-            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp output_dir s3://llc/output_dir --recursive --force;
+            aws --endpoint https://s3-west.nrp-nautilus.io s3 cp s3://llc/mae/mae_pretrain_ddp_test/checkpoint-9.pth ./;
+            torchrun --standalone --nproc_per_node=8 LLC_main_pretrain_DDP.py --epochs 400 --data_path LLC_uniform144_nonoise_preproc.h5 --output_dir ./mae_pretrain_ddp_test --resume checkpoint-9.pth;
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"

@@ -106,7 +106,7 @@ def prepare_model(args):
     return model, optimizer, device, loss_scaler
 
 
-def run_one_image(img, model, mask_ratio, file, mask_file):
+def run_one_image(img:np.ndarray, model, mask_ratio, file, mask_file):
     x = torch.tensor(img)
 
     # make it a batch-like

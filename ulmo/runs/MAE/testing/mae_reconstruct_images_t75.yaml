@@ -3,7 +3,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: aagabin-mae-pretrain-patch4-mask75
+  name: aagabin-mae-reconstruct-images-t75s
 spec:
   backoffLimit: 0
   template:
@@ -20,7 +20,7 @@ spec:
               - key: nvidia.com/gpu.product
                 operator: In
                 values:
-                  - NVIDIA-A10
+                  - NVIDIA-GeForce-RTX-3090
       containers:
       - name: container
         image: localhost:30081/profxj/mae_nvidia:latest  # UPDATE
@@ -28,18 +28,21 @@ spec:
         resources:
           requests:
             cpu: "4"   # Using at least 4
-            memory: "75Gi"  # Using ~7
-            ephemeral-storage: 50Gi
+            memory: "16Gi"  # Using ~7
+            ephemeral-storage: 100Gi
           limits:
             cpu: "8"
-            memory: "100Gi"
-            ephemeral-storage: 300Gi
-            nvidia.com/gpu:  "8"  # See docs to exlude certain types
+            memory: "50Gi"
+            ephemeral-storage: 150Gi
+            nvidia.com/gpu:  "1"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]
             #command: ["sh", "-c", "sleep infinity"]
         args:
           - pip install tensorboard;
             pip3 install torch torchvision torchaudio --force-reinstall  --extra-index-url https://download.pytorch.org/whl/cu116;
+            pip3 install cycler;
+            pip install kiwisolver;
+            pip install importlib-resources;
             cd ulmo; 
             git fetch;
             git checkout mae; 
@@ -47,9 +50,14 @@ spec:
             python setup.py develop;
             cp ulmo/mae/correct_helpers.py /root/miniconda3/lib/python3.8/site-packages/timm/models/layers/helpers.py;
             cd ulmo/mae;
-            aws --endpoint https://s3-west.nrp-nautilus.io s3 cp s3://llc/PreProc/LLC_uniform144_nonoise_preproc.h5 ./;
-            torchrun --standalone --nproc_per_node=8 LLC_main_pretrain_DDP.py --epochs 400 --data_path 
-            LLC_uniform144_nonoise_preproc.h5 --output_dir ./mae_pretrain_ddp_mask75 --blr 1.5e-4 --mask_ratio 0.75;
+            aws --endpoint https://s3-west.nrp-nautilus.io s3 cp s3://llc/mae/PreProc/MAE_LLC_valid_nonoise_preproc.h5 ./;
+            aws --endpoint https://s3-west.nrp-nautilus.io s3 cp s3://llc/mae/mae_pretrain_ddp_mask75/checkpoint-399.pth ./;
+            python reconstruct_LLC.py --model mae_vit_LLC_patch4 --mask_ratio 0.10 --model_training_mask 0.75 --data_path MAE_LLC_valid_nonoise_preproc.h5 --resume checkpoint-399.pth;
+            python reconstruct_LLC.py --model mae_vit_LLC_patch4 --mask_ratio 0.20 --model_training_mask 0.75 --data_path MAE_LLC_valid_nonoise_preproc.h5 --resume checkpoint-399.pth;
+            python reconstruct_LLC.py --model mae_vit_LLC_patch4 --mask_ratio 0.30 --model_training_mask 0.75 --data_path MAE_LLC_valid_nonoise_preproc.h5 --resume checkpoint-399.pth;
+            python reconstruct_LLC.py --model mae_vit_LLC_patch4 --mask_ratio 0.40 --model_training_mask 0.75 --data_path MAE_LLC_valid_nonoise_preproc.h5 --resume checkpoint-399.pth;
+            python reconstruct_LLC.py --model mae_vit_LLC_patch4 --mask_ratio 0.50 --model_training_mask 0.75 --data_path MAE_LLC_valid_nonoise_preproc.h5 --resume checkpoint-399.pth;
+            
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"
