@@ -45,14 +45,16 @@ def load_opt(model:str):
     return opt, model_file
     
 def latent_path(dataset:str):
-    nenya_path = os.path.join(os.getenv('OS_AI'), 'Nenya')
+    sst_path = os.getenv('OS_SST')
 
     if dataset == 'modis':
-        latent_path = os.path.join(nenya_path, 'MODIS', 'latents')
+        dset = 'MODIS_L2'
+    elif dataset == 'modis_redo':
+        latent_path = os.path.join(sst_path, 'MODIS_L2', 'latents')
     elif dataset == 'llc':
-        latent_path = os.path.join(nenya_path, 'LLC', 'latents')
+        latent_path = os.path.join(sst_path, 'LLC', 'latents')
     elif dataset == 'viirs':
-        latent_path = os.path.join(nenya_path, 'VIIRS', 'latents')
+        latent_path = os.path.join(sst_path, 'VIIRS', 'latents')
     else:
         raise IOError(f'Bad dataset: {dataset}')
 
