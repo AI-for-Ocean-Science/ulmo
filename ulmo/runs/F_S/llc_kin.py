@@ -11,8 +11,8 @@ from pkg_resources import resource_filename
 from ulmo.llc import extract 
 from ulmo.llc import uniform
 from ulmo import io as ulmo_io
-from ulmo.analysis import evaluate as ulmo_evaluate 
 from ulmo.preproc import plotting as pp_plotting
+from ulmo.utils import table as table_utils
 
 from ulmo.ssl.train_util import option_preprocess
 from ulmo.ssl import latents_extraction
@@ -247,7 +247,8 @@ def kin_nenya_eval(tbl_file:str, s3_outdir:str=None,
             os.remove(data_file)
             print(f'{data_file} removed')
     
-def nenya_umap(tbl_file:str, subset:str, out_path:str, out_root:str, 
+def nenya_umap(tbl_file:str, subset:str, local_latents_path:str, out_root:str, 
+                out_table_path:str,
                table:str, s3_outdir:str, 
                clobber_local=False, debug=False, local:bool=True,
                DT_key='DT40'):
@@ -256,7 +257,7 @@ def nenya_umap(tbl_file:str, subset:str, out_path:str, out_root:str,
     Args:
         tbl_file (str): Full table file
         subset (str): DT subset, e.g. DT1
-        out_path (str): Path to the latents
+        local_latents_path (str): Path to the latents
         out_root (str): Root for the UMAP output table
         table (str): Descriptor of the dataset, passed to umap_subset()
         s3_outdir (str): ??
@@ -281,7 +282,7 @@ def nenya_umap(tbl_file:str, subset:str, out_path:str, out_root:str,
 
     # Output files
     outfile = os.path.join(
-        out_path, 'Tables',
+        out_table_path, 'Tables',
         f'{out_root}_{subset}.parquet')
 
 
@@ -298,7 +299,7 @@ def nenya_umap(tbl_file:str, subset:str, out_path:str, out_root:str,
                          train_umap=False, 
                          umap_savefile=umap_savefile,
                          s3_outdir=s3_outdir,
-                         local_dataset_path=out_path,
+                         local_dataset_path=local_latents_path,
                          remove=False, CF=False)
 
 
@@ -353,9 +354,11 @@ def main(flg):
 
         # MODIS
         nenya_umap(modis_l2_file, 'DT1',
-            ssl_io.latent_path('modis'),
-            'MODIS_Nenya', 'modis', 
-            's3://modis-l2/Nenya/',
+            ssl_io.latent_path('modis_redo'),
+            'MODIS_Nenya', 
+            'modis', 
+            table_utils.path_to_tables('modis'),
+            opt_path='MODIS_R2019_v4_REDO',
             local=True, DT_key='DT')
 
 

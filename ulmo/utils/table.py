@@ -4,6 +4,15 @@ import pandas
 
 from ulmo import io as ulmo_io
 
+def path_to_tables(dataset:str):
+
+    if dataset == 'modis': 
+        path = os.path.join(os.getenv('OS_SST'), 'MODIS_L2', 'Tables')
+
+
+    return path
+
+    
 
 def load(tbl_file:str,
          local=False, cuts:str=None, 

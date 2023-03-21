@@ -5,6 +5,7 @@ from pkg_resources import resource_filename
 from ulmo import io as ulmo_io
 from ulmo.ssl.train_util import option_preprocess
 
+
 def load_opt(model:str):
     """ Load Nenya model
 
@@ -44,19 +45,17 @@ def load_opt(model:str):
     # Return
     return opt, model_file
     
-def latent_path(dataset:str):
-    sst_path = os.getenv('OS_SST')
+def latent_path(dataset:str, local:bool=True, 
+                model:str='MODIS_R2019_v4/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_256_temp_0.07_trial_5_cosine_warm'):
+    if local:
+        sst_path = os.getenv('OS_SST')
 
-    if dataset == 'modis':
+    if 'modis' in dataset: 
         dset = 'MODIS_L2'
-    elif dataset == 'modis_redo':
-        latent_path = os.path.join(sst_path, 'MODIS_L2', 'latents')
-    elif dataset == 'llc':
-        latent_path = os.path.join(sst_path, 'LLC', 'latents')
-    elif dataset == 'viirs':
-        latent_path = os.path.join(sst_path, 'VIIRS', 'latents')
+        if dataset == 'modis_redo':
+            model = model.replace('v4', 'v4_REDO')
     else:
         raise IOError(f'Bad dataset: {dataset}')
 
-    return latent_path
+    return os.path.join(sst_path, dset, 'Nenya', 'latents', model)
     

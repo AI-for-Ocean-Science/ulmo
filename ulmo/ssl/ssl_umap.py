@@ -2,6 +2,7 @@
 import numpy as np
 import os, shutil
 import pickle
+import glob
 
 import h5py
 import pandas
@@ -171,15 +172,19 @@ def umap_subset(modis_tbl:pandas.DataFrame,
         raise IOError("Bad table")
 
     # Prep latent_files
-    print(f"Loading latents from this folder: {opt.latents_folder}")
-    if s3_outdir is None:
-        s3_outdir = opt.s3_outdir
-    latents_path = os.path.join(s3_outdir, opt.latents_folder)
-    latent_files = ulmo_io.list_of_bucket_files(latents_path)
-    # Finish
-    parsed_s3 = urlparse(s3_outdir)
-    bucket_name = parsed_s3.netloc
-    latent_files = [f's3://{bucket_name}/'+item for item in latent_files]
+    if local_dataset_path is not None:
+        print(f"Loading latents from this folder: {local_dataset_path}")
+        latent_files = glob.glob(local_dataset_path+'/*_latents_*.h5')
+    else:
+        print(f"Loading latents from this folder: {opt.latents_folder}")
+        if s3_outdir is None:
+            s3_outdir = opt.s3_outdir
+        latents_path = os.path.join(s3_outdir, opt.latents_folder)
+        latent_files = ulmo_io.list_of_bucket_files(latents_path)
+        # Finish
+        parsed_s3 = urlparse(s3_outdir)
+        bucket_name = parsed_s3.netloc
+        latent_files = [f's3://{bucket_name}/'+item for item in latent_files]
 
     # Prep for year by year analysis
     if yr_idx >= 0:
@@ -204,11 +209,8 @@ def umap_subset(modis_tbl:pandas.DataFrame,
         if not os.path.isfile(basefile):
             # Try local if local is True
             if local:
-                local_file = latents_file.replace(f's3://{bucket_name}',
-                    local_dataset_path)
-                    #os.path.join(os.getenv('SST_OOD'), 'MODIS_L2')) # I may broken this..
-                print(f"Copying {local_file}")
-                shutil.copyfile(local_file, basefile)
+                print(f"Copying {latent_file}")
+                shutil.copyfile(latents_file, basefile)
             if not os.path.isfile(basefile):
                 print(f"Downloading {latents_file} (this is *much* faster than s3 access)...")
                 ulmo_io.download_file_from_s3(basefile, latents_file)
