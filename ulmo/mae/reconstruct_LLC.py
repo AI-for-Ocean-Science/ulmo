@@ -22,18 +22,18 @@ import torch
 import numpy as np
 import h5py
 import timm.optim.optim_factory as optim_factory
-from util.misc import NativeScalerWithGradNormCount as NativeScaler
+from ulmo.mae.util.misc import NativeScalerWithGradNormCount as NativeScaler
 
 import matplotlib.pyplot as plt
 from PIL import Image
-from util.hdfstore import HDF5Store
-import util.misc as misc
+from ulmo.mae.util.hdfstore import HDF5Store
+import ulmo.mae.util.misc as misc
 from ulmo import io as ulmo_io
 from ulmo.utils import HDF5Dataset, id_collate, get_quantiles
 
-import models_mae
-from mae_utils import img_filename, mask_filename
-from engine_pretrain import reconstruct_one_epoch
+from ulmo.mae import models_mae
+from ulmo.mae.mae_utils import img_filename, mask_filename
+from ulmo.mae.engine_pretrain import reconstruct_one_epoch
 
 def get_args_parser():
     parser = argparse.ArgumentParser('MAE reconstruction', add_help=False)
