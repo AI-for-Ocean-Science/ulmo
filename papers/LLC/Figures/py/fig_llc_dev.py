@@ -270,9 +270,11 @@ def fig_brazil_save(nGal=9, outdir='Brazil', seed=1234):
             sv_idx.append(rand[ss])
             sv_lbls.append(smpl+'_{}'.format(str(ss).zfill(3)))
             # Load velocity
-            U, V, SST = llc_io.grab_velocity(example, add_SST=True)
+            U, V, SST, Salt = llc_io.grab_velocity(example, add_SST=True,
+                                             add_Salt=True)
             # Generate ds
-            ds = xarray.Dataset({'U': U, 'V': V, 'Theta': SST})
+            ds = xarray.Dataset({'U': U, 'V': V, 'Theta': SST,
+                                 'Salt': Salt})
             # Outfile
             outfile = os.path.join(outdir, '{}.nc'.format(sv_lbls[-1]))
             ds.to_netcdf(outfile)
@@ -284,6 +286,16 @@ def fig_brazil_save(nGal=9, outdir='Brazil', seed=1234):
     evals_bz.to_csv(os.path.join(outdir, 'brazil.csv'))
 
 def load_brazil(nGal=9, indir='Brazil', use_files=True):
+    """ Method to load up images from the Brazil-Malvanis Channel
+
+    Args:
+        nGal (int, optional): _description_. Defaults to 9.
+        indir (str, optional): _description_. Defaults to 'Brazil'.
+        use_files (bool, optional): _description_. Defaults to True.
+
+    Returns:
+        tuple: show_R1, show_R2, R1_dict, R2_dict
+    """
     # Load LLC
     tbl_test_noise_file = 's3://llc/Tables/test_noise_modis2012.parquet'
     llc_table = ulmo_io.load_main_table(tbl_test_noise_file)
@@ -319,7 +331,7 @@ def load_brazil(nGal=9, indir='Brazil', use_files=True):
 
     # Load up input files?
     if use_files:
-        keys = ['U', 'V', 'Theta']
+        keys = ['U', 'V', 'Theta', 'Salt']
         R1_dict, R2_dict = {}, {}
         for smpl, R_dict in zip(['R1', 'R2'],
                                 [R1_dict, R2_dict]):
@@ -456,6 +468,7 @@ def fig_brazil_kin_imgs(outroot='fig_brazil_',
                 U = R_dict['U'][idx[ss]]
                 V = R_dict['V'][idx[ss]]
                 SST = R_dict['Theta'][idx[ss]]
+                Salt = R_dict['Salt'][idx[ss]]
                 # Axis
                 row = ss//grid_size + row_off
                 col = coff + ss % grid_size
@@ -484,6 +497,11 @@ def fig_brazil_kin_imgs(outroot='fig_brazil_',
                     strain = kinematics.calc_lateral_strain_rate(U.data, V.data)
                     sns.heatmap(np.flipud(strain), ax=ax, cmap='Blues',
                         cbar=False, vmin=0., vmax=0.1)
+                elif metric == 'F_s':  
+                    F_s = kinematics.calc_F_s(U.data, V.data, 
+                                                 SST.data, Salt.data)
+                    sns.heatmap(np.flipud(F_s), ax=ax, cmap='seismic',
+                        cbar=False, vmin=-0.003, vmax=0.003)
                 else: 
                     raise IOError("Bad choice")
                 ax.get_xaxis().set_ticks([])
@@ -495,7 +513,9 @@ def fig_brazil_kin_imgs(outroot='fig_brazil_',
         plt.close()
         print('Wrote {:s}'.format(outfile))
 
-    # Starin rate
+    # Frontogenesis
+    mk_figure('F_s')
+    # Strain rate
     mk_figure('strain_rate')
     # Okubo
     mk_figure('okubo')
@@ -705,6 +725,7 @@ def fig_umap_gallery(outfile='fig_umap_gallery.png',
     ax = plotting.umap_gallery(llc_tbl, outfile=outfile)
 
 
+
 def set_fontsize(ax,fsz):
     '''
     Generate a Table of columns and so on
@@ -752,7 +773,6 @@ def main(flg_fig):
 
     # Brazil velocity
     if flg_fig & (2 ** 4):
-        #fig_brazil_save()
         fig_brazil_kin_imgs(use_files=True)
 
     # Brazil kinematic distributions
@@ -766,6 +786,11 @@ def main(flg_fig):
     if flg_fig & (2 ** 6):
         fig_umap_gallery()
 
+    # Save Brazil data to disk
+    if flg_fig & (2 ** 7):
+        fig_brazil_save()
+
+
 # Command line execution
 if __name__ == '__main__':
 
@@ -777,7 +802,8 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 3  # Spatial LL metrics
         #flg_fig += 2 ** 4  # Brazil kinematic images
         #flg_fig += 2 ** 5  # Brazil kinematic distributions
-        flg_fig += 2 ** 6  # UMAP SSL gallery
+        #flg_fig += 2 ** 6  # UMAP SSL gallery
+        flg_fig += 2 ** 7  # Generate Brazil cutouts of ocean model data
     else:
         flg_fig = sys.argv[1]
 

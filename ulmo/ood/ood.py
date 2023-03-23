@@ -4,6 +4,7 @@ import io, json
 import h5py
 import pickle
 import sklearn
+import time
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -212,13 +213,13 @@ class ProbabilisticAutoencoder:
         
     def _train_module(self, module, n_epochs, batch_size, lr,
                      summary_interval=50, eval_interval=500,
-                     show_plots=True):
+                     show_plots=True, force_save=False):
         """
         Train one of the sub-systems, either autoencoder or flow
 
         Parameters
         ----------
-        module
+        module : str
         n_epochs
         batch_size
         lr
@@ -287,7 +288,10 @@ class ProbabilisticAutoencoder:
                         epoch_pbar.set_description(f"Validation Loss: {valid_loss:.3f}")
                         valid_losses.append((global_step, valid_loss))
                         model.train()
-            save = input("Training stopped. Save model (y/n)?").strip().lower() == 'y'
+            if not force_save:
+                save = input("Training stopped. Save model (y/n)?").strip().lower() == 'y'
+            else:
+                save = True
             if save:
                 save_model()
                 print("Model saved.")
@@ -308,6 +312,9 @@ class ProbabilisticAutoencoder:
                 plt.xlabel('Global Step')
                 plt.ylabel('Loss')
                 plt.legend()
+                plt.savefig(os.path.join(
+                    self.datadir, f'{module}_loss.png'), 
+                            dpi=150)
                 plt.show()
     
     def train_autoencoder(self, **kwargs):
@@ -343,7 +350,11 @@ class ProbabilisticAutoencoder:
                                           desc='Computing valid latents')]
                     valid = self.scaler.transform(np.concatenate(z))
                     f.create_dataset('valid', data=valid); del valid
-            
+            # Sleep to let file flush
+            print("Sleeping for 30 to flush latents file...")
+            time.sleep(30)
+
+            # Scaler
             scaler_path = os.path.join(self.logdir, self.stem + '_scaler.pkl')
             with open(scaler_path, 'wb') as f:
                 pickle.dump(self.scaler, f)
@@ -530,7 +541,7 @@ class ProbabilisticAutoencoder:
 
     def eval_data_file(self, data_file:str, dataset:str, output_file:str,
                        csv=False, **kwargs):
-        """ Make PyTorch dataset from HDF5 file
+        """ Evaluate all of the images in the input data file
 
         Args:
             data_file (str): PreProc data file. Must have .h5 extension

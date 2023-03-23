@@ -1,14 +1,14 @@
 """ Module for Ulmo analysis on VIIRS"""
 import os
 import glob
+import shutil
 import numpy as np
 import subprocess
+from pkg_resources import resource_filename
 
 import pandas
 import h5py
-from skimage.restoration import inpaint
 
-from sklearn.utils import shuffle
 
 from ulmo import io as ulmo_io
 from ulmo.preproc import io as pp_io
@@ -17,6 +17,7 @@ from ulmo.viirs import extract as viirs_ext
 from ulmo.modis import utils as modis_utils
 from ulmo.analysis import evaluate as ulmo_evaluate
 from ulmo.utils import catalog as cat_utils
+from ulmo.ood import ood
 
 import argparse
 
@@ -32,22 +33,6 @@ from IPython import embed
 s3_bucket = 's3://viirs'
 
 
-def parse_option():
-    """
-    This is a function used to parse the arguments in the training.
-
-    Returns:
-        args: (dict) dictionary of the arguments.
-    """
-    parser = argparse.ArgumentParser("VIIRS")
-    parser.add_argument("--task", type=str,
-                        help="task to execute: 'download', 'extract', 'preproc', 'eval'.")
-    parser.add_argument("--year", type=int, help="Year to work on")
-    parser.add_argument("--n_cores", type=int, help="Number of CPU to use")
-    parser.add_argument("--day", type=int, default=1, help="Day to start extraction from")
-    args = parser.parse_args()
-
-    return args
 
 
 def viirs_get_data_into_s3(year=2014, day1=1, 
@@ -263,6 +248,133 @@ def viirs_preproc(year=2014, debug=False, n_cores=20):
     # Final write
     ulmo_io.write_main_table(viirs_tbl, tbl_file)
 
+def viirs_prep_for_ulmo_training(year=2013, debug=False,
+                                 local=True, clearf=98.):
+    """Generate a new PreProc file for training
+
+    Args:
+        year (int, optional): Year to pull from.  Should be 2013. Defaults to 2013.
+        debug (bool, optional): _description_. Defaults to False.
+        local (bool, optional): _description_. Defaults to True.
+        clearf (float, optional): Clear cover fraction to cut on. Defaults to 98.
+
+    Raises:
+        NotImplemented: _description_
+    """
+    # Load up
+    icf = int(clearf)
+    tbl_file = f's3://viirs/Tables/VIIRS_{year}_std.parquet'
+    viirs_tbl = ulmo_io.load_main_table(tbl_file)
+    out_file = f's3://viirs/Tables/VIIRS_{year}_std_train_{icf}.parquet'
+
+    # Download PreProc image
+    s3_pp_file = viirs_tbl.pp_file.values[0]
+    if local:
+        pp_file_base = os.path.basename(s3_pp_file)
+        pp_file = os.path.join(
+            os.getenv('SST_OOD'), 'VIIRS', 'PreProc', pp_file_base)
+    else:
+        raise NotImplemented("Download the file!")
+
+    # Table
+    new_pp_file = pp_file.replace('std', f'std_train').replace('95clear', f'{icf}clear')
+    new_s3_file = s3_pp_file.replace('std', f'std_train').replace('95clear', f'{icf}clear')
+    assert np.unique(viirs_tbl.pp_type)[0] == 0
+
+    # Cut on clear fraction?
+    print(f"Cutting on clear fraction = {clearf}")
+    cc_cut = viirs_tbl.clear_fraction < (1-clearf/100.)
+    train_tbl = viirs_tbl[cc_cut].copy()
+    train_tbl.reset_index(inplace=True)
+    train_tbl.drop('index', axis=1, inplace=True)
+
+    # Load up images
+    print("Loading images...")
+    f = h5py.File(pp_file, 'r')
+    all_imgs = f['valid'][:]
+    cut_imgs = [all_imgs[idx,0,...] for idx in train_tbl.pp_idx]
+
+    # Get ready
+    idx = np.arange(len(train_tbl))
+    train_frac = 150000/len(train_tbl)
+    valid_frac = 1. - train_frac
+
+    del all_imgs
+
+    # Write
+    train_tbl = pp_utils.write_pp_fields(cut_imgs,
+                             None, train_tbl, 
+                             idx, idx, 
+                             skip_meta=True,
+                             valid_fraction=valid_frac,
+                             s3_file=new_s3_file,
+                             local_file=new_pp_file)
+    assert cat_utils.vet_main_table(train_tbl)
+    if not debug:
+        # Final write
+        ulmo_io.write_main_table(train_tbl, out_file)
+
+def viirs_train_ulmo(skip_auto=False, clearf=98., dpath = './'):
+    """Train an Ulmo model on VIIRS
+
+    Args:
+        skip_auto (bool, optional): _description_. Defaults to False.
+        clearf (_type_, optional): _description_. Defaults to 98.
+        dpath (str, optional): _description_. Defaults to './'.
+    """
+    icf = int(clearf)
+    model_dir = f'VIIRS_std_{icf}'
+    datadir= os.path.join(dpath, model_dir)
+    # Setup
+    if not os.path.isdir(os.path.join(dpath,'PreProc')):
+        os.mkdir(os.path.join(dpath, 'PreProc'))
+    if not os.path.isdir(datadir):
+        os.mkdir(datadir)
+
+    # Download PreProc
+    preproc_file = os.path.join(dpath, 'PreProc', 
+                                f'VIIRS_2013_{icf}clear_192x192_preproc_viirs_std_train.h5')
+    if not os.path.isfile(preproc_file):
+        ulmo_io.download_file_from_s3(preproc_file,
+            f's3://viirs/PreProc/VIIRS_2013_{icf}clear_192x192_preproc_viirs_std_train.h5')
+
+    # Setup model
+    model_file = os.path.join(
+        resource_filename('ulmo', 'models'), 'options',
+                              'viirs_pae_model_std.json')
+    # Instantiate
+    print("Starting the model")
+    pae = ood.ProbabilisticAutoencoder.from_json(model_file, 
+                                                filepath=preproc_file,
+                                                datadir=datadir, logdir=datadir)
+    # Train AutoEncoder
+    if skip_auto:
+        pae.load_autoencoder()
+    else:
+        print("Training the AE...")
+        pae.train_autoencoder(n_epochs=10, batch_size=256, 
+                          lr=2.5e-3, summary_interval=50, 
+                          eval_interval=300, force_save=True) # There are 585 batches
+
+    # Train Flow
+    print("Training the FLOW...")
+    pae.train_flow(n_epochs=10, batch_size=64, lr=2.5e-4, 
+                   summary_interval=50, 
+                   eval_interval=1000,
+                   force_save=True)  
+
+    # Set to local stuff..
+    if skip_auto:
+        embed(header='NEED TO FIX THESE PATHS;  340 of viirs_ulmo')
+        pae.filepath['latents'] = 'SSH_std/SSH_100clear_32x32_train_latents.h5'
+        pae.filepath['log_probs'] = 'SSH_std/SSH_100clear_32x32_train_log_probs.h5'
+
+    # Plot
+    #pae.plot_log_probs(save_figure=True, logdir=datadir)
+
+    # Model file
+    shutil.copyfile(model_file, os.path.join(datadir, 'model.json'))
+
 
 def viirs_evaluate(year=2014, debug=False, model='modis-l2-std'):
     """Evaluate the VIIRS data using Ulmo
@@ -275,16 +387,119 @@ def viirs_evaluate(year=2014, debug=False, model='modis-l2-std'):
     tbl_file = f's3://viirs/Tables/VIIRS_{year}_std.parquet'
     viirs_tbl = ulmo_io.load_main_table(tbl_file)
 
+    # MODIS LL
+    if model != 'modis-l2-std' and 'LL' in viirs_tbl.keys() \
+            and 'MODIS_LL' not in viirs_tbl.keys():
+        viirs_tbl['MODIS_LL'] = viirs_tbl.LL.values
+
     # Evaluate
     print("Starting evaluating..")
-    viirs_tbl = ulmo_evaluate.eval_from_main(viirs_tbl, 
-                                             model=model)
+    viirs_tbl = ulmo_evaluate.eval_from_main(viirs_tbl,
+                                             model=model,
+                                             debug=debug)
 
     # Write
-    assert cat_utils.vet_main_table(viirs_tbl)
-    ulmo_io.write_main_table(viirs_tbl, tbl_file)
+    assert cat_utils.vet_main_table(viirs_tbl, cut_prefix='MODIS_')
+    if not debug:
+        ulmo_io.write_main_table(viirs_tbl, tbl_file)
+    else:
+        embed(header='406 of v ulmo')
     print("Done evaluating..")
 
+def viirs_modis_evaluate(debug=False, 
+                         model='viirs-98'):
+    """Evaluate the MODIS data using the VIIRS Ulmo
+
+    Args:
+        debug (bool, optional): [description]. Defaults to False.
+        model (str, optional): [description]. Defaults to 'modis-l2-std'.
+    """
+    # Load table
+    modis_tbl_file = 's3://modis-l2/Tables/MODIS_L2_std.parquet'
+    modis_tbl = ulmo_io.load_main_table(modis_tbl_file)
+
+    # Save MODIS LL
+    MODIS_LL = modis_tbl.LL.values.copy()
+
+    # Evaluate
+    print("Starting evaluating..")
+    new_modis_tbl = ulmo_evaluate.eval_from_main(modis_tbl,
+                                             model=model,
+                                             debug=debug)
+
+    # Rename LL's
+    new_modis_tbl['VIIRS_LL'] = new_modis_tbl.LL.values.copy()
+    new_modis_tbl['LL'] = MODIS_LL
+
+    # Write
+    new_tbl_file = 's3://modis-l2/Tables/MODIS_L2_viirs.parquet'
+    assert cat_utils.vet_main_table(new_modis_tbl, cut_prefix='VIIRS_')
+    if not debug:
+        ulmo_io.write_main_table(new_modis_tbl, new_tbl_file)
+    else:
+        embed(header='406 of v ulmo')
+    print("Done evaluating..")
+
+
+def viirs_concat_tables(clear_frac=None, debug=False):
+    """Put together all the VIIRS tables
+
+    Args:
+        clear_frac (float, optional): _description_. Defaults to None.
+        debug (bool, optional): _description_. Defaults to False.
+    """
+    if debug:
+        years = 2012 + np.arange(2)
+    else:
+        years = 2012 + np.arange(9)
+
+    if clear_frac is None:
+        clear_frac = 0.95
+
+    first = True
+    # Loop
+    for year in years:
+        # Load table
+        tbl_file = f's3://viirs/Tables/VIIRS_{year}_std.parquet'
+        viirs_tbl = ulmo_io.load_main_table(tbl_file)
+        # Cut CC
+        goodCC = viirs_tbl.clear_fraction < (1-clear_frac)
+        viirs_tbl = viirs_tbl[goodCC].copy()
+        # 
+        if first:
+            all_tbl = viirs_tbl
+            first = False
+        else:
+            all_tbl = pandas.concat([all_tbl, viirs_tbl], ignore_index=True)
+
+    # Write
+    if debug:
+        outfile = f'all_debug.parquet'
+    else:
+        outfile = f's3://viirs/Tables/VIIRS_all_{int(100*clear_frac)}clear_std.parquet'
+    assert cat_utils.vet_main_table(all_tbl, cut_prefix='MODIS_')
+    ulmo_io.write_main_table(all_tbl, outfile, to_s3=(not debug))
+
+def parse_option():
+    """
+    This is a function used to parse the arguments in the training.
+
+    Returns:
+        args: (dict) dictionary of the arguments.
+    """
+    parser = argparse.ArgumentParser("VIIRS")
+    parser.add_argument("--task", type=str, required=True,
+                        help="task to execute: 'download', 'extract', 'preproc', 'eval'.")
+    parser.add_argument("--year", type=int, help="Year to work on")
+    parser.add_argument("--n_cores", type=int, help="Number of CPU to use")
+    parser.add_argument("--day", type=int, default=1, help="Day to start extraction from")
+    parser.add_argument("--cf", type=float, help="Clear fraction, e.g. 0.99")
+    parser.add_argument("--model", type=str, help="Name of Ulmo model [viirs-test]")
+    parser.add_argument('--debug', default=False, action='store_true',
+                    help="Debug?")
+    args = parser.parse_args()
+
+    return args
 
 if __name__ == "__main__":
     # get the argument of training.
@@ -305,9 +520,39 @@ if __name__ == "__main__":
         viirs_preproc(year=pargs.year,
                       n_cores=pargs.n_cores)
         print("PreProc Ends.")
+    elif pargs.task == 'prep':
+        print("Prepping starts.")
+        viirs_prep_for_ulmo_training(year=pargs.year, clearf=pargs.cf, debug=pargs.debug)
+        print("Prepping ends.")
+    elif pargs.task == 'train':
+        print("Training starts.")
+        viirs_train_ulmo(clearf=pargs.cf)
+        print("Training ends.")
     elif pargs.task == 'eval':
         print("Evaluation Starts.")
-        viirs_evaluate(year=pargs.year)
+        viirs_evaluate(year=pargs.year, debug=pargs.debug, model=pargs.model)
         print("Evaluation Ends.")
+    elif pargs.task == 'eval_modis':
+        print("Evaluation of MODIS Starts.")
+        viirs_modis_evaluate(debug=pargs.debug, model=pargs.model)
+        print("Evaluation of MODIS Ends.")
+    elif pargs.task == 'concat':
+        viirs_concat_tables(debug=pargs.debug, clear_frac=pargs.cf)
     else:
         raise IOError("Bad choice")
+
+
+# Prep for Training
+# python viirs_ulmo.py --task prep --year 2013 --cf 98   # This gives 150,000 training and validation cutouts
+
+# Train
+# python viirs_ulmo.py --task prep --year 2013 --cf 98   # This gives 150,000 training and validation cutouts
+
+# Evaluate (Test)
+# python viirs_ulmo.py --task eval --year 2013 --debug --model viirs-test
+
+# Concatanate all of the tables
+# python viirs_ulmo.py --task concat --cf 0.98
+
+# Evaluate MODIS with VIIRS
+# python viirs_ulmo.py --task eval_modis --model viirs-98 --debug
