@@ -28,6 +28,7 @@ open = functools.partial(smart_open.open,
                          transport_params=tparams)
 
 import boto3
+
 class Params():
     """Class that loads hyperparameters from a json file.
     Example:

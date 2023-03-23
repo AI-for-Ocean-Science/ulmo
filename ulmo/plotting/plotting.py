@@ -64,7 +64,7 @@ def grid_plot(nrows, ncols):
     return fig, axes
 
 def show_image(img:np.ndarray, cm=None, cbar=True, flipud=True,
-               vmnx=(None,None), show=False):
+               vmnx=(None,None), show=False, set_aspect=None):
     """Dispay the cutout image
 
     Args:
@@ -74,6 +74,8 @@ def show_image(img:np.ndarray, cm=None, cbar=True, flipud=True,
         cbar (bool, optional): If True, show a color bar. Defaults to True.
         flipud (bool, optional): If True, flip the image up/down. Defaults to True.
         vmnx (tuple, optional): Set vmin, vmax. Defaults to None
+        set_aspect (str, optional):
+            Passed to ax.set_aspect() if provided
 
     Returns:
         matplotlib.Axis: axis containing the plot
@@ -86,6 +88,8 @@ def show_image(img:np.ndarray, cm=None, cbar=True, flipud=True,
                      yticklabels=[], cmap=cm, cbar=cbar)
     if show:
         plt.show()
+    if set_aspect is not None:
+        ax.set_aspect(set_aspect)
     #
     return ax
 
