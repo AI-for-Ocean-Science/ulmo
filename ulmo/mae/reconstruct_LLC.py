@@ -106,7 +106,7 @@ def prepare_model(args):
     return model, optimizer, device, loss_scaler
 
 
-def run_one_image(img:np.ndarray, model, mask_ratio, file, mask_file):
+def orig_run_one_image(img:np.ndarray, model, mask_ratio, file, mask_file):
     x = torch.tensor(img)
 
     # make it a batch-like
@@ -143,6 +143,37 @@ def run_one_image(img:np.ndarray, model, mask_ratio, file, mask_file):
     file.append(im)
     mask_file.append(m)
 
+
+def run_one_image(img:np.ndarray, model, mask_ratio:float):
+    """_summary_
+
+    Args:
+        img (np.ndarray): _description_
+        model (_type_): _description_
+        mask_ratio (float): _description_
+
+    Returns:
+        tuple: mask, reconstructed image, original image
+    """
+    x = torch.tensor(img)
+
+    # make it a batch-like
+    x = x.unsqueeze(dim=0)
+    x = torch.einsum('nhwc->nchw', x)
+
+    # run MAE
+    loss, y, mask = model(x.float(), mask_ratio)
+    y = model.unpatchify(y)
+    y = torch.einsum('nchw->nhwc', y).detach().cpu()
+
+    # visualize the mask
+    mask = mask.detach()
+    mask = mask.unsqueeze(-1).repeat(1, 1, model.patch_embed.patch_size[0]**2 *1)  # (N, H*W, p*p*3)
+    mask = model.unpatchify(mask)  # 1 is removing, 0 is keeping
+    mask = torch.einsum('nchw->nhwc', mask).detach().cpu()
+    
+    x = torch.einsum('nchw->nhwc', x)
+    return mask, x, y
     
 def run_remainder(args, model, data_length, file, mask_file):
     start = (data_length // args.batch_size) * args.batch_size
