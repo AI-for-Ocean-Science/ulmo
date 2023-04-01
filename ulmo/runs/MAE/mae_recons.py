@@ -52,6 +52,7 @@ def gen_viirs_images():
     uni_pp = np.unique(viirs_100.pp_file)
     the_images = []
     for pp_file in uni_pp:
+        print(f'Working on {os.path.basename(pp_file)}')
         # Go local
         local_file = os.path.join(sst_path, 'VIIRS', 'PreProc', 
                                   os.path.basename(pp_file))
@@ -60,10 +61,11 @@ def gen_viirs_images():
             embed(header='55 of mae_recons')
         # Load em all (faster)
         data = f['valid'][:]
-        embed(header='59 of mae_recons')
-        data = data[viirs_100.pp_idx.values,...]
-        the_images.append(data)
+        in_file = viirs_100.pp_file == pp_file
+        idx = viirs_100.pp_idx[in_file].values
 
+        data = data[idx,...]
+        the_images.append(data)
 
     # Write
     the_images = np.concatenate(the_images)
