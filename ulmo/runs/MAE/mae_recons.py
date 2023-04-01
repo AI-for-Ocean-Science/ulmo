@@ -34,10 +34,11 @@ sst_path = os.getenv('OS_SST')
 if sst_path is not None:
     viirs_file = os.path.join(sst_path, 'VIIRS', 'Tables', 'VIIRS_all_98clear_std.parquet')
     viirs_100_file = os.path.join(sst_path, 'VIIRS', 'Tables', 'VIIRS_all_100clear_std.parquet')
+    viirs_100_s3_file = os.path.join('s3://viirs', 'Tables', 'VIIRS_all_100clear_std.parquet')
     viirs_100_img_file = os.path.join(sst_path, 'VIIRS', 'PreProc', 'VIIRS_all_100clear_preproc.h5')
 
 
-def gen_viirs_images():
+def gen_viirs_images(debug:bool=False):
     """ Generate a file of cloud free VIIRS images
     """
     # Load
@@ -49,9 +50,12 @@ def gen_viirs_images():
 
 
     # Generate images
-    uni_pp = np.unique(viirs_100.pp_file)
+    uni_pps = np.unique(viirs_100.pp_file)
+    if debug:
+        uni_pps=uni_pps[0:2]
+
     the_images = []
-    for pp_file in uni_pp:
+    for pp_file in uni_pps:
         print(f'Working on {os.path.basename(pp_file)}')
         # Go local
         local_file = os.path.join(sst_path, 'VIIRS', 'PreProc', 
@@ -86,7 +90,8 @@ def gen_viirs_images():
     print("Wrote: {}".format(viirs_100_img_file))
 
     # Write
-    ulmo_io.write_main_table(viirs_100, viirs_100_file)
+    embed(header='80 of mae_recons')
+    ulmo_io.write_main_table(viirs_100, viirs_100_s3_file)
 
 
 def mae_ulmo_evaluate(tbl_file:str, img_files:list,
