@@ -247,9 +247,12 @@ def kin_nenya_eval(tbl_file:str, s3_outdir:str=None,
             os.remove(data_file)
             print(f'{data_file} removed')
     
-def nenya_umap(tbl_file:str, subset:str, local_latents_path:str, out_root:str, 
-                out_table_path:str,
-               table:str, s3_outdir:str, 
+def nenya_umap(tbl_file:str, 
+               subset:str, 
+               local_latents_path:str, 
+               out_root:str, 
+               out_table_path:str,
+               table:str, 
                clobber_local=False, debug=False, local:bool=True,
                DT_key='DT40'):
     """ Run UMAP on Nenya output
@@ -282,8 +285,7 @@ def nenya_umap(tbl_file:str, subset:str, local_latents_path:str, out_root:str,
 
     # Output files
     outfile = os.path.join(
-        out_table_path, 'Tables',
-        f'{out_root}_{subset}.parquet')
+        out_table_path, f'{out_root}_{subset}.parquet')
 
 
     DT_cut = None if subset == 'DTall' else subset
@@ -298,7 +300,6 @@ def nenya_umap(tbl_file:str, subset:str, local_latents_path:str, out_root:str,
                          table=table,
                          train_umap=False, 
                          umap_savefile=umap_savefile,
-                         s3_outdir=s3_outdir,
                          local_dataset_path=local_latents_path,
                          remove=False, CF=False)
 
@@ -353,13 +354,13 @@ def main(flg):
         '''
 
         # MODIS
-        nenya_umap(modis_l2_file, 'DT1',
-            ssl_io.latent_path('modis_redo'),
-            'MODIS_Nenya', 
-            'modis', 
-            table_utils.path_to_tables('modis'),
-            opt_path='MODIS_R2019_v4_REDO',
-            local=True, DT_key='DT')
+        nenya_umap(modis_l2_file, 
+                   'DT1', 
+                   ssl_io.latent_path('modis_redo'), 
+                   'MODIS_Nenya', 
+                   table_utils.path_to_tables('modis'), 
+                   'modis', 
+                   local=True, DT_key='DT')
 
 
     # Nenya on MODIS-L2 (test)
@@ -393,4 +394,4 @@ if __name__ == '__main__':
 # python -u llc_kin.py 2 
 
 # SSL Evaluate
-# python -u llc_kin.py 4
+#aaaaaaaaaaaaaaaaaaaaaaaaaaaa python -u llc_kin.py 4
