@@ -62,7 +62,7 @@ def gen_viirs_images(debug:bool=False):
                                   os.path.basename(pp_file))
         f = h5py.File(local_file, 'r')
         if 'train' in f.keys():
-            embed(header='55 of mae_recons')
+            raise IOError("train should not be found")
         # Load em all (faster)
         data = f['valid'][:]
         in_file = viirs_100.pp_file == pp_file
@@ -90,7 +90,6 @@ def gen_viirs_images(debug:bool=False):
     print("Wrote: {}".format(viirs_100_img_file))
 
     # Write
-    embed(header='80 of mae_recons')
     ulmo_io.write_main_table(viirs_100, viirs_100_s3_file)
 
 
