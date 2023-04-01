@@ -267,7 +267,7 @@ def main(flg):
 
     # Generate the VIIRS images
     if flg & (2**0):
-        gen_viirs_images(debug=True)
+        gen_viirs_images()#debug=True)
 
 
 # Command line execution
