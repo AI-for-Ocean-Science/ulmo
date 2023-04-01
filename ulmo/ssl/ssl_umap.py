@@ -99,7 +99,9 @@ def umap_subset(modis_tbl:pandas.DataFrame,
         outfile (str): _description_
         DT_cut (str, optional): DT cut to apply. Defaults to None.
             This uses the DT_key
-        s3_outdir (str, optional): _description_. Defaults to None.
+        s3_outdir (str, optional): 
+            If provided and local_dataset_path is not, use this path
+            instead of opt.s3_outdir
         alpha_cut (str, optional): alpha cut to apply. Defaults to None.
         ntrain (int, optional): _description_. Defaults to 200000.
         remove (bool, optional): _description_. Defaults to True.
