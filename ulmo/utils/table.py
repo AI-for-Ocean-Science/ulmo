@@ -5,6 +5,14 @@ import pandas
 from ulmo import io as ulmo_io
 
 def path_to_tables(dataset:str):
+    """ Generate path to tables
+
+    Args:
+        dataset (str): 
+
+    Returns:
+        str: the path
+    """
 
     if dataset == 'modis': 
         path = os.path.join(os.getenv('OS_SST'), 'MODIS_L2', 'Tables')
