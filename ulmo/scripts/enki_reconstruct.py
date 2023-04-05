@@ -23,6 +23,26 @@ from ulmo import io as ulmo_io
 
 from IPython import embed
 
+def prepare_model(args):
+    # build model
+    device = torch.device(args.device)
+    model = models_mae.__dict__[args.model](norm_pix_loss=args.norm_pix_loss)
+    model.to(device)
+    model_without_ddp = model
+    
+    if args.distributed: # args.distributed:
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], output_device=args.gpu)
+        model_without_ddp = model.module
+    
+    param_groups = optim_factory.add_weight_decay(model_without_ddp, args.weight_decay)
+    optimizer = torch.optim.AdamW(param_groups, lr=args.lr, betas=(0.9, 0.95))
+    loss_scaler = NativeScaler()
+    
+    misc.load_model(args=args, model_without_ddp=model_without_ddp, optimizer=optimizer, loss_scaler=loss_scaler)
+    
+    return model, optimizer, device, loss_scaler
+
+
 def get_args_parser():
     parser = argparse.ArgumentParser('MAE reconstruction', add_help=False)
     
@@ -96,8 +116,11 @@ def main(args):
     data_length = len(data_loader_train.dataset)
     print("training",  data_length)
     print("Datasets loaded")
-    
+
     # setup model and parameters
+    model, optimizer, device, loss_scaler = prepare_model(args)
+    
+    '''
     device = torch.device(args.device)
     loss_scaler = NativeScaler()
     
@@ -109,6 +132,7 @@ def main(args):
     param_groups = optim_factory.add_weight_decay(model_without_ddp, args.weight_decay)
     optimizer = torch.optim.AdamW(param_groups, lr=args.lr, betas=(0.9, 0.95))
 
+    '''
     print(args.model, "loaded")
     
     # set up file and upload path
