@@ -83,6 +83,8 @@ def get_args_parser():
     parser.add_argument('--dist_on_itp', action='store_true')
     parser.add_argument('--dist_url', default='env://',
                         help='url used to set up distributed training')
+    parser.add_argument('--debug', action='store_true',
+                        help='Debug')
 
     return parser
 
@@ -233,8 +235,9 @@ def main(args):
     )
     print("Reconstructing batch remainder")
     run_remainder(args, model, data_length, file, mask_file)
-    ulmo_io.upload_file_to_s3(filepath, upload_path)
-    ulmo_io.upload_file_to_s3(mask_filepath, mask_upload_path)
+    if not args.debug:
+        ulmo_io.upload_file_to_s3(filepath, upload_path)
+        ulmo_io.upload_file_to_s3(mask_filepath, mask_upload_path)
     
     
 if __name__ == '__main__':
