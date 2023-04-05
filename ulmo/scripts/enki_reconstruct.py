@@ -50,6 +50,8 @@ def get_args_parser():
     # Dataset parameters
     parser.add_argument('--data_path', default='LLC_uniform144_nonoise_preproc.h5', type=str,
                         help='dataset path')
+    parser.add_argument('--upload_path', type=str, help='s3 path for uploading the reconstructed file')
+    parser.add_argument('--mask_upload_path', type=str, help='s3 path for uploading the mask file')
     parser.add_argument('--output_dir', default='./output_dir',
                         help='path where to save, empty for no saving')
     parser.add_argument('--device', default='cuda',
@@ -110,12 +112,14 @@ def main(args):
     print(args.model, "loaded")
     
     # set up file and upload path
-    upload_path = img_filename(int(100*args.model_training_mask), int(100*args.mask_ratio))
+    if args.upload_path is None:
+        upload_path = img_filename(int(100*args.model_training_mask), int(100*args.mask_ratio))
     filepath = os.path.join(args.output_dir, os.path.basename(upload_path))
     images = HDF5Store(filepath, 'valid', shape=dshape)
     
     # set up mask file and upload path
-    mask_upload_path = mask_filename(int(100*args.model_training_mask), int(100*args.mask_ratio))
+    if args.mask_upload_path is None:
+        mask_upload_path = mask_filename(int(100*args.model_training_mask), int(100*args.mask_ratio))
     mask_filepath = os.path.join(args.output_dir, os.path.basename(mask_upload_path))
     masks = HDF5Store(mask_filepath, 'valid', shape=dshape)
     
@@ -153,4 +157,4 @@ if __name__ == '__main__':
     
 # On Jupyter
 # cp ulmo/mae/correct_helpers.py /opt/conda/lib/python3.10/site-packages/timm-0.3.2-py3.10.egg/timm/models/layers/helpers.py
-# python /home/jovyan/Oceanography/python/ulmo/ulmo/scripts/enki_reconstruct.py --mask_ratio 0.1 --data_path VIIRS_all_100clear_preproc.h5 --output_dir output --resume checkpoint-276.pth
+# python /home/jovyan/Oceanography/python/ulmo/ulmo/scripts/enki_reconstruct.py --mask_ratio 0.1 --data_path VIIRS_all_100clear_preproc.h5 --output_dir output --resume checkpoint-270.pth --upload_path s3://llc/mae/Recon/VIIRS_100clear_t10_p10.h5 --mask_upload_path s3://llc/mae/Recon/VIIRS_100clear_t10_p10_mask.h5
