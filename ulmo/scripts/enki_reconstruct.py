@@ -119,20 +119,6 @@ def main(args):
 
     # setup model and parameters
     model, optimizer, device, loss_scaler = prepare_model(args)
-    
-    '''
-    device = torch.device(args.device)
-    loss_scaler = NativeScaler()
-    
-    model = models_mae.prepare_model(args.resume, arch=args.model)
-    model_without_ddp = model
-    if args.distributed: # args.distributed:
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], output_device=args.gpu)
-        model_without_ddp = model.module
-    param_groups = optim_factory.add_weight_decay(model_without_ddp, args.weight_decay)
-    optimizer = torch.optim.AdamW(param_groups, lr=args.lr, betas=(0.9, 0.95))
-
-    '''
     print(args.model, "loaded")
     
     # set up file and upload path
