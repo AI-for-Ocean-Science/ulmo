@@ -114,12 +114,17 @@ def main(args):
     # set up file and upload path
     if args.upload_path is None:
         upload_path = img_filename(int(100*args.model_training_mask), int(100*args.mask_ratio))
+    else:
+        upload_path = args.upload_path
+        
     filepath = os.path.join(args.output_dir, os.path.basename(upload_path))
     images = HDF5Store(filepath, 'valid', shape=dshape)
     
     # set up mask file and upload path
     if args.mask_upload_path is None:
         mask_upload_path = mask_filename(int(100*args.model_training_mask), int(100*args.mask_ratio))
+    else:
+        mask_upload_path = args.mask_upload_path
     mask_filepath = os.path.join(args.output_dir, os.path.basename(mask_upload_path))
     masks = HDF5Store(mask_filepath, 'valid', shape=dshape)
     
