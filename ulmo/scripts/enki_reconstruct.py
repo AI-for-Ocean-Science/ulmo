@@ -97,7 +97,6 @@ def main(args):
     
     # setup model and parameters
     device = torch.device(args.device)
-    optimizer = torch.optim.AdamW(param_groups, lr=args.lr, betas=(0.9, 0.95))
     loss_scaler = NativeScaler()
     
     embed(header='102 of enki_reconstruct.py')
@@ -107,6 +106,7 @@ def main(args):
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], output_device=args.gpu)
         model_without_ddp = model.module
     param_groups = optim_factory.add_weight_decay(model_without_ddp, args.weight_decay)
+    optimizer = torch.optim.AdamW(param_groups, lr=args.lr, betas=(0.9, 0.95))
 
     print(args.model, "loaded")
     
