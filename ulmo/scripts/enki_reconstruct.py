@@ -99,7 +99,6 @@ def main(args):
     device = torch.device(args.device)
     loss_scaler = NativeScaler()
     
-    embed(header='102 of enki_reconstruct.py')
     model = models_mae.prepare_model(args.resume, arch=args.model)
     model_without_ddp = model
     if args.distributed: # args.distributed:
@@ -154,4 +153,4 @@ if __name__ == '__main__':
     
 # On Jupyter
 # cp ulmo/mae/correct_helpers.py /opt/conda/lib/python3.10/site-packages/timm-0.3.2-py3.10.egg/timm/models/layers/helpers.py
-# python /home/jovyan/Oceanography/python/ulmo/ulmo/scripts/enki_reconstruct.py --mask_ratio 0.1 --data_path VIIRS_all_100clear_preproc.h5 --output_dir output
+# python /home/jovyan/Oceanography/python/ulmo/ulmo/scripts/enki_reconstruct.py --mask_ratio 0.1 --data_path VIIRS_all_100clear_preproc.h5 --output_dir output --resume checkpoint-276.pth
