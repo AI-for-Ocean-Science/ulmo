@@ -50,15 +50,11 @@ spec:
             git pull; 
             python setup.py develop;
             cp ulmo/mae/correct_helpers.py /root/miniconda3/lib/python3.8/site-packages/timm/models/layers/helpers.py;
-            cd ulmo/mae;
-            aws --endpoint https://s3-west.nrp-nautilus.io s3 cp s3://llc/mae/PreProc/MAE_LLC_valid_nonoise_preproc.h5 ./;
+            cd ulmo/scripts;
+            aws --endpoint https://s3-west.nrp-nautilus.io s3 cp s3://viirs/PreProc/VIIRS_all_100clear_preproc.h5 ./;
             aws --endpoint https://s3-west.nrp-nautilus.io s3 cp s3://llc/mae/mae_pretrain_ddp_mask10/checkpoint-270.pth ./;
-            python reconstruct_LLC.py --model mae_vit_LLC_patch4 --mask_ratio 0.10 --model_training_mask 0.10 --data_path MAE_LLC_valid_nonoise_preproc.h5 --resume checkpoint-270.pth;
-            python reconstruct_LLC.py --model mae_vit_LLC_patch4 --mask_ratio 0.20 --model_training_mask 0.10 --data_path MAE_LLC_valid_nonoise_preproc.h5 --resume checkpoint-270.pth;
-            python reconstruct_LLC.py --model mae_vit_LLC_patch4 --mask_ratio 0.30 --model_training_mask 0.10 --data_path MAE_LLC_valid_nonoise_preproc.h5 --resume checkpoint-270.pth;
-            python reconstruct_LLC.py --model mae_vit_LLC_patch4 --mask_ratio 0.40 --model_training_mask 0.10 --data_path MAE_LLC_valid_nonoise_preproc.h5 --resume checkpoint-270.pth;
-            python reconstruct_LLC.py --model mae_vit_LLC_patch4 --mask_ratio 0.50 --model_training_mask 0.10 --data_path MAE_LLC_valid_nonoise_preproc.h5 --resume checkpoint-270.pth;
-            
+            python /home/jovyan/Oceanography/python/ulmo/ulmo/scripts/enki_reconstruct.py --mask_ratio 0.1 --data_path VIIRS_all_100clear_preproc.h5 --output_dir output --resume checkpoint-270.pth --upload_path s3://llc/mae/Recon/VIIRS_100clear_t10_p10.h5 --mask_upload_path s3://llc/mae/Recon/VIIRS_100clear_t10_p10_mask.h5;
+
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"
