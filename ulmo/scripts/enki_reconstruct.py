@@ -165,7 +165,6 @@ def main(args):
     ulmo_io.upload_file_to_s3(filepath, upload_path)
     ulmo_io.upload_file_to_s3(mask_filepath, mask_upload_path)
     
-    
 
 
 if __name__ == '__main__':

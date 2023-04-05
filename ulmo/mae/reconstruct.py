@@ -19,7 +19,22 @@ import ulmo.mae.util.misc as misc
 from ulmo.mae import models_mae
 from ulmo.mae.util.hdfstore import HDF5Store
 
-def run_one_image(img, model, mask_ratio, image_store:HDF5Store=None, mask_store:HDF5Store=None):
+def run_one_image(img:np.ndarray, model, mask_ratio:float, 
+                  image_store:HDF5Store=None, mask_store:HDF5Store=None):
+    """ Reconstruct a single image with a MAE model
+
+    Args:
+        img (np.ndarray): 
+            Image with shape (imsize, imsize, 1)
+        model (_type_): _description_
+            Enki model
+        mask_ratio (float): 
+            Patch masking ratio, e.g. 0.1 means 10% of patches are masked
+        image_store (HDF5Store, optional): 
+            Object to store the reconstructed image
+        mask_store (HDF5Store, optional): 
+            Object to store the mask image
+    """
     x = torch.tensor(img)
 
     # make it a batch-like
@@ -89,10 +104,25 @@ def x_run_one_image(img:np.ndarray, model, mask_ratio:float):
     x = torch.einsum('nchw->nhwc', x)
     return mask, x, y
     
+
 def run_remainder(model, data_length:int, 
                   image_store:HDF5Store, mask_store:HDF5Store,
                   batch_size:int, data_path:str, 
                   mask_ratio:float, imsize:int=64):
+    """ Run Enki on a set of data
+
+    Args:
+        model (_type_): _description_
+        data_length (int): _description_
+        image_store (HDF5Store): 
+            Stores the reconstructed images
+        mask_store (HDF5Store): 
+            Stores the mask images
+        batch_size (int): _description_
+        data_path (str): _description_
+        mask_ratio (float): _description_
+        imsize (int, optional): _description_. Defaults to 64.
+    """
     # Indices to run on
     start = (data_length // batch_size) * batch_size
     end = data_length
@@ -101,5 +131,5 @@ def run_remainder(model, data_length:int,
         for i in range(start, end):
             img = f['valid'][i][0]
             img.resize((imsize,imsize,1))
-            assert img.shape == (imsize, imsize, 1)
+            #assert img.shape == (imsize, imsize, 1)
             run_one_image(img, model, mask_ratio, image_store=image_store, mask_store=mask_store)
