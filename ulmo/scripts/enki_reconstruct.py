@@ -155,8 +155,13 @@ def main(args):
         image_store=images,
         mask_store=masks,
     )
+
     print("Reconstructing batch remainder")
-    reconstruct.run_remainder(args, model, data_length, images, masks)
+    reconstruct.run_remainder(model, data_length, 
+                              images, masks,
+                              args.batch_size, 
+                              args.data_path,
+                              args.mask_ratio) 
     ulmo_io.upload_file_to_s3(filepath, upload_path)
     ulmo_io.upload_file_to_s3(mask_filepath, mask_upload_path)
     
