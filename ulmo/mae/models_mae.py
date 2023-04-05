@@ -150,10 +150,7 @@ class MaskedAutoencoderViT(nn.Module):
 
     def forward_encoder(self, x, mask_ratio):
         # embed patches
-        try:
-            x = self.patch_embed(x)
-        except:
-            import pdb; pdb.set_trace()
+        x = self.patch_embed(x)
         # add pos embed w/o cls token
         x = x + self.pos_embed[:, 1:, :]
 
