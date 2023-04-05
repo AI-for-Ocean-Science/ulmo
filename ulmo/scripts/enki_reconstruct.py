@@ -97,8 +97,13 @@ def main(args):
     
     # setup model and parameters
     device = torch.device(args.device)
-    param_groups = optim_factory.add_weight_decay(
-        reconstruct.model_without_ddp, args.weight_decay)
+    model_without_ddp = model
+    
+    embed(header='102 of enki_reconstruct.py')
+    if args.distributed: # args.distributed:
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], output_device=args.gpu)
+        model_without_ddp = model.module
+    param_groups = optim_factory.add_weight_decay(model_without_ddp, args.weight_decay)
     optimizer = torch.optim.AdamW(param_groups, lr=args.lr, betas=(0.9, 0.95))
     loss_scaler = NativeScaler()
     model = models_mae.prepare_model(args.resume, arch=args.model)
@@ -147,4 +152,6 @@ if __name__ == '__main__':
         Path(args.output_dir).mkdir(parents=True, exist_ok=True)
     main(args)
     
-  
+# On Jupyter
+# cp ulmo/mae/correct_helpers.py /opt/conda/lib/python3.10/site-packages/timm-0.3.2-py3.10.egg/timm/models/layers/helpers.py
+# python /home/jovyan/Oceanography/python/ulmo/ulmo/scripts/enki_reconstruct.py --mask_ratio 0.1 --data_path VIIRS_all_100clear_preproc.h5 --output_dir output
