@@ -28,7 +28,8 @@ llc_nonoise_file = 's3://llc/Tables/LLC_uniform144_r0.5_nonoise.parquet'
 # MAE
 mae_tst_nonoise_file = 's3://llc/mae/Tables/MAE_uniform144_test.parquet'
 #mae_nonoise_file = 's3://llc/mae/Tables/MAE_uniform144_nonoise.parquet'
-mae_valid_nonoise_file = 's3://llc/mae/Tables/MAE_LLC_valid_nonoise.parquet'
+mae_valid_nonoise_tbl_file = 's3://llc/mae/Tables/MAE_LLC_valid_nonoise.parquet'
+mae_valid_nonoise_file = 's3://llc/mae/PreProc/MAE_LLC_valid_nonoise_preproc.h5'
 mae_img_path = 's3://llc/mae/PreProc'
 
 ogcm_path = os.getenv('OS_OGCM')
