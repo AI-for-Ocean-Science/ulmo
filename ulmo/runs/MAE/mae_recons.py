@@ -178,6 +178,7 @@ def compare_with_inpainting(inpaint_file:str, t:int, p:int, debug:bool=False,
     with h5py.File(inpaint_file, 'w') as f:
         # Validation
         f.create_dataset('inpainted', data=inpainted.astype(np.float32))
+    print(f'Wrote: {inpaint_file}')
 
 
 
