@@ -194,7 +194,7 @@ def main(flg):
     # Generate the VIIRS images
     if flg & (2**1):
         compare_with_inpainting('LLC_inpaint_t10_p10.h5', 
-                                10, 10, debug=True, local=False)
+                                10, 10, local=False)
 
 # Command line execution
 if __name__ == '__main__':
