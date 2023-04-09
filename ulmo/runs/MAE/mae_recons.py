@@ -154,7 +154,7 @@ def compare_with_inpainting(inpaint_file:str, t:int, p:int, debug:bool=False,
     # Inpatinting
     map_fn = partial(simple_inpaint)
 
-    nloop = nfiles.shape[0] // nsub_files + ((nfiles % nsub_files) > 0)
+    nloop = nfiles // nsub_files + ((nfiles % nsub_files) > 0)
     inpainted = []
     for kk in range(nloop):
         i0 = kk*nsub_files
