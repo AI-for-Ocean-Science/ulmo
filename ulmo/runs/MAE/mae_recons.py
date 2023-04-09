@@ -109,14 +109,16 @@ def compare_with_inpainting(inpaint_file:str, t:int, p:int, debug:bool=False,
 
 
     # Load images
-    local_recon_file = mae_utils.img_filename(t,p, local=True)
-    local_mask_file = mae_utils.mask_filename(t,p, local=True)
-    local_orig_file = local_mae_valid_nonoise_file
     if local:
-        pass
+        local_recon_file = mae_utils.img_filename(t,p, local=True)
+        local_mask_file = mae_utils.mask_filename(t,p, local=True)
+        local_orig_file = local_mae_valid_nonoise_file
     else:
         recon_file = mae_utils.img_filename(t,p, local=False)
         mask_file = mae_utils.mask_filename(t,p, local=False)
+        local_recon_file = os.path.basename(recon_file)
+        local_mask_file = os.path.basename(mask_file)
+        local_orig_file = os.path.basename(mae_valid_nonoise_file)
         # Download
         for local_file, s3_file in zip(
             [local_recon_file, local_mask_file, local_orig_file],
