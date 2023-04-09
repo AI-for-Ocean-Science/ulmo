@@ -161,7 +161,7 @@ def compare_with_inpainting(inpaint_file:str, t:int, p:int, debug:bool=False,
         i0 = kk*nsub_files
         i1 = min((kk+1)*nsub_files, nfiles)
         print('Files: {}:{} of {}'.format(i0, i1, nfiles))
-        sub_files = [diff_recon[ii,...] for ii in range(i0, i1)]
+        sub_files = [(diff_recon[ii,...], mask_imgs[ii,...]) for ii in range(i0, i1)]
         with ProcessPoolExecutor(max_workers=n_cores) as executor:
             chunksize = len(
                 sub_files) // n_cores if len(sub_files) // n_cores > 0 else 1
