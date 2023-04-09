@@ -119,16 +119,17 @@ def compare_with_inpainting(inpaint_file:str, t:int, p:int, debug:bool=False,
         local_recon_file = os.path.basename(recon_file)
         local_mask_file = os.path.basename(mask_file)
         local_orig_file = os.path.basename(mae_valid_nonoise_file)
-        # Download
+        # Download?
         for local_file, s3_file in zip(
             [local_recon_file, local_mask_file, local_orig_file],
             [recon_file, mask_file, mae_valid_nonoise_file]):
-            ulmo_io.download_file_from_s3(local_file, 
+            if not os.path.exists(local_file):
+                ulmo_io.download_file_from_s3(local_file, 
                                       s3_file)
 
     f_orig = h5py.File(local_orig_file, 'r')
-    f_recon = h5py.File(recon_file,'r')
-    f_mask = h5py.File(mask_file,'r')
+    f_recon = h5py.File(local_recon_file,'r')
+    f_mask = h5py.File(local_mask_file,'r')
 
     if debug:
         nfiles = 1000
