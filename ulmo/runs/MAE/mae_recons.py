@@ -100,7 +100,9 @@ def gen_viirs_images(debug:bool=False):
     # Write
     ulmo_io.write_main_table(viirs_100, viirs_100_s3_file)
 
-def simple_inpaint(img, mask):
+def simple_inpaint(items):
+    # Unpack
+    img, mask = items
     return sk_inpaint.inpaint_biharmonic(img, mask, channel_axis=None)
 
 def compare_with_inpainting(inpaint_file:str, t:int, p:int, debug:bool=False,
