@@ -36,7 +36,6 @@ if ogcm_path is not None:
     enki_path = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki')
     local_mae_valid_nonoise_file = orig_file = os.path.join(enki_path, 'PreProc', 'MAE_LLC_valid_nonoise_preproc.h5')
 
-
 # VIIRS
 sst_path = os.getenv('OS_SST')
 if sst_path is not None:
@@ -105,14 +104,28 @@ def simple_inpaint(img, mask):
 
 def compare_with_inpainting(inpaint_file:str, t:int, p:int, debug:bool=False,
                             patch_sz:int=4, n_cores:int=10, 
-                            nsub_files:int=5000):
+                            nsub_files:int=5000,
+                            local:bool=False):
 
 
     # Load images
-    f_orig = h5py.File(local_mae_valid_nonoise_file, 'r')
-    recon_file = mae_utils.img_filename(t,p, local=True)
+    local_recon_file = mae_utils.img_filename(t,p, local=True)
+    local_mask_file = mae_utils.mask_filename(t,p, local=True)
+    local_orig_file = local_mae_valid_nonoise_file
+    if local:
+        pass
+    else:
+        recon_file = mae_utils.img_filename(t,p, local=False)
+        mask_file = mae_utils.mask_filename(t,p, local=False)
+        # Download
+        for local_file, s3_file in zip(
+            [local_recon_file, local_mask_file, local_orig_file],
+            [recon_file, mask_file, mae_valid_nonoise_file]):
+            ulmo_io.download_file_from_s3(local_file, 
+                                      s3_file)
+
+    f_orig = h5py.File(local_orig_file, 'r')
     f_recon = h5py.File(recon_file,'r')
-    mask_file = mae_utils.mask_filename(t,p, local=True)
     f_mask = h5py.File(mask_file,'r')
 
     if debug:
@@ -174,7 +187,8 @@ def main(flg):
 
     # Generate the VIIRS images
     if flg & (2**1):
-        compare_with_inpainting('LLC_inpaint_t10_p10.h5', 10, 10, debug=True)
+        compare_with_inpainting('LLC_inpaint_t10_p10.h5', 
+                                10, 10, debug=True, local=False)
 
 # Command line execution
 if __name__ == '__main__':
