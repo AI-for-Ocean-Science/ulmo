@@ -1,4 +1,4 @@
-function make_4x3x3_gallery(FigNo, FigDir, FigTitle, cutouts_master, metadata_master, tRange, num_ticks, gallery_labels)
+function make_4x3x3_gallery(FigNo, FigDir, FigTitle, cutouts_master, metadata_master, tRange, num_ticks, gallery_labels, means_to_use)
 % make_4x3x3_gallery - make 2 sets of 3x3 galleries - PCC
 %
 % INPUT
@@ -9,12 +9,14 @@ function make_4x3x3_gallery(FigNo, FigDir, FigTitle, cutouts_master, metadata_ma
 %   second_set_label - label to be written to the left of the bottom row of galleries.
 %   cutouts_master - cell array with the cutouts for the 4 sets of galleries
 %   metadata_master - cell array with the metadata for the 4 sets of galleries
-%   tRange - 2-element vector for the temperature range for colorbar.
+%   tRange - 2-element vector for the temperature range for colorbar. If
+%    empty will take the default caxis.
 %   num_ticks - number of ticks for the colorbar axis (including top and
 %    bottom values).
 %   gallery_labels - a 4-elememt cell array with the labels of the two
 %    columns of galleries followed by the labels for the two rows. something
 %    like: {'VIIRS Cutouts' 'LLC Cutouts' 'Anomalous' 'Similar'}.
+%   means_to_use - in title of each gallery
 %
 
 % datetime_format = 'yyyy/mm/dd HH:MM';
@@ -52,18 +54,19 @@ for iGallery=1:2
         
         % get the random sampling for this set of cutouts.
         
-        if jGallery == 1
-            if iGallery == 1
-                nsamp_t = datasample([1:size(cutouts,3)], 9, replace=false);
-                nsamp = sort(nsamp_t);
-            else
-                nsamp_t = datasample([1:size(cutouts,3)], 9, replace=false);
-                nsamp = sort(nsamp_t);
-            end
-        end
+%         if jGallery == 1
+%             if iGallery == 1
+%                 nsamp_t = datasample([1:size(cutouts,3)], 9, replace=false);
+%                 nsamp = sort(nsamp_t);
+%             else
+%                 nsamp_t = datasample([1:size(cutouts,3)], 9, replace=false);
+%                 nsamp = sort(nsamp_t);
+%             end
+%         end
+        nsamp = [1:9];
         
         jCutout = 0;
-        
+                
         for nCutout=1:3
             for mCutout=1:3
                 subplot( position=[offsets(kGallery,1)+(mCutout-1)*x_cutout_step offsets(kGallery,2)++(3-nCutout)*y_cutout_step x_cutout_size y_cutout_size])
@@ -73,7 +76,9 @@ for iGallery=1:2
                 
                 imagesc(squeeze(cutouts(:,:,iCutout)))
                 set(gca,xtick=[],ytick=[])
-                caxis(tRange)
+                if isempty(tRange) == 0
+                    caxis(tRange)
+                end
                 
                 %                 title([datestr(metadata.Matlab_datetime(iCutout), datetime_format) ...
                 %                     '  LL=' num2str(metadata.LL(iCutout),'%5.0f') ...
@@ -95,26 +100,47 @@ for iGallery=1:2
         % Get the mean and dT for the selected cutouts
         
         selected_sst = cutouts(:,:,nsamp);
-        sorted_selected_sst = sort(selected_sst(:));
-        dT_selected_sst = sorted_selected_sst(floor(0.9*numel(sorted_selected_sst))) - sorted_selected_sst(floor(0.1*numel(sorted_selected_sst)));
-        
-        if jGallery == 1
-            subplot(position=[offsets(1,1)+1.5*x_cutout_step upper_label(iGallery) 0.2 0.01])
-            text( 0, 0, [title_prefix{kGallery} gallery_labels{1} '   LL=' num2str(mean(metadata.LL),'%5.0f') '   dT=' num2str(mean(metadata.dT),'%5.1f') 'K  (' num2str(mean(metadata.LL(nsamp)),'%5.0f') ', ' num2str(dT_selected_sst,'%5.1f') 'K)'], fontsize=32, HorizontalAlignment='center')
-            set( gca, xtick=[] ,ytick=[], xColor=[1 1 1])
-            h = get(gca,'XAxis');
-            h.Visible = 'off';
-            h = get(gca,'YAxis');
-            h.Visible = 'off';
+        if isempty(means_to_use)
+            sorted_selected_sst = sort(selected_sst(:));
+
+            LL_All_sst = mean(metadata.LL);
+            dT_All_sst = mean(metadata.dT);
+
+            LL_selected_sst = mean(metadata.LL(nsamp));
+            dT_selected_sst = sorted_selected_sst(floor(0.9*numel(sorted_selected_sst))) - sorted_selected_sst(floor(0.1*numel(sorted_selected_sst)));
         else
-            subplot(position=[offsets(2,1)+1.5*x_cutout_step upper_label(iGallery) 0.2 0.01]);
-            text( 0, 0, [title_prefix{kGallery} gallery_labels{2} '     LL=' num2str(mean(metadata.LL),'%5.0f') '     dT=' num2str(mean(metadata.dT),'%5.1f') ' K  (' num2str(mean(metadata.LL(nsamp)),'%5.0f') ', ' num2str(dT_selected_sst,'%5.1f') ' k)'], fontsize=32, HorizontalAlignment='center')
+            LL_All_sst = means_to_use(iGallery, jGallery).LL_All;
+            dT_All_sst = means_to_use(iGallery, jGallery).dT_All;
+
+            LL_selected_sst = means_to_use(iGallery, jGallery).LL_Selected;
+            dT_selected_sst = means_to_use(iGallery, jGallery).dT_Selected;
+        end
+        
+%         if jGallery == 1
+%             subplot(position=[offsets(1,1)+1.5*x_cutout_step upper_label(iGallery) 0.2 0.01])
+%             text( 0, 0, [title_prefix{kGallery} gallery_labels{1} ...
+            subplot(position=[offsets(jGallery,1)+1.5*x_cutout_step upper_label(iGallery) 0.2 0.01])
+            text( 0, 0, [title_prefix{kGallery} gallery_labels{jGallery} ...
+                '   LL=' num2str(LL_All_sst,'%5.0f') '   dT=' num2str(dT_All_sst,'%5.1f') ...
+                'K  (' num2str(LL_selected_sst,'%5.0f') ', ' num2str(dT_selected_sst,'%5.1f') 'K)'], ...
+                fontsize=32, HorizontalAlignment='center')
             set( gca, xtick=[] ,ytick=[], xColor=[1 1 1])
             h = get(gca,'XAxis');
             h.Visible = 'off';
             h = get(gca,'YAxis');
             h.Visible = 'off';
-        end
+%         else
+%             subplot(position=[offsets(2,1)+1.5*x_cutout_step upper_label(iGallery) 0.2 0.01]);
+%             text( 0, 0, [title_prefix{kGallery} gallery_labels{2} ...
+%                 '     LL=' num2str(LL_All_sst,'%5.0f') '     dT=' num2str(dT_All_sst,'%5.1f') ...
+%                 ' K  (' num2str(LL_selected_sst,'%5.0f') ', ' num2str(dT_selected_sst,'%5.1f') ' k)'], ...
+%                 fontsize=32, HorizontalAlignment='center')
+%             set( gca, xtick=[] ,ytick=[], xColor=[1 1 1])
+%             h = get(gca,'XAxis');
+%             h.Visible = 'off';
+%             h = get(gca,'YAxis');
+%             h.Visible = 'off';
+%         end
         
         % Add the label on the left hand side.
         
@@ -172,8 +198,14 @@ else
     
     imagesc(color_image)
     
-    set(gca, XTickLabel=[], YTick=[1:256/(num_ticks-1):256 256], ...
-        YTickLabel=[tRange(2):(tRange(1)-tRange(2))/(num_ticks-1):tRange(1) tRange(2)], YAxisLocation='right', fontsize=16)
+    if isempty(tRange) == 0
+        set(gca, XTickLabel=[], YTick=[1:256/(num_ticks-1):256 256], ...
+            YTickLabel=[tRange(2):(tRange(1)-tRange(2))/(num_ticks-1):tRange(1) ...
+            tRange(2)], YAxisLocation='right', fontsize=16)
+    else
+        set(gca, XTickLabel=[], YTick=[1:256/(num_ticks-1):256 256], ...
+            YAxisLocation='right', fontsize=16)
+    end
     
     ylabel('SSTa (K)')
 end

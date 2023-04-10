@@ -30,6 +30,10 @@ import h5py
 from ulmo import plotting
 from ulmo.mae import mae_utils
 from ulmo import io as ulmo_io
+from ulmo.utils import image_utils
+from ulmo.mae import models_mae
+from ulmo.mae import reconstruct_LLC
+from ulmo.mae import plotting as mae_plotting
 
 
 from IPython import embed
@@ -42,10 +46,11 @@ import anly_patches
 
 # Globals
 
-preproc_path = os.path.join(os.getenv('OS_AI'), 'MAE', 'PreProc')
-recon_path = os.path.join(os.getenv('OS_AI'), 'MAE', 'Recon')
-orig_file = os.path.join(preproc_path, 'MAE_LLC_valid_nonoise_preproc.h5')
+#preproc_path = os.path.join(os.getenv('OS_AI'), 'MAE', 'PreProc')
+#recon_path = os.path.join(os.getenv('OS_AI'), 'MAE', 'Recon')
+#orig_file = os.path.join(preproc_path, 'MAE_LLC_valid_nonoise_preproc.h5')
 
+sst_path = os.getenv('OS_SST')
 
 def fig_clouds(outfile:str, analy_file:str,
                  local=False, 
@@ -325,6 +330,48 @@ def fig_explore_bias(outfile:str='fig_explore_bias.png',
     print('Wrote {:s}'.format(outfile))
 
 
+def fig_viirs_example(outfile:str, t:int, idx:int=0): 
+
+
+    # VIIRS table
+    viirs_file = os.path.join(sst_path, 'VIIRS', 'Tables', 
+                              'VIIRS_all_98clear_std.parquet')
+    viirs = ulmo_io.load_main_table(viirs_file)
+    all_clear = np.isclose(viirs.clear_fraction, 0.)
+    clear_viirs = viirs[all_clear].copy()
+    
+    # Grab a clear image
+    pp_file = os.path.join(sst_path, 'VIIRS', 'PreProc', 'VIIRS_2012_95clear_192x192_preproc_viirs_std.h5')
+    f_pp2012 = h5py.File(pp_file, 'r')
+    cutout = clear_viirs.iloc[0]
+    img, _ = image_utils.grab_image(cutout, pp_hf=f_pp2012, close=False)
+
+    # Load model
+    chkpt_file = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'MAE', 'models', f'mae_t{t}_399.pth')
+    model = models_mae.prepare_model(chkpt_file)
+
+    # Reconstruct
+    rimg = np.resize(img, (64,64,1))
+    mask, x, y = reconstruct_LLC.run_one_image(rimg, model, 0.3)
+
+    # Numpy me
+    np_mask = mask.detach().cpu().numpy().reshape(64,64)
+    np_x = x.detach().cpu().numpy().reshape(64,64)
+    np_y = y.detach().cpu().numpy().reshape(64,64)
+
+    # Prep fig
+    fig = plt.figure(figsize=(7, 3.1))
+    plt.clf()
+    gs = gridspec.GridSpec(1,3)
+
+    mae_plotting.plot_recon(np_y, np_x, np_mask, gs=gs,
+                            res_vmnx=(-0.2,0.2))
+
+    # Finish
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
 
 #### ########################## #########################
 def main(flg_fig):
@@ -354,6 +401,10 @@ def main(flg_fig):
     if flg_fig & (2 ** 3):
         fig_explore_bias(clobber=False)
 
+    # VIIRS example
+    if flg_fig & (2 ** 4):
+        fig_viirs_example('fig_viirs_example.png', 75)
+
 # Command line execution
 if __name__ == '__main__':
 
@@ -362,7 +413,8 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 0  # Clouds on the sphere
         #flg_fig += 2 ** 1  # Number satisfying
         #flg_fig += 2 ** 2  # Binned stats
-        flg_fig += 2 ** 3  # Bias
+        #flg_fig += 2 ** 3  # Bias
+        flg_fig += 2 ** 4  # VIIRS example
     else:
         flg_fig = sys.argv[1]
 

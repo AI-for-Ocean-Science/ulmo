@@ -264,30 +264,7 @@ def fig_umap_colored(outfile='fig_umap_LL.png',
         idx = idx[0:nsub]
         modis_tbl = modis_tbl.loc[idx].copy()
 
-    # Metric
-    lmetric = metric
-    if metric == 'LL':
-        values = modis_tbl.LL 
-    elif metric == 'logDT':
-        values = np.log10(modis_tbl.DT.values)
-        lmetric = r'$\log_{10} \, \Delta T$'
-    elif metric == 'DT':
-        values = modis_tbl.DT.values
-        lmetric = r'$\Delta T$'
-    elif metric == 'DT40':
-        values = modis_tbl.DT40.values
-        lmetric = r'$\log \Delta T$'
-        #lmetric = r'$\Delta T_{\rm 40}$'
-    elif metric == 'logDT40':
-        values = np.log10(modis_tbl.DT40.values)
-        lmetric = r'$\log \Delta T_{\rm 40}$'
-    elif metric == 'clouds':
-        values = modis_tbl.clear_fraction
-    elif metric == 'slope':
-        lmetric = r'slope ($\alpha_{\rm min}$)'
-        values = modis_tbl.min_slope.values
-    else:
-        raise IOError("Bad metric!")
+    lmetric, values = parse_metric(metric, modis_tbl)
     
     # Histogram??
     if hist_param is not None:
@@ -1781,6 +1758,153 @@ def fig_DT_vs_U0(outfile='fig_DT_vs_U0.png',
     plt.close()
     print('Wrote {:s}'.format(outfile))
 
+def fig_umap_multi_metric(stat='median', 
+                cuts=None,
+                percentiles=None,
+                table=None,
+                local=False, 
+                cmap=None,
+                vmnx = (-1000., None),
+                region=None,
+                umap_comp='S0,S1',
+                umap_dim=2,
+                debug=False): 
+    """ UMAP colored by LL or something else
+
+    Args:
+        outfile (str, optional): [description]. Defaults to 'fig_umap_LL.png'.
+        local (bool, optional): [description]. Defaults to True.
+        hist_param (dict, optional): 
+            dict describing the histogram to generate and show
+        debug (bool, optional): [description]. Defaults to False.
+
+    Raises:
+        IOError: [description]
+    """
+    outfile= f'fig_umap_multi_{stat}.png' 
+    # Load table
+    modis_tbl = ssl_paper_analy.load_modis_tbl(
+        local=local, cuts=cuts, region=region, 
+        table=table, percentiles=percentiles)
+
+    num_samples = len(modis_tbl)
+    outfile = update_outfile(outfile, table, umap_dim,
+                             umap_comp=umap_comp)
+    umap_keys = ssl_paper_analy.gen_umap_keys(umap_dim, umap_comp)
+
+    if pargs.table == '96clear_v4_DT1':
+        binx=np.linspace(-1,10.5,30)
+        biny=np.linspace(-3.5,4.5,30)
+    else:
+        raise IOError("Need to set binx, biny for {:s}".format(pargs.table))
+
+    hist_param = dict(binx=binx, biny=biny)
+
+    # Inputs
+    if cmap is None:
+        # failed = 'inferno, brg,gnuplot'
+        cmap = 'gist_rainbow'
+        cmap = 'rainbow'
+
+    metrics = ['DT40', 'stdDT40', 'slope', 'clouds', 'abslat', 'counts']
+
+    # Start the figure
+    fig = plt.figure(figsize=(12, 6.5))
+    plt.clf()
+    gs = gridspec.GridSpec(2, 3)
+
+    a_lbls = ['(a)', '(b)', '(c)', '(d)', '(e)', '(f)']
+    for ss, metric in enumerate(metrics):
+        ax = plt.subplot(gs[ss])
+        lmetric, values = parse_metric(metric, modis_tbl)
+        if 'std' in metric: 
+            istat = 'std'
+        else:
+            istat = stat
+        # Do it
+        stat2d, xedges, yedges, _ =\
+            stats.binned_statistic_2d(
+                modis_tbl[umap_keys[0]], 
+                modis_tbl[umap_keys[1]],
+                values,
+                istat,
+                bins=[hist_param['binx'], 
+                    hist_param['biny']])
+        counts, _, _ = np.histogram2d(
+                modis_tbl[umap_keys[0]], 
+                modis_tbl[umap_keys[1]],
+                bins=[hist_param['binx'], 
+                    hist_param['biny']])
+
+        # Require at least 50
+        bad_counts = counts < 50
+        stat2d[bad_counts] = np.nan
+        if metric == 'counts':
+            img = ax.pcolormesh(xedges, yedges, 
+                             counts.T, cmap=cmap) 
+        else:
+            img = ax.pcolormesh(xedges, yedges, 
+                             stat2d.T, cmap=cmap) 
+
+        # Color bar
+        cb = plt.colorbar(img, pad=0., fraction=0.030)
+        cb.set_label(lmetric, fontsize=15.)
+        #ax.set_xlabel(r'$'+umap_keys[0]+'$')
+        #ax.set_ylabel(r'$'+umap_keys[1]+'$')
+        ax.set_xlabel(r'$U_0$')
+        ax.set_ylabel(r'$U_1$')
+        fsz = 14.
+        ax.text(0.95, 0.9, a_lbls[ss], transform=ax.transAxes,
+              fontsize=14, ha='right', color='k')
+        plotting.set_fontsize(ax, fsz)
+
+    plt.tight_layout(pad=0.0, h_pad=0.0, w_pad=0.0)
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
+
+def parse_metric(metric:str, modis_tbl:pandas.DataFrame):
+    # Metric
+    lmetric = metric
+    if metric == 'LL':
+        values = modis_tbl.LL 
+    elif metric == 'logDT':
+        values = np.log10(modis_tbl.DT.values)
+        lmetric = r'$\log_{10} \, \Delta T$'
+    elif metric == 'DT':
+        values = modis_tbl.DT.values
+        lmetric = r'$\Delta T$'
+    elif metric == 'DT40':
+        values = modis_tbl.DT40.values
+        lmetric = r'$\Delta T$ (K)'
+        #lmetric = r'$\Delta T_{\rm 40}$'
+    elif metric == 'stdDT40':
+        values = modis_tbl.DT40.values
+        #lmetric = r'$\sigma(\Delta T_{\rm 40}) (K)$'
+        lmetric = r'$\sigma(\Delta T) (K)$'
+    elif metric == 'logDT40':
+        values = np.log10(modis_tbl.DT40.values)
+        lmetric = r'$\log \Delta T_{\rm 40}$'
+    elif metric == 'clouds':
+        values = modis_tbl.clear_fraction
+        lmetric = 'Cloud Coverage'
+    elif metric == 'slope':
+        lmetric = r'slope ($\alpha_{\rm min}$)'
+        values = modis_tbl.min_slope.values
+    elif metric == 'meanT':
+        lmetric = r'$<T>$ (K)'
+        values = modis_tbl.mean_temperature.values
+    elif metric == 'abslat':
+        lmetric = r'$|$ latitude $|$ (deg)'
+        values = np.abs(modis_tbl.lat.values)
+    elif metric == 'counts':
+        lmetric = 'Counts'
+        values = np.ones(len(modis_tbl))
+    else:
+        raise IOError("Bad metric!")
+
+    return lmetric, values
         
 #### ########################## #########################
 def main(pargs):
@@ -1806,8 +1930,10 @@ def main(pargs):
                          umap_comp=pargs.umap_comp)
     # UMAP_DT 
     if pargs.figure in ['umap_DT', 'umap_DT40']:
+        vmnx=(None,None)
         if 'all' in pargs.table:
             metric = 'logDT'
+            vmnx = (-0.5, 0.75)
         elif 'DT40' in pargs.figure:
             metric = 'DT40'
         else:
@@ -1815,7 +1941,7 @@ def main(pargs):
         outfile='fig_umap_DT.png' if pargs.outfile is None else pargs.outfile
         fig_umap_colored(local=pargs.local, table=pargs.table,
                          metric=metric, outfile=outfile,
-                         vmnx=(None,None),
+                         vmnx=vmnx,
                          umap_dim=pargs.umap_dim,
                          umap_comp=pargs.umap_comp)
         # Clouds
@@ -2119,6 +2245,11 @@ def main(pargs):
     if pargs.figure == 'DT_vs_U0':
         fig_DT_vs_U0(local=pargs.local, table=pargs.table)
 
+    # Multi stats
+    if pargs.figure == 'multi_stats':
+        fig_umap_multi_metric(local=pargs.local, debug=pargs.debug,
+            stat=pargs.stat, cmap=pargs.cmap,
+            umap_comp=pargs.umap_comp, table=pargs.table)
 
 def parse_option():
     """
@@ -2131,6 +2262,7 @@ def parse_option():
     parser.add_argument("figure", type=str, 
                         help="function to execute: 'slopes, 2d_stats, slopevsDT, umap_LL, learning_curve'")
     parser.add_argument('--metric', type=str, help="Metric for the figure: 'DT, T10'")
+    parser.add_argument('--stat', type=str, help="Statistic for the figure: 'median, mean, std'")
     parser.add_argument('--cmap', type=str, help="Color map")
     parser.add_argument('--umap_dim', type=int, default=2, help="UMAP embedding dimensions")
     parser.add_argument('--umap_comp', type=str, default='0,1', help="UMAP embedding dimensions")

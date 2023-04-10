@@ -15,8 +15,8 @@ import numpy as np
 
 import torch
 
-import util.misc as misc
-import util.lr_sched as lr_sched
+import ulmo.mae.util.misc as misc
+import ulmo.mae.util.lr_sched as lr_sched
 
 
 def train_one_epoch(model: torch.nn.Module,

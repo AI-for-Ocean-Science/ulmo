@@ -30,7 +30,8 @@ function HEALPix_plot_Mollweid( FigNo, subplot_details, Lat, Lon, data_to_plot, 
 %    '(VIIRS 2012-2015) - (VIIRS 2018-2020) LL', ['head_tail_LL_' num2str(nsigma)])
 %
 
-if exist('lat_range') == 0
+% if exist('lat_range') == 0
+if isempty(lat_range) == 1
     lat_range = [-90 90];
     lat_lower = -75;
     lat_upper = 75;
@@ -39,7 +40,8 @@ else
     lat_upper = lat_range(2);
 end
 
-if exist('lon_range') == 0
+% if exist('lon_range') == 0
+if isempty(lon_range) == 1
     lon_range = [-180 180];
 end
 
@@ -168,7 +170,11 @@ if lat_range(1)~=-90 & lat_range(2)~=90
     if sum(MapLonLimit) < 0
         setm(gca,mlabellocation=[lon_range(1):mlinesep:lon_range(2)]-360, mlabelparallel=floor(lat_range(1)+abs(diff(lat_range)/20)) )
     else
-        setm(gca,mlabellocation=[lon_range(1):mlinesep:lon_range(2)], mlabelparallel=floor(lat_range(1)+abs(diff(lat_range)/20)) )
+        if lat_range(2) == 60
+            setm(gca,mlabellocation=[lon_range(1):mlinesep:lon_range(2)], mlabelparallel=floor(lat_range(2)))
+        else
+            setm(gca,mlabellocation=[lon_range(1):mlinesep:lon_range(2)], mlabelparallel=floor(lat_range(1)+abs(diff(lat_range)/20)) )
+        end
     end
 end
 

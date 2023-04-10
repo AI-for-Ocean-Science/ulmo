@@ -22,18 +22,18 @@ import torch
 import numpy as np
 import h5py
 import timm.optim.optim_factory as optim_factory
-from util.misc import NativeScalerWithGradNormCount as NativeScaler
+from ulmo.mae.util.misc import NativeScalerWithGradNormCount as NativeScaler
 
 import matplotlib.pyplot as plt
 from PIL import Image
-from util.hdfstore import HDF5Store
-import util.misc as misc
+from ulmo.mae.util.hdfstore import HDF5Store
+import ulmo.mae.util.misc as misc
 from ulmo import io as ulmo_io
 from ulmo.utils import HDF5Dataset, id_collate, get_quantiles
 
-import models_mae
-from mae_utils import img_filename, mask_filename
-from engine_pretrain import reconstruct_one_epoch
+from ulmo.mae import models_mae
+from ulmo.mae.mae_utils import img_filename, mask_filename
+from ulmo.mae.engine_pretrain import reconstruct_one_epoch
 
 def get_args_parser():
     parser = argparse.ArgumentParser('MAE reconstruction', add_help=False)
@@ -83,6 +83,8 @@ def get_args_parser():
     parser.add_argument('--dist_on_itp', action='store_true')
     parser.add_argument('--dist_url', default='env://',
                         help='url used to set up distributed training')
+    parser.add_argument('--debug', action='store_true',
+                        help='Debug')
 
     return parser
 
@@ -106,7 +108,7 @@ def prepare_model(args):
     return model, optimizer, device, loss_scaler
 
 
-def run_one_image(img, model, mask_ratio, file, mask_file):
+def run_one_image(img:np.ndarray, model, mask_ratio, file, mask_file):
     x = torch.tensor(img)
 
     # make it a batch-like
@@ -143,6 +145,37 @@ def run_one_image(img, model, mask_ratio, file, mask_file):
     file.append(im)
     mask_file.append(m)
 
+
+def x_run_one_image(img:np.ndarray, model, mask_ratio:float):
+    """_summary_
+
+    Args:
+        img (np.ndarray): _description_
+        model (_type_): _description_
+        mask_ratio (float): _description_
+
+    Returns:
+        tuple: mask, reconstructed image, original image
+    """
+    x = torch.tensor(img)
+
+    # make it a batch-like
+    x = x.unsqueeze(dim=0)
+    x = torch.einsum('nhwc->nchw', x)
+
+    # run MAE
+    loss, y, mask = model(x.float(), mask_ratio)
+    y = model.unpatchify(y)
+    y = torch.einsum('nchw->nhwc', y).detach().cpu()
+
+    # visualize the mask
+    mask = mask.detach()
+    mask = mask.unsqueeze(-1).repeat(1, 1, model.patch_embed.patch_size[0]**2 *1)  # (N, H*W, p*p*3)
+    mask = model.unpatchify(mask)  # 1 is removing, 0 is keeping
+    mask = torch.einsum('nchw->nhwc', mask).detach().cpu()
+    
+    x = torch.einsum('nchw->nhwc', x)
+    return mask, x, y
     
 def run_remainder(args, model, data_length, file, mask_file):
     start = (data_length // args.batch_size) * args.batch_size
@@ -202,8 +235,9 @@ def main(args):
     )
     print("Reconstructing batch remainder")
     run_remainder(args, model, data_length, file, mask_file)
-    ulmo_io.upload_file_to_s3(filepath, upload_path)
-    ulmo_io.upload_file_to_s3(mask_filepath, mask_upload_path)
+    if not args.debug:
+        ulmo_io.upload_file_to_s3(filepath, upload_path)
+        ulmo_io.upload_file_to_s3(mask_filepath, mask_upload_path)
     
     
 if __name__ == '__main__':
