@@ -35,7 +35,7 @@ mae_img_path = 's3://llc/mae/PreProc'
 ogcm_path = os.getenv('OS_OGCM')
 if ogcm_path is not None:
     enki_path = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki')
-    local_mae_valid_nonoise_file = orig_file = os.path.join(enki_path, 'PreProc', 'MAE_LLC_valid_nonoise_preproc.h5')
+    local_mae_valid_nonoise_file = os.path.join(enki_path, 'PreProc', 'MAE_LLC_valid_nonoise_preproc.h5')
 
 # VIIRS
 sst_path = os.getenv('OS_SST')

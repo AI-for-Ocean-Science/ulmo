@@ -51,6 +51,8 @@ import anly_patches
 #orig_file = os.path.join(preproc_path, 'MAE_LLC_valid_nonoise_preproc.h5')
 
 sst_path = os.getenv('OS_SST')
+ogcm_path = os.getenv('OS_OGCM')
+enki_path = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki')
 
 def fig_clouds(outfile:str, analy_file:str,
                  local=False, 
@@ -331,6 +333,13 @@ def fig_explore_bias(outfile:str='fig_explore_bias.png',
 
 
 def fig_viirs_example(outfile:str, t:int, idx:int=0): 
+    """ Show an example of VIIRS reconstruction
+
+    Args:
+        outfile (str): _description_
+        t (int): _description_
+        idx (int, optional): _description_. Defaults to 0.
+    """
 
 
     # VIIRS table
@@ -372,6 +381,26 @@ def fig_viirs_example(outfile:str, t:int, idx:int=0):
     plt.close()
     print('Wrote {:s}'.format(outfile))
 
+def fig_viirs_recon_rmse(outfile:str, t:int, p:int):
+
+    # VIIRS table
+    viirs_file = os.path.join(sst_path, 'VIIRS', 'Tables', 
+                              'VIIRS_all_100clear_std.parquet')
+    viirs = ulmo_io.load_main_table(viirs_file)
+
+def fig_llc_inpainting(outfile:str, t:int, p:int):
+
+    # Load up
+    local_mae_valid_nonoise_file = os.path.join(
+        enki_path, 'PreProc', 
+        'MAE_LLC_valid_nonoise_preproc.h5')
+    local_orig_file = local_mae_valid_nonoise_file
+    inpaint_file = os.path.join(
+        ogcm_path, 'LLC', 'Enki', 
+        'Recon', f'LLC_inpaint_t{t}_p{p}.h5')
+
+    
+    # 
 
 #### ########################## #########################
 def main(flg_fig):
@@ -401,9 +430,19 @@ def main(flg_fig):
     if flg_fig & (2 ** 3):
         fig_explore_bias(clobber=False)
 
-    # VIIRS example
+    # VIIRS recon example
     if flg_fig & (2 ** 4):
         fig_viirs_example('fig_viirs_example.png', 75)
+
+    # VIIRS full recon analysis
+    if flg_fig & (2 ** 5):
+        fig_viirs_recon_rmse('fig_viirs_recon.png', 10, 10)
+
+    # VIIRS inpainting analysis
+    if flg_fig & (2 ** 6):
+        fig_llc_inpainting('fig_llcinpainting.png', 10, 10)
+
+
 
 # Command line execution
 if __name__ == '__main__':
@@ -414,7 +453,8 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 1  # Number satisfying
         #flg_fig += 2 ** 2  # Binned stats
         #flg_fig += 2 ** 3  # Bias
-        flg_fig += 2 ** 4  # VIIRS example
+        #flg_fig += 2 ** 4  # VIIRS example
+        flg_fig += 2 ** 5  # VIIRS reocn analysis
     else:
         flg_fig = sys.argv[1]
 
