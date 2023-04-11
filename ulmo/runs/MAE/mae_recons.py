@@ -216,6 +216,8 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
 
     # Add to table
     print("Adding to table")
+    if debug:
+        embed(header='220 of mae_recons')
     tbl[RMS_metric] = rms
         
     # Vet
