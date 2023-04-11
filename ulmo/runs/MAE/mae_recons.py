@@ -190,11 +190,13 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
         recon_file = os.path.join(sst_path, 'VIIRS', 'Enki', 'Recon',
                                   f'VIIRS_100clear_t{t}_p{p}.h5')
         mask_file = recon_file.replace('.h5', '_mask.h5')
-    else:
+    elif dataset == 'LLC':
         tbl_file = mae_valid_nonoise_tbl_file
         recon_file = mae_utils.img_filename(t,p, local=True)
         mask_file = mae_utils.mask_filename(t,p, local=True)
         orig_file = local_mae_valid_nonoise_file
+    else:
+        raise ValueError("Bad dataset")
 
     # Load table
     tbl = ulmo_io.load_main_table(tbl_file)
@@ -218,7 +220,13 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
     print("Adding to table")
     if debug:
         embed(header='220 of mae_recons')
-    tbl[RMS_metric] = rms
+    if dataset == 'LLC':
+        all_rms = np.nan * np.ones_like(tbl.LL_t35_p50)
+        idx = np.isfinite(tbl.LL_t35_p50)
+        all_rms[idx] = rms
+    else:
+        all_rms = rms
+    tbl[RMS_metric] = all_rms
         
     # Vet
     chk, disallowed_keys = cat_utils.vet_main_table(
