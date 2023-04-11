@@ -17,7 +17,7 @@ from ulmo.analysis import evaluate as ulmo_evaluate
 from ulmo.utils import catalog as cat_utils
 from ulmo.mae import mae_utils
 from ulmo.modis import analysis as modis_analysis
-from ulmo.mae import patch_analysis
+from ulmo.mae import cutout_analysis
 
 from IPython import embed
 
@@ -180,6 +180,35 @@ def compare_with_inpainting(inpaint_file:str, t:int, p:int, debug:bool=False,
         f.create_dataset('inpainted', data=inpainted.astype(np.float32))
     print(f'Wrote: {inpaint_file}')
 
+def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False):
+
+
+    if dataset == 'VIIRS':
+        tbl_file = viirs_100_s3_file
+        orig_file = viirs_100_img_file
+        recon_file = os.path.join(sst_path, 'VIIRS', 'Enki', 'Recon',
+                                  f'VIIRS_100clear_t{t}_p{p}.h5')
+        mask_file = recon_file.replace('.h5', '_mask.h5')
+    else:
+        raise ValueError("Not ready for this dataset")
+
+    # Load table
+    tbl = ulmo_io.load_main_table(tbl_file)
+
+    # Already exist?
+    RMS_metric = f'RMS_t{t}_p{p}'
+    if RMS_metric in tbl.keys() and not clobber:
+        print(f"RMS metric = {RMS_metric} already evaluated.  Skipping..")
+        return
+
+    # Open up
+    f_orig = h5py.File(orig_file, 'r')
+    f_recon = h5py.File(recon_file, 'r')
+    f_mask = h5py.File(mask_file, 'r')
+
+    # Do it!
+    rms = cutout_analysis.rms_images(f_orig, f_recon, f_mask)
+        
 
 
 def main(flg):
@@ -197,6 +226,11 @@ def main(flg):
         compare_with_inpainting('LLC_inpaint_t10_p10.h5', 
                                 10, 10, local=False)
 
+    # Calculate RMS for various reconstructions
+    if flg & (2**2):
+        calc_rms(dataset='VIIRS')
+
+
 # Command line execution
 if __name__ == '__main__':
     import sys
@@ -205,6 +239,7 @@ if __name__ == '__main__':
         flg = 0
         #flg += 2 ** 0  # 1 -- Images for VIIRS
         #flg += 2 ** 1  # 2 -- Inpaint vs Enki
+        flg += 2 ** 2  # 4 -- RMS calculations
     else:
         flg = sys.argv[1]
 
