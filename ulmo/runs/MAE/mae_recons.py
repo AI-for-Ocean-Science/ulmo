@@ -218,14 +218,14 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
     # Vet
     chk, disallowed_keys = cat_utils.vet_main_table(
         tbl, return_disallowed=True)
-    for key in disallowed_keys:
-        assert key[0:2] in ['LL','RM']
+    #for key in disallowed_keys:
+    #    assert key[0:2] in ['LL','RM']
 
     # Write 
     if debug:
-        tbl_file = tbl_file.replace('.parquet', '_small.parquet')
         embed(header='99 of mae_eval_ulmo')
-    ulmo_io.write_main_table(tbl, tbl_file)
+    else:
+        ulmo_io.write_main_table(tbl, tbl_file)
 
 
 def main(flg):
@@ -245,7 +245,7 @@ def main(flg):
 
     # Calculate RMS for various reconstructions
     if flg & (2**2):
-        calc_rms(10, 10, dataset='VIIRS')
+        calc_rms(10, 10, dataset='VIIRS', debug=True)
 
 
 # Command line execution

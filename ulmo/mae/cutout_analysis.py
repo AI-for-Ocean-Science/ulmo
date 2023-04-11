@@ -35,8 +35,10 @@ def rms_images(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File,
     calc = calc**2
 
     # Mean
+    print("Mean")
     nmask = np.sum(mask_imgs, axis=(1,2))
     calc = np.sum(calc, axis=(1,2)) / nmask
 
     # RMS
+    print("Root")
     return np.sqrt(calc)
