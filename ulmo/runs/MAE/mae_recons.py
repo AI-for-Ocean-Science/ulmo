@@ -208,9 +208,11 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
     f_mask = h5py.File(mask_file, 'r')
 
     # Do it!
+    print("Calculating RMS metric")
     rms = cutout_analysis.rms_images(f_orig, f_recon, f_mask)
 
     # Add to table
+    print("Adding to table")
     tbl[RMS_metric] = rms
         
     # Vet

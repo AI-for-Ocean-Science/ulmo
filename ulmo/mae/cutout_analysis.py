@@ -10,13 +10,13 @@ def rms_images(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File,
     """_summary_
 
     Args:
-        f_orig (h5py.File): _description_
-        f_recon (h5py.File): _description_
-        f_mask (h5py.File): _description_
-        patch_sz (int, optional): _description_. Defaults to 4.
+        f_orig (h5py.File): Pointer to original images
+        f_recon (h5py.File): Pointer to reconstructed images
+        f_mask (h5py.File): Pointer to mask images
+        patch_sz (int, optional): patch size. Defaults to 4.
 
     Returns:
-        _type_: _description_
+        np.array: RMS values
     """
     # Load em all
     orig_imgs = f_orig['valid'][:,0,...]
@@ -27,9 +27,11 @@ def rms_images(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File,
     mask_imgs[:, patch_sz:-patch_sz,patch_sz:-patch_sz] = 0
 
     # Analyze
+    print("Calculate")
     calc = (orig_imgs - recon_imgs)*mask_imgs
 
     # Square
+    print("Square")
     calc = calc**2
 
     # Mean
