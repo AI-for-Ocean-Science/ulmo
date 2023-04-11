@@ -218,8 +218,8 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
 
     # Add to table
     print("Adding to table")
-    if debug:
-        embed(header='220 of mae_recons')
+    #if debug:
+    #    embed(header='220 of mae_recons')
     if dataset == 'LLC':
         all_rms = np.nan * np.ones_like(tbl.LL_t35_p50)
         idx = np.isfinite(tbl.LL_t35_p50)
@@ -236,7 +236,7 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
 
     # Write 
     if debug:
-        embed(header='99 of mae_eval_ulmo')
+        embed(header='239 of mae_recons')
     else:
         ulmo_io.write_main_table(tbl, tbl_file)
 
@@ -262,11 +262,9 @@ def main(flg):
         #calc_rms(10, 10, dataset='VIIRS')
 
         # LLC
-        img_pers = [(75, 10), (75, 20), (75, 30), 
-                    (75, 40), (75, 50)]
-        for tp in img_pers:
-            calc_rms(tp[0], tp[1], dataset='LLC', debug=True)
-            embed(header='259 of mae_recons')
+        for t in [10,35,75]:
+            for p in [10,20,30,40,50]:
+                calc_rms(t, p, dataset='LLC')
 
 
 # Command line execution
