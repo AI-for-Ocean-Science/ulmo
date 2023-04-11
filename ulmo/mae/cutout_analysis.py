@@ -19,11 +19,13 @@ def rms_images(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File,
         np.array: RMS values
     """
     # Load em all
+    print("Loading images...")
     orig_imgs = f_orig['valid'][:,0,...]
     recon_imgs = f_recon['valid'][:,0,...]
     mask_imgs = f_mask['valid'][:,0,...]
 
     # Mask out edges
+    print("Masking edges")
     mask_imgs[:, patch_sz:-patch_sz,patch_sz:-patch_sz] = 0
 
     # Analyze

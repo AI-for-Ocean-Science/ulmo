@@ -217,9 +217,9 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
         
     # Vet
     chk, disallowed_keys = cat_utils.vet_main_table(
-        tbl, return_disallowed=True)
-    #for key in disallowed_keys:
-    #    assert key[0:2] in ['LL','RM']
+        tbl, return_disallowed=True, cut_prefix=['MODIS_'])
+    for key in disallowed_keys:
+        assert key[0:2] in ['LL','RM']
 
     # Write 
     if debug:
@@ -245,7 +245,10 @@ def main(flg):
 
     # Calculate RMS for various reconstructions
     if flg & (2**2):
-        calc_rms(10, 10, dataset='VIIRS', debug=True)
+        calc_rms(10, 10, dataset='VIIRS')
+        #img_pers = [(75, 10), (75, 20), (75, 30), 
+        #            (75, 40), (75, 50)]
+        #calc_rms(10, 10, debug=True)
 
 
 # Command line execution
