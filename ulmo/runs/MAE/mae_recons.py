@@ -228,7 +228,7 @@ def main(flg):
 
     # Calculate RMS for various reconstructions
     if flg & (2**2):
-        calc_rms(dataset='VIIRS')
+        calc_rms(10, 10, dataset='VIIRS')
 
 
 # Command line execution
