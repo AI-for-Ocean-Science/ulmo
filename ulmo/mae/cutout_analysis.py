@@ -1,10 +1,23 @@
 """ Analysis of cutout images"""
 
 import numpy as np
+import h5py
 
 from IPython import embed
 
-def rms_images(f_orig, f_recon, f_mask, patch_sz:int=4):
+def rms_images(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File, 
+               patch_sz:int=4):
+    """_summary_
+
+    Args:
+        f_orig (h5py.File): _description_
+        f_recon (h5py.File): _description_
+        f_mask (h5py.File): _description_
+        patch_sz (int, optional): _description_. Defaults to 4.
+
+    Returns:
+        _type_: _description_
+    """
     # Load em all
     orig_imgs = f_orig['valid'][:,0,...]
     recon_imgs = f_recon['valid'][:,0,...]
@@ -15,8 +28,6 @@ def rms_images(f_orig, f_recon, f_mask, patch_sz:int=4):
 
     # Analyze
     calc = (orig_imgs - recon_imgs)*mask_imgs
-
-    embed(header='19 of cutout_analysis.py')
 
     # Square
     calc = calc**2

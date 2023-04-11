@@ -180,7 +180,8 @@ def compare_with_inpainting(inpaint_file:str, t:int, p:int, debug:bool=False,
         f.create_dataset('inpainted', data=inpainted.astype(np.float32))
     print(f'Wrote: {inpaint_file}')
 
-def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False):
+def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
+             debug:bool=False):
 
 
     if dataset == 'VIIRS':
@@ -208,7 +209,21 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False):
 
     # Do it!
     rms = cutout_analysis.rms_images(f_orig, f_recon, f_mask)
+
+    # Add to table
+    tbl[RMS_metric] = rms
         
+    # Vet
+    chk, disallowed_keys = cat_utils.vet_main_table(
+        tbl, return_disallowed=True)
+    for key in disallowed_keys:
+        assert key[0:2] in ['LL','RM']
+
+    # Write 
+    if debug:
+        tbl_file = tbl_file.replace('.parquet', '_small.parquet')
+        embed(header='99 of mae_eval_ulmo')
+    ulmo_io.write_main_table(tbl, tbl_file)
 
 
 def main(flg):
