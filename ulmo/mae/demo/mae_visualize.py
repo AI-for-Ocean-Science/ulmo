@@ -68,7 +68,7 @@ def run_one_image(img, model, mask_ratio, file):
     mask = mask.unsqueeze(-1).repeat(1, 1, model.patch_embed.patch_size[0]**2 *1)  # (N, H*W, p*p*3)
     mask = model.unpatchify(mask)  # 1 is removing, 0 is keeping
     mask = torch.einsum('nchw->nhwc', mask).detach()
-    
+    from IPython import embed; embed(header='225 of extract')
     x = torch.einsum('nchw->nhwc', x)
 
     # masked image
@@ -77,7 +77,7 @@ def run_one_image(img, model, mask_ratio, file):
     # MAE reconstruction pasted with visible patches (image of interest)
     im_paste = x * (1 - mask) + y * mask
     temp = im_paste.cpu().detach().numpy()
-    #from IPython import embed; embed(header='225 of extract')
+    
     im = np.squeeze(temp, axis=3)
     
     file.append(im)
