@@ -191,7 +191,10 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
                                   f'VIIRS_100clear_t{t}_p{p}.h5')
         mask_file = recon_file.replace('.h5', '_mask.h5')
     else:
-        raise ValueError("Not ready for this dataset")
+        tbl_file = mae_valid_nonoise_tbl_file
+        recon_file = mae_utils.img_filename(t,p, local=True)
+        mask_file = mae_utils.mask_filename(t,p, local=True)
+        orig_file = local_mae_valid_nonoise_file
 
     # Load table
     tbl = ulmo_io.load_main_table(tbl_file)
@@ -245,10 +248,15 @@ def main(flg):
 
     # Calculate RMS for various reconstructions
     if flg & (2**2):
-        calc_rms(10, 10, dataset='VIIRS')
-        #img_pers = [(75, 10), (75, 20), (75, 30), 
-        #            (75, 40), (75, 50)]
-        #calc_rms(10, 10, debug=True)
+        # VIIRS
+        #calc_rms(10, 10, dataset='VIIRS')
+
+        # LLC
+        img_pers = [(75, 10), (75, 20), (75, 30), 
+                    (75, 40), (75, 50)]
+        for tp in img_pers:
+            calc_rms(tp[0], tp[1], dataset='LLC', debug=True)
+            embed(header='259 of mae_recons')
 
 
 # Command line execution
