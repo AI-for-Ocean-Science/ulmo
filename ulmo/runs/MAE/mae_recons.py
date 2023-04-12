@@ -258,14 +258,15 @@ def main(flg):
 
     # Calculate RMS for various reconstructions
     if flg & (2**2):
+        clobber = True
         # VIIRS
-        calc_rms(10, 10, dataset='VIIRS')
+        calc_rms(10, 10, dataset='VIIRS', clobber=clobber)
 
         # LLC
         for t in [10,35,75]:
             for p in [10,20,30,40,50]:
                 print(f'Working on: t={t}, p={p}')
-                calc_rms(t, p, dataset='LLC')
+                calc_rms(t, p, dataset='LLC', clobber=clobber)
 
 
 # Command line execution
