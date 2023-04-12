@@ -19,6 +19,8 @@ from ulmo.mae import mae_utils
 from ulmo import io as ulmo_io
 from scipy.sparse import csc_matrix
 
+from IPython import embed
+
 def rms_single_img(orig_img, recon_img, mask_img):
     """ Calculate rms of a single image (ignore edges)
     orig_img:  original img (64x64)
@@ -39,6 +41,7 @@ def rms_single_img(orig_img, recon_img, mask_img):
     for idx, (i, j) in enumerate(zip(mask_i, mask_j)):
         diff[idx] = orig_img[i,j] - recon_img[i,j]
     
+    #embed(header='44 of anly_rms.py')
     diff = np.square(diff)
     mse = diff.mean()
     rms = np.sqrt(mse)

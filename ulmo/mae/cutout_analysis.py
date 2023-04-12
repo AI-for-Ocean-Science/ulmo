@@ -6,7 +6,7 @@ import h5py
 from IPython import embed
 
 def rms_images(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File, 
-               patch_sz:int=4):
+               patch_sz:int=4, nimgs:int=None):
     """_summary_
 
     Args:
@@ -20,13 +20,20 @@ def rms_images(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File,
     """
     # Load em all
     print("Loading images...")
-    orig_imgs = f_orig['valid'][:,0,...]
-    recon_imgs = f_recon['valid'][:,0,...]
-    mask_imgs = f_mask['valid'][:,0,...]
+    if nimgs is None:
+        nimgs = f_orig['valid'].shape[0]
+
+    # Grab em
+    orig_imgs = f_orig['valid'][:nimgs,0,...]
+    recon_imgs = f_recon['valid'][:nimgs,0,...]
+    mask_imgs = f_mask['valid'][:nimgs,0,...]
 
     # Mask out edges
     print("Masking edges")
-    mask_imgs[:, patch_sz:-patch_sz,patch_sz:-patch_sz] = 0
+    mask_imgs[:, 0:patch_sz, :] = 0
+    mask_imgs[:, -patch_sz:, :] = 0
+    mask_imgs[:, :, 0:patch_sz] = 0
+    mask_imgs[:, :, -patch_sz:] = 0
 
     # Analyze
     print("Calculate")
