@@ -259,7 +259,7 @@ def main(flg):
     # Calculate RMS for various reconstructions
     if flg & (2**2):
         # VIIRS
-        #calc_rms(10, 10, dataset='VIIRS')
+        calc_rms(10, 10, dataset='VIIRS')
 
         # LLC
         for t in [10,35,75]:
