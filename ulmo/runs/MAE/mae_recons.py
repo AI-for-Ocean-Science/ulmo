@@ -226,8 +226,8 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
         all_rms[idx] = rms
     else:
         all_rms = rms
-    embed(header='229 of mae_recons')
-    tbl[RMS_metric] = all_rms
+
+    tbl[RMS_metric] = all_rms[tbl.pp_idx]
         
     # Vet
     chk, disallowed_keys = cat_utils.vet_main_table(
