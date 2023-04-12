@@ -226,6 +226,7 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
         all_rms[idx] = rms
     else:
         all_rms = rms
+    embed(header='229 of mae_recons')
     tbl[RMS_metric] = all_rms
         
     # Vet
@@ -260,7 +261,7 @@ def main(flg):
     if flg & (2**2):
         clobber = True
         # VIIRS
-        calc_rms(10, 10, dataset='VIIRS', clobber=clobber)
+        #calc_rms(10, 10, dataset='VIIRS', clobber=clobber)
 
         # LLC
         for t in [10,35,75]:
