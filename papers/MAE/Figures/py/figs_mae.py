@@ -381,12 +381,6 @@ def fig_viirs_example(outfile:str, t:int, idx:int=0):
     plt.close()
     print('Wrote {:s}'.format(outfile))
 
-def fig_viirs_recon_rmse(outfile:str, t:int, p:int):
-
-    # VIIRS table
-    viirs_file = os.path.join(sst_path, 'VIIRS', 'Tables', 
-                              'VIIRS_all_100clear_std.parquet')
-    viirs = ulmo_io.load_main_table(viirs_file)
 
 def fig_llc_inpainting(outfile:str, t:int, p:int):
 
