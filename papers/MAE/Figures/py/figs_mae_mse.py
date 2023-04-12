@@ -135,7 +135,7 @@ def fig_viirs_rms(outfile: str, t:int=10, p:int=10,
         lidx = (llc['LL'] <= LL_per) & (llc['LL'] > LL_min)
         llc_rmse.append(np.nanmedian(llc[f'RMS_t{t}_p{p}'][lidx]))
 
-    embed(header='138 of plot') 
+    # Plot
     ax = plt.gca()
 
     ax.scatter(avg_LL, viirs_rmse, color='blue', label='VIIRS')
@@ -146,7 +146,7 @@ def fig_viirs_rms(outfile: str, t:int=10, p:int=10,
     #ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda y,pos: ('{{:.{:1d}f}}'.format(int(np.maximum(-np.log10(y),0)))).format(y)))
     ax.set_axisbelow(True)
     ax.grid(color='gray', linestyle='dashed', linewidth = 0.5)
-    plt.legend(title='Model',
+    plt.legend(title='Dataset',
                title_fontsize='small', fontsize='small', fancybox=True, ncol=2)
     plt.title(f'VIIRS (and LLC): t={t}, p={p}')
     plt.xlabel("Average LL Per Batch")
