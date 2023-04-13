@@ -17,7 +17,7 @@ from ulmo.analysis import evaluate as ulmo_evaluate
 from ulmo.utils import catalog as cat_utils
 from ulmo.mae import mae_utils
 from ulmo.modis import analysis as modis_analysis
-from ulmo.mae import patch_analysis
+from ulmo.mae import cutout_analysis
 
 from IPython import embed
 
@@ -180,6 +180,66 @@ def compare_with_inpainting(inpaint_file:str, t:int, p:int, debug:bool=False,
         f.create_dataset('inpainted', data=inpainted.astype(np.float32))
     print(f'Wrote: {inpaint_file}')
 
+def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
+             debug:bool=False):
+
+
+    if dataset == 'VIIRS':
+        tbl_file = viirs_100_s3_file
+        orig_file = viirs_100_img_file
+        recon_file = os.path.join(sst_path, 'VIIRS', 'Enki', 'Recon',
+                                  f'VIIRS_100clear_t{t}_p{p}.h5')
+        mask_file = recon_file.replace('.h5', '_mask.h5')
+    elif dataset == 'LLC':
+        tbl_file = mae_valid_nonoise_tbl_file
+        recon_file = mae_utils.img_filename(t,p, local=True)
+        mask_file = mae_utils.mask_filename(t,p, local=True)
+        orig_file = local_mae_valid_nonoise_file
+    else:
+        raise ValueError("Bad dataset")
+
+    # Load table
+    tbl = ulmo_io.load_main_table(tbl_file)
+
+    # Already exist?
+    RMS_metric = f'RMS_t{t}_p{p}'
+    if RMS_metric in tbl.keys() and not clobber:
+        print(f"RMS metric = {RMS_metric} already evaluated.  Skipping..")
+        return
+
+    # Open up
+    f_orig = h5py.File(orig_file, 'r')
+    f_recon = h5py.File(recon_file, 'r')
+    f_mask = h5py.File(mask_file, 'r')
+
+    # Do it!
+    print("Calculating RMS metric")
+    rms = cutout_analysis.rms_images(f_orig, f_recon, f_mask)
+
+    # Add to table
+    print("Adding to table")
+    #if debug:
+    #    embed(header='220 of mae_recons')
+    if dataset == 'LLC':
+        all_rms = np.nan * np.ones_like(tbl.LL_t35_p50)
+        idx = np.isfinite(tbl.LL_t35_p50)
+        all_rms[idx] = rms
+    else:
+        all_rms = rms
+
+    tbl[RMS_metric] = all_rms[tbl.pp_idx]
+        
+    # Vet
+    chk, disallowed_keys = cat_utils.vet_main_table(
+        tbl, return_disallowed=True, cut_prefix=['MODIS_'])
+    for key in disallowed_keys:
+        assert key[0:2] in ['LL','RM']
+
+    # Write 
+    if debug:
+        embed(header='239 of mae_recons')
+    else:
+        ulmo_io.write_main_table(tbl, tbl_file)
 
 
 def main(flg):
@@ -197,6 +257,19 @@ def main(flg):
         compare_with_inpainting('LLC_inpaint_t10_p10.h5', 
                                 10, 10, local=False)
 
+    # Calculate RMS for various reconstructions
+    if flg & (2**2):
+        clobber = True
+        # VIIRS
+        #calc_rms(10, 10, dataset='VIIRS', clobber=clobber)
+
+        # LLC
+        for t in [10,35,75]:
+            for p in [10,20,30,40,50]:
+                print(f'Working on: t={t}, p={p}')
+                calc_rms(t, p, dataset='LLC', clobber=clobber)
+
+
 # Command line execution
 if __name__ == '__main__':
     import sys
@@ -205,6 +278,7 @@ if __name__ == '__main__':
         flg = 0
         #flg += 2 ** 0  # 1 -- Images for VIIRS
         #flg += 2 ** 1  # 2 -- Inpaint vs Enki
+        flg += 2 ** 2  # 4 -- RMS calculations
     else:
         flg = sys.argv[1]
 
