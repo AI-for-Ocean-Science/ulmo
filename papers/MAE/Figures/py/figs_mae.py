@@ -396,6 +396,9 @@ def fig_llc_inpainting(outfile:str, t:int, p:int,
                        debug:bool=False):
 
     # Files
+    local_enki_table = os.path.join(
+        enki_path, 'Tables', 
+        'MAE_LLC_valid_nonoise.parquet')
     local_mae_valid_nonoise_file = os.path.join(
         enki_path, 'PreProc', 
         'MAE_LLC_valid_nonoise_preproc.h5')
@@ -404,14 +407,73 @@ def fig_llc_inpainting(outfile:str, t:int, p:int,
         ogcm_path, 'LLC', 'Enki', 
         'Recon', f'LLC_inpaint_t{t}_p{p}.h5')
     recon_file = mae_utils.img_filename(t,p, local=True)
+    mask_file = mae_utils.mask_filename(t,p, local=True)
 
     # Load up
+    enki_tbl = ulmo_io.load_main_table(local_enki_table)
     f_orig = h5py.File(local_orig_file, 'r')
     f_recon = h5py.File(recon_file, 'r')
     f_inpaint = h5py.File(inpaint_file, 'r')
+    f_mask = h5py.File(mask_file, 'r')
 
-    # 
-    embed(header='409 of figs')
+
+    # Grab the images
+    if debug:
+        nimgs = 1000
+    else:
+        nimgs = 50000
+    orig_imgs = f_orig['valid'][:nimgs,0,...]
+    mask_imgs = f_mask['valid'][:nimgs,0,...]
+
+    # Allow for various shapes (hack)
+    recon_imgs = f_recon['valid'][:nimgs,0,...]
+
+
+    rms_enki = rms_images(orig_imgs, recon_imgs, mask_imgs)
+    del recon_imgs
+    
+    inpaint_imgs = f_inpaint['inpainted'][:nimgs,...]
+    rms_inpaint = rms_images(orig_imgs, inpaint_imgs, mask_imgs)
+
+    # Cut and add table
+    cut = (enki_tbl.pp_idx >= 0) & (enki_tbl.pp_idx < nimgs)
+    enki_tbl = enki_tbl[cut].copy()
+    enki_tbl.sort_values(by=['pp_idx'], inplace=True)
+
+    enki_tbl['rms_enki'] = rms_enki
+    enki_tbl['rms_inpaint'] = rms_inpaint
+    enki_tbl['delta_rms'] = rms_inpaint - rms_enki
+    enki_tbl['log10DT'] = np.log10(enki_tbl.DT)
+    enki_tbl['frac_rms'] = enki_tbl.delta_rms / enki_tbl.DT
+
+    nbad = np.sum(enki_tbl.delta_rms < 0.)
+    print(f"There are {nbad} of {len(enki_tbl)} with DeltaRMS < 0")
+
+    # Plot
+    # Prep fig
+    sns.set_style("whitegrid")
+    #fig = plt.figure(figsize=(9, 12))
+    plt.clf()
+
+    fg = sns.displot(data=enki_tbl, x='DT',
+                    y='delta_rms', log_scale=(True,True),
+                    color='purple')
+    #fg = sns.displot(data=enki_tbl, x='DT',
+    #                y='frac_rms', log_scale=(True,True),
+    #                color='purple') 
+
+    # Polish
+    fg.ax.set_xlabel(r'$\Delta T$ (K)')                
+    fg.ax.set_ylabel(r'$\Delta$RMSE = RMSE$_{\rm inpaint}$ - RMSE$_{\rm Enki}$ (K)')
+    #fg.ax.minorticks_on()
+    plotting.set_fontsize(fg.ax, 12.)
+
+    plt.title(f'Enki vs. Inpaiting: t={t}, p={p}')
+
+    # Finish
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
 
 #### ########################## #########################
 def main(flg_fig):
@@ -455,6 +517,56 @@ def main(flg_fig):
                            debug=True)
 
 
+#def rms_images(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File, 
+def rms_images(orig_imgs, recon_imgs, mask_imgs, 
+               patch_sz:int=4):
+    """_summary_
+
+    Args:
+        f_orig (h5py.File): Pointer to original images
+        f_recon (h5py.File): Pointer to reconstructed images
+        f_mask (h5py.File): Pointer to mask images
+        patch_sz (int, optional): patch size. Defaults to 4.
+
+    Returns:
+        np.array: RMS values
+    """
+    print("USE THE RIGHT ONE ONCE MERGED")
+    # Load em all
+    print("Loading images...")
+    #if nimgs is None:
+    #    nimgs = f_orig['valid'].shape[0]
+
+    # Grab em
+    #orig_imgs = f_orig['valid'][:nimgs,0,...]
+    #mask_imgs = f_mask['valid'][:nimgs,0,...]
+
+    # Allow for various shapes (hack)
+    #recon_imgs = f_recon['valid'][:nimgs,0,...]
+
+    # Mask out edges
+    print("Masking edges")
+    mask_imgs[:, 0:patch_sz, :] = 0
+    mask_imgs[:, -patch_sz:, :] = 0
+    mask_imgs[:, :, 0:patch_sz] = 0
+    mask_imgs[:, :, -patch_sz:] = 0
+
+    # Analyze
+    print("Calculate")
+    calc = (orig_imgs - recon_imgs)*mask_imgs
+
+    # Square
+    print("Square")
+    calc = calc**2
+
+    # Mean
+    print("Mean")
+    nmask = np.sum(mask_imgs, axis=(1,2))
+    calc = np.sum(calc, axis=(1,2)) / nmask
+
+    # RMS
+    print("Root")
+    return np.sqrt(calc)
 
 # Command line execution
 if __name__ == '__main__':
