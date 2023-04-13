@@ -25,6 +25,8 @@ llc_tst_file = 's3://llc/Tables/test_uniform144_r0.5_test.parquet'
 llc_full_file = 's3://llc/Tables/LLC_uniform144_r0.5.parquet'
 llc_nonoise_file = 's3://llc/Tables/LLC_uniform144_r0.5_nonoise.parquet'
 
+llc_tot1km_tbl_file = 's3://llc/Tables/LLC_1km_r0.5.parquet'
+
 # MAE
 mae_tst_nonoise_file = 's3://llc/mae/Tables/MAE_uniform144_test.parquet'
 #mae_nonoise_file = 's3://llc/mae/Tables/MAE_uniform144_nonoise.parquet'
@@ -99,8 +101,55 @@ def gen_llc_1km_table(tbl_file:str, debug:bool=False,
     print(f"Wrote: {tbl_file} with {len(llc_table)} unique cutouts.")
     print("All done with init")
 
-def balance_cutouts_DT(tbl_file:str, debug=False): 
-    llc_table = ulmo_io.load_main_table(tbl_file)
+
+def balance_cutouts_log10DT(tot_tbl_file:str, 
+                       balanced_tbl_file:str,
+                       ncutouts:int,
+                       nbins:int=10,
+                       debug=False): 
+    """ Generate a log10 DT balanced 
+
+    Args:
+        tot_tbl_file (str): _description_
+        balanced_tbl_file (str): _description_
+        ncutouts (int): _description_
+        debug (bool, optional): _description_. Defaults to False.
+    """
+    # Giddy up (will take a bit of memory!)
+    tot_tbl = ulmo_io.load_main_table(tot_tbl_file)
+
+    # Steps
+    log10DT = np.log10(tot_tbl.DT)
+    logDT_steps = np.linspace(log10DT.min(),
+                              log10DT.max(), 
+                              nbins+1)
+    nper_bin = ncutouts // nbins
+
+    # Loop on bins                        
+    save_idx = []
+    for kk in range(nbins):
+        # In bin
+        in_bin = (log10DT > logDT_steps[kk]) & (
+            log10DT <= logDT_steps[kk+1])
+        idx = np.where(in_bin)[0]
+        # Check
+        assert len(idx) > nper_bin
+        # Random choice
+        save_idx.append(np.random.choice(
+            idx, nper_bin, replace=False))
+    save_idx = np.concatenate(save_idx)
+
+    # 
+    new_tbl = tot_tbl.iloc[save_idx]
+    new_tbl.reset_index(inplace=True)
+
+    # Vet
+    assert cat_utils.vet_main_table(new_tbl)
+
+    # Write 
+    ulmo_io.write_main_table(new_tbl, balanced_tbl_file)
+
+
 
 def extract_llc_cutouts( tbl_file:str, debug=False, 
                         debug_local=False, root_file=None, 
@@ -109,8 +158,9 @@ def extract_llc_cutouts( tbl_file:str, debug=False,
     """Extract 64x64 cutouts 
 
     Args:
-        tbl_file (str): Table of cutouts
-        debug (bool, optional): _description_. Defaults to False.
+        tbl_file (str): filename for Table of cutouts
+        debug (bool, optional): 
+            Debug?
         debug_local (bool, optional): _description_. Defaults to False.
         root_file (_type_, optional): _description_. Defaults to None.
         dlocal (bool, optional): _description_. Defaults to False.
@@ -172,12 +222,8 @@ def main(flg):
 
     # Generate the VIIRS images
     if flg & (2**0):
-        gen_viirs_images()#debug=True)
+        gen_llc_1km_table(llc_tot1km_tbl_file)
 
-    # Generate the VIIRS images
-    if flg & (2**1):
-        compare_with_inpainting('LLC_inpaint_t10_p10.h5', 
-                                10, 10, local=False)
 
 # Command line execution
 if __name__ == '__main__':
@@ -185,15 +231,9 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg = 0
-        #flg += 2 ** 0  # 1 -- Images for VIIRS
+        #flg += 2 ** 0  # 1 -- Generate the total table
         #flg += 2 ** 1  # 2 -- Inpaint vs Enki
     else:
         flg = sys.argv[1]
 
     main(flg)
-
-# Generate the VIIRS images
-# python -u mae_recons.py 1
-
-# Evaluate
-# python -u mae_eval_ulmo.py 2
