@@ -31,8 +31,12 @@ from ulmo import plotting
 from ulmo.mae import mae_utils
 from ulmo import io as ulmo_io
 from ulmo.utils import image_utils
-from ulmo.mae import models_mae
-from ulmo.mae import reconstruct_LLC
+try:
+    from ulmo.mae import models_mae
+except ModuleNotFoundError:
+    print("Not able to load the models")
+else:    
+    from ulmo.mae import reconstruct_LLC
 from ulmo.mae import plotting as mae_plotting
 
 
@@ -388,9 +392,10 @@ def fig_viirs_recon_rmse(outfile:str, t:int, p:int):
                               'VIIRS_all_100clear_std.parquet')
     viirs = ulmo_io.load_main_table(viirs_file)
 
-def fig_llc_inpainting(outfile:str, t:int, p:int):
+def fig_llc_inpainting(outfile:str, t:int, p:int, 
+                       debug:bool=False):
 
-    # Load up
+    # Files
     local_mae_valid_nonoise_file = os.path.join(
         enki_path, 'PreProc', 
         'MAE_LLC_valid_nonoise_preproc.h5')
@@ -398,9 +403,15 @@ def fig_llc_inpainting(outfile:str, t:int, p:int):
     inpaint_file = os.path.join(
         ogcm_path, 'LLC', 'Enki', 
         'Recon', f'LLC_inpaint_t{t}_p{p}.h5')
+    recon_file = mae_utils.img_filename(t,p, local=True)
 
-    
+    # Load up
+    f_orig = h5py.File(local_orig_file, 'r')
+    f_recon = h5py.File(recon_file, 'r')
+    f_inpaint = h5py.File(inpaint_file, 'r')
+
     # 
+    embed(header='409 of figs')
 
 #### ########################## #########################
 def main(flg_fig):
@@ -440,7 +451,8 @@ def main(flg_fig):
 
     # VIIRS inpainting analysis
     if flg_fig & (2 ** 6):
-        fig_llc_inpainting('fig_llcinpainting.png', 10, 10)
+        fig_llc_inpainting('fig_llcinpainting.png', 10, 10,
+                           debug=True)
 
 
 
@@ -454,7 +466,8 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 2  # Binned stats
         #flg_fig += 2 ** 3  # Bias
         #flg_fig += 2 ** 4  # VIIRS example
-        flg_fig += 2 ** 5  # VIIRS reocn analysis
+        #flg_fig += 2 ** 5  # VIIRS reocn analysis
+        flg_fig += 2 ** 6  # LLC inpainting
     else:
         flg_fig = sys.argv[1]
 
