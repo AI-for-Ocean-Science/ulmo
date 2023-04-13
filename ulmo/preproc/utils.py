@@ -491,6 +491,7 @@ def write_pp_fields(pp_fields:list, meta:list,
                     ppf_idx:np.ndarray,
                     valid_fraction:float,
                     s3_file:str, local_file:str,
+                    write_cutouts:bool=True,
                     debug:bool=False,
                     skip_meta=False):
     """Write a set of pre-processed cutouts to disk
@@ -504,8 +505,11 @@ def write_pp_fields(pp_fields:list, meta:list,
             Should be same size and aligned to pp_fields
         ppf_idx (np.ndarray): Order of items in table extracted
         valid_fraction (float): Valid fraction (the rest is Train)
-        s3_file (str): [description]
+        s3_file (str, optional): 
+            Name of the pp_file
         local_file (str): [description]
+        write_cutouts (bool, optional):
+            Write cutouts to disk
         skip_meta (bool, optional):
             If True, don't fuss with meta data
 
@@ -549,6 +553,11 @@ def write_pp_fields(pp_fields:list, meta:list,
                 # Add to clms
                 if key not in clms:
                     clms += [key]
+
+    # Skip cutouts?
+    if not write_cutouts:
+        return main_tbl
+
     # Train/validation
     n = int(valid_fraction * pp_fields.shape[0])
     idx = shuffle(np.arange(pp_fields.shape[0]))
