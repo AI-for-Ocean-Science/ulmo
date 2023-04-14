@@ -441,28 +441,52 @@ def fig_llc_inpainting(outfile:str, t:int, p:int,
     enki_tbl['frac_rms'] = enki_tbl.delta_rms / enki_tbl.DT
 
     nbad = np.sum(enki_tbl.delta_rms < 0.)
-    print(f"There are {nbad} of {len(enki_tbl)} with DeltaRMS < 0")
+    print(f"There are {100*nbad/len(enki_tbl)}% with DeltaRMS < 0")
 
     # Plot
     # Prep fig
     sns.set_style("whitegrid")
-    #fig = plt.figure(figsize=(9, 12))
+    fig = plt.figure(figsize=(12, 12))
+    gs = gridspec.GridSpec(2,2)
     plt.clf()
 
-    fg = sns.displot(data=enki_tbl, x='DT',
+    ax0 = plt.subplot(gs[0])
+    _ = sns.histplot(data=enki_tbl, x='DT',
                     y='delta_rms', log_scale=(True,True),
-                    color='purple')
-    #fg = sns.displot(data=enki_tbl, x='DT',
-    #                y='frac_rms', log_scale=(True,True),
-    #                color='purple') 
+                    color='purple', ax=ax0)
+    ax0.set_xlabel(r'$\Delta T$ (K)')                
+    ax0.set_ylabel(r'$\Delta$RMSE = RMSE$_{\rm biharmonic}$ - RMSE$_{\rm Enki}$ (K)')
+
+    # Delta RMS / Delta T
+    ax1 = plt.subplot(gs[1])
+    sns.histplot(data=enki_tbl, x='DT',
+                 y='frac_rms', log_scale=(True,False),
+                 color='gray') 
+    ax1.set_xlabel(r'$\Delta T$ (K)')                
+    ax1.set_ylabel(r'$\Delta$RMSE / $\Delta T$')
+    ax1.set_ylim(-0.1, 1)
+
+    # RMS_biharmonic vs. RMS_Enki
+    ax2 = plt.subplot(gs[2])
+    scat = ax2.scatter(enki_tbl.rms_enki, 
+                enki_tbl.rms_inpaint, s=0.1,
+                c=enki_tbl.log10DT, cmap='jet')
+    ax2.set_ylabel(r'RMSE$_{\rm biharmonic}$')
+    ax2.set_xlabel(r'RMSE$_{\rm Enki}$')
+    ax2.set_yscale('log')
+    ax2.set_xscale('log')
+    cbaxes = plt.colorbar(scat)#, pad=0., fraction=0.030)
+    cbaxes.set_label(r'$\log_{10} \, \Delta T$ (K)')#, fontsize=17.)
+    #cbaxes.ax.tick_params(labelsize=15)
+
+    ax2.plot([1e-3, 10], [1e-3,10], 'k--')
 
     # Polish
-    fg.ax.set_xlabel(r'$\Delta T$ (K)')                
-    fg.ax.set_ylabel(r'$\Delta$RMSE = RMSE$_{\rm inpaint}$ - RMSE$_{\rm Enki}$ (K)')
     #fg.ax.minorticks_on()
-    plotting.set_fontsize(fg.ax, 12.)
+    for ax in [ax0, ax1, ax2]:
+        plotting.set_fontsize(ax, 14.)
 
-    plt.title(f'Enki vs. Inpaiting: t={t}, p={p}')
+    #plt.title(f'Enki vs. Inpaiting: t={t}, p={p}')
 
     # Finish
     plt.savefig(outfile, dpi=300)
@@ -507,8 +531,7 @@ def main(flg_fig):
 
     # VIIRS inpainting analysis
     if flg_fig & (2 ** 6):
-        fig_llc_inpainting('fig_llcinpainting.png', 10, 10,
-                           debug=True)
+        fig_llc_inpainting('fig_llcinpainting.png', 10, 10)#, debug=True)
 
 
 #def rms_images(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File, 
