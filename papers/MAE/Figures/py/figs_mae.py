@@ -450,7 +450,7 @@ def fig_llc_inpainting(outfile:str, t:int, p:int,
     gs = gridspec.GridSpec(2,2)
     plt.clf()
 
-    ax0 = plt.subplot(gs[0])
+    ax0 = plt.subplot(gs[1])
     _ = sns.histplot(data=enki_tbl, x='DT',
                     y='delta_rms', log_scale=(True,True),
                     color='purple', ax=ax0)
@@ -458,16 +458,16 @@ def fig_llc_inpainting(outfile:str, t:int, p:int,
     ax0.set_ylabel(r'$\Delta$RMSE = RMSE$_{\rm biharmonic}$ - RMSE$_{\rm Enki}$ (K)')
 
     # Delta RMS / Delta T
-    ax1 = plt.subplot(gs[1])
+    ax1 = plt.subplot(gs[2])
     sns.histplot(data=enki_tbl, x='DT',
                  y='frac_rms', log_scale=(True,False),
-                 color='gray') 
+                 color='gray', ax=ax1) 
     ax1.set_xlabel(r'$\Delta T$ (K)')                
     ax1.set_ylabel(r'$\Delta$RMSE / $\Delta T$')
     ax1.set_ylim(-0.1, 1)
 
     # RMS_biharmonic vs. RMS_Enki
-    ax2 = plt.subplot(gs[2])
+    ax2 = plt.subplot(gs[3])
     scat = ax2.scatter(enki_tbl.rms_enki, 
                 enki_tbl.rms_inpaint, s=0.1,
                 c=enki_tbl.log10DT, cmap='jet')
@@ -481,9 +481,18 @@ def fig_llc_inpainting(outfile:str, t:int, p:int,
 
     ax2.plot([1e-3, 10], [1e-3,10], 'k--')
 
+    # RMS_Enki vs. DT
+    ax3 = plt.subplot(gs[0])
+    sns.histplot(data=enki_tbl, x='DT',
+                 y='rms_enki', 
+                 log_scale=(True,True),
+                 color='blue', ax=ax3) 
+    ax3.set_xlabel(r'$\Delta T$ (K)')                
+    ax3.set_ylabel(r'RMSE$_{\rm Enki}$ (K)')
+
     # Polish
     #fg.ax.minorticks_on()
-    for ax in [ax0, ax1, ax2]:
+    for ax in [ax0, ax1, ax2, ax3]:
         plotting.set_fontsize(ax, 14.)
 
     #plt.title(f'Enki vs. Inpaiting: t={t}, p={p}')
