@@ -482,13 +482,25 @@ def fig_llc_inpainting(outfile:str, t:int, p:int,
     ax2.plot([1e-3, 10], [1e-3,10], 'k--')
 
     # RMS_Enki vs. DT
+    nobj = len(enki_tbl)
+    hack = pandas.concat([enki_tbl,enki_tbl])
+    hack['Model'] = ['Enki']*nobj + ['Biharmonic']*nobj
+    hack['RMSE'] = np.concatenate(
+        [enki_tbl.rms_enki.values[0:nobj],
+        enki_tbl.rms_inpaint.values[0:nobj]])
+
     ax3 = plt.subplot(gs[0])
-    sns.histplot(data=enki_tbl, x='DT',
-                 y='rms_enki', 
+    sns.histplot(data=hack, x='DT',
+                 y='RMSE', 
+                 hue='Model',
                  log_scale=(True,True),
-                 color='blue', ax=ax3) 
+                 ax=ax3) 
+    #sns.histplot(data=enki_tbl, x='DT',
+    #             y='rms_enki', 
+    #             log_scale=(True,True),
+    #             color='blue', ax=ax3) 
     ax3.set_xlabel(r'$\Delta T$ (K)')                
-    ax3.set_ylabel(r'RMSE$_{\rm Enki}$ (K)')
+    #ax3.set_ylabel(r'RMSE$_{\rm Enki}$ (K)')
 
     # Polish
     #fg.ax.minorticks_on()
