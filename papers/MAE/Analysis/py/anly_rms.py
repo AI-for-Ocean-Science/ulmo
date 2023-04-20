@@ -19,6 +19,8 @@ from ulmo.mae import mae_utils
 from ulmo import io as ulmo_io
 from scipy.sparse import csc_matrix
 
+from IPython import embed
+
 def rms_single_img(orig_img, recon_img, mask_img):
     """ Calculate rms of a single image (ignore edges)
     orig_img:  original img (64x64)
@@ -39,9 +41,10 @@ def rms_single_img(orig_img, recon_img, mask_img):
     for idx, (i, j) in enumerate(zip(mask_i, mask_j)):
         diff[idx] = orig_img[i,j] - recon_img[i,j]
     
+    #embed(header='44 of anly_rms.py')
     diff = np.square(diff)
-    mse = diff.mean()
-    rms = np.sqrt(mse)
+    rms = diff.mean()
+    rms = np.sqrt(rms)
     return rms
 
 def calc_diff(orig_file, recon_file, mask_file,
@@ -75,7 +78,85 @@ def calc_diff(orig_file, recon_file, mask_file,
     rms = pd.read_parquet('valid_rms.parquet', engine='pyarrow')
     t, p = parse_mae_img_file(recon_file)
     rms['rms_t{}_p{}'.format(t, p)]=rms
-    np.save('differences_t10_p40.npy', rms, allow_pickle=False)
+    avgs.to_parquet('valid_avg_rms.parquet')
     return rms
+
+# Calculates rms using table.
+def calculate_avg_rms(table, errors, start, end, num_imgs):
+    """
+    Calculate rms of a range on the LL table. Can calculate rms for the full dataset as well
+    table:    LL table (sorted if checking rms of batches)
+    errors:   np array of errors (same order as original file)
+    start:    Iteration start
+    end:      Iteration end
+    num_imgs: number of images in the current batch
+    """
+    summ = 0
+    for i in range(start, end):
+        idx = int(table.iloc[i]['pp_idx'])
+        summ = summ + errors[idx]
+    
+    avg = summ/num_imgs
+    return avg
+        
+def calc_batch_rms(table, errors, batch_percent):
+    """
+    Calculates rms in batches. Handles extra by adding them to final batch
+    so pick reasonable batch sizes that won't leave a lot of extra 
+    table:   LL table (sorted)
+    errors:  np array of errors (same order as original file)
+    batch_percent: batch_percent to batch
+    """
+    # Uncomment this when working with not broken files
+    # assert len(table.index) == len(errors)
+    num_imgs = len(table.index)
+    batch_size = int(num_imgs*batch_percent/100) # size of batch
+    num_batches = num_imgs // batch_size # batches to run excluding final batch
+    final_batch = num_imgs-batch_size*(num_batches-1)
+
+    print('number of images:', num_imgs,'\nnumber of batches:', num_batches,
+          '\nbatch size:', batch_size, '\nfinal batch:', final_batch)
+    rms = np.empty(num_batches, dtype=np.float64)
+    for batch in range(num_batches-1):
+        start = batch*batch_size
+        end = start + batch_size
+        rms[batch] = calculate_rms(table, errors, start, end, batch_size)
+        #print('average of batch',batch+1,'is',rms[batch])
+    
+    rms[num_batches-1] = calculate_avg_rms(table, errors, batch_size*(num_batches-1), num_imgs, final_batch)
+    #print('average of batch',num_batches,'is',rms[num_batches-1])
+    
+    return rms
+
+
+def create_table(outfile='valid_avg_rms.csv',
+                 LL_filepath='MAE_LLC_valid_nonoise.parquet', 
+                 rms_filepath='valid_rms.parquet'):
+    # load tables
+    table = pd.read_parquet(LL_filepath, engine='pyarrow')
+    table = table[table['LL'].notna()]
+    table = table.sort_values(by=['LL'])
+    rms = pd.read_parquet(rms_filepath, engine='pyarrow')
+    
+    # calculate median LL
+    x = ["" for i in range(10)]
+    for i in range(10):
+        start = table.iloc[i*65578]['LL']
+        end = table.iloc[(i+1)*65578]['LL']
+        avg = (start + end)/2
+        x[i] = str(int(avg))
+    
+    avgs = pd.DataFrame(x, columns=['median_rms'])
+
+    # calculate batch averages
+    models = [10, 35, 75]
+    masks = [10, 20, 30, 40, 50]
+    for t in models:
+        for p in masks:
+            index = 'rms_t{}_p{}'.format(t, p)
+            avg_rms = calc_batch_rms(table, rms[index], p)
+            avgs[index] = avg_rms
+        
+    avgs.to_csv(outfile)
 
 # diff = calc_diff(orig_file,recon_file, mask_file)
