@@ -173,7 +173,7 @@ def fig_numhp_clouds(outfile:str, analy_file:str):
 
     ax = plt.gca()
 
-    for N_min in N_mins:
+    for N_min in N_minsJames:
         num_hp = []
         for kk in range(CC_values.size):
             gd = np.sum(data['hp_pix_CC'][:,kk] >= N_min)
