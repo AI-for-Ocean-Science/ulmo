@@ -218,8 +218,8 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
 
     # Add to table
     print("Adding to table")
-    #if debug:
-    #    embed(header='220 of mae_recons')
+    if debug:
+        embed(header='222 of mae_recons')
     if dataset == 'LLC':
         all_rms = np.nan * np.ones_like(tbl.LL_t35_p50)
         idx = np.isfinite(tbl.LL_t35_p50)
