@@ -31,8 +31,12 @@ from ulmo import plotting
 from ulmo.mae import mae_utils
 from ulmo import io as ulmo_io
 from ulmo.utils import image_utils
-from ulmo.mae import models_mae
-from ulmo.mae import reconstruct_LLC
+try:
+    from ulmo.mae import models_mae
+except ModuleNotFoundError:
+    print("Not able to load the models")
+else:    
+    from ulmo.mae import reconstruct_LLC
 from ulmo.mae import plotting as mae_plotting
 
 
@@ -51,6 +55,8 @@ import anly_patches
 #orig_file = os.path.join(preproc_path, 'MAE_LLC_valid_nonoise_preproc.h5')
 
 sst_path = os.getenv('OS_SST')
+ogcm_path = os.getenv('OS_OGCM')
+enki_path = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki')
 
 def fig_clouds(outfile:str, analy_file:str,
                  local=False, 
@@ -171,7 +177,7 @@ def fig_numhp_clouds(outfile:str, analy_file:str):
 
     ax = plt.gca()
 
-    for N_min in N_mins:
+    for N_min in N_minsJames:
         num_hp = []
         for kk in range(CC_values.size):
             gd = np.sum(data['hp_pix_CC'][:,kk] >= N_min)
@@ -331,6 +337,13 @@ def fig_explore_bias(outfile:str='fig_explore_bias.png',
 
 
 def fig_viirs_example(outfile:str, t:int, idx:int=0): 
+    """ Show an example of VIIRS reconstruction
+
+    Args:
+        outfile (str): _description_
+        t (int): _description_
+        idx (int, optional): _description_. Defaults to 0.
+    """
 
 
     # VIIRS table
@@ -373,6 +386,134 @@ def fig_viirs_example(outfile:str, t:int, idx:int=0):
     print('Wrote {:s}'.format(outfile))
 
 
+def fig_llc_inpainting(outfile:str, t:int, p:int, 
+                       debug:bool=False):
+
+    # Files
+    local_enki_table = os.path.join(
+        enki_path, 'Tables', 
+        'MAE_LLC_valid_nonoise.parquet')
+    local_mae_valid_nonoise_file = os.path.join(
+        enki_path, 'PreProc', 
+        'MAE_LLC_valid_nonoise_preproc.h5')
+    local_orig_file = local_mae_valid_nonoise_file
+    inpaint_file = os.path.join(
+        ogcm_path, 'LLC', 'Enki', 
+        'Recon', f'LLC_inpaint_t{t}_p{p}.h5')
+    recon_file = mae_utils.img_filename(t,p, local=True)
+    mask_file = mae_utils.mask_filename(t,p, local=True)
+
+    # Load up
+    enki_tbl = ulmo_io.load_main_table(local_enki_table)
+    f_orig = h5py.File(local_orig_file, 'r')
+    f_recon = h5py.File(recon_file, 'r')
+    f_inpaint = h5py.File(inpaint_file, 'r')
+    f_mask = h5py.File(mask_file, 'r')
+
+
+    # Grab the images
+    if debug:
+        nimgs = 1000
+    else:
+        nimgs = 50000
+    orig_imgs = f_orig['valid'][:nimgs,0,...]
+    mask_imgs = f_mask['valid'][:nimgs,0,...]
+
+    # Allow for various shapes (hack)
+    recon_imgs = f_recon['valid'][:nimgs,0,...]
+
+
+    rms_enki = rms_images(orig_imgs, recon_imgs, mask_imgs)
+    del recon_imgs
+    
+    inpaint_imgs = f_inpaint['inpainted'][:nimgs,...]
+    rms_inpaint = rms_images(orig_imgs, inpaint_imgs, mask_imgs)
+
+    # Cut and add table
+    cut = (enki_tbl.pp_idx >= 0) & (enki_tbl.pp_idx < nimgs)
+    enki_tbl = enki_tbl[cut].copy()
+    enki_tbl.sort_values(by=['pp_idx'], inplace=True)
+
+    enki_tbl['rms_enki'] = rms_enki
+    enki_tbl['rms_inpaint'] = rms_inpaint
+    enki_tbl['delta_rms'] = rms_inpaint - rms_enki
+    enki_tbl['log10DT'] = np.log10(enki_tbl.DT)
+    enki_tbl['frac_rms'] = enki_tbl.delta_rms / enki_tbl.DT
+
+    nbad = np.sum(enki_tbl.delta_rms < 0.)
+    print(f"There are {100*nbad/len(enki_tbl)}% with DeltaRMS < 0")
+
+    # Plot
+    # Prep fig
+    sns.set_style("whitegrid")
+    fig = plt.figure(figsize=(12, 12))
+    gs = gridspec.GridSpec(2,2)
+    plt.clf()
+
+    ax0 = plt.subplot(gs[1])
+    _ = sns.histplot(data=enki_tbl, x='DT',
+                    y='delta_rms', log_scale=(True,True),
+                    color='purple', ax=ax0)
+    ax0.set_xlabel(r'$\Delta T$ (K)')                
+    ax0.set_ylabel(r'$\Delta$RMSE = RMSE$_{\rm biharmonic}$ - RMSE$_{\rm Enki}$ (K)')
+
+    # Delta RMS / Delta T
+    ax1 = plt.subplot(gs[2])
+    sns.histplot(data=enki_tbl, x='DT',
+                 y='frac_rms', log_scale=(True,False),
+                 color='gray', ax=ax1) 
+    ax1.set_xlabel(r'$\Delta T$ (K)')                
+    ax1.set_ylabel(r'$\Delta$RMSE / $\Delta T$')
+    ax1.set_ylim(-0.1, 1)
+
+    # RMS_biharmonic vs. RMS_Enki
+    ax2 = plt.subplot(gs[3])
+    scat = ax2.scatter(enki_tbl.rms_enki, 
+                enki_tbl.rms_inpaint, s=0.1,
+                c=enki_tbl.log10DT, cmap='jet')
+    ax2.set_ylabel(r'RMSE$_{\rm biharmonic}$')
+    ax2.set_xlabel(r'RMSE$_{\rm Enki}$')
+    ax2.set_yscale('log')
+    ax2.set_xscale('log')
+    cbaxes = plt.colorbar(scat)#, pad=0., fraction=0.030)
+    cbaxes.set_label(r'$\log_{10} \, \Delta T$ (K)')#, fontsize=17.)
+    #cbaxes.ax.tick_params(labelsize=15)
+
+    ax2.plot([1e-3, 10], [1e-3,10], 'k--')
+
+    # RMS_Enki vs. DT
+    nobj = len(enki_tbl)
+    hack = pandas.concat([enki_tbl,enki_tbl])
+    hack['Model'] = ['Enki']*nobj + ['Biharmonic']*nobj
+    hack['RMSE'] = np.concatenate(
+        [enki_tbl.rms_enki.values[0:nobj],
+        enki_tbl.rms_inpaint.values[0:nobj]])
+
+    ax3 = plt.subplot(gs[0])
+    sns.histplot(data=hack, x='DT',
+                 y='RMSE', 
+                 hue='Model',
+                 log_scale=(True,True),
+                 ax=ax3) 
+    #sns.histplot(data=enki_tbl, x='DT',
+    #             y='rms_enki', 
+    #             log_scale=(True,True),
+    #             color='blue', ax=ax3) 
+    ax3.set_xlabel(r'$\Delta T$ (K)')                
+    #ax3.set_ylabel(r'RMSE$_{\rm Enki}$ (K)')
+
+    # Polish
+    #fg.ax.minorticks_on()
+    for ax in [ax0, ax1, ax2, ax3]:
+        plotting.set_fontsize(ax, 14.)
+
+    #plt.title(f'Enki vs. Inpaiting: t={t}, p={p}')
+
+    # Finish
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
 #### ########################## #########################
 def main(flg_fig):
     if flg_fig == 'all':
@@ -401,9 +542,69 @@ def main(flg_fig):
     if flg_fig & (2 ** 3):
         fig_explore_bias(clobber=False)
 
-    # VIIRS example
+    # VIIRS recon example
     if flg_fig & (2 ** 4):
         fig_viirs_example('fig_viirs_example.png', 75)
+
+    # VIIRS full recon analysis
+    if flg_fig & (2 ** 5):
+        fig_viirs_recon_rmse('fig_viirs_recon.png', 10, 10)
+
+    # VIIRS inpainting analysis
+    if flg_fig & (2 ** 6):
+        fig_llc_inpainting('fig_llcinpainting.png', 10, 10)#, debug=True)
+
+
+#def rms_images(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File, 
+def rms_images(orig_imgs, recon_imgs, mask_imgs, 
+               patch_sz:int=4):
+    """_summary_
+
+    Args:
+        f_orig (h5py.File): Pointer to original images
+        f_recon (h5py.File): Pointer to reconstructed images
+        f_mask (h5py.File): Pointer to mask images
+        patch_sz (int, optional): patch size. Defaults to 4.
+
+    Returns:
+        np.array: RMS values
+    """
+    print("USE THE RIGHT ONE ONCE MERGED")
+    # Load em all
+    print("Loading images...")
+    #if nimgs is None:
+    #    nimgs = f_orig['valid'].shape[0]
+
+    # Grab em
+    #orig_imgs = f_orig['valid'][:nimgs,0,...]
+    #mask_imgs = f_mask['valid'][:nimgs,0,...]
+
+    # Allow for various shapes (hack)
+    #recon_imgs = f_recon['valid'][:nimgs,0,...]
+
+    # Mask out edges
+    print("Masking edges")
+    mask_imgs[:, 0:patch_sz, :] = 0
+    mask_imgs[:, -patch_sz:, :] = 0
+    mask_imgs[:, :, 0:patch_sz] = 0
+    mask_imgs[:, :, -patch_sz:] = 0
+
+    # Analyze
+    print("Calculate")
+    calc = (orig_imgs - recon_imgs)*mask_imgs
+
+    # Square
+    print("Square")
+    calc = calc**2
+
+    # Mean
+    print("Mean")
+    nmask = np.sum(mask_imgs, axis=(1,2))
+    calc = np.sum(calc, axis=(1,2)) / nmask
+
+    # RMS
+    print("Root")
+    return np.sqrt(calc)
 
 # Command line execution
 if __name__ == '__main__':
@@ -414,7 +615,9 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 1  # Number satisfying
         #flg_fig += 2 ** 2  # Binned stats
         #flg_fig += 2 ** 3  # Bias
-        flg_fig += 2 ** 4  # VIIRS example
+        #flg_fig += 2 ** 4  # VIIRS example
+        #flg_fig += 2 ** 5  # VIIRS reocn analysis
+        flg_fig += 2 ** 6  # LLC inpainting
     else:
         flg_fig = sys.argv[1]
 

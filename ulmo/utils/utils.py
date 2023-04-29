@@ -6,6 +6,13 @@ from torch.utils import data
 from torch.utils.data.dataloader import default_collate
 
 
+
+#class HDF5Dataset(data.Dataset):
+    
+
+
+
+
 class HDF5Dataset(data.Dataset):
     """Represents an abstract HDF5 dataset.
     

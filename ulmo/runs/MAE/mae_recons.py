@@ -4,7 +4,9 @@ import os
 import numpy as np
 
 import h5py
-import healpy
+
+from skimage.restoration import inpaint as sk_inpaint
+
 
 from functools import partial
 from concurrent.futures import ProcessPoolExecutor
@@ -15,7 +17,7 @@ from ulmo.analysis import evaluate as ulmo_evaluate
 from ulmo.utils import catalog as cat_utils
 from ulmo.mae import mae_utils
 from ulmo.modis import analysis as modis_analysis
-from ulmo.mae import patch_analysis
+from ulmo.mae import cutout_analysis
 
 from IPython import embed
 
@@ -26,8 +28,14 @@ llc_nonoise_file = 's3://llc/Tables/LLC_uniform144_r0.5_nonoise.parquet'
 # MAE
 mae_tst_nonoise_file = 's3://llc/mae/Tables/MAE_uniform144_test.parquet'
 #mae_nonoise_file = 's3://llc/mae/Tables/MAE_uniform144_nonoise.parquet'
-mae_valid_nonoise_file = 's3://llc/mae/Tables/MAE_LLC_valid_nonoise.parquet'
+mae_valid_nonoise_tbl_file = 's3://llc/mae/Tables/MAE_LLC_valid_nonoise.parquet'
+mae_valid_nonoise_file = 's3://llc/mae/PreProc/MAE_LLC_valid_nonoise_preproc.h5'
 mae_img_path = 's3://llc/mae/PreProc'
+
+ogcm_path = os.getenv('OS_OGCM')
+if ogcm_path is not None:
+    enki_path = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki')
+    local_mae_valid_nonoise_file = os.path.join(enki_path, 'PreProc', 'MAE_LLC_valid_nonoise_preproc.h5')
 
 # VIIRS
 sst_path = os.getenv('OS_SST')
@@ -92,171 +100,146 @@ def gen_viirs_images(debug:bool=False):
     # Write
     ulmo_io.write_main_table(viirs_100, viirs_100_s3_file)
 
+def simple_inpaint(items):
+    # Unpack
+    img, mask = items
+    return sk_inpaint.inpaint_biharmonic(img, mask, channel_axis=None)
 
-def mae_ulmo_evaluate(tbl_file:str, img_files:list,
-                  clobber=False, debug=False, 
-                  model='viirs-98'):
-    """ Run Ulmo on MAE cutouts with the given model
-    """
-    
-    # Load
-    mae_table = ulmo_io.load_main_table(tbl_file)
-    print("Loaded MAE table")
+def compare_with_inpainting(inpaint_file:str, t:int, p:int, debug:bool=False,
+                            patch_sz:int=4, n_cores:int=10, 
+                            nsub_files:int=5000,
+                            local:bool=False):
 
-    # Debug?
+
+    # Load images
+    if local:
+        local_recon_file = mae_utils.img_filename(t,p, local=True)
+        local_mask_file = mae_utils.mask_filename(t,p, local=True)
+        local_orig_file = local_mae_valid_nonoise_file
+    else:
+        recon_file = mae_utils.img_filename(t,p, local=False)
+        mask_file = mae_utils.mask_filename(t,p, local=False)
+        local_recon_file = os.path.basename(recon_file)
+        local_mask_file = os.path.basename(mask_file)
+        local_orig_file = os.path.basename(mae_valid_nonoise_file)
+        # Download?
+        for local_file, s3_file in zip(
+            [local_recon_file, local_mask_file, local_orig_file],
+            [recon_file, mask_file, mae_valid_nonoise_file]):
+            if not os.path.exists(local_file):
+                ulmo_io.download_file_from_s3(local_file, 
+                                      s3_file)
+
+    f_orig = h5py.File(local_orig_file, 'r')
+    f_recon = h5py.File(local_recon_file,'r')
+    f_mask = h5py.File(local_mask_file,'r')
+
     if debug:
-        f = h5py.File(os.path.basename(img_files[0]), 'r')
-        nimg = f['valid'].shape[0]
-        # Chop down table
-        gd_tbl = (mae_table.pp_idx >= 0) & (
-            mae_table.pp_idx < nimg)
-        mae_table = mae_table[gd_tbl].copy()
+        nfiles = 1000
+        nsub_files = 100
+        orig_imgs = f_orig['valid'][:nfiles,0,...]
+        recon_imgs = f_recon['valid'][:nfiles,0,...]
+        mask_imgs = f_mask['valid'][:nfiles,0,...]
+    else:
+        orig_imgs = f_orig['valid'][:,0,...]
+        recon_imgs = f_recon['valid'][:,0,...]
+        mask_imgs = f_mask['valid'][:,0,...]
 
-    # Loop on eval_files
-    for img_file in img_files:
-        # Fuss with LL
-        t_per, p_per = mae_utils.parse_mae_img_file(img_file)
-        LL_metric = f'LL_t{t_per}_p{p_per}'
+    # Mask out edges
+    mask_imgs[:, patch_sz:-patch_sz,patch_sz:-patch_sz] = 0
 
-        # Already exist?
-        if LL_metric in mae_table.keys() and not clobber:
-            print(f"LL metric = {LL_metric} already evaluated.  Skipping..")
-            continue
+    # Analyze
+    diff_recon = (orig_imgs - recon_imgs)*mask_imgs
+    nfiles = diff_recon.shape[0]
 
-        # Reset pp_file for the evaluation that follows
-        mae_table.pp_file = img_file
 
-        # Evaluate
-        mae_table = ulmo_evaluate.eval_from_main(mae_table,
-                                 model=model)
+    # Inpatinting
+    map_fn = partial(simple_inpaint)
 
-        # Save LL
-        mae_table[f'LL_t{t_per}_p{p_per}'] = mae_table.LL
+    nloop = nfiles // nsub_files + ((nfiles % nsub_files) > 0)
+    inpainted = []
+    for kk in range(nloop):
+        i0 = kk*nsub_files
+        i0 = kk*nsub_files
+        i1 = min((kk+1)*nsub_files, nfiles)
+        print('Files: {}:{} of {}'.format(i0, i1, nfiles))
+        sub_files = [(diff_recon[ii,...], mask_imgs[ii,...]) for ii in range(i0, i1)]
+        with ProcessPoolExecutor(max_workers=n_cores) as executor:
+            chunksize = len(
+                sub_files) // n_cores if len(sub_files) // n_cores > 0 else 1
+            answers = list(tqdm(executor.map(map_fn, sub_files,
+                                                chunksize=chunksize), total=len(sub_files)))
+        # Save
+        inpainted.append(np.array(answers))
+    # Collate
+    inpainted = np.concatenate(inpainted)
 
-        # Could save after each eval..
+    # Save
+    with h5py.File(inpaint_file, 'w') as f:
+        # Validation
+        f.create_dataset('inpainted', data=inpainted.astype(np.float32))
+    print(f'Wrote: {inpaint_file}')
 
+def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
+             debug:bool=False):
+
+
+    if dataset == 'VIIRS':
+        tbl_file = viirs_100_s3_file
+        orig_file = viirs_100_img_file
+        recon_file = os.path.join(sst_path, 'VIIRS', 'Enki', 'Recon',
+                                  f'VIIRS_100clear_t{t}_p{p}.h5')
+        mask_file = recon_file.replace('.h5', '_mask.h5')
+    elif dataset == 'LLC':
+        tbl_file = mae_valid_nonoise_tbl_file
+        recon_file = mae_utils.img_filename(t,p, local=True)
+        mask_file = mae_utils.mask_filename(t,p, local=True)
+        orig_file = local_mae_valid_nonoise_file
+    else:
+        raise ValueError("Bad dataset")
+
+    # Load table
+    tbl = ulmo_io.load_main_table(tbl_file)
+
+    # Already exist?
+    RMS_metric = f'RMS_t{t}_p{p}'
+    if RMS_metric in tbl.keys() and not clobber:
+        print(f"RMS metric = {RMS_metric} already evaluated.  Skipping..")
+        return
+
+    # Open up
+    f_orig = h5py.File(orig_file, 'r')
+    f_recon = h5py.File(recon_file, 'r')
+    f_mask = h5py.File(mask_file, 'r')
+
+    # Do it!
+    print("Calculating RMS metric")
+    rms = cutout_analysis.rms_images(f_orig, f_recon, f_mask)
+
+    # Add to table
+    print("Adding to table")
+    #if debug:
+    #    embed(header='220 of mae_recons')
+    if dataset == 'LLC':
+        all_rms = np.nan * np.ones_like(tbl.LL_t35_p50)
+        idx = np.isfinite(tbl.LL_t35_p50)
+        all_rms[idx] = rms
+    else:
+        all_rms = rms
+
+    tbl[RMS_metric] = all_rms[tbl.pp_idx]
+        
     # Vet
     chk, disallowed_keys = cat_utils.vet_main_table(
-        mae_table, return_disallowed=True)
+        tbl, return_disallowed=True, cut_prefix=['MODIS_'])
     for key in disallowed_keys:
-        assert key[0:2] == 'LL'
+        assert key[0:2] in ['LL','RM', 'DT']
 
     # Write 
     if debug:
-        tbl_file = tbl_file.replace('.parquet', '_small.parquet')
-        embed(header='99 of mae_eval_ulmo')
-    ulmo_io.write_main_table(mae_table, tbl_file)
-
-def mae_modis_cloud_cover(outfile='modis_2020_cloudcover.npz',
-    year:int=2020, nside:int=64, debug=False, local=True,
-    n_cores=10,
-    nsub_files=1000):
-
-    
-    CC_values = [0., 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 
-                 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0]
-
-    #if debug:
-    #    modis_analysis.cloud_cover_granule('/tank/xavier/Oceanography/data/MODIS/SST/night/2020/AQUA_MODIS.20200822T095001.L2.SST.nc',
-    #        CC_values=CC_values, nside=nside)
-
-    # Setup for preproc
-    map_fn = partial(modis_analysis.cloud_cover_granule, 
-                     CC_values=CC_values, nside=nside)
-
-    # Healpix
-    npix_hp = healpy.nside2npix(nside)
-    all_pix_CC = np.zeros((npix_hp, len(CC_values)), dtype=int)
-    tot_pix_CC = np.zeros(len(CC_values), dtype=int)
-
-
-    files = []
-    if local:
-        local_path = os.path.join(os.getenv('MODIS_DATA'), 'night', f'{year}') 
-        for root, dirs, ifiles in os.walk(os.path.abspath(local_path)):
-            for ifile in ifiles:
-                files.append(os.path.join(root,ifile))
-    if debug:
-        # Grab 100 random
-        #files = shuffle(files, random_state=1234)
-        ndebug_files=16
-        files = files[:ndebug_files]  # 10%
-        n_cores = 4
-        #files = files[:100]
-
-    nloop = len(files) // nsub_files + ((len(files) % nsub_files) > 0)
-    bad_files = []
-    for kk in range(nloop):
-        #
-        i0 = kk*nsub_files
-        i1 = min((kk+1)*nsub_files, len(files))
-        print('Files: {}:{} of {}'.format(i0, i1, len(files)))
-        sub_files = files[i0:i1]
-
-        # Download
-        basefiles = []
-        if not local:
-            print("Downloading files from s3...")
-        for ifile in sub_files:
-            if local:
-                basefiles = sub_files
-            else:
-                basename = os.path.basename(ifile)
-                basefiles.append(basename)
-                # Already here?
-                if os.path.isfile(basename):
-                    continue
-                try:
-                    ulmo_io.download_file_from_s3(basename, ifile, verbose=False)
-                except:
-                    print(f'Downloading {basename} failed')
-                    bad_files.append(basename)
-                    # Remove from sub_files
-                    sub_files.remove(ifile)
-                    continue
-                
-        if not local:
-            print("All Done!")
-
-        with ProcessPoolExecutor(max_workers=n_cores) as executor:
-            chunksize = len(sub_files) // n_cores if len(sub_files) // n_cores > 0 else 1
-            answers = list(tqdm(executor.map(map_fn, basefiles,
-                                            chunksize=chunksize), 
-                                total=len(sub_files)))
-        # Parse
-        print("Parsing results...")
-        for items in answers:
-            if items is None:
-                continue
-            tot_pix, hp_idx = items
-            # Parse
-            for kk, idx in enumerate(hp_idx):
-                all_pix_CC[idx, kk] += 1
-                tot_pix_CC[kk] += tot_pix[kk]
-
-    # Save
-    np.savez(outfile, CC_values=CC_values, hp_pix_CC=all_pix_CC, 
-             tot_pix_CC=tot_pix_CC, nside=nside)
-    print(f"Wrote: {outfile}")
-
-def mae_patch_analysis(img_files:list, n_cores,
-                  clobber=False, debug=False,
-                  p_sz=4): 
-    """ Evaluate paches in the reconstruction outputs
-    """
-    stats=['meanT', 'stdT', 'DT', 'median_diff', 
-           'std_diff', 'max_diff', 'i_patch', 'j_patch',
-           'DT_recon']
-    
-    # Loop on reconstructed files
-    for recon_file in img_files:
-        #t_per, p_per = mae_utils.parse_mae_img_file(recon_file)
-        patch_analysis.anlayze_full_test(recon_file, n_cores=n_cores,
-                       stats=stats,
-                       p_sz=p_sz,
-                       debug=debug)
-
-
+        embed(header='239 of mae_recons')
+    else:
+        ulmo_io.write_main_table(tbl, tbl_file)
 
 def main(flg):
     if flg== 'all':
@@ -268,6 +251,32 @@ def main(flg):
     if flg & (2**0):
         gen_viirs_images()#debug=True)
 
+    # Generate the VIIRS images
+    if flg & (2**1):
+        compare_with_inpainting('LLC_inpaint_t10_p10.h5', 
+                                10, 10, local=False)
+
+    # Calculate RMS for various reconstructions
+    if flg & (2**2):
+        clobber = False
+        # VIIRS
+        #calc_rms(10, 10, dataset='VIIRS', clobber=clobber)
+
+        # LLC
+        '''
+        for t in [10,35,75]:
+            for p in [10,20,30,40,50]:
+                #if t != 10 or p != 10:
+                #    continue
+                print(f'Working on: t={t}, p={p}')
+                calc_rms(t, p, dataset='LLC', clobber=clobber)
+        '''
+
+        for t in [50]:
+            for p in [10,20,30,40,50]:
+                print(f'Working on: t={t}, p={p}')
+                calc_rms(t, p, dataset='LLC', clobber=clobber)
+
 
 # Command line execution
 if __name__ == '__main__':
@@ -276,6 +285,8 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         flg = 0
         #flg += 2 ** 0  # 1 -- Images for VIIRS
+        #flg += 2 ** 1  # 2 -- Inpaint vs Enki
+        flg += 2 ** 2  # 4 -- RMSE calculations
     else:
         flg = sys.argv[1]
 

@@ -218,12 +218,6 @@ class MaskedAutoencoderViT(nn.Module):
         pred = self.forward_decoder(latent, ids_restore)  # [N, L, p*p*3] --> [N, L, p*p*1]?
         loss = self.forward_loss(imgs, pred, mask)
         return loss, pred, mask
-    
-    def return_latent(self, imgs, mask_ration=0.75):
-        latent, mask, ids_restore = self.forward_encoder(imgs, mask_ratio)
-        # debugging step to check the latent (do numpy.save)
-        # check to shape
-        # format to file
         
         
 # MAE Model

@@ -215,6 +215,11 @@ def load_main_table(tbl_file:str, verbose=True):
     # Report
     if verbose:
         print("Read main table: {}".format(tbl_file))
+
+    # Decorate
+    if 'DT' not in main_table.keys() and 'T90' in main_table.keys():
+        main_table['DT'] = main_table.T90 - main_table.T10
+        
     return main_table
 
 def load_to_bytes(s3_uri:str):

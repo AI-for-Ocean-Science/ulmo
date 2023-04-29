@@ -14,6 +14,13 @@ from PIL import Image
 import matplotlib.ticker as ticker
 
 from ulmo.plotting import plotting
+from ulmo import io as ulmo_io
+
+from IPython import embed
+
+sst_path = os.getenv('OS_SST')
+ogcm_path = os.getenv('OS_OGCM')
+enki_path = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki')
 
 def fig_batch_mse(outfile: str,
                    model: str, labels, colors,
@@ -85,42 +92,89 @@ def fig_compare_models(outfile: str,
     plt.savefig(outfile, dpi=300)
     plt.close()
     return 0
-"""
-# This is here for me 
-# plot t75
-labels = ['avg_mse_t75_p10', 'avg_mse_t75_p20', 'avg_mse_t75_p30', 'avg_mse_t75_p40', 'avg_mse_t75_p50']
-colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple']
-fig_batch_mse("help75.png", "t75", labels, colors)
-
-# plot t10
-labels = ['avg_mse_t10_p10', 'avg_mse_t10_p20', 'avg_mse_t10_p30', 'avg_mse_t10_p40', 'avg_mse_t10_p50']
-fig_batch_mse("help10.png", "t10", labels, colors)
-
-# plot t35
-labels = ['avg_mse_t35_p10', 'avg_mse_t35_p20', 'avg_mse_t35_p30', 'avg_mse_t35_p40', 'avg_mse_t35_p50']
-fig_batch_mse("help35.png", "t35", labels, colors)
 
 
-# plot p10
-labels = ['avg_mse_t10_p10', 'avg_mse_t35_p10', 'avg_mse_t75_p10']
-colors = ['tab:blue', 'tab:green',  'tab:orange']
-models = ['t10', 't35', 't75']
-fig_compare_models("compare_p10.png", models, labels, colors)
+def fig_viirs_rms(outfile: str, t:int=10, p:int=10,
+                  mse_filepath='valid_avg_mse.parquet'):
+    """
+    Create a figure comparing average batched RMS between VIIRS and LLC
+    outfile: file to save as
+    model: MAE model (t10, t35, t75)
+    labels: labels from pandas frame to plot
+    mse_filepath: file with mses
+    """
+    # Load tables
+    viirs_file = os.path.join(sst_path, 'VIIRS', 'Tables', 
+                              'VIIRS_all_100clear_std.parquet')
+    viirs = ulmo_io.load_main_table(viirs_file)
 
-# plot p20
-labels = ['avg_mse_t10_p20', 'avg_mse_t35_p20', 'avg_mse_t75_p20']
-fig_compare_models("compare_p20.png", models, labels, colors)
+    llc_file = os.path.join(enki_path, 'Tables', 
+                              'MAE_LLC_valid_nonoise.parquet')
+    llc = ulmo_io.load_main_table(llc_file)
 
-# plot p30
-labels = ['avg_mse_t10_p30', 'avg_mse_t35_p30', 'avg_mse_t75_p30']
-fig_compare_models("compare_p30.png", models, labels, colors)
+    # Batch me
+    percentiles = np.arange(0, 100, 10) + 10
+    viirs_per = np.percentile(viirs['LL'], percentiles)
 
-#plot p40
-labels = ['avg_mse_t10_p40', 'avg_mse_t35_p40', 'avg_mse_t75_p40']
-fig_compare_models("compare_p40.png", models, labels, colors)
+    avg_LL, viirs_rmse, llc_rmse = [], [], []
+    # Evaluate
+    for ss, LL_per in enumerate(viirs_per):
+        if ss == 0:
+            LL_min = -1e10
+        else:
+            LL_min = viirs_per[ss-1]
 
-#plot p50
-labels = ['avg_mse_t10_p50', 'avg_mse_t35_p50', 'avg_mse_t75_p50']
-fig_compare_models("compare_p50.png", models, labels, colors)
+        # LL
+        vidx = (viirs['LL'] <= LL_per) & (viirs['LL'] > LL_min)
+        avg_LL.append(np.nanmean(viirs['LL'][vidx]))
 
-"""
+        # VIIRS
+        viirs_rmse.append(np.nanmedian(viirs[f'RMS_t{t}_p{p}'][vidx]))
+
+        # LLC
+        lidx = (llc['LL'] <= LL_per) & (llc['LL'] > LL_min)
+        llc_rmse.append(np.nanmedian(llc[f'RMS_t{t}_p{p}'][lidx]))
+
+    # Plot
+    ax = plt.gca()
+
+    ax.scatter(avg_LL, viirs_rmse, color='blue', label='VIIRS')
+    ax.scatter(avg_LL, llc_rmse, color='red', label='LLC')
+
+    # plot specifics
+    #plt.yscale('log')
+    #ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda y,pos: ('{{:.{:1d}f}}'.format(int(np.maximum(-np.log10(y),0)))).format(y)))
+    ax.set_axisbelow(True)
+    ax.grid(color='gray', linestyle='dashed', linewidth = 0.5)
+    plt.legend(title='Dataset',
+               title_fontsize='small', fontsize='small', fancybox=True, ncol=2)
+    plt.title(f'VIIRS (and LLC): t={t}, p={p}')
+    plt.xlabel("Average LL Per Batch")
+    plt.ylabel("RMS")
+    
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print(f'Wrote: {outfile}')
+    return
+
+#### ########################## #########################
+def main(flg_fig):
+    if flg_fig == 'all':
+        flg_fig = np.sum(np.array([2 ** ii for ii in range(25)]))
+    else:
+        flg_fig = int(flg_fig)
+
+    # Explore the bias
+    if flg_fig & (2 ** 0):
+        fig_viirs_rms('fig_viirs_llc_rms.png')
+
+# Command line execution
+if __name__ == '__main__':
+
+    if len(sys.argv) == 1:
+        flg_fig = 0
+        flg_fig += 2 ** 0  # VIIRS vs. LLC MSE
+    else:
+        flg_fig = sys.argv[1]
+
+    main(flg_fig)

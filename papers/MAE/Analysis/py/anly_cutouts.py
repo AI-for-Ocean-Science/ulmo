@@ -6,8 +6,23 @@ import h5py
 
 from IPython import embed
 
+def measure_rmse(f_orig, f_recon, f_mask, p_sz=4, nsub=1000):
+    pass
+    
 
-def measure_bias(idx, f_orig, f_recon, f_mask, p_sz=4, nsub=1000):
+def measure_bias(idx, f_orig, f_recon, f_mask, p_sz=4):
+    """ Measure the bias in cutouts
+
+    Args:
+        idx (_type_): _description_
+        f_orig (_type_): _description_
+        f_recon (_type_): _description_
+        f_mask (_type_): _description_
+        p_sz (int, optional): _description_. Defaults to 4.
+
+    Returns:
+        _type_: _description_
+    """
 
     # Grab em
     orig_img = f_orig['valid'][idx,0,...]
