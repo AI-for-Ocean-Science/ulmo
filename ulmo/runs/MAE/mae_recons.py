@@ -218,12 +218,12 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
 
     # Check one (or more)
     if debug:
+        embed(header='221 of mae_recons')
         idx = 1000
         orig_img = f_orig['valid'][idx,0,...]
         recon_img = f_recon['valid'][idx,0,...]
         mask_img = f_mask['valid'][idx,0,...]
         rms = cutout_analysis.rms_single_img(orig_img, recon_img, mask_img)
-        embed(header='226 of mae_recons')
 
     # Add to table
     print("Adding to table")
