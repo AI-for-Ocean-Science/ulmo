@@ -266,6 +266,13 @@ def main(flg):
         # LLC
         for t in [10,35,75]:
             for p in [10,20,30,40,50]:
+                if t != 10 and p != 10:
+                    continue
+                print(f'Working on: t={t}, p={p}')
+                calc_rms(t, p, dataset='LLC', clobber=clobber)
+
+        for t in [50]:
+            for p in [10,20,30,40,50]:
                 print(f'Working on: t={t}, p={p}')
                 calc_rms(t, p, dataset='LLC', clobber=clobber)
 
@@ -278,7 +285,7 @@ if __name__ == '__main__':
         flg = 0
         #flg += 2 ** 0  # 1 -- Images for VIIRS
         #flg += 2 ** 1  # 2 -- Inpaint vs Enki
-        flg += 2 ** 2  # 4 -- RMS calculations
+        flg += 2 ** 2  # 4 -- RMSE calculations
     else:
         flg = sys.argv[1]
 
