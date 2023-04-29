@@ -214,7 +214,7 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
 
     # Do it!
     print("Calculating RMS metric")
-    rms = cutout_analysis.rms_images(f_orig, f_recon, f_mask)
+    rms = cutout_analysis.rms_images(f_orig, f_recon, f_mask, debug=debug)
 
     # Add to table
     print("Adding to table")
@@ -258,24 +258,25 @@ def main(flg):
 
     # Calculate RMS for various reconstructions
     if flg & (2**2):
-        clobber = False
+        clobber = True
+        debug=True
         # VIIRS
         #calc_rms(10, 10, dataset='VIIRS', clobber=clobber)
 
         # LLC
-        '''
         for t in [10,35,75]:
             for p in [10,20,30,40,50]:
-                #if t != 10 or p != 10:
-                #    continue
+                if t != 10 or p != 10:
+                    continue
                 print(f'Working on: t={t}, p={p}')
-                calc_rms(t, p, dataset='LLC', clobber=clobber)
+                calc_rms(t, p, dataset='LLC', clobber=clobber, debug=debug)
         '''
 
         for t in [50]:
             for p in [10,20,30,40,50]:
                 print(f'Working on: t={t}, p={p}')
                 calc_rms(t, p, dataset='LLC', clobber=clobber)
+        '''
 
 
 # Command line execution

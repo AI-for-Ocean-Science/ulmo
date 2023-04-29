@@ -6,7 +6,7 @@ import h5py
 from IPython import embed
 
 def rms_images(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File, 
-               patch_sz:int=4, nimgs:int=None):
+               patch_sz:int=4, nimgs:int=None, debug:bool=False):
     """_summary_
 
     Args:
@@ -38,6 +38,9 @@ def rms_images(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File,
     # Analyze
     print("Calculate")
     calc = (orig_imgs - recon_imgs)*mask_imgs
+
+    if debug:
+        embed(header='43 of cutout_analysis.py')
 
     # Square
     print("Square")
