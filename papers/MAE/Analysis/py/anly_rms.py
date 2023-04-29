@@ -81,82 +81,79 @@ def calc_diff(orig_file, recon_file, mask_file,
     avgs.to_parquet('valid_avg_rms.parquet')
     return rms
 
-# Calculates rms using table.
-def calculate_avg_rms(table, errors, start, end, num_imgs):
+
+# Calculates MSE using table.
+def calculate_RMSE(table, label, start, end, num_imgs):
     """
-    Calculate rms of a range on the LL table. Can calculate rms for the full dataset as well
-    table:    LL table (sorted if checking rms of batches)
-    errors:   np array of errors (same order as original file)
+    Calculate MSE of a range on the LL table. Can calculate MSE for the full dataset as well
+    table:    LL table (sorted if checking MSE of batches)
+    label:    table label in the format 'RMS_t{}_p{}'
     start:    Iteration start
     end:      Iteration end
     num_imgs: number of images in the current batch
     """
     summ = 0
     for i in range(start, end):
-        idx = int(table.iloc[i]['pp_idx'])
-        summ = summ + errors[idx]
+        summ = summ + table.iloc[i][label]
     
     avg = summ/num_imgs
     return avg
-        
-def calc_batch_rms(table, errors, batch_percent):
+
+def calc_batch_RMSE(table, t, p):
     """
-    Calculates rms in batches. Handles extra by adding them to final batch
+    Calculates RMSE in batches. Handles extra by adding them to final batch
     so pick reasonable batch sizes that won't leave a lot of extra 
     table:   LL table (sorted)
-    errors:  np array of errors (same order as original file)
-    batch_percent: batch_percent to batch
+    t:       mask ratio during training
+    p:       mask ratio during reconstruction
     """
-    # Uncomment this when working with not broken files
-    # assert len(table.index) == len(errors)
+    batch_percent = 10
     num_imgs = len(table.index)
     batch_size = int(num_imgs*batch_percent/100) # size of batch
     num_batches = num_imgs // batch_size # batches to run excluding final batch
     final_batch = num_imgs-batch_size*(num_batches-1)
+    label = 'RMS_t{t}_p{p}'.format(t=t, p=p)
 
-    print('number of images:', num_imgs,'\nnumber of batches:', num_batches,
-          '\nbatch size:', batch_size, '\nfinal batch:', final_batch)
-    rms = np.empty(num_batches, dtype=np.float64)
+    print('Calculating batches for t{t}_p{p}'.format(t=t, p=p))
+    RMSE = np.empty(num_batches, dtype=np.float64)
     for batch in range(num_batches-1):
         start = batch*batch_size
         end = start + batch_size
-        rms[batch] = calculate_rms(table, errors, start, end, batch_size)
-        #print('average of batch',batch+1,'is',rms[batch])
+        arr = table[label].to_numpy()
+        RMSE[batch] = sum(arr[start:end])/65578.0
+        #RMSE[batch] = calculate_RMSE(table, label, start, end, batch_size)
     
-    rms[num_batches-1] = calculate_avg_rms(table, errors, batch_size*(num_batches-1), num_imgs, final_batch)
-    #print('average of batch',num_batches,'is',rms[num_batches-1])
-    
-    return rms
+    RMSE[num_batches-1] = calculate_RMSE(table, label, batch_size*(num_batches-1), num_imgs, final_batch)
+    return RMSE
 
 
 def create_table(outfile='valid_avg_rms.csv',
-                 LL_filepath='MAE_LLC_valid_nonoise.parquet', 
-                 rms_filepath='valid_rms.parquet'):
+                 data_filepath='MAE_LLC_valid_nonoise.parquet'):
     # load tables
-    table = pd.read_parquet(LL_filepath, engine='pyarrow')
+    table = pd.read_parquet(data_filepath, engine='pyarrow')
     table = table[table['LL'].notna()]
     table = table.sort_values(by=['LL'])
-    rms = pd.read_parquet(rms_filepath, engine='pyarrow')
     
-    # calculate median LL
+    # calculate median LL (need to fix this)
     x = ["" for i in range(10)]
     for i in range(10):
-        start = table.iloc[i*65578]['LL']
-        end = table.iloc[(i+1)*65578]['LL']
-        avg = (start + end)/2
-        x[i] = str(int(avg))
+        start = i*65578
+        end = (i+1)*65578
+        avg = int((start + end)/2)
+        x[i] = table.iloc[avg]['LL']
     
     avgs = pd.DataFrame(x, columns=['median_rms'])
 
     # calculate batch averages
-    models = [10, 35, 75]
+    models = [10, 35, 50, 75]
     masks = [10, 20, 30, 40, 50]
     for t in models:
         for p in masks:
             index = 'rms_t{}_p{}'.format(t, p)
-            avg_rms = calc_batch_rms(table, rms[index], p)
+            avg_rms = calc_batch_RMSE(table, t, p)
             avgs[index] = avg_rms
         
     avgs.to_csv(outfile)
 
-# diff = calc_diff(orig_file,recon_file, mask_file)
+#diff = calc_diff(orig_file,recon_file, mask_file)
+create_table()
