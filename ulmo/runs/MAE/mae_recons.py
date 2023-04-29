@@ -233,14 +233,13 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
     chk, disallowed_keys = cat_utils.vet_main_table(
         tbl, return_disallowed=True, cut_prefix=['MODIS_'])
     for key in disallowed_keys:
-        assert key[0:2] in ['LL','RM']
+        assert key[0:2] in ['LL','RM', 'DT']
 
     # Write 
     if debug:
         embed(header='239 of mae_recons')
     else:
         ulmo_io.write_main_table(tbl, tbl_file)
-
 
 def main(flg):
     if flg== 'all':
