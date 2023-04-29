@@ -263,12 +263,14 @@ def main(flg):
         #calc_rms(10, 10, dataset='VIIRS', clobber=clobber)
 
         # LLC
+        '''
         for t in [10,35,75]:
             for p in [10,20,30,40,50]:
-                if t != 10 and p != 10:
-                    continue
+                #if t != 10 or p != 10:
+                #    continue
                 print(f'Working on: t={t}, p={p}')
                 calc_rms(t, p, dataset='LLC', clobber=clobber)
+        '''
 
         for t in [50]:
             for p in [10,20,30,40,50]:
