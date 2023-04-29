@@ -2,6 +2,7 @@
 
 import numpy as np
 import h5py
+from scipy.sparse import csc_matrix
 
 from IPython import embed
 
@@ -54,3 +55,30 @@ def rms_images(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File,
     # RMS
     print("Root")
     return np.sqrt(calc)
+
+
+def rms_single_img(orig_img, recon_img, mask_img):
+    """ Calculate rms of a single image (ignore edges)
+        orig_img:  original img (64x64)
+        recon_img: reconstructed image (64x64)
+        mask_img:  mask of recon_image (64x64)
+    """
+    # remove edges
+    orig_img  = orig_img[4:-4, 4:-4]
+    recon_img = recon_img[4:-4, 4:-4]
+    mask_img  = mask_img[4:-4, 4:-4]
+    
+    # Find i,j positions from mask
+    mask_sparse = csc_matrix(mask_img)
+    mask_i,mask_j = mask_sparse.nonzero()
+    
+    # Find differences
+    diff = np.zeros(len(mask_i))
+    for idx, (i, j) in enumerate(zip(mask_i, mask_j)):
+        diff[idx] = orig_img[i,j] - recon_img[i,j]
+    
+    #embed(header='44 of anly_rms.py')
+    diff = np.square(diff)
+    rms = diff.mean()
+    rms = np.sqrt(rms)
+    return rms

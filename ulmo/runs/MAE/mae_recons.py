@@ -216,13 +216,22 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
     print("Calculating RMS metric")
     rms = cutout_analysis.rms_images(f_orig, f_recon, f_mask, debug=debug)
 
+    # Check one (or more)
+    if debug:
+        idx = 1000
+        orig_img = f_orig['valid'][idx,0,...]
+        recon_img = f_recon['valid'][idx,0,...]
+        mask_img = f_mask['valid'][idx,0,...]
+        rms = cutout_analysis.rms_single_img(orig_img, recon_img, mask_img)
+        embed(header='226 of mae_recons')
+
     # Add to table
     print("Adding to table")
     if debug:
-        embed(header='222 of mae_recons')
+        embed(header='231 of mae_recons')
     if dataset == 'LLC':
-        all_rms = np.nan * np.ones_like(tbl.LL_t35_p50)
-        idx = np.isfinite(tbl.LL_t35_p50)
+        all_rms = np.nan * np.ones_like(tbl.LL)
+        idx = np.isfinite(tbl.LL)
         all_rms[idx] = rms
     else:
         all_rms = rms
