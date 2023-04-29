@@ -258,7 +258,7 @@ def main(flg):
 
     # Calculate RMS for various reconstructions
     if flg & (2**2):
-        clobber = True
+        clobber = False
         # VIIRS
         #calc_rms(10, 10, dataset='VIIRS', clobber=clobber)
 
