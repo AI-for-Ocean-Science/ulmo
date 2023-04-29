@@ -233,14 +233,13 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
     chk, disallowed_keys = cat_utils.vet_main_table(
         tbl, return_disallowed=True, cut_prefix=['MODIS_'])
     for key in disallowed_keys:
-        assert key[0:2] in ['LL','RM']
+        assert key[0:2] in ['LL','RM', 'DT']
 
     # Write 
     if debug:
         embed(header='239 of mae_recons')
     else:
         ulmo_io.write_main_table(tbl, tbl_file)
-
 
 def main(flg):
     if flg== 'all':
@@ -259,12 +258,21 @@ def main(flg):
 
     # Calculate RMS for various reconstructions
     if flg & (2**2):
-        clobber = True
+        clobber = False
         # VIIRS
         #calc_rms(10, 10, dataset='VIIRS', clobber=clobber)
 
         # LLC
+        '''
         for t in [10,35,75]:
+            for p in [10,20,30,40,50]:
+                #if t != 10 or p != 10:
+                #    continue
+                print(f'Working on: t={t}, p={p}')
+                calc_rms(t, p, dataset='LLC', clobber=clobber)
+        '''
+
+        for t in [50]:
             for p in [10,20,30,40,50]:
                 print(f'Working on: t={t}, p={p}')
                 calc_rms(t, p, dataset='LLC', clobber=clobber)
@@ -278,7 +286,7 @@ if __name__ == '__main__':
         flg = 0
         #flg += 2 ** 0  # 1 -- Images for VIIRS
         #flg += 2 ** 1  # 2 -- Inpaint vs Enki
-        flg += 2 ** 2  # 4 -- RMS calculations
+        flg += 2 ** 2  # 4 -- RMSE calculations
     else:
         flg = sys.argv[1]
 
