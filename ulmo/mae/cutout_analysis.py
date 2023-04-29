@@ -39,8 +39,8 @@ def rms_images(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File,
     print("Calculate")
     calc = (orig_imgs - recon_imgs)*mask_imgs
 
-    if debug:
-        embed(header='43 of cutout_analysis.py')
+    #if debug:
+    #    embed(header='43 of cutout_analysis.py')
 
     # Square
     print("Square")
