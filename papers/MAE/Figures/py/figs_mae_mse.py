@@ -134,9 +134,9 @@ def fig_viirs_rms(outfile: str, t:int=10, p:int=10,
         # LLC
         #embed(header='137 of figs_mae_mse.py')
         lidx = (llc['LL'] <= LL_per) & (llc['LL'] > LL_min)
-        llc_rmse.append(np.nanmedian(llc[f'RMS_t10_p30'][lidx]))
-        print(f'LLC: {llc_rmse[-1]}, LL={np.median(llc.LL[lidx])}')
-        #llc_rmse.append(np.nanmedian(llc[f'RMS_t{t}_p{p}'][lidx]))
+        #llc_rmse.append(np.nanmedian(llc[f'RMS_t10_p30'][lidx]))
+        #print(f'LLC: {llc_rmse[-1]}, LL={np.median(llc.LL[lidx])}')
+        llc_rmse.append(np.nanmedian(llc[f'RMS_t{t}_p{p}'][lidx]))
 
     # Plot
     ax = plt.gca()
