@@ -18,11 +18,11 @@ from ulmo import io as ulmo_io
 
 from IPython import embed
 
-'''
+
 sst_path = os.getenv('OS_SST')
 ogcm_path = os.getenv('OS_OGCM')
 enki_path = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki')
-'''
+
 
 def fig_batch_rmse(model, rmse_filepath='valid_avg_rms.csv'):
     """
@@ -32,7 +32,6 @@ def fig_batch_rmse(model, rmse_filepath='valid_avg_rms.csv'):
     """
     # load rmse
     rmse = pd.read_csv(rmse_filepath)
-    #mse = pd.read_parquet(mse_filepath, engine='pyarrow')
     
     # setup
     colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple']
@@ -59,44 +58,6 @@ def fig_batch_rmse(model, rmse_filepath='valid_avg_rms.csv'):
     outfile = 'rmse_t{}.png'.format(model)
     plt.savefig(outfile, dpi=300)
     plt.close()
-
-    
-#### Old legacy version ###
-def fig_batch_mse(outfile: str,
-                   model: str, labels, colors,
-                    mse_filepath='valid_avg_mse.parquet'):
-    """
-    Creates a figure of average MSE by LL batches.
-    outfile: file to save as
-    model: MAE model (t10, t35, t75)
-    labels: labels from pandas frame to plot
-    mse_filepath: file with mses
-    """
-    # load mse
-    mse = pd.read_parquet(mse_filepath, engine='pyarrow')
-    
-    fig, ax = plt.subplots()
-    plt_labels = []    
-    for l, c in zip(labels, colors):
-        x = mse['avg_LL']
-        y = mse[l]
-        plt_labels.append('{}%'.format(l[-2:]))
-        plt.scatter(x, y, color=c)
-    
-    plt.yscale('log')
-    ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda y,pos: ('{{:.{:1d}f}}'.format(int(np.maximum(-np.log10(y),0)))).format(y)))
-    ax.set_axisbelow(True)
-    ax.grid(color='gray', linestyle='dashed', linewidth = 0.5)
-    plt.legend(labels=plt_labels, title='Masking Ratio',
-               title_fontsize='small', fontsize='small', fancybox=True, ncol=2)
-    plt.title('{} Model: Avg MSE Based on Complexity'.format(model))
-    plt.xlabel("Average LL Per Batch")
-    plt.ylabel("log$_{10}$ MSE")
-
-    # save
-    plt.savefig(outfile, dpi=300)
-    plt.close()
-
 
 def fig_compare_models(outfile: str,
                         models, labels, colors,
@@ -198,9 +159,6 @@ def fig_viirs_rms(outfile: str, t:int=10, p:int=10,
     return
 
 #### ########################## #########################
-fig_batch_rmse(75)
-
-"""
 def main(flg_fig):
     if flg_fig == 'all':
         flg_fig = np.sum(np.array([2 ** ii for ii in range(25)]))
@@ -221,4 +179,3 @@ if __name__ == '__main__':
         flg_fig = sys.argv[1]
 
     main(flg_fig)
-"""
