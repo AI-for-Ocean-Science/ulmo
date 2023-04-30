@@ -240,8 +240,8 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
     else:
         all_rms = rms[tbl.pp_idx]
 
+    # Finally
     tbl[RMS_metric] = all_rms
-
         
     # Vet
     chk, disallowed_keys = cat_utils.vet_main_table(
@@ -273,24 +273,17 @@ def main(flg):
     # Calculate RMS for various reconstructions
     if flg & (2**2):
         clobber = True
-        debug=True
+        debug=False
         # VIIRS
         #calc_rms(10, 10, dataset='VIIRS', clobber=clobber)
 
         # LLC
-        for t in [10,35,75]:
+        for t in [10,35,50,75]:
             for p in [10,20,30,40,50]:
                 if t != 10 or p != 10:
                     continue
                 print(f'Working on: t={t}, p={p}')
                 calc_rms(t, p, dataset='LLC', clobber=clobber, debug=debug)
-        '''
-
-        for t in [50]:
-            for p in [10,20,30,40,50]:
-                print(f'Working on: t={t}, p={p}')
-                calc_rms(t, p, dataset='LLC', clobber=clobber)
-        '''
 
 
 # Command line execution
