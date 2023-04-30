@@ -218,8 +218,8 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
 
     # Check one (or more)
     if debug:
-        embed(header='221 of mae_recons')
-        idx = 1000
+        tbl_idx = 354315 # High DT
+        idx = tbl.iloc[tbl_idx].pp_idx 
         orig_img = f_orig['valid'][idx,0,...]
         recon_img = f_recon['valid'][idx,0,...]
         mask_img = f_mask['valid'][idx,0,...]
@@ -230,13 +230,18 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
     if debug:
         embed(header='231 of mae_recons')
     if dataset == 'LLC':
-        all_rms = np.nan * np.ones_like(tbl.LL)
-        idx = np.isfinite(tbl.LL)
-        all_rms[idx] = rms
+        # Allow for bad/missing images
+        all_rms = np.nan * np.ones(len(tbl))
+        pp_idx = tbl.pp_idx.values
+        for ss in range(len(tbl)):
+            if pp_idx[ss] >= 0:
+                rms_val = rms[pp_idx[ss]]
+                all_rms[ss] = rms_val
     else:
-        all_rms = rms
+        all_rms = rms[tbl.pp_idx]
 
-    tbl[RMS_metric] = all_rms[tbl.pp_idx]
+    tbl[RMS_metric] = all_rms
+
         
     # Vet
     chk, disallowed_keys = cat_utils.vet_main_table(
