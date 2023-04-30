@@ -142,7 +142,7 @@ def create_table(outfile='valid_avg_rms.csv',
         avg = int((start + end)/2)
         x[i] = table.iloc[avg]['LL']
     
-    avgs = pd.DataFrame(x, columns=['median_rms'])
+    avgs = pd.DataFrame(x, columns=['median_LL'])
 
     # calculate batch averages
     models = [10, 35, 50, 75]

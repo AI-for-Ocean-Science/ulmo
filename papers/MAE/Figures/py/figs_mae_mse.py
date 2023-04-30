@@ -18,10 +18,50 @@ from ulmo import io as ulmo_io
 
 from IPython import embed
 
+'''
 sst_path = os.getenv('OS_SST')
 ogcm_path = os.getenv('OS_OGCM')
 enki_path = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki')
+'''
 
+def fig_batch_rmse(model, rmse_filepath='valid_avg_rms.csv'):
+    """
+    Creates a figure of average RMSE by LL batches.
+    model: MAE model (10, 35, 50, 75)
+    rmse_filepath: file with rmse's
+    """
+    # load rmse
+    rmse = pd.read_csv(rmse_filepath)
+    #mse = pd.read_parquet(mse_filepath, engine='pyarrow')
+    
+    # setup
+    colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple']
+    fig, ax = plt.subplots()
+    
+    # Plot
+    masks = [10, 20, 30, 40, 50]
+    plt_labels = []
+    for p, c in zip(masks, colors):
+        x = rmse['median_LL']
+        y = rmse['rms_t{t}_p{p}'.format(t=model, p=p)]
+        plt_labels.append('rms_t{t}_p{p}%'.format(t=model, p=p))
+        plt.scatter(x, y, color=c)
+
+    ax.set_axisbelow(True)
+    ax.grid(color='gray', linestyle='dashed', linewidth = 0.5)
+    plt.legend(labels=plt_labels, title='Masking Ratio',
+               title_fontsize='small', fontsize='small', fancybox=True)
+    plt.title('{} Model: Average RMSE Based on LL'.format(model))
+    plt.xlabel("Median LL Per Batch")
+    plt.ylabel("RMSE")
+
+    # save
+    outfile = 'rmse_t{}.png'.format(model)
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+
+    
+#### Old legacy version ###
 def fig_batch_mse(outfile: str,
                    model: str, labels, colors,
                     mse_filepath='valid_avg_mse.parquet'):
@@ -158,6 +198,9 @@ def fig_viirs_rms(outfile: str, t:int=10, p:int=10,
     return
 
 #### ########################## #########################
+fig_batch_rmse(75)
+
+"""
 def main(flg_fig):
     if flg_fig == 'all':
         flg_fig = np.sum(np.array([2 ** ii for ii in range(25)]))
@@ -178,3 +221,4 @@ if __name__ == '__main__':
         flg_fig = sys.argv[1]
 
     main(flg_fig)
+"""
