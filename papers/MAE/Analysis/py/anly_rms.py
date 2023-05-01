@@ -21,6 +21,7 @@ from scipy.sparse import csc_matrix
 
 from IPython import embed
 
+# old
 def rms_single_img(orig_img, recon_img, mask_img):
     """ Calculate rms of a single image (ignore edges)
     orig_img:  original img (64x64)
@@ -47,6 +48,7 @@ def rms_single_img(orig_img, recon_img, mask_img):
     rms = np.sqrt(rms)
     return rms
 
+# old
 def calc_diff(orig_file, recon_file, mask_file,
               outfile='valid_rms.parquet'):
     """
@@ -81,24 +83,6 @@ def calc_diff(orig_file, recon_file, mask_file,
     avgs.to_parquet('valid_avg_rms.parquet')
     return rms
 
-
-# Calculates MSE using table.
-def calculate_RMSE(table, label, start, end, num_imgs):
-    """
-    Calculate MSE of a range on the LL table. Can calculate MSE for the full dataset as well
-    table:    LL table (sorted if checking MSE of batches)
-    label:    table label in the format 'RMS_t{}_p{}'
-    start:    Iteration start
-    end:      Iteration end
-    num_imgs: number of images in the current batch
-    """
-    summ = 0
-    for i in range(start, end):
-        summ = summ + table.iloc[i][label]
-    
-    avg = summ/num_imgs
-    return avg
-
 def calc_batch_RMSE(table, t, p):
     """
     Calculates RMSE in batches. Handles extra by adding them to final batch
@@ -118,12 +102,12 @@ def calc_batch_RMSE(table, t, p):
     RMSE = np.empty(num_batches, dtype=np.float64)
     for batch in range(num_batches-1):
         start = batch*batch_size
-        end = start + batch_size
+        end = start + batch_size-1
         arr = table[label].to_numpy()
-        RMSE[batch] = sum(arr[start:end])/65578.0
+        RMSE[batch] = sum(arr[start:end])/batch_size
         #RMSE[batch] = calculate_RMSE(table, label, start, end, batch_size)
     
-    RMSE[num_batches-1] = calculate_RMSE(table, label, batch_size*(num_batches-1), num_imgs, final_batch)
+    RMSE[num_batches-1] = RMSE[batch] = sum(arr[batch_size*(num_batches-1):num_imgs-1])/final_batch
     return RMSE
 
 
