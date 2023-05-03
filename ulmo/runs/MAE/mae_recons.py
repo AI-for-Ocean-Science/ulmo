@@ -350,13 +350,12 @@ def main(flg):
 
     # Calculate RMS for various reconstructions
     if flg & (2**3):
-        clobber = True
-        debug = True
+        debug = False
         # VIIRS
         #calc_rms(10, 10, dataset='VIIRS', clobber=clobber)
 
         # LLC
-        calc_bias(dataset='LLC', clobber=clobber, debug=debug)
+        calc_bias(dataset='LLC', debug=debug)
 
 # Command line execution
 if __name__ == '__main__':
