@@ -271,13 +271,10 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
         ulmo_io.write_main_table(tbl, tbl_file)
 
 
-def calc_bias(t:int, p:int, dataset:str='LLC', clobber:bool=False,
-             debug:bool=False):
+def calc_bias(dataset:str='LLC', clobber:bool=False, debug:bool=False):
     """ Calculate the bias
 
     Args:
-        t (int): train fraction
-        p (int): patch fraction
         dataset (str, optional): Dataset. Defaults to 'LLC'.
         clobber (bool, optional): Clobber?
         debug (bool, optional): Debug?
@@ -285,6 +282,7 @@ def calc_bias(t:int, p:int, dataset:str='LLC', clobber:bool=False,
     Raises:
         ValueError: _description_
     """
+    stats = {}
     for t in [10,35,50,75]:
         for p in [10,20,30,40,50]:
             _, orig_file, recon_file, mask_file = set_files(dataset, t, p)
@@ -305,6 +303,10 @@ def calc_bias(t:int, p:int, dataset:str='LLC', clobber:bool=False,
                 f_orig, f_recon, f_mask, debug=debug, nimgs=nimgs)
             if debug:
                 embed(header='307 of mae_recons')
+            # Save
+            stats[f't_{t}_p_{p}'] = {'median_bias': median_bias,
+                                     'mean_bias': mean_bias}
+
 
     # 
 
