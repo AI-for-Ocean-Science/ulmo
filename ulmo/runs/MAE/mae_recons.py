@@ -214,20 +214,34 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
 
     # Do it!
     print("Calculating RMS metric")
-    rms = cutout_analysis.rms_images(f_orig, f_recon, f_mask)
+    rms = cutout_analysis.rms_images(f_orig, f_recon, f_mask, debug=debug)
+
+    # Check one (or more)
+    if debug:
+        tbl_idx = 354315 # High DT
+        idx = tbl.iloc[tbl_idx].pp_idx 
+        orig_img = f_orig['valid'][idx,0,...]
+        recon_img = f_recon['valid'][idx,0,...]
+        mask_img = f_mask['valid'][idx,0,...]
+        irms = cutout_analysis.rms_single_img(orig_img, recon_img, mask_img)
 
     # Add to table
     print("Adding to table")
-    #if debug:
-    #    embed(header='220 of mae_recons')
+    if debug:
+        embed(header='231 of mae_recons')
     if dataset == 'LLC':
-        all_rms = np.nan * np.ones_like(tbl.LL_t35_p50)
-        idx = np.isfinite(tbl.LL_t35_p50)
-        all_rms[idx] = rms
+        # Allow for bad/missing images
+        all_rms = np.nan * np.ones(len(tbl))
+        pp_idx = tbl.pp_idx.values
+        for ss in range(len(tbl)):
+            if pp_idx[ss] >= 0:
+                rms_val = rms[pp_idx[ss]]
+                all_rms[ss] = rms_val
     else:
-        all_rms = rms
+        all_rms = rms[tbl.pp_idx]
 
-    tbl[RMS_metric] = all_rms[tbl.pp_idx]
+    # Finally
+    tbl[RMS_metric] = all_rms
         
     # Vet
     chk, disallowed_keys = cat_utils.vet_main_table(
@@ -258,24 +272,18 @@ def main(flg):
 
     # Calculate RMS for various reconstructions
     if flg & (2**2):
-        clobber = False
+        clobber = True
+        debug=False
         # VIIRS
         #calc_rms(10, 10, dataset='VIIRS', clobber=clobber)
 
         # LLC
-        '''
-        for t in [10,35,75]:
+        for t in [10,35,50,75]:
             for p in [10,20,30,40,50]:
                 #if t != 10 or p != 10:
                 #    continue
                 print(f'Working on: t={t}, p={p}')
-                calc_rms(t, p, dataset='LLC', clobber=clobber)
-        '''
-
-        for t in [50]:
-            for p in [10,20,30,40,50]:
-                print(f'Working on: t={t}, p={p}')
-                calc_rms(t, p, dataset='LLC', clobber=clobber)
+                calc_rms(t, p, dataset='LLC', clobber=clobber, debug=debug)
 
 
 # Command line execution

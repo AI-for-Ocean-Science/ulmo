@@ -36,7 +36,7 @@ try:
 except ModuleNotFoundError:
     print("Not able to load the models")
 else:    
-    from ulmo.mae import reconstruct_LLC
+    from ulmo.mae import reconstruct
 from ulmo.mae import plotting as mae_plotting
 
 
@@ -177,7 +177,7 @@ def fig_numhp_clouds(outfile:str, analy_file:str):
 
     ax = plt.gca()
 
-    for N_min in N_minsJames:
+    for N_min in N_mins:
         num_hp = []
         for kk in range(CC_values.size):
             gd = np.sum(data['hp_pix_CC'][:,kk] >= N_min)
@@ -523,12 +523,10 @@ def main(flg_fig):
 
     # Uniform, non UMAP gallery for DTall
     if flg_fig & (2 ** 0):
-        fig_clouds('fig_clouds.png',
-                   '/tank/xavier/Oceanography/Python/ulmo/ulmo/runs/MAE/modis_2020_cloudcover.npz')
+        fig_clouds('fig_clouds.png', 'modis_2020_cloudcover.npz')
 
     if flg_fig & (2 ** 1):
-        fig_numhp_clouds('fig_numhp_clouds.png',
-                   '/tank/xavier/Oceanography/Python/ulmo/ulmo/runs/MAE/modis_2020_cloudcover.npz')
+        fig_numhp_clouds('fig_numhp_clouds.png', 'modis_2020_cloudcover.npz')
 
     if flg_fig & (2 ** 2):
         #fig_patch_ij_binned_stats('abs_median_diff', 'median',
@@ -611,13 +609,13 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg_fig = 0
-        #flg_fig += 2 ** 0  # Clouds on the sphere
-        #flg_fig += 2 ** 1  # Number satisfying
+        flg_fig += 2 ** 0  # Clouds on the sphere
+        flg_fig += 2 ** 1  # Number satisfying
         #flg_fig += 2 ** 2  # Binned stats
         #flg_fig += 2 ** 3  # Bias
         #flg_fig += 2 ** 4  # VIIRS example
         #flg_fig += 2 ** 5  # VIIRS reocn analysis
-        flg_fig += 2 ** 6  # LLC inpainting
+        #flg_fig += 2 ** 6  # LLC inpainting
     else:
         flg_fig = sys.argv[1]
 
