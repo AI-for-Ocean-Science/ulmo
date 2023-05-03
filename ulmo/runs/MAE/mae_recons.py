@@ -4,6 +4,7 @@ import os
 import numpy as np
 
 import h5py
+import pandas
 
 from skimage.restoration import inpaint as sk_inpaint
 
@@ -283,8 +284,10 @@ def calc_bias(dataset:str='LLC', clobber:bool=False, debug:bool=False):
         ValueError: _description_
     """
     stats = {}
+    ts, ps, medians, means = [], [], [], []
     for t in [10,35,50,75]:
         for p in [10,20,30,40,50]:
+            print(f"Working on: t={t}, p={p}")
             _, orig_file, recon_file, mask_file = set_files(dataset, t, p)
 
             # Open up
@@ -301,14 +304,19 @@ def calc_bias(dataset:str='LLC', clobber:bool=False, debug:bool=False):
             print("Calculating bias metric")
             median_bias, mean_bias = cutout_analysis.measure_bias(
                 f_orig, f_recon, f_mask, debug=debug, nimgs=nimgs)
-            if debug:
-                embed(header='307 of mae_recons')
+            #if debug:
+            #    embed(header='307 of mae_recons')
             # Save
-            stats[f't_{t}_p_{p}'] = {'median_bias': median_bias,
-                                     'mean_bias': mean_bias}
+            ts.append(t)
+            ps.append(p)
+            medians.append(median_bias)
+            means.append(mean_bias)
 
-
-    # 
+    # Write
+    df = pandas.DataFrame(dict(t=ts, p=ps, median=medians, mean=means))
+    outfile = f'enki_bias_{dataset}.csv'
+    df.to_csv(outfile, index=False)
+    print(f"Wrote: {outfile}")
 
 def main(flg):
     if flg== 'all':

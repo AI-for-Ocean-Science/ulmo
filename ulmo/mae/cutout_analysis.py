@@ -116,8 +116,8 @@ def measure_bias(f_orig, f_recon, f_mask, patch_sz=4,
     diff_true = (recon_imgs - orig_imgs)*mask_imgs
 
     # Stats
-    if debug:
-        embed(header='120 of cutout_analysis.py')
+    #if debug:
+    #    embed(header='120 of cutout_analysis.py')
     median_bias = np.median(diff_true[np.abs(diff_true) > 0.])
     mean_bias = np.mean(diff_true[np.abs(diff_true) > 0.])
 
