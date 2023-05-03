@@ -6,6 +6,29 @@ from scipy.sparse import csc_matrix
 
 from IPython import embed
 
+def load_cutouts(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File, 
+               nimgs:int=None, debug:bool=False, patch_sz:int=None):
+    # Load em all
+    print("Loading images...")
+    if nimgs is None:
+        nimgs = f_orig['valid'].shape[0]
+
+    # Grab em
+    orig_imgs = f_orig['valid'][:nimgs,0,...]
+    recon_imgs = f_recon['valid'][:nimgs,0,...]
+    mask_imgs = f_mask['valid'][:nimgs,0,...]
+
+    # Mask out edges
+    print("Masking edges")
+    if patch_sz is not None:
+        mask_imgs[:, 0:patch_sz, :] = 0
+        mask_imgs[:, -patch_sz:, :] = 0
+        mask_imgs[:, :, 0:patch_sz] = 0
+        mask_imgs[:, :, -patch_sz:] = 0
+
+    return orig_imgs, recon_imgs, mask_imgs
+
+
 def rms_images(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File, 
                patch_sz:int=4, nimgs:int=None, debug:bool=False):
     """_summary_
@@ -19,22 +42,9 @@ def rms_images(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File,
     Returns:
         np.array: RMS values
     """
-    # Load em all
-    print("Loading images...")
-    if nimgs is None:
-        nimgs = f_orig['valid'].shape[0]
-
-    # Grab em
-    orig_imgs = f_orig['valid'][:nimgs,0,...]
-    recon_imgs = f_recon['valid'][:nimgs,0,...]
-    mask_imgs = f_mask['valid'][:nimgs,0,...]
-
-    # Mask out edges
-    print("Masking edges")
-    mask_imgs[:, 0:patch_sz, :] = 0
-    mask_imgs[:, -patch_sz:, :] = 0
-    mask_imgs[:, :, 0:patch_sz] = 0
-    mask_imgs[:, :, -patch_sz:] = 0
+    # Load (and mask) images
+    orig_imgs, recon_imgs, mask_imgs = load_cutouts(
+        f_orig, f_recon, f_mask, nimgs=nimgs, patch_sz=patch_sz)
 
     # Analyze
     print("Calculate")
@@ -82,3 +92,36 @@ def rms_single_img(orig_img, recon_img, mask_img):
     rms = diff.mean()
     rms = np.sqrt(rms)
     return rms
+
+
+def measure_bias(f_orig, f_recon, f_mask, patch_sz=4,
+                 nimgs:int=None, debug:bool=False):
+    """ Measure the bias in cutouts
+
+    Args:
+        idx (_type_): _description_
+        f_orig (_type_): _description_
+        f_recon (_type_): _description_
+        f_mask (_type_): _description_
+        patch_sz (int, optional): _description_. Defaults to 4.
+
+    Returns:
+        tuple: median_bias, mean_bias
+    """
+    # Load (and mask) images
+    orig_imgs, recon_imgs, mask_imgs = load_cutouts(
+        f_orig, f_recon, f_mask, nimgs=nimgs, patch_sz=patch_sz)
+
+    # Difference
+    diff_true = (recon_imgs - orig_imgs)*mask_imgs
+
+    # Stats
+    #if debug:
+    #    embed(header='120 of cutout_analysis.py')
+    median_bias = np.median(diff_true[np.abs(diff_true) > 0.])
+    mean_bias = np.mean(diff_true[np.abs(diff_true) > 0.])
+
+    #mean_img = np.mean(orig_img[np.isclose(mask_img,0.)])
+    #stats['mean_img'] = mean_img
+    # Return
+    return median_bias, mean_bias

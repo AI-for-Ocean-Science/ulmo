@@ -4,6 +4,7 @@ import os
 import numpy as np
 
 import h5py
+import pandas
 
 from skimage.restoration import inpaint as sk_inpaint
 
@@ -180,10 +181,7 @@ def compare_with_inpainting(inpaint_file:str, t:int, p:int, debug:bool=False,
         f.create_dataset('inpainted', data=inpainted.astype(np.float32))
     print(f'Wrote: {inpaint_file}')
 
-def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
-             debug:bool=False):
-
-
+def set_files(dataset:str, t:int, p:int):
     if dataset == 'VIIRS':
         tbl_file = viirs_100_s3_file
         orig_file = viirs_100_img_file
@@ -197,6 +195,24 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
         orig_file = local_mae_valid_nonoise_file
     else:
         raise ValueError("Bad dataset")
+
+    return tbl_file, orig_file, recon_file, mask_file
+
+def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
+             debug:bool=False):
+    """ Calculate the RMSE
+
+    Args:
+        t (int): train fraction
+        p (int): patch fraction
+        dataset (str, optional): Dataset. Defaults to 'LLC'.
+        clobber (bool, optional): Clobber?
+        debug (bool, optional): Debug?
+
+    Raises:
+        ValueError: _description_
+    """
+    tbl_file, orig_file, recon_file, mask_file = set_files(dataset, t, p)
 
     # Load table
     tbl = ulmo_io.load_main_table(tbl_file)
@@ -255,6 +271,53 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
     else:
         ulmo_io.write_main_table(tbl, tbl_file)
 
+
+def calc_bias(dataset:str='LLC', clobber:bool=False, debug:bool=False):
+    """ Calculate the bias
+
+    Args:
+        dataset (str, optional): Dataset. Defaults to 'LLC'.
+        clobber (bool, optional): Clobber?
+        debug (bool, optional): Debug?
+
+    Raises:
+        ValueError: _description_
+    """
+    stats = {}
+    ts, ps, medians, means = [], [], [], []
+    for t in [10,35,50,75]:
+        for p in [10,20,30,40,50]:
+            print(f"Working on: t={t}, p={p}")
+            _, orig_file, recon_file, mask_file = set_files(dataset, t, p)
+
+            # Open up
+            f_orig = h5py.File(orig_file, 'r')
+            f_recon = h5py.File(recon_file, 'r')
+            f_mask = h5py.File(mask_file, 'r')
+
+            if debug:
+                nimgs = 1000
+            else:
+                nimgs = None
+
+            # Do it!
+            print("Calculating bias metric")
+            median_bias, mean_bias = cutout_analysis.measure_bias(
+                f_orig, f_recon, f_mask, debug=debug, nimgs=nimgs)
+            #if debug:
+            #    embed(header='307 of mae_recons')
+            # Save
+            ts.append(t)
+            ps.append(p)
+            medians.append(median_bias)
+            means.append(mean_bias)
+
+    # Write
+    df = pandas.DataFrame(dict(t=ts, p=ps, median=medians, mean=means))
+    outfile = f'enki_bias_{dataset}.csv'
+    df.to_csv(outfile, index=False)
+    print(f"Wrote: {outfile}")
+
 def main(flg):
     if flg== 'all':
         flg= np.sum(np.array([2 ** ii for ii in range(25)]))
@@ -285,6 +348,14 @@ def main(flg):
                 print(f'Working on: t={t}, p={p}')
                 calc_rms(t, p, dataset='LLC', clobber=clobber, debug=debug)
 
+    # Calculate RMS for various reconstructions
+    if flg & (2**3):
+        debug = False
+        # VIIRS
+        #calc_rms(10, 10, dataset='VIIRS', clobber=clobber)
+
+        # LLC
+        calc_bias(dataset='LLC', debug=debug)
 
 # Command line execution
 if __name__ == '__main__':
@@ -294,7 +365,8 @@ if __name__ == '__main__':
         flg = 0
         #flg += 2 ** 0  # 1 -- Images for VIIRS
         #flg += 2 ** 1  # 2 -- Inpaint vs Enki
-        flg += 2 ** 2  # 4 -- RMSE calculations
+        #flg += 2 ** 2  # 4 -- RMSE calculations
+        flg += 2 ** 3  # 8 -- bias calculations
     else:
         flg = sys.argv[1]
 

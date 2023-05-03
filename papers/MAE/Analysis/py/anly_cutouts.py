@@ -10,38 +10,6 @@ def measure_rmse(f_orig, f_recon, f_mask, p_sz=4, nsub=1000):
     pass
     
 
-def measure_bias(idx, f_orig, f_recon, f_mask, p_sz=4):
-    """ Measure the bias in cutouts
-
-    Args:
-        idx (_type_): _description_
-        f_orig (_type_): _description_
-        f_recon (_type_): _description_
-        f_mask (_type_): _description_
-        p_sz (int, optional): _description_. Defaults to 4.
-
-    Returns:
-        _type_: _description_
-    """
-
-    # Grab em
-    orig_img = f_orig['valid'][idx,0,...]
-    recon_img = f_recon['valid'][idx,0,...]
-    mask_img = f_mask['valid'][idx,0,...]
-
-    diff_true = recon_img - orig_img 
-
-    median_bias = np.median(diff_true[np.abs(diff_true) > 0.])
-    mean_bias = np.mean(diff_true[np.abs(diff_true) > 0.])
-
-    mean_img = np.mean(orig_img[np.isclose(mask_img,0.)])
-
-    stats = {}
-    stats['median_bias'] = median_bias
-    stats['mean_bias'] = mean_bias
-    stats['mean_img'] = mean_img
-
-    return stats
 
 
 if __name__ == "__main__":
