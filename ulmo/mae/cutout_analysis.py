@@ -30,7 +30,8 @@ def load_cutouts(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File,
 
 
 def rms_images(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File, 
-               patch_sz:int=4, nimgs:int=None, debug:bool=False):
+               patch_sz:int=4, nimgs:int=None, debug:bool=False, 
+               bias_value:float=0.):
     """_summary_
 
     Args:
@@ -38,6 +39,8 @@ def rms_images(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File,
         f_recon (h5py.File): Pointer to reconstructed images
         f_mask (h5py.File): Pointer to mask images
         patch_sz (int, optional): patch size. Defaults to 4.
+        bias_value (float, optional): Value to subtract from the difference. Defaults to 0.
+            Defined as recon-orig (see measure_bias below)
 
     Returns:
         np.array: RMS values
@@ -48,7 +51,7 @@ def rms_images(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File,
 
     # Analyze
     print("Calculate")
-    calc = (orig_imgs - recon_imgs)*mask_imgs
+    calc = (recon_imgs - orig_imgs)*mask_imgs - bias_value
 
     #if debug:
     #    embed(header='43 of cutout_analysis.py')

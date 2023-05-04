@@ -2,6 +2,7 @@
 """
 import os
 import numpy as np
+from pkg_resources import resource_filename
 
 import h5py
 import pandas
@@ -199,7 +200,7 @@ def set_files(dataset:str, t:int, p:int):
     return tbl_file, orig_file, recon_file, mask_file
 
 def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
-             debug:bool=False):
+             debug:bool=False, remove_bias:bool=True):
     """ Calculate the RMSE
 
     Args:
@@ -207,6 +208,7 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
         p (int): patch fraction
         dataset (str, optional): Dataset. Defaults to 'LLC'.
         clobber (bool, optional): Clobber?
+        remove_bias (bool, optional): Remove bias?
         debug (bool, optional): Debug?
 
     Raises:
@@ -216,6 +218,17 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
 
     # Load table
     tbl = ulmo_io.load_main_table(tbl_file)
+
+    if remove_bias:
+        # Load
+        bias_file = os.path.join(
+            resource_filename('ulmo', 'runs'),
+            'MAE', 'enki_bias_LLC.csv')
+        bias = pandas.read_csv(bias_file)
+        bias_value = bias[(bias.t == t) & (bias.p == p)]['median']
+    else:
+        bias_value = 0.
+
 
     # Already exist?
     RMS_metric = f'RMS_t{t}_p{p}'
@@ -230,7 +243,8 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
 
     # Do it!
     print("Calculating RMS metric")
-    rms = cutout_analysis.rms_images(f_orig, f_recon, f_mask, debug=debug)
+    rms = cutout_analysis.rms_images(f_orig, f_recon, f_mask, debug=debug,
+                                     bias_value=bias_value)
 
     # Check one (or more)
     if debug:
@@ -239,7 +253,8 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
         orig_img = f_orig['valid'][idx,0,...]
         recon_img = f_recon['valid'][idx,0,...]
         mask_img = f_mask['valid'][idx,0,...]
-        irms = cutout_analysis.rms_single_img(orig_img, recon_img, mask_img)
+        irms = cutout_analysis.rms_single_img(orig_img, recon_img, mask_img,
+                                              bias_value=bias_value)
 
     # Add to table
     print("Adding to table")
@@ -366,7 +381,7 @@ if __name__ == '__main__':
         #flg += 2 ** 0  # 1 -- Images for VIIRS
         #flg += 2 ** 1  # 2 -- Inpaint vs Enki
         #flg += 2 ** 2  # 4 -- RMSE calculations
-        flg += 2 ** 3  # 8 -- bias calculations
+        #flg += 2 ** 3  # 8 -- bias calculations
     else:
         flg = sys.argv[1]
 
