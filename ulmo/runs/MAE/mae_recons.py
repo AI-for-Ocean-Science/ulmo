@@ -225,8 +225,7 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
             resource_filename('ulmo', 'runs'),
             'MAE', 'enki_bias_LLC.csv')
         bias = pandas.read_csv(bias_file)
-        bias_value = bias[(bias.t == t) & (bias.p == p)]['median']
-        embed(header='229 of mae_recons')
+        bias_value = float(bias[(bias.t == t) & (bias.p == p)]['median'])
     else:
         bias_value = 0.
 
