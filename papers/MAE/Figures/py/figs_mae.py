@@ -1,13 +1,8 @@
 """ Figures for MAE paper """
-from dataclasses import replace
-from datetime import datetime
 import os, sys
 import numpy as np
 import scipy
-from scipy import stats
-from urllib.parse import urlparse
-import datetime
-
+from pkg_resources import resource_filename
 
 import healpy as hp
 
@@ -191,6 +186,38 @@ def fig_numhp_clouds(outfile:str, analy_file:str):
     plotting.set_fontsize(ax, 17.)
     ax.set_yscale('log')
     ax.set_ylim(1., 7e4)
+
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
+
+def fig_bias(outfile:str):
+
+    # Bias file
+    bias_file = os.path.join(
+        resource_filename('ulmo', 'runs'),
+        'MAE', 'enki_bias_LLC.csv')
+    bias = pandas.read_csv(bias_file)
+
+    # Figure
+    fig = plt.figure(figsize=(10,8))
+    plt.clf()
+
+    ax = plt.gca()
+
+    for t in np.unique(bias.t.values):
+        all_t = bias.t == t
+        # Plot
+        ax.plot(bias[all_t].p, bias[all_t]['median'], 
+                label=f't={t}')
+
+    ax.legend(fontsize=19.)
+    ax.set_xlabel('p (%)')
+    ax.set_ylabel('Median Bias')
+    plotting.set_fontsize(ax, 21.)
+    #ax.set_yscale('log')
+    #ax.set_ylim(1., 7e4)
 
     plt.savefig(outfile, dpi=300)
     plt.close()
@@ -552,70 +579,25 @@ def main(flg_fig):
     if flg_fig & (2 ** 6):
         fig_llc_inpainting('fig_llcinpainting.png', 10, 10)#, debug=True)
 
+    # VIIRS inpainting analysis
+    if flg_fig & (2 ** 7):
+        fig_bias('fig_bias.png')
 
-#def rms_images(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File, 
-def rms_images(orig_imgs, recon_imgs, mask_imgs, 
-               patch_sz:int=4):
-    """_summary_
 
-    Args:
-        f_orig (h5py.File): Pointer to original images
-        f_recon (h5py.File): Pointer to reconstructed images
-        f_mask (h5py.File): Pointer to mask images
-        patch_sz (int, optional): patch size. Defaults to 4.
-
-    Returns:
-        np.array: RMS values
-    """
-    print("USE THE RIGHT ONE ONCE MERGED")
-    # Load em all
-    print("Loading images...")
-    #if nimgs is None:
-    #    nimgs = f_orig['valid'].shape[0]
-
-    # Grab em
-    #orig_imgs = f_orig['valid'][:nimgs,0,...]
-    #mask_imgs = f_mask['valid'][:nimgs,0,...]
-
-    # Allow for various shapes (hack)
-    #recon_imgs = f_recon['valid'][:nimgs,0,...]
-
-    # Mask out edges
-    print("Masking edges")
-    mask_imgs[:, 0:patch_sz, :] = 0
-    mask_imgs[:, -patch_sz:, :] = 0
-    mask_imgs[:, :, 0:patch_sz] = 0
-    mask_imgs[:, :, -patch_sz:] = 0
-
-    # Analyze
-    print("Calculate")
-    calc = (orig_imgs - recon_imgs)*mask_imgs
-
-    # Square
-    print("Square")
-    calc = calc**2
-
-    # Mean
-    print("Mean")
-    nmask = np.sum(mask_imgs, axis=(1,2))
-    calc = np.sum(calc, axis=(1,2)) / nmask
-
-    # RMS
-    print("Root")
-    return np.sqrt(calc)
 
 # Command line execution
 if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg_fig = 0
-        flg_fig += 2 ** 0  # Clouds on the sphere
-        flg_fig += 2 ** 1  # Number satisfying
+        #flg_fig += 2 ** 0  # Clouds on the sphere
+        #flg_fig += 2 ** 1  # Number satisfying
         #flg_fig += 2 ** 2  # Binned stats
         #flg_fig += 2 ** 3  # Bias
         #flg_fig += 2 ** 4  # VIIRS example
         #flg_fig += 2 ** 5  # VIIRS reocn analysis
         #flg_fig += 2 ** 6  # LLC inpainting
+        flg_fig += 2 ** 7  # Bias
     else:
         flg_fig = sys.argv[1]
 
