@@ -150,6 +150,89 @@ def plot_gallery(imgs_file, outfile='mask_ratio_gallery.png', vmnx = [None, None
     print(f'Wrote: {outfile}')
     return
     
+    
+
+def create_gallery(filepath='gallery_imgs.npz', vmnx = [-2, 2]):
+    """
+    Creates a gallery of images with different LL for the different models
+    gallery_imgs.npz is a file containing orig_imgs, recon_imgs, and mask_imgs np arrays
+    The indexing is consistent across all arrays, and is ordered so the first four images
+    are for LL=3 reconstructions, the next 4 are LL=126, etc.
+    """
+    
+    # Load images
+    imgs = np.load(filepath)
+    orig_imgs = imgs['orig_imgs']
+    recon_imgs = imgs['recon_imgs']
+    masks = imgs['masks']
+
+    # Create Plot
+    fig = plt.figure(figsize=(12, 16))
+    outer = gridspec.GridSpec(2, 2, wspace=0.2, hspace=0.2)
+    _, cm = plotting.load_palette()
+
+    # Loop through subplots (sorted by LL)
+    for i in range(4):
+        inner = gridspec.GridSpecFromSubplotSpec(4, 3,
+                        subplot_spec=outer[i], wspace=0.1, hspace=0.1)
+
+        # For every row, post orig_img, mask_img, recon_img
+        # Loop through models of p and plot orig_img, mask_img, recon_imgs
+        for j in range(4):
+            orig_img = orig_imgs[i*4+j]
+            recon_img = recon_imgs[i*4+j]
+            mask_img = masks[i*4+j]
+
+            # orig_img
+            """
+            cbar_kws={'label': 'SSTa (K)',
+            'fraction': 0.0450,
+            'location': 'top'}
+            """
+            
+            ax0 = plt.Subplot(fig, inner[j*3])
+            _ = sns.heatmap(np.flipud(orig_img), xticklabels=[],
+                            vmin=vmnx[0], vmax=vmnx[1],
+                            yticklabels=[], cmap=cm, cbar=False,
+                            square=True, 
+                            ax=ax0)
+            fig.add_subplot(ax0)
+
+            # mask_img (use patches)
+            sub_recon = patches(orig_img, mask_img, 4)
+            ax1 = plt.Subplot(fig, inner[j*3+1])
+            _ = sns.heatmap(np.flipud(sub_recon), xticklabels=[],
+                            vmin=vmnx[0], vmax=vmnx[1],
+                            yticklabels=[], cmap=cm, cbar=False,  
+                            square=True,
+                            ax=ax1)
+            fig.add_subplot(ax1)
+
+            # recon_img
+            ax2 = plt.Subplot(fig, inner[j*3+2])
+            _ = sns.heatmap(np.flipud(recon_img), xticklabels=[],
+                            vmin=vmnx[0], vmax=vmnx[1],
+                            yticklabels=[], cmap=cm, cbar=False, 
+                            square=True,
+                            ax=ax2)
+            fig.add_subplot(ax2)
+
+            for ax in [ax0, ax1, ax2]:
+                ax.patch.set_edgecolor('black')  
+                ax.patch.set_linewidth(1.)
+        """
+        for j in range(12):
+            ax = plt.Subplot(fig, inner[j])
+            t = ax.text(0.5,0.5, 'outer=%d, inner=%d' % (i, j))
+            t.set_ha('center')
+            ax.set_xticks([])
+            ax.set_yticks([])
+            fig.add_subplot(ax)
+        """
+
+    fig.show()
+    return
+
 #plot_gallery("idx330469_recons.npz", vmnx = [-9.1,6.3])
 #plot_gallery("idx473815_recons.npz", vmnx = [-5.6,5])
 plot_gallery("idx92810_recons.npz", vmnx = [-9, 6.3])
