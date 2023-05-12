@@ -30,12 +30,10 @@ import h5py
 from ulmo import plotting
 from ulmo.utils import utils as utils
 
-from ulmo import io as ulmo_io
-from ulmo.ssl import single_image as ssl_simage
-from ulmo.ssl import defs as ssl_defs
 from ulmo.mae import patch_analysis
-from ulmo.utils import image_utils
 
+
+from IPython import embed
 
 def patches(orig_img, mask_img, p_sz):
     # Find the patches
@@ -152,7 +150,7 @@ def plot_gallery(imgs_file, outfile='mask_ratio_gallery.png', vmnx = [None, None
     
     
 
-def create_gallery(filepath='data/gallery_imgs.npz', outfile='recon_gallery.png' vmnx = [-2, 2]):
+def create_gallery(filepath='data/gallery_imgs.npz', outfile='recon_gallery.png', vmnx = [-2, 2]):
     """
     Creates a gallery of images with different LL for the different models
     gallery_imgs.npz is a file containing orig_imgs, recon_imgs, and mask_imgs np arrays
@@ -168,20 +166,32 @@ def create_gallery(filepath='data/gallery_imgs.npz', outfile='recon_gallery.png'
 
     # Create Plot
     fig = plt.figure(figsize=(12, 16))
-    outer = gridspec.GridSpec(2, 2, wspace=0.2, hspace=0.2)
+    #outer = gridspec.GridSpec(2, 2, wspace=0.2, hspace=0.2)
+    outer = gridspec.GridSpec(9, 7, wspace=0.2, hspace=0.2)
     _, cm = plotting.load_palette()
 
     # Loop through subplots (sorted by LL)
     for i in range(4):
-        inner = gridspec.GridSpecFromSubplotSpec(4, 3,
-                        subplot_spec=outer[i], wspace=0.1, hspace=0.1)
+        #inner = gridspec.GridSpecFromSubplotSpec(4, 3,
+        #                subplot_spec=outer[i], wspace=0.1, hspace=0.1)
 
         # For every row, post orig_img, mask_img, recon_img
         # Loop through models of p and plot orig_img, mask_img, recon_imgs
+        if i in [0,1]:
+            col0 = 0
+        else:
+            col0 = 4
+        if i in [0,2]:
+            row0 = 0
+        else:
+            row0 = 5
+
         for j in range(4):
             orig_img = orig_imgs[i*4+j]
             recon_img = recon_imgs[i*4+j]
             mask_img = masks[i*4+j]
+
+
 
             # orig_img
             """
@@ -190,7 +200,8 @@ def create_gallery(filepath='data/gallery_imgs.npz', outfile='recon_gallery.png'
             'location': 'top'}
             """
             
-            ax0 = plt.Subplot(fig, inner[j*3])
+            #ax0 = plt.Subplot(fig, inner[j*3])
+            ax0 = plt.subplot(outer[row0+j, col0])
             _ = sns.heatmap(np.flipud(orig_img), xticklabels=[],
                             vmin=vmnx[0], vmax=vmnx[1],
                             yticklabels=[], cmap=cm, cbar=False,
@@ -200,7 +211,8 @@ def create_gallery(filepath='data/gallery_imgs.npz', outfile='recon_gallery.png'
 
             # mask_img (use patches)
             sub_recon = patches(orig_img, mask_img, 4)
-            ax1 = plt.Subplot(fig, inner[j*3+1])
+            ax1 = plt.subplot(outer[row0+j, col0+1])
+            #ax1 = plt.Subplot(fig, inner[j*3+1])
             _ = sns.heatmap(np.flipud(sub_recon), xticklabels=[],
                             vmin=vmnx[0], vmax=vmnx[1],
                             yticklabels=[], cmap=cm, cbar=False,  
@@ -209,7 +221,8 @@ def create_gallery(filepath='data/gallery_imgs.npz', outfile='recon_gallery.png'
             fig.add_subplot(ax1)
 
             # recon_img
-            ax2 = plt.Subplot(fig, inner[j*3+2])
+            #ax2 = plt.Subplot(fig, inner[j*3+2])
+            ax2 = plt.subplot(outer[row0+j, col0+2])
             _ = sns.heatmap(np.flipud(recon_img), xticklabels=[],
                             vmin=vmnx[0], vmax=vmnx[1],
                             yticklabels=[], cmap=cm, cbar=False, 
@@ -221,6 +234,19 @@ def create_gallery(filepath='data/gallery_imgs.npz', outfile='recon_gallery.png'
                 ax.patch.set_edgecolor('black')  
                 ax.patch.set_linewidth(1.)
 
+    # Color bars
+    ax_cb1 = plt.subplot(outer[4, 0:3])
+    img = ax_cb1.imshow(np.array([[0,1]]), cmap=cm, vmin=vmnx[0], vmax=vmnx[1])
+    img.set_visible(False)
+    plt.colorbar(img, orientation="horizontal", cax=ax_cb1)
+
+    ax_cb2 = plt.subplot(outer[4, 4:7])
+    img = ax_cb2.imshow(np.array([[0,1]]), cmap=cm, vmin=vmnx[0], vmax=vmnx[1])
+    img.set_visible(False)
+    plt.colorbar(img, orientation="horizontal", cax=ax_cb2)
+
+    # Finish
+    plt.tight_layout(pad=0.0, h_pad=0.0, w_pad=0.0)
     plt.savefig(outfile, dpi=300)
     plt.close()
     print('Wrote {:s}'.format(outfile))
