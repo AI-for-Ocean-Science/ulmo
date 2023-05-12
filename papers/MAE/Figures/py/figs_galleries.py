@@ -152,7 +152,7 @@ def plot_gallery(imgs_file, outfile='mask_ratio_gallery.png', vmnx = [None, None
     
     
 
-def create_gallery(filepath='gallery_imgs.npz', vmnx = [-2, 2]):
+def create_gallery(filepath='data/gallery_imgs.npz', vmnx = [-2, 2]):
     """
     Creates a gallery of images with different LL for the different models
     gallery_imgs.npz is a file containing orig_imgs, recon_imgs, and mask_imgs np arrays
@@ -230,9 +230,11 @@ def create_gallery(filepath='gallery_imgs.npz', vmnx = [-2, 2]):
             fig.add_subplot(ax)
         """
 
-    fig.show()
+    #fig.show()
     return
 
 #plot_gallery("idx330469_recons.npz", vmnx = [-9.1,6.3])
 #plot_gallery("idx473815_recons.npz", vmnx = [-5.6,5])
-plot_gallery("idx92810_recons.npz", vmnx = [-9, 6.3])
+#plot_gallery("idx92810_recons.npz", vmnx = [-9, 6.3])
+
+create_gallery()
