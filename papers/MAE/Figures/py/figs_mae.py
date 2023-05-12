@@ -591,13 +591,13 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         flg_fig = 0
         #flg_fig += 2 ** 0  # Clouds on the sphere
-        #flg_fig += 2 ** 1  # Number satisfying
+        flg_fig += 2 ** 1  # N_C vs CC
         #flg_fig += 2 ** 2  # Binned stats
         #flg_fig += 2 ** 3  # Bias
         #flg_fig += 2 ** 4  # VIIRS example
         #flg_fig += 2 ** 5  # VIIRS reocn analysis
         #flg_fig += 2 ** 6  # LLC inpainting
-        flg_fig += 2 ** 7  # Bias
+        #flg_fig += 2 ** 7  # Bias
     else:
         flg_fig = sys.argv[1]
 
