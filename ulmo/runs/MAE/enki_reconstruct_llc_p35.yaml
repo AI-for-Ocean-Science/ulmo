@@ -47,7 +47,7 @@ spec:
             git fetch;
             git checkout mae; 
             git pull; 
-            python setup.py develop;
+            pip install -e ".[dev]";
             cp ulmo/mae/correct_helpers.py /root/miniconda3/lib/python3.8/site-packages/timm/models/layers/helpers.py;
             cd ulmo/scripts;
             aws --endpoint https://s3-west.nrp-nautilus.io s3 cp s3://llc/mae/PreProc/MAE_LLC_valid_nonoise_preproc.h5 ./;
