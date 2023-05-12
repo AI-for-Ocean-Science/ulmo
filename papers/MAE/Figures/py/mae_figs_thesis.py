@@ -44,8 +44,10 @@ from PIL import Image
 from ulmo.plotting import plotting
 
 
-def fig_cloud_coverage(filepath='data/modis_2020_cloudcover.npz', outfile='cloud_coverage.png'):
-    filepath = 'data/modis_2020_cloudcover.npz'
+def fig_cloud_coverage(filepath='data/modis_2020_cloudcover.npz', 
+                       outfile='cloud_coverage.png'):
+
+    #filepath = 'data/modis_2020_cloudcover.npz'
 
     data = np.load(filepath)
     lst = data.files
@@ -58,21 +60,38 @@ def fig_cloud_coverage(filepath='data/modis_2020_cloudcover.npz', outfile='cloud
 
     spl = make_interp_spline(x, y, k=3)  # type: BSpline
     power_smooth = spl(xnew)
+    sns.set_style("whitegrid")
+    sns.set_context("paper")
 
-    f, ax = plt.subplots(figsize=(7, 7))
-    ax.set_axisbelow(True)
-    ax.grid(color='gray', linestyle='dashed', linewidth = 0.5)
-    plt.yscale("log")
-    plt.plot(xnew, power_smooth)
-    plt.xlim(0,1)
-    plt.ylim(10**7,10**11)
-    ax.xaxis.set_ticks(np.arange(0, 1, 0.1))
-    plt.xlabel('Percentage of Clouds in Cutout')
-    plt.ylabel('Cutouts Available')
-    plt.title("Cutouts vs Cloud Coverage")
+    f, ax = plt.subplots(figsize=(8, 7))
+    #ax.set_axisbelow(True)
+    #ax.grid(color='gray', linestyle='dashed', linewidth = 0.5)
+
+    sns.lineplot(x=xnew, y=power_smooth, color='blue', linewidth=2.5)
+    
+    ax.set_yscale("log")
+    #plt.plot(xnew, power_smooth)
+    ax.set_xlim(0,1)
+    ax.set_ylim(10**7,10**11)
+    #ax.xaxis.set_ticks(np.arange(0, 1, 0.1))
+    ax.set_xlabel('Percentage of Clouds in Cutout (CC)')
+    ax.set_ylabel(f'Cutouts Available ($N_c$)')
+    #ax.set_title("Cutouts vs Cloud Coverage")
+
+    #sns.set(rc={"xtick.bottom" : True, "ytick.left" : True})
+    #ax.tick_params(which="both", bottom=True)
+    ax.tick_params(axis='y', which='both', direction='out', length=4, left=True,
+                   color='gray')
+    ax.grid(True, which='both', color='gray', linewidth=0.1)
+    ax.minorticks_on()
+
+
+
+    plotting.set_fontsize(ax, 15)
 
     plt.savefig(outfile, dpi=300)
     plt.close()
+    print(f'Wrote: {outfile}')
 
 
 ##############################################################
@@ -287,4 +306,8 @@ def figs_training(idx=85674, filepath='data/MAE_LLC_valid_nonoise_preproc.h5',
     plot_recon(orig_img, recon_img, full_recon, mask, idx, apply_bias=False, vmnx = [-1.8, 1.8], 
                LL_file=table)
 
-figs_training()
+# Command line execution
+if __name__ == '__main__':
+
+    #figs_training()
+    fig_cloud_coverage()
