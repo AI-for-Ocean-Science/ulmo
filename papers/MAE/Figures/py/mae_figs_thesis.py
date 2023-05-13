@@ -289,7 +289,7 @@ def plot_recon(orig_img, recon_img, recon_full, mask_img, idx,
 def figs_training(idx=85674, filepath='data/MAE_LLC_valid_nonoise_preproc.h5', 
                   model_filepath=os.path.join(os.getenv('OS_OGCM'),
                                               'LLC', 'Enki', 'Models',
-                                              'ENKI_t75.pth'),
+                                              'Enki_t75.pth'),
                   table = 'data/MAE_LLC_valid_nonoise.parquet'):
     """
     Create fig
