@@ -55,4 +55,5 @@ if __name__ == "__main__":
 
     # Testing full set
     patch_analysis.anlayze_full_test(
-        10, 20, debug=True, nsub=1000)
+        's3://llc/mae/Recon/mae_reconstruct_t10_p20.h5')
+        
