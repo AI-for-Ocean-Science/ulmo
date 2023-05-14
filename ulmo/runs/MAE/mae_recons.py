@@ -314,7 +314,6 @@ def calc_bias(dataset:str='LLC', clobber:bool=False, debug:bool=False,
     for t in [10,35,50,75]:
         for p in [10,20,30,40,50]:
             if update is not None:
-                embed(header='317 of mae_recons')
                 if (t,p) not in update:
                     print(f"Skipping: t={t}, p={p}")
                     continue
@@ -393,8 +392,8 @@ def main(flg):
         # LLC
         #calc_bias(dataset='LLC', debug=debug)
         calc_bias(dataset='LLC', debug=debug,
-                  update=[[35,10],[35,20],[35,30],[35,40],[35,50],
-                          [75,10],[75,20],[75,30],[75,40],[75,50],])
+                  update=[(35,10),(35,20),(35,30),(35,40),(35,50),
+                          (75,10),(75,20),(75,30),(75,40),(75,50),])
 
     # Reconstructions
     if flg & (2**4):
