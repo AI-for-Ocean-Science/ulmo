@@ -44,6 +44,10 @@ from PIL import Image
 from ulmo.plotting import plotting
 
 
+
+##############################################################
+# ------------- Generate Cloud Coverage Plot------------------
+##############################################################
 def fig_cloud_coverage(filepath='data/modis_2020_cloudcover.npz', 
                        outfile='cloud_coverage.png'):
 
@@ -264,13 +268,13 @@ def plot_recon(orig_img, recon_img, recon_full, mask_img, idx,
     # Borders
     # 
     for ax, title in zip( [ax0, ax1, ax2 ,ax3, ax4],
-        ['Original', 'Unmasked', 'Latent Vector', 'Reconstructed', 'Original + Reconstructed']):
+        ['Original', 'Masked', 'Latent Representation', 'Decoder Results', 'Original + Reconstructed']):
         ax.patch.set_edgecolor('black')  
         ax.patch.set_linewidth(1.)  
         #
         show_title=True
         if show_title:
-            ax.set_title(title, fontsize=12, y=-0.14)
+            ax.set_title(title, fontsize=14, y=-0.14)
     
     # Plot title
     table = pd.read_parquet(LL_file, engine='pyarrow',columns=['pp_idx', 'LL'])
@@ -309,5 +313,5 @@ def figs_training(idx=85674, filepath='data/MAE_LLC_valid_nonoise_preproc.h5',
 # Command line execution
 if __name__ == '__main__':
 
-    #figs_training()
-    fig_cloud_coverage()
+    figs_training()
+    #fig_cloud_coverage()
