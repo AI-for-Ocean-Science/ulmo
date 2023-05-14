@@ -3,7 +3,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-enki-reconstruct-images-t35s
+  name: xavier-enki-reconstruct-images-t75s
 spec:
   backoffLimit: 0
   template:
@@ -51,12 +51,12 @@ spec:
             cp ulmo/mae/correct_helpers.py /root/miniconda3/lib/python3.8/site-packages/timm/models/layers/helpers.py;
             cd ulmo/scripts;
             aws --endpoint https://s3-west.nrp-nautilus.io s3 cp s3://llc/mae/PreProc/MAE_LLC_valid_nonoise_preproc.h5 ./;
-            aws --endpoint https://s3-west.nrp-nautilus.io s3 cp s3://llc/mae/mae_pretrain_ddp_mask35/checkpoint-399.pth ./;
-            python enki_reconstruct.py --mask_ratio 0.1 --data_path MAE_LLC_valid_nonoise_preproc.h5 --output_dir output --resume checkpoint-399.pth --upload_path s3://llc/mae/Recon/mae_reconstruct_t35_p10.h5 --mask_upload_path s3://llc/mae/Recon/mae_mask_t35_p10.h5;
-            python enki_reconstruct.py --mask_ratio 0.2 --data_path MAE_LLC_valid_nonoise_preproc.h5 --output_dir output --resume checkpoint-399.pth --upload_path s3://llc/mae/Recon/mae_reconstruct_t35_p20.h5 --mask_upload_path s3://llc/mae/Recon/mae_mask_t35_p20.h5;
-            python enki_reconstruct.py --mask_ratio 0.3 --data_path MAE_LLC_valid_nonoise_preproc.h5 --output_dir output --resume checkpoint-399.pth --upload_path s3://llc/mae/Recon/mae_reconstruct_t35_p30.h5 --mask_upload_path s3://llc/mae/Recon/mae_mask_t35_p30.h5;
-            python enki_reconstruct.py --mask_ratio 0.4 --data_path MAE_LLC_valid_nonoise_preproc.h5 --output_dir output --resume checkpoint-399.pth --upload_path s3://llc/mae/Recon/mae_reconstruct_t35_p40.h5 --mask_upload_path s3://llc/mae/Recon/mae_mask_t35_p40.h5;
-            python enki_reconstruct.py --mask_ratio 0.5 --data_path MAE_LLC_valid_nonoise_preproc.h5 --output_dir output --resume checkpoint-399.pth --upload_path s3://llc/mae/Recon/mae_reconstruct_t35_p50.h5 --mask_upload_path s3://llc/mae/Recon/mae_mask_t35_p50.h5;
+            aws --endpoint https://s3-west.nrp-nautilus.io s3 cp s3://llc/mae/mae_pretrain_ddp_mask75/checkpoint-399.pth ./;
+            python enki_reconstruct.py --mask_ratio 0.1 --data_path MAE_LLC_valid_nonoise_preproc.h5 --output_dir output --resume checkpoint-399.pth --upload_path s3://llc/mae/Recon/mae_reconstruct_t75_p10.h5 --mask_upload_path s3://llc/mae/Recon/mae_mask_t75_p10.h5;
+            python enki_reconstruct.py --mask_ratio 0.2 --data_path MAE_LLC_valid_nonoise_preproc.h5 --output_dir output --resume checkpoint-399.pth --upload_path s3://llc/mae/Recon/mae_reconstruct_t75_p20.h5 --mask_upload_path s3://llc/mae/Recon/mae_mask_t75_p20.h5;
+            python enki_reconstruct.py --mask_ratio 0.3 --data_path MAE_LLC_valid_nonoise_preproc.h5 --output_dir output --resume checkpoint-399.pth --upload_path s3://llc/mae/Recon/mae_reconstruct_t75_p30.h5 --mask_upload_path s3://llc/mae/Recon/mae_mask_t75_p30.h5;
+            python enki_reconstruct.py --mask_ratio 0.4 --data_path MAE_LLC_valid_nonoise_preproc.h5 --output_dir output --resume checkpoint-399.pth --upload_path s3://llc/mae/Recon/mae_reconstruct_t75_p40.h5 --mask_upload_path s3://llc/mae/Recon/mae_mask_t75_p40.h5;
+            python enki_reconstruct.py --mask_ratio 0.5 --data_path MAE_LLC_valid_nonoise_preproc.h5 --output_dir output --resume checkpoint-399.pth --upload_path s3://llc/mae/Recon/mae_reconstruct_t75_p50.h5 --mask_upload_path s3://llc/mae/Recon/mae_mask_t75_p50.h5;
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"
