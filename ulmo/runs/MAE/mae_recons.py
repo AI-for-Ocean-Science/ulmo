@@ -287,21 +287,37 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
         ulmo_io.write_main_table(tbl, tbl_file)
 
 
-def calc_bias(dataset:str='LLC', clobber:bool=False, debug:bool=False):
+def calc_bias(dataset:str='LLC', clobber:bool=False, debug:bool=False,
+              update:list=None):
     """ Calculate the bias
 
     Args:
         dataset (str, optional): Dataset. Defaults to 'LLC'.
         clobber (bool, optional): Clobber?
         debug (bool, optional): Debug?
+        update (list, optional): 
+            list of t,p values to update.  If None, return if outfile exists
 
     Raises:
         ValueError: _description_
     """
-    stats = {}
+    outfile = f'enki_bias_{dataset}.csv'
+    if os.path.isfile(outfile) and not clobber:
+        if update is not None:
+            df = pandas.read_csv(outfile)
+        else:
+            print(f"{outfile} already exists.  Returning..")
+            return
+
+    # Loop me
     ts, ps, medians, means = [], [], [], []
     for t in [10,35,50,75]:
         for p in [10,20,30,40,50]:
+            if update is not None:
+                if (t,p) not in update:
+                    print(f"Skipping: t={t}, p={p}")
+                    continue
+            # 
             print(f"Working on: t={t}, p={p}")
             _, orig_file, recon_file, mask_file = set_files(dataset, t, p)
 
@@ -326,10 +342,14 @@ def calc_bias(dataset:str='LLC', clobber:bool=False, debug:bool=False):
             ps.append(p)
             medians.append(median_bias)
             means.append(mean_bias)
+            # Update?
+            if update is not None:
+                embed(header='315 of mae_recons')
+                df['median'][(df.t == t) & (df.p == p)] = median_bias
+                df['mean'][(df.t == t) & (df.p == p)] = mean_bias
 
     # Write
     df = pandas.DataFrame(dict(t=ts, p=ps, median=medians, mean=means))
-    outfile = f'enki_bias_{dataset}.csv'
     df.to_csv(outfile, index=False)
     print(f"Wrote: {outfile}")
 
@@ -370,7 +390,10 @@ def main(flg):
         #calc_rms(10, 10, dataset='VIIRS', clobber=clobber)
 
         # LLC
-        calc_bias(dataset='LLC', debug=debug)
+        #calc_bias(dataset='LLC', debug=debug)
+        calc_bias(dataset='LLC', debug=debug,
+                  update=[[35,10],[35,20],[35,30],[35,40],[35,50],
+                          [75,10],[75,20],[75,30],[75,40],[75,50],])
 
     # Reconstructions
     if flg & (2**4):
