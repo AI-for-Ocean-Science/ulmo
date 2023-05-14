@@ -18,7 +18,7 @@ def parse_metric(tbl, metric):
         label = 'median_diff'
     elif metric == 'std_diff':
         values = tbl.std_diff
-        label = 'rms_diff'
+        label = 'RMSE'
     elif metric == 'log10_std_diff':
         values = np.log10(tbl.std_diff)
         label = 'log10_rms_diff'

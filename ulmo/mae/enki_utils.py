@@ -1,4 +1,4 @@
-""" Utility methods for MAE """
+""" Utility methods for Enki """
 
 import os
 
