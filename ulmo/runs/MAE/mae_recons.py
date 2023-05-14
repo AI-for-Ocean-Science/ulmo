@@ -344,9 +344,9 @@ def calc_bias(dataset:str='LLC', clobber:bool=False, debug:bool=False,
             means.append(mean_bias)
             # Update?
             if update is not None:
-                embed(header='315 of mae_recons')
-                df['median'][(df.t == t) & (df.p == p)] = median_bias
-                df['mean'][(df.t == t) & (df.p == p)] = mean_bias
+                idx = np.where((df.t == t) & (df.p == p))[0][0]
+                df.loc[idx, 'median'] = median_bias
+                df.loc[idx, 'mean'] = mean_bias
 
     # Write
     df = pandas.DataFrame(dict(t=ts, p=ps, median=medians, mean=means))
