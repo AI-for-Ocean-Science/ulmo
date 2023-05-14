@@ -376,10 +376,10 @@ def main(flg):
         #calc_rms(10, 10, dataset='VIIRS', clobber=clobber)
 
         # LLC
-        for t in [10,35,50,75]:
+        #for t in [10,35,50,75]:
+        #    for p in [10,20,30,40,50]:
+        for t in [35,75]:
             for p in [10,20,30,40,50]:
-                #if t != 10 or p != 10:
-                #    continue
                 print(f'Working on: t={t}, p={p}')
                 calc_rms(t, p, dataset='LLC', clobber=clobber, debug=debug)
 
