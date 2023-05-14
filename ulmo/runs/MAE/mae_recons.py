@@ -17,7 +17,7 @@ from tqdm import tqdm
 from ulmo import io as ulmo_io
 from ulmo.analysis import evaluate as ulmo_evaluate
 from ulmo.utils import catalog as cat_utils
-from ulmo.mae import mae_utils
+from ulmo.mae import enki_utils
 from ulmo.modis import analysis as modis_analysis
 from ulmo.mae import cutout_analysis
 
@@ -115,12 +115,12 @@ def compare_with_inpainting(inpaint_file:str, t:int, p:int, debug:bool=False,
 
     # Load images
     if local:
-        local_recon_file = mae_utils.img_filename(t,p, local=True)
-        local_mask_file = mae_utils.mask_filename(t,p, local=True)
+        local_recon_file = enki_utils.img_filename(t,p, local=True)
+        local_mask_file = enki_utils.mask_filename(t,p, local=True)
         local_orig_file = local_mae_valid_nonoise_file
     else:
-        recon_file = mae_utils.img_filename(t,p, local=False)
-        mask_file = mae_utils.mask_filename(t,p, local=False)
+        recon_file = enki_utils.img_filename(t,p, local=False)
+        mask_file = enki_utils.mask_filename(t,p, local=False)
         local_recon_file = os.path.basename(recon_file)
         local_mask_file = os.path.basename(mask_file)
         local_orig_file = os.path.basename(mae_valid_nonoise_file)
@@ -191,8 +191,8 @@ def set_files(dataset:str, t:int, p:int):
         mask_file = recon_file.replace('.h5', '_mask.h5')
     elif dataset == 'LLC':
         tbl_file = mae_valid_nonoise_tbl_file
-        recon_file = mae_utils.img_filename(t,p, local=True)
-        mask_file = mae_utils.mask_filename(t,p, local=True)
+        recon_file = enki_utils.img_filename(t,p, local=True)
+        mask_file = enki_utils.mask_filename(t,p, local=True)
         orig_file = local_mae_valid_nonoise_file
     else:
         raise ValueError("Bad dataset")
