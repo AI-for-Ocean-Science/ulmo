@@ -43,6 +43,8 @@ import torch
 from PIL import Image
 from ulmo.plotting import plotting
 
+from IPython import embed
+
 
 
 ##############################################################
@@ -331,7 +333,9 @@ def figs_training(idx=85674,
 def plot_recon(orig_img, recon_img, mask_img, idx,
                apply_bias=False, vmnx = [None, None, None, None],
                outfile='recon.png',
-               LL_file='MAE_LLC_valid_nonoise.parquet'):
+               LL_file = os.path.join(os.getenv('OS_OGCM'),
+                                              'LLC', 'Enki', 'Tables', 
+               'MAE_LLC_valid_nonoise.parquet')):
     """
     Plots the:
     1) Original Image
@@ -343,6 +347,7 @@ def plot_recon(orig_img, recon_img, mask_img, idx,
     unmasked = 1 - mask_img
 
     # Bias
+    embed(header='This is an offset, not a bias. FIX!')
     diff_true = recon_img - orig_img
     bias = np.median(diff_true[np.abs(diff_true)>0.])
 
@@ -475,17 +480,21 @@ def figs_imgs(idx=85674,
                   filepath=os.path.join(os.getenv('OS_OGCM'),
                                               'LLC', 'Enki', 'PreProc', 
                                               'MAE_LLC_valid_nonoise_preproc.h5'), 
-                  table = 'data/MAE_LLC_valid_nonoise.parquet'):
+                  table = os.path.join(os.getenv('OS_OGCM'),
+                                              'LLC', 'Enki', 'Tables', 
+                                              'MAE_LLC_valid_nonoise.parquet')):
     """
     Create fig
     """
     # load file and model
     f = h5py.File(filepath, 'r')
-    model_filepath_t50=os.path.join(os.getenv('OS_OGCM'),'LLC', 'Enki', 'Models','Enki_t50.pth')
-    model_filepath_t75=os.path.join(os.getenv('OS_OGCM'),'LLC', 'Enki', 'Models','Enki_t75.pth')
+    model_filepath_t50=os.path.join(os.getenv('OS_OGCM'),'LLC', 'Enki', 
+                                    'Models','Enki_t50_399.pth')
+    model_filepath_t75=os.path.join(os.getenv('OS_OGCM'),'LLC', 'Enki', 
+                                    'Models','Enki_t75_399.pth')
     
     model50 = prepare_model(model_filepath_t50, 'mae_vit_LLC_patch4')
-    print('Model75 loaded.')
+    print('Model50 loaded.')
     model75 = prepare_model(model_filepath_t75, 'mae_vit_LLC_patch4')
     print('Model75 loaded.')
     
@@ -498,7 +507,7 @@ def figs_imgs(idx=85674,
     recon_img, mask, full_recon = run_one_image(img, model50, 0.50)
     orig_img = img.squeeze()
     
-    plot_recon(orig, recon_img, mask, idx, apply_bias=False, outfile='reconstructing_corners.png')
+    plot_recon(orig_img, recon_img, mask, idx, apply_bias=False, outfile='reconstructing_corners.png')
     
     
     # Reconstruct t75 example 2
@@ -510,7 +519,7 @@ def figs_imgs(idx=85674,
     recon_img, mask, full_recon = run_one_image(img, model75, 0.75)
     orig_img = img.squeeze()
     
-    plot_recon(orig, recon_img, mask, idx, apply_bias=False, outfile='1.png')
+    plot_recon(orig_img, recon_img, mask, idx, apply_bias=False, outfile='1.png')
     
     
     # Reconstruct t75 example 2
@@ -522,12 +531,13 @@ def figs_imgs(idx=85674,
     recon_img, mask, full_recon = run_one_image(img, model75, 0.75)
     orig_img = img.squeeze()
     
-    plot_recon(orig, recon_img, mask, idx, apply_bias=False, outfile='2.png')
+    plot_recon(orig_img, recon_img, mask, idx, apply_bias=False, outfile='2.png')
     
     return
     
 # Command line execution
 if __name__ == '__main__':
 
-    figs_training()
+    #figs_training()
     #fig_cloud_coverage()
+    figs_imgs()

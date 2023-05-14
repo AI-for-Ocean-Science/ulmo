@@ -23,7 +23,7 @@ import seaborn as sns
 import h5py
 
 from ulmo import plotting
-from ulmo.mae import mae_utils
+from ulmo.mae import enki_utils
 from ulmo import io as ulmo_io
 from ulmo.utils import image_utils
 try:
@@ -226,13 +226,13 @@ def fig_bias(outfile:str):
 def fig_patch_ij_binned_stats(metric:str,
     stat:str, patch_file:str, nbins:int=16):
 
-    t_per, p_per = mae_utils.parse_mae_img_file(patch_file)
+    t_per, p_per = enki_utils.parse_mae_img_file(patch_file)
 
     # Outfile
     outfile = f'fig_{metric}_{stat}_t{t_per}_p{p_per}_patch_ij_binned_stats.png'
     # Load
-    patch_file = os.path.join(os.getenv("OS_DATA"),
-                              'MAE', 'Recon', patch_file)
+    patch_file = os.path.join(os.getenv("OS_OGCM"),
+        'LLC', 'Enki', 'Recon', patch_file)
     f = np.load(patch_file)
     data = f['data']
     data = data.reshape((data.shape[0]*data.shape[1], 
@@ -274,8 +274,8 @@ def fig_patch_ij_binned_stats(metric:str,
     cbaxes.ax.tick_params(labelsize=15)
 
     # Axes
-    ax.set_xlabel(r'i')
-    ax.set_ylabel(r'j')
+    ax.set_xlabel(r'$i$')
+    ax.set_ylabel(r'$j$')
     ax.set_aspect('equal')
 
     plotting.set_fontsize(ax, 15)
@@ -308,8 +308,8 @@ def fig_explore_bias(outfile:str='fig_explore_bias.png',
                     break
                 print(f'Working on t={t} p={p}')
                 #
-                recon_file = mae_utils.img_filename(t, p, mae_img_path=recon_path)
-                mask_file = mae_utils.mask_filename(t, p, mae_mask_path=recon_path)
+                recon_file = enki_utils.img_filename(t, p, mae_img_path=recon_path)
+                mask_file = enki_utils.mask_filename(t, p, mae_mask_path=recon_path)
                 # Load
                 f_recon = h5py.File(recon_file, 'r')
                 f_mask = h5py.File(mask_file, 'r')
@@ -427,8 +427,8 @@ def fig_llc_inpainting(outfile:str, t:int, p:int,
     inpaint_file = os.path.join(
         ogcm_path, 'LLC', 'Enki', 
         'Recon', f'LLC_inpaint_t{t}_p{p}.h5')
-    recon_file = mae_utils.img_filename(t,p, local=True)
-    mask_file = mae_utils.mask_filename(t,p, local=True)
+    recon_file = enki_utils.img_filename(t,p, local=True)
+    mask_file = enki_utils.mask_filename(t,p, local=True)
 
     # Load up
     enki_tbl = ulmo_io.load_main_table(local_enki_table)
@@ -560,7 +560,9 @@ def main(flg_fig):
         #                          'mae_patches_t75_p20.npz')
         #fig_patch_ij_binned_stats('median_diff', 'mean',
         #                          'mae_patches_t75_p20.npz')
-        fig_patch_ij_binned_stats('median_diff', 'median',
+        #fig_patch_ij_binned_stats('median_diff', 'median',
+        #                          'mae_patches_t75_p20.npz')
+        fig_patch_ij_binned_stats('std_diff', 'median',
                                   'mae_patches_t75_p20.npz')
 
     # Explore the bias
@@ -591,8 +593,8 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         flg_fig = 0
         #flg_fig += 2 ** 0  # Clouds on the sphere
-        flg_fig += 2 ** 1  # N_C vs CC
-        #flg_fig += 2 ** 2  # Binned stats
+        #flg_fig += 2 ** 1  # N_C vs CC
+        #flg_fig += 2 ** 2  # Binned stats on patches
         #flg_fig += 2 ** 3  # Bias
         #flg_fig += 2 ** 4  # VIIRS example
         #flg_fig += 2 ** 5  # VIIRS reocn analysis
