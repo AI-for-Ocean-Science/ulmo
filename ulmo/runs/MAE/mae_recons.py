@@ -314,6 +314,7 @@ def calc_bias(dataset:str='LLC', clobber:bool=False, debug:bool=False,
     for t in [10,35,50,75]:
         for p in [10,20,30,40,50]:
             if update is not None:
+                embed(header='317 of mae_recons')
                 if (t,p) not in update:
                     print(f"Skipping: t={t}, p={p}")
                     continue
