@@ -99,7 +99,7 @@ def fig_cloud_coverage(filepath='data/modis_2020_cloudcover.npz',
 
 
 ##############################################################
-# --------------- Generate Training Image --------------------
+# --------- Generate Encoder, Decoder, and Recon ------------
 ##############################################################
 """
 For single image reconstructions.
@@ -149,9 +149,17 @@ def run_one_image(img, model, mask_ratio):
     
     return im, m, re
 
-def plot_recon(orig_img, recon_img, recon_full, mask_img, idx,
-               apply_bias=False, vmnx = [None, None],
-               LL_file='MAE_LLC_valid_nonoise.parquet'):
+def plot_encoder_decoder(orig_img, recon_img, recon_full, mask_img, idx,
+                       apply_bias=False, vmnx = [None, None],
+                       LL_file='MAE_LLC_valid_nonoise.parquet'):
+    """
+    Plots the:
+    1) Original image
+    2) Masked image
+    3) Encoder Results
+    4) Decoder Results
+    5) Reconstructed Image
+    """
     # Load Unmasked
     unmasked = 1 - mask_img
 
@@ -274,7 +282,7 @@ def plot_recon(orig_img, recon_img, recon_full, mask_img, idx,
         #
         show_title=True
         if show_title:
-            ax.set_title(title, fontsize=14, y=-0.14)
+            ax.set_title(title, fontsize=16, y=-0.14)
     
     # Plot title
     table = pd.read_parquet(LL_file, engine='pyarrow',columns=['pp_idx', 'LL'])
@@ -301,7 +309,7 @@ def figs_training(idx=85674,
     """
     Create fig
     """
-    # laod image and model
+    # load image and model
     f = h5py.File(filepath, 'r')
     img = f['valid'][idx][0]
     img.resize((64,64,1))
@@ -312,9 +320,212 @@ def figs_training(idx=85674,
     recon_img, mask, full_recon = run_one_image(img, model, 0.75)
     orig_img = img.squeeze()
     
-    plot_recon(orig_img, recon_img, full_recon, mask, idx, apply_bias=False, vmnx = [-1.8, 1.8], 
-               LL_file=table)
+    plot_encoder_decoder(orig_img, recon_img, full_recon, mask, idx, apply_bias=False, vmnx = [-1.8, 1.8], 
+                   LL_file=table)
 
+    return
+
+##############################################################
+# --------------- Generate Interesting Recons ----------------
+##############################################################
+def plot_recon(orig_img, recon_img, mask_img, idx,
+               apply_bias=False, vmnx = [None, None, None, None],
+               outfile='recon.png',
+               LL_file='MAE_LLC_valid_nonoise.parquet'):
+    """
+    Plots the:
+    1) Original Image
+    2) Masked Image
+    3) Reconstructed Image
+    4) Residuals
+    """
+    # Load Unmasked
+    unmasked = 1 - mask_img
+
+    # Bias
+    diff_true = recon_img - orig_img
+    bias = np.median(diff_true[np.abs(diff_true)>0.])
+
+    # Find the patches
+    p_sz = 4
+    patches = patch_analysis.find_patches(mask_img, p_sz)
+    upatches = patch_analysis.find_patches(unmasked, p_sz)
+
+
+    fig = plt.figure(figsize=(9, 4))
+    plt.clf()
+    gs = gridspec.GridSpec(1,4)
+    ax0 = plt.subplot(gs[0])
+
+    _, cm = plotting.load_palette()
+    cbar_kws={'label': 'SSTa (K)',
+              'fraction': 0.0450,
+              'location': 'top'}
+
+    _ = sns.heatmap(np.flipud(orig_img), xticklabels=[],
+                    vmin=vmnx[0], vmax=vmnx[1],
+                    yticklabels=[], cmap=cm, cbar=True, 
+                    square=True, 
+                    cbar_kws=cbar_kws,
+                    ax=ax0)
+
+    # Reconstructed
+    sub_recon = np.ones_like(recon_img) * np.nan
+    # Difference
+    diff = np.ones_like(recon_img) * np.nan
+    frecon = recon_img.copy()
+
+    # Plot/fill the patches
+    for kk, patch in enumerate(patches):
+        i, j = np.unravel_index(patch, mask_img.shape)
+        
+        # Fill
+        sub_recon[i:i+p_sz, j:j+p_sz] = recon_img[i:i+p_sz, j:j+p_sz]
+        frecon[i:i+p_sz, j:j+p_sz]
+        # ???
+        diff[i:i+p_sz, j:j+p_sz] = diff_true[i:i+p_sz, j:j+p_sz]
+        if apply_bias:
+            sub_recon[i:i+p_sz, j:j+p_sz] = recon_img[i:i+p_sz, j:j+p_sz] - bias
+            frecon[i:i+p_sz, j:j+p_sz] -= bias
+            # ???
+            diff[i:i+p_sz, j:j+p_sz] = diff_true[i:i+p_sz, j:j+p_sz] - bias
+        
+
+
+    # Reconstructed
+    usub_recon = np.ones_like(recon_img) * np.nan
+    # Difference
+    udiff = np.ones_like(recon_img) * np.nan
+    ufrecon = recon_img.copy()
+
+    # Plot/fill the patches
+    for kk, patch in enumerate(upatches):
+        i, j = np.unravel_index(patch, unmasked.shape)
+        # Fill
+        usub_recon[i:i+p_sz, j:j+p_sz] = orig_img[i:i+p_sz, j:j+p_sz]
+        ufrecon[i:i+p_sz, j:j+p_sz]
+        # ???
+        udiff[i:i+p_sz, j:j+p_sz] = diff_true[i:i+p_sz, j:j+p_sz]
+
+    # Unmasked image
+    ax1 = plt.subplot(gs[1])
+
+    u_recon = False
+    if u_recon:
+        usub_recon = ufrecon.copy()
+    _ = sns.heatmap(np.flipud(usub_recon), xticklabels=[],
+                    vmin=vmnx[0], vmax=vmnx[1],
+                    yticklabels=[], cmap=cm, cbar=True, 
+                    square=True, cbar_kws=cbar_kws,
+                    ax=ax1)
+
+    # Recon image
+    ax2 = plt.subplot(gs[2])
+
+    full_recon = True
+    if apply_bias:
+        cbar_kws['label'] = 'SSTa (K) ({:.3f} bias)'.format(bias)
+    if full_recon:
+        sub_recon = frecon.copy()
+    _ = sns.heatmap(np.flipud(sub_recon), xticklabels=[],
+                    vmin=vmnx[0], vmax=vmnx[1],
+                    yticklabels=[], cmap=cm, cbar=True, 
+                    square=True, cbar_kws=cbar_kws,
+                    ax=ax2)
+
+    # Residual image
+    ax3 = plt.subplot(gs[3])
+
+    cbar_kws['label'] = 'Residuals (K)'
+    _ = sns.heatmap(np.flipud(diff), xticklabels=[], 
+                    vmin=vmnx[2], vmax=vmnx[3],
+                    yticklabels=[], cmap='bwr', cbar=True,
+                    square=True, 
+                    cbar_kws=cbar_kws,
+                    ax=ax3)
+
+    # Borders
+    # 
+    for ax, title in zip( [ax0, ax1, ax2 ,ax3],
+        ['Original', 'Masked', 'Reconstructed', 'Residuals']):
+        ax.patch.set_edgecolor('black')  
+        ax.patch.set_linewidth(1.)  
+        #
+        show_title=True
+        if show_title:
+            ax.set_title(title, fontsize=14, y=-0.13)
+    
+    # Plot title
+    table = pd.read_parquet(LL_file, engine='pyarrow',columns=['pp_idx', 'LL'])
+    table = table[table['LL'].notna()]
+    table = table.sort_values(by=['pp_idx'])
+    LL = int(table.iloc[idx]['LL'])
+    #fig.suptitle('{LL} LL Reconstruction: t{model} {p}% masking'.format(LL=LL))
+    fig.suptitle('{LL} LL Reconstruction'.format(LL=LL))
+    
+    plt.tight_layout(pad=0.5, h_pad=0.5, w_pad=0.5)
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+    
+    return
+    
+    
+def figs_imgs(idx=85674, 
+                  filepath=os.path.join(os.getenv('OS_OGCM'),
+                                              'LLC', 'Enki', 'PreProc', 
+                                              'MAE_LLC_valid_nonoise_preproc.h5'), 
+                  table = 'data/MAE_LLC_valid_nonoise.parquet'):
+    """
+    Create fig
+    """
+    # load file and model
+    f = h5py.File(filepath, 'r')
+    model_filepath_t50=os.path.join(os.getenv('OS_OGCM'),'LLC', 'Enki', 'Models','Enki_t50.pth')
+    model_filepath_t75=os.path.join(os.getenv('OS_OGCM'),'LLC', 'Enki', 'Models','Enki_t75.pth')
+    
+    model50 = prepare_model(model_filepath_t50, 'mae_vit_LLC_patch4')
+    print('Model75 loaded.')
+    model75 = prepare_model(model_filepath_t75, 'mae_vit_LLC_patch4')
+    print('Model75 loaded.')
+    
+    # Reconstruct Corners_Example
+    idx = 330469
+    seed = 69
+    img = f['valid'][idx][0]
+    img.resize((64,64,1))
+    torch.manual_seed(seed)
+    recon_img, mask, full_recon = run_one_image(img, model50, 0.50)
+    orig_img = img.squeeze()
+    
+    plot_recon(orig, recon_img, mask, idx, apply_bias=False, outfile='reconstructing_corners.png')
+    
+    
+    # Reconstruct t75 example 2
+    idx = 666
+    seed = 666
+    img = f['valid'][idx][0]
+    img.resize((64,64,1))
+    torch.manual_seed(seed)
+    recon_img, mask, full_recon = run_one_image(img, model75, 0.75)
+    orig_img = img.squeeze()
+    
+    plot_recon(orig, recon_img, mask, idx, apply_bias=False, outfile='1.png')
+    
+    
+    # Reconstruct t75 example 2
+    idx = 2365
+    seed = 345
+    img = f['valid'][idx][0]
+    img.resize((64,64,1))
+    torch.manual_seed(seed)
+    recon_img, mask, full_recon = run_one_image(img, model75, 0.75)
+    orig_img = img.squeeze()
+    
+    plot_recon(orig, recon_img, mask, idx, apply_bias=False, outfile='2.png')
+    
+    return
+    
 # Command line execution
 if __name__ == '__main__':
 
