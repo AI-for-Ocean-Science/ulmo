@@ -526,6 +526,35 @@ def figs_imgs(idx=85674,
     
     return
     
+##############################################################
+# ------------------------ Plot Loss -------------------------
+##############################################################
+def parse(d):
+    dictionary = dict()
+    # Removes curly braces and splits the pairs into a list
+    pairs = d.strip('{}').split(', ')
+    for i in pairs:
+        pair = i.split(': ')
+        # Other symbols from the key-value pair should be stripped.
+        dictionary[pair[0].strip('\'\'\"\"')] = float(pair[1].strip('\'\'\"\"'))
+    return dictionary
+
+def plot_loss(filepath='log.txt', outfile='loss.png'):
+    loss = []
+    file = open(filepath, 'rt')
+    lines = file.read().split('\n')
+    for l in lines:
+        if l != '':
+            dictionary = parse(l)
+            loss.append(dictionary)
+    file.close()
+
+    df = pandas.DataFrame(loss)
+    df.plot(x = 'epoch', y = 'train_loss', logy=True)
+    plt.savefig(outfile, dpi=300)
+    
+    
+
 # Command line execution
 if __name__ == '__main__':
 
