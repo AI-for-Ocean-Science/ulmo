@@ -395,12 +395,6 @@ def main(flg):
         #          update=[(35,10),(35,20),(35,30),(35,40),(35,50),
         #                  (75,10),(75,20),(75,30),(75,40),(75,50),])
 
-    # Reconstructions
-    if flg & (2**4):
-        # LLC
-        for t in [10,35,50,75]:
-            for p in [10,20,30,40,50]:
-                pass
 
 # Command line execution
 if __name__ == '__main__':
@@ -412,7 +406,6 @@ if __name__ == '__main__':
         #flg += 2 ** 1  # 2 -- Inpaint vs Enki
         #flg += 2 ** 2  # 4 -- RMSE calculations
         #flg += 2 ** 3  # 8 -- bias calculations
-        #flg += 2 ** 4  # 16 -- reconstructions
     else:
         flg = sys.argv[1]
 
