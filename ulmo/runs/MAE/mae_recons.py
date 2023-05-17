@@ -390,10 +390,10 @@ def main(flg):
         #calc_rms(10, 10, dataset='VIIRS', clobber=clobber)
 
         # LLC
-        #calc_bias(dataset='LLC', debug=debug)
-        calc_bias(dataset='LLC', debug=debug,
-                  update=[(35,10),(35,20),(35,30),(35,40),(35,50),
-                          (75,10),(75,20),(75,30),(75,40),(75,50),])
+        calc_bias(dataset='LLC', debug=debug, clobber=True)
+        #calc_bias(dataset='LLC', debug=debug,
+        #          update=[(35,10),(35,20),(35,30),(35,40),(35,50),
+        #                  (75,10),(75,20),(75,30),(75,40),(75,50),])
 
     # Reconstructions
     if flg & (2**4):
