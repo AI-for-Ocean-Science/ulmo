@@ -225,8 +225,17 @@ def fig_bias(outfile:str):
 
 def fig_patch_ij_binned_stats(metric:str,
     stat:str, patch_file:str, nbins:int=16):
+    """ Binned stats for patches
 
-    t_per, p_per = enki_utils.parse_mae_img_file(patch_file)
+    Args:
+        metric (str): _description_
+        stat (str): _description_
+        patch_file (str): _description_
+        nbins (int, optional): _description_. Defaults to 16.
+    """
+
+    # Parse
+    t_per, p_per = enki_utils.parse_enki_img_file(patch_file)
 
     # Outfile
     outfile = f'fig_{metric}_{stat}_t{t_per}_p{p_per}_patch_ij_binned_stats.png'
