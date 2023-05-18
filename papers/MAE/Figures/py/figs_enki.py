@@ -344,7 +344,13 @@ def fig_patch_rmse(patch_file:str, nbins:int=16):
 
     # Patches
     plt_x = (x_edge[:-1]+x_edge[1:])/2
-    ax.plot(plt_x, eval_stats)
+    ax.plot(plt_x, eval_stats, 'b', label='Patches')
+
+    # PMC Model
+    consts = (0.01, 8.)
+    xval = np.linspace(lims[0], lims[1], 1000)
+    yval = np.log10((10**xval + consts[0])/consts[1])
+    ax.plot(xval, yval, 'r:', label=r'$\log_{10}( \, (\sigma_T + '+f'{consts[0]})/{consts[1]}'+r')$')
 
     # Axes
     ax.set_xlabel(x_lbl)
@@ -358,6 +364,8 @@ def fig_patch_rmse(patch_file:str, nbins:int=16):
     ax.text(0.05, 0.9, f't={t_per}, p={p_per}',
             transform=ax.transAxes,
               fontsize=fsz, ha='left', color='k')
+
+    ax.legend(loc='lower right', fontsize=fsz-2)
 
     plotting.set_fontsize(ax, fsz)
 
