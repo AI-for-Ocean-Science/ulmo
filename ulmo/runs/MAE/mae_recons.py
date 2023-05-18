@@ -301,6 +301,8 @@ def calc_bias(dataset:str='LLC', clobber:bool=False, debug:bool=False,
     Raises:
         ValueError: _description_
     """
+    if update is not None:
+        raise ValueError("Not properly implemented!")
     outfile = f'enki_bias_{dataset}.csv'
     if os.path.isfile(outfile) and not clobber:
         if update is not None:
