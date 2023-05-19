@@ -33,10 +33,11 @@ Following is a list of the contents of the hp folder:
     4.  N - the number of cutouts in the cell,
     5.  idx - the HEALPix cell number.
 
-2) tail_viirs.cs - as for head_viirs.cs but for 2018-2020.
+2) tail_viirs.csv - as for head_viirs.cs but for 2018-2020.
 3) all viirs.csv - as above but for the entire period, 2012-2020.
 4) all llo.csv - table of values for LLC4320 HEALPix cells.
-5) 
+5) hp_lons_V98 - the longitude values for each HEALPix cell in the same order as in the .csv files.
+6) hp_lats_V98 - the latitude values for each HEALPix cell.
 
 ## Code/Software
 
