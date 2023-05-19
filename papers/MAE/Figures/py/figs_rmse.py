@@ -107,7 +107,7 @@ def figs_rmse_all_models(outfile='rmse_models.png',
     print(f'Wrote: {outfile}')
     return
 
-def figs_rmse_t10(outfile='rmse_t10only.png',
+def figs_rmse_vs_LL(outfile='rmse_t10only.png',
                          rmse_filepath='../Analysis/valid_avg_rms.csv'):
     # load rmse
     rmse = pd.read_csv(rmse_filepath)
@@ -121,28 +121,79 @@ def figs_rmse_t10(outfile='rmse_t10only.png',
     masks = [10,20,30,40,50]
     colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple']
     plt_labels = []
-    for i in range(1):
         
-        # determine position of plot
-        ax = plt.subplot(gs[0])
+    ax = plt.subplot(gs[0])
+    i=0
         
-        # plot
+    # plot
+    for p, c in zip(masks, colors):
+        x = rmse['median_LL']
+        y = rmse['rms_t{t}_p{p}'.format(t=models[i], p=p)]
+        plt_labels.append('p={p}'.format(p=p))
+        plt.scatter(x, y, color=c)
+
+    ax.set_ylim([0, 0.10])
+    ax.set_axisbelow(True)
+    ax.grid(color='gray', linestyle='dashed', linewidth = 0.5)
+    fsz = 17
+    plt.legend(labels=plt_labels, title='Patch Mask Ratio',
+                title_fontsize=fsz+1, fontsize=fsz, fancybox=True)
+    plt.title('Training Ratio: t={}'.format(models[i]))
+    plt.xlabel("Median LL Per Batch")
+    plt.ylabel("Average RMSE (K)")
+
+    plotting.set_fontsize(ax, 19)
+                         
+    fig.tight_layout()
+    fig.subplots_adjust(top=0.92)
+    fig.subplots_adjust(wspace=0.2)
+    #fig.suptitle('RMSE vs LL', fontsize=16)
+    
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print(f'Wrote: {outfile}')
+    return
+
+def figs_rmse_models(outfile='fig_rmse_models.png',
+                         rmse_filepath='../Analysis/valid_avg_rms.csv'):
+    # load rmse
+    rmse = pd.read_csv(rmse_filepath)
+    
+    fig = plt.figure(figsize=(10, 10))
+    
+    plt.clf()
+    gs = gridspec.GridSpec(1,1)
+    
+    models = [10,35,50,75]
+    masks = [10,20,30,40,50]
+    colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple']
+    plt_labels = []
+        
+    # determine position of plot
+    ax = plt.subplot(gs[0])
+    
+    # plot
+    for i in range(4):
+        avg_RMSEs = []
         for p, c in zip(masks, colors):
-            x = rmse['median_LL']
             y = rmse['rms_t{t}_p{p}'.format(t=models[i], p=p)]
-            plt_labels.append('p={p}'.format(p=p))
-            plt.scatter(x, y, color=c)
+            avg_RMSE = np.mean(y)
+            avg_RMSEs.append(avg_RMSE)
+        # Plot
+        plt_labels.append(f't={models[i]}')
+        plt.plot(masks, avg_RMSEs, 's', ms=10, color=colors[i])
 
-        ax.set_ylim([0, 0.10])
-        ax.set_axisbelow(True)
-        ax.grid(color='gray', linestyle='dashed', linewidth = 0.5)
-        plt.legend(labels=plt_labels, title='Training Ratio',
-                   title_fontsize='large', fontsize='large', fancybox=True)
-        plt.title('t={}'.format(models[i]))
-        plt.xlabel("Median LL Per Batch")
-        plt.ylabel("Average RMSE")
+    ax.set_ylim([0, 0.30])
+    ax.set_axisbelow(True)
+    ax.grid(color='gray', linestyle='dashed', linewidth = 0.5)
+    fsz = 17
+    plt.legend(labels=plt_labels, title='Training Ratio',
+                title_fontsize=fsz+1, fontsize=fsz, fancybox=True)
+    #plt.xlabel("Training Ratio")
+    plt.xlabel("Patch Masking Ratio")
+    plt.ylabel("Average RMSE (K)")
 
-        plotting.set_fontsize(ax, 19)
+    plotting.set_fontsize(ax, 19)
                          
     fig.tight_layout()
     fig.subplots_adjust(top=0.92)
@@ -155,7 +206,10 @@ def figs_rmse_t10(outfile='rmse_t10only.png',
     return
     
 #figs_rmse_all_models()
-figs_rmse_t10()
+#figs_rmse_vs_LL()
+figs_rmse_models()
+
+
 
 '''
 models = [10,35,50,75]
