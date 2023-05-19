@@ -24,6 +24,20 @@ are held in .attrs['columns'].
 In addition, we provide files of healpix evaluations of various
 quantities presented in the paper figures.  These are stored as
 numpy files (without a .np extension!) and ASCII .csv tables.
+Following is a list of the contents of the hp folder:
+
+1) head_viirs.csv - The VIIRS dataset was divided into two parts,
+ an early period, 2012-2015, referred to as 'head' and a later period,
+ 2018-2020, referred to as 'tail'. The purpose of this was to estimate
+ the uncertainty expected in the median value of LL obtained from each
+ HEALPix cell. This file is, yup, you guessed it, associated with the 
+ first period and contains the following fields.
+ a) sigma - the standard deviation of the LL values for all cutouts 
+  falling in this HEALPix cell,
+ b) mean - the mean LL of cutouts in the cell,
+ c) median - the mean LL of cutouts in the cell,
+ d) N - the number of cutouts in the cell,
+ e) idx - the HEALPix cell number.
 
 
 ## Code/Software
