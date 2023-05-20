@@ -24,6 +24,7 @@ import h5py
 
 from ulmo import plotting
 from ulmo.mae import enki_utils
+from ulmo.mae.cutout_analysis import rms_images
 from ulmo import io as ulmo_io
 from ulmo.utils import image_utils
 try:
@@ -85,7 +86,7 @@ def fig_patches(outfile:str, patch_file:str, nbins:int=16):
 
 def fig_cutouts(outfile:str, nbins:int=16):
 
-    fig = plt.figure(figsize=(12,6))
+    fig = plt.figure(figsize=(13,6))
     plt.clf()
     gs = gridspec.GridSpec(1,2)
 
@@ -348,18 +349,20 @@ def fig_llc_inpainting(outfile:str, t:int, p:int,
         nimgs = 1000
     else:
         nimgs = 50000
-    orig_imgs = f_orig['valid'][:nimgs,0,...]
-    mask_imgs = f_mask['valid'][:nimgs,0,...]
+    #orig_imgs = f_orig['valid'][:nimgs,0,...]
+    #mask_imgs = f_mask['valid'][:nimgs,0,...]
 
     # Allow for various shapes (hack)
-    recon_imgs = f_recon['valid'][:nimgs,0,...]
+    #recon_imgs = f_recon['valid'][:nimgs,0,...]
 
 
-    rms_enki = rms_images(orig_imgs, recon_imgs, mask_imgs)
-    del recon_imgs
+    #rms_enki = rms_images(orig_imgs, recon_imgs, mask_imgs)
+    rms_enki = rms_images(f_orig, f_recon, f_mask, nimgs=nimgs)
     
-    inpaint_imgs = f_inpaint['inpainted'][:nimgs,...]
-    rms_inpaint = rms_images(orig_imgs, inpaint_imgs, mask_imgs)
+    #inpaint_imgs = f_inpaint['inpainted'][:nimgs,...]
+    #rms_inpaint = rms_images(orig_imgs, inpaint_imgs, mask_imgs)
+    rms_inpaint = rms_images(f_orig, f_inpaint, f_mask, nimgs=nimgs,
+                             keys=['valid', 'inpainted', 'valid'])
 
     # Cut and add table
     cut = (enki_tbl.pp_idx >= 0) & (enki_tbl.pp_idx < nimgs)
@@ -565,13 +568,18 @@ def main(flg_fig):
     if flg_fig & (2 ** 1):
         fig_cutouts('fig_cutouts.png')
 
+    # LLC (Enki vs inpainting)
+    if flg_fig & (2 ** 2):
+        fig_llc_inpainting('fig_llcinpainting.png', 10, 10)#, debug=True)
+
 # Command line execution
 if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg_fig = 0
         #flg_fig += 2 ** 0  # patches
-        flg_fig += 2 ** 1  # cutouts
+        #flg_fig += 2 ** 1  # cutouts
+        flg_fig += 2 ** 2  # LLC (Enki vs inpainting)
     else:
         flg_fig = sys.argv[1]
 

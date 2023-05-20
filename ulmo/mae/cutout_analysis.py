@@ -7,16 +7,22 @@ from scipy.sparse import csc_matrix
 from IPython import embed
 
 def load_cutouts(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File, 
-               nimgs:int=None, debug:bool=False, patch_sz:int=None):
+               nimgs:int=None, debug:bool=False, patch_sz:int=None,
+               keys:list=None):
+    if keys is None:
+        keys = ['valid']*3
     # Load em all
     print("Loading images...")
     if nimgs is None:
-        nimgs = f_orig['valid'].shape[0]
+        nimgs = f_orig[keys[0]].shape[0]
 
     # Grab em
-    orig_imgs = f_orig['valid'][:nimgs,0,...]
-    recon_imgs = f_recon['valid'][:nimgs,0,...]
-    mask_imgs = f_mask['valid'][:nimgs,0,...]
+    orig_imgs = f_orig[keys[0]][:nimgs,0,...]
+    if len(f_recon[keys[1]].shape) == 4:
+        recon_imgs = f_recon[keys[1]][:nimgs,0,...]
+    else:
+        recon_imgs = f_recon[keys[1]][:nimgs,...]
+    mask_imgs = f_mask[keys[2]][:nimgs,0,...]
 
     # Mask out edges
     print("Masking edges")
@@ -31,7 +37,7 @@ def load_cutouts(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File,
 
 def rms_images(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File, 
                patch_sz:int=4, nimgs:int=None, debug:bool=False, 
-               bias_value:float=0.):
+               bias_value:float=0., keys:list=None):
     """_summary_
 
     Args:
@@ -47,7 +53,7 @@ def rms_images(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File,
     """
     # Load (and mask) images
     orig_imgs, recon_imgs, mask_imgs = load_cutouts(
-        f_orig, f_recon, f_mask, nimgs=nimgs, patch_sz=patch_sz)
+        f_orig, f_recon, f_mask, nimgs=nimgs, patch_sz=patch_sz, keys=keys)
 
     # Analyze
     print("Calculate")
