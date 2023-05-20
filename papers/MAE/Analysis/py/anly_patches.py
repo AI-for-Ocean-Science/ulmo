@@ -21,10 +21,10 @@ def parse_metric(tbl, metric):
         label = 'RMSE'
     elif metric == 'log10_std_diff':
         values = np.log10(tbl.std_diff)
-        label = 'log10_rms_diff'
+        label = r'$\log_{10} \, \rm RMSE$'
     elif metric == 'log10_stdT':
         values = np.log10(tbl.stdT)
-        label = 'log10_stdT'
+        label = r'$\log_{10} \, \sigma_{T}$'
     else:
         raise IOError(f"bad metric: {metric}")
 

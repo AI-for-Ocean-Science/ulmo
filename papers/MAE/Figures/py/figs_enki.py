@@ -28,7 +28,7 @@ from ulmo import io as ulmo_io
 from ulmo.utils import image_utils
 try:
     from ulmo.mae import models_mae
-except ModuleNotFoundError:
+except (ModuleNotFoundError, ImportError):
     print("Not able to load the models")
 else:    
     from ulmo.mae import reconstruct
@@ -235,7 +235,7 @@ def fig_patch_ij_binned_stats(metric:str,
     """
 
     # Parse
-    t_per, p_per = enki_utils.parse_enki_img_file(patch_file)
+    t_per, p_per = enki_utils.parse_enki_file(patch_file)
 
     # Outfile
     outfile = f'fig_{metric}_{stat}_t{t_per}_p{p_per}_patch_ij_binned_stats.png'
@@ -294,6 +294,92 @@ def fig_patch_ij_binned_stats(metric:str,
     plt.close()
     print('Wrote {:s}'.format(outfile))
 
+
+def fig_patch_rmse(patch_file:str, nbins:int=16):
+    """ Binned stats for patches
+
+    Args:
+        patch_file (str): _description_
+        nbins (int, optional): _description_. Defaults to 16.
+    """
+    lims = (-5,1)
+
+    # Parse
+    t_per, p_per = enki_utils.parse_enki_file(patch_file)
+
+    # Outfile
+    outfile = f'fig_patch_rmse_t{t_per}_p{p_per}.png'
+
+    # Load
+    patch_file = os.path.join(os.getenv("OS_OGCM"),
+        'LLC', 'Enki', 'Recon', patch_file)
+
+    f = np.load(patch_file)
+    data = f['data']
+    data = data.reshape((data.shape[0]*data.shape[1], 
+                         data.shape[2]))
+
+    items = f['items']
+    tbl = pandas.DataFrame(data, columns=items)
+
+    nbins = 32
+    metric = 'log10_std_diff'
+    stat = 'median'
+
+    x_metric = 'log10_stdT'
+    xvalues, x_lbl = anly_patches.parse_metric(tbl, x_metric)
+
+    values, lbl = anly_patches.parse_metric(tbl, metric)
+
+    good = np.isfinite(xvalues.values)
+
+    # Do it
+    eval_stats, x_edge, ibins = scipy.stats.binned_statistic(
+        xvalues.values[good], values.values[good], statistic=stat, bins=nbins)
+
+    # Figure
+    fig = plt.figure(figsize=(8, 8))
+    plt.clf()
+    ax = plt.gca()
+
+    # Patches
+    plt_x = (x_edge[:-1]+x_edge[1:])/2
+    ax.plot(plt_x, eval_stats, 'b', label='Patches')
+
+    # PMC Model
+    consts = (0.01, 8.)
+    xval = np.linspace(lims[0], lims[1], 1000)
+    yval = np.log10((10**xval + consts[0])/consts[1])
+    ax.plot(xval, yval, 'r:', label=r'$\log_{10}( \, (\sigma_T + '+f'{consts[0]})/{consts[1]}'+r')$')
+
+    # Axes
+    ax.set_xlabel(x_lbl)
+    ax.set_ylabel(f'{stat}({lbl})')
+
+    ax.set_xlim(lims[0], lims[1])
+    ax.set_ylim(lims[0], lims[1])
+
+    # Labeling
+    fsz = 17.
+    ax.text(0.05, 0.9, f't={t_per}, p={p_per}',
+            transform=ax.transAxes,
+              fontsize=fsz, ha='left', color='k')
+
+    ax.legend(loc='lower right', fontsize=fsz-2)
+
+    plotting.set_fontsize(ax, fsz)
+
+    # 1-1
+    ax.plot(lims, lims, 'k--')
+
+    # Grid
+    ax.grid()
+
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
+    
 def fig_explore_bias(outfile:str='fig_explore_bias.png',
                      nimg:int=50000, debug:bool=False,
                      bias_file:str='bias.csv',
@@ -590,9 +676,13 @@ def main(flg_fig):
     if flg_fig & (2 ** 6):
         fig_llc_inpainting('fig_llcinpainting.png', 10, 10)#, debug=True)
 
-    # VIIRS inpainting analysis
+    # 
     if flg_fig & (2 ** 7):
         fig_bias('fig_bias.png')
+
+    # Patch RMSE
+    if flg_fig & (2 ** 8):
+        fig_patch_rmse('mae_patches_t10_p20.npz')
 
 
 
@@ -604,11 +694,12 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 0  # Clouds on the sphere
         #flg_fig += 2 ** 1  # N_C vs CC
         #flg_fig += 2 ** 2  # Binned stats on patches
-        #flg_fig += 2 ** 3  # Bias
+        #flg_fig += 2 ** 3  # explore Bias
         #flg_fig += 2 ** 4  # VIIRS example
         #flg_fig += 2 ** 5  # VIIRS reocn analysis
         #flg_fig += 2 ** 6  # LLC inpainting
         #flg_fig += 2 ** 7  # Bias
+        flg_fig += 2 ** 8  # Bias
     else:
         flg_fig = sys.argv[1]
 
