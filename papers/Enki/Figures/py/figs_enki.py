@@ -38,8 +38,10 @@ from ulmo.mae import plotting as mae_plotting
 from IPython import embed
 
 # Local
-sys.path.append(os.path.abspath("../Analysis/py"))
+sys.path.append(os.path.abspath("../../MAE/Analysis/py"))
 import anly_patches
+sys.path.append(os.path.abspath("../Analysis/py"))
+import enki_anly_rms
 #sys.path.append(os.path.abspath("../Figures/py"))
 #import fig_ssl_modis
 
@@ -53,178 +55,60 @@ sst_path = os.getenv('OS_SST')
 ogcm_path = os.getenv('OS_OGCM')
 enki_path = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki')
 
-def fig_clouds(outfile:str, analy_file:str,
-                 local=False, 
-                 debug=False, 
-                 color='bwr', vmax=None): 
-    """ Global geographic plot of the UMAP select range
+smper = r'$m_\%$'
+stper = r'$t_\%$'
 
-    Args:
-        outfile (str): 
-        table (str): 
-            Which table to use
-        umap_rngs (list): _description_
-        local (bool, optional): _description_. Defaults to False.
-        nside (int, optional): _description_. Defaults to 64.
-        umap_comp (str, optional): _description_. Defaults to 'S0,S1'.
-        umap_dim (int, optional): _description_. Defaults to 2.
-        debug (bool, optional): _description_. Defaults to False.
-        color (str, optional): _description_. Defaults to 'bwr'.
-        vmax (_type_, optional): _description_. Defaults to None.
-        min_counts (int, optional): Minimum to show in plot.
-        show_regions (str, optional): Rectangles for the geographic regions of this 
-            Defaults to False.
-        absolute (bool, optional):
-            If True, show absolute counts instead of relative
-    """
+def fig_patches(outfile:str, patch_file:str, nbins:int=16):
 
-    # Load
-    data = np.load(analy_file)
-    nside = int(data['nside'])
-
-    # Angles
-    npix_hp = hp.nside2npix(nside)
-    hp_lons, hp_lats = hp.pixelfunc.pix2ang(nside, np.arange(npix_hp), 
-                                            lonlat=True)
-
-    rlbl = r"$\log_{10} \; \rm Counts$"
-    vmax = None
-    color = 'Blues'
-
-
-   # Figure
-    fig = plt.figure(figsize=(12,8))
+    fig = plt.figure(figsize=(12,6))
     plt.clf()
-    gs = gridspec.GridSpec(2,2)
+    gs = gridspec.GridSpec(1,2)
 
-    tformM = ccrs.Mollweide()
-    tformP = ccrs.PlateCarree()
+    # Spatial
+    ax0 = plt.subplot(gs[0])
+    fig_patch_ij_binned_stats('std_diff', 'median',
+                              patch_file, ax=ax0)
+    lsz = 16.
+    ax0.set_title('(a)', fontsize=lsz, color='k')
 
-    CC_plt = [0.05, 0.1, 0.2, 0.5]
-    #CC_values = [0., 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 
-    #             0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0]
-    for kk, CC in enumerate(CC_plt):
-        mt = np.where(np.isclose(data['CC_values'],CC))[0][0]
-        #mt = np.where(np.isclose(CC_values,CC))[0][0]
-        ax = plt.subplot(gs[kk], projection=tformM)
+    # RMSE
+    ax1 = plt.subplot(gs[1])
+    fig_patch_rmse(patch_file, ax=ax1)
+    ax1.set_title('(b)', fontsize=lsz, color='k')
 
-        hp_events = np.ma.masked_array(data['hp_pix_CC'][:,mt])
-        # Mask
-        hp_events.mask = [False]*hp_events.size
-        bad = hp_events <= 0
-        hp_events.mask[bad] = True
-        hp_events.data[bad] = 0
-
-        # Proceed
-        hp_plot = np.log10(hp_events)
-
-        cm = plt.get_cmap(color)
-        # Cut
-        good = np.invert(hp_plot.mask)
-        img = plt.scatter(x=hp_lons[good],
-            y=hp_lats[good],
-            c=hp_plot[good], 
-            cmap=cm,
-            vmin=0.,
-            vmax=vmax, 
-            s=1,
-            transform=tformP)
-
-        # Colorbar
-        cb = plt.colorbar(img, orientation='horizontal', pad=0.)
-        lbl = rlbl + f'  (CC={CC:.2f})'
-        cb.set_label(lbl, fontsize=15.)
-        cb.ax.tick_params(labelsize=17)
-
-        # Coast lines
-        ax.coastlines(zorder=10)
-        ax.add_feature(cartopy.feature.LAND, 
-            facecolor='gray', edgecolor='black')
-        ax.set_global()
-
-        gl = ax.gridlines(crs=tformP, linewidth=1, 
-            color='black', alpha=0.5, linestyle=':', draw_labels=True)
-        gl.xlabels_top = False
-        gl.ylabels_left = True
-        gl.ylabels_right=False
-        gl.xlines = True
-        gl.xformatter = LONGITUDE_FORMATTER
-        gl.yformatter = LATITUDE_FORMATTER
-        gl.xlabel_style = {'color': 'black'}# 'weight': 'bold'}
-        gl.ylabel_style = {'color': 'black'}# 'weight': 'bold'}
-
-        plotting.set_fontsize(ax, 19.)
-    plt.savefig(outfile, dpi=300)
-    plt.close()
-    print('Wrote {:s}'.format(outfile))
-
-def fig_numhp_clouds(outfile:str, analy_file:str):
-
-    # Load
-    data = np.load(analy_file)
-    nside = int(data['nside'])
-    CC_values = data['CC_values']
-
-    N_mins = [10, 30, 100, 300]
-    # Figure
-    fig = plt.figure(figsize=(12,8))
-    plt.clf()
-
-    ax = plt.gca()
-
-    for N_min in N_mins:
-        num_hp = []
-        for kk in range(CC_values.size):
-            gd = np.sum(data['hp_pix_CC'][:,kk] >= N_min)
-            num_hp.append(gd)
-        # Plot
-        ax.plot(CC_values, num_hp, label=f'N_min={N_min}')
-
-    ax.legend(fontsize=15.)
-    ax.set_xlabel('Cloud Cover')
-    ax.set_ylabel('Number')
-    plotting.set_fontsize(ax, 17.)
-    ax.set_yscale('log')
-    ax.set_ylim(1., 7e4)
-
+    # Finish
+    plt.tight_layout(pad=0.0, h_pad=0.0, w_pad=0.3)
     plt.savefig(outfile, dpi=300)
     plt.close()
     print('Wrote {:s}'.format(outfile))
 
 
-def fig_bias(outfile:str):
+def fig_cutouts(outfile:str, nbins:int=16):
 
-    # Bias file
-    bias_file = os.path.join(
-        resource_filename('ulmo', 'runs'),
-        'MAE', 'enki_bias_LLC.csv')
-    bias = pandas.read_csv(bias_file)
-
-    # Figure
-    fig = plt.figure(figsize=(10,8))
+    fig = plt.figure(figsize=(12,6))
     plt.clf()
+    gs = gridspec.GridSpec(1,2)
 
-    ax = plt.gca()
+    # Spatial
+    ax0 = plt.subplot(gs[0])
+    rmse = figs_rmse_vs_LL(ax=ax0)
 
-    for t in np.unique(bias.t.values):
-        all_t = bias.t == t
-        # Plot
-        ax.plot(bias[all_t].p, bias[all_t]['median'], 
-                label=f't={t}')
+    lsz = 16.
+    ax0.set_title('(a)', fontsize=lsz, color='k')
 
-    ax.legend(fontsize=19.)
-    ax.set_xlabel('p (%)')
-    ax.set_ylabel('Median Bias')
-    plotting.set_fontsize(ax, 21.)
-    #ax.set_yscale('log')
-    #ax.set_ylim(1., 7e4)
+    # RMSE
+    ax1 = plt.subplot(gs[1])
+    fig_rmse_models(ax=ax1, rmse=rmse)
+    ax1.set_title('(b)', fontsize=lsz, color='k')
 
+    # Finish
+    plt.tight_layout(pad=0.0, h_pad=0.0, w_pad=0.3)
     plt.savefig(outfile, dpi=300)
     plt.close()
     print('Wrote {:s}'.format(outfile))
 
 def fig_patch_ij_binned_stats(metric:str,
-    stat:str, patch_file:str, nbins:int=16):
+    stat:str, patch_file:str, nbins:int=16, ax=None):
     """ Binned stats for patches
 
     Args:
@@ -267,9 +151,10 @@ def fig_patch_ij_binned_stats(metric:str,
         bins=[nbins,nbins])
 
     # Figure
-    fig = plt.figure(figsize=(10,8))
-    plt.clf()
-    ax = plt.gca()
+    if ax is None:
+        fig = plt.figure(figsize=(10,8))
+        plt.clf()
+        ax = plt.gca()
 
     cmap = 'Blues'
     cm = plt.get_cmap(cmap)
@@ -287,15 +172,15 @@ def fig_patch_ij_binned_stats(metric:str,
     ax.set_ylabel(r'$j$')
     ax.set_aspect('equal')
 
-    plotting.set_fontsize(ax, 15)
+    # Finish
+    if ax is None:
+        plotting.set_fontsize(ax, 15)
+        plt.savefig(outfile, dpi=300)
+        plt.close()
+        print('Wrote {:s}'.format(outfile))
 
 
-    plt.savefig(outfile, dpi=300)
-    plt.close()
-    print('Wrote {:s}'.format(outfile))
-
-
-def fig_patch_rmse(patch_file:str, nbins:int=16):
+def fig_patch_rmse(patch_file:str, nbins:int=16, ax=None):
     """ Binned stats for patches
 
     Args:
@@ -338,9 +223,10 @@ def fig_patch_rmse(patch_file:str, nbins:int=16):
         xvalues.values[good], values.values[good], statistic=stat, bins=nbins)
 
     # Figure
-    fig = plt.figure(figsize=(8, 8))
-    plt.clf()
-    ax = plt.gca()
+    if ax is None:
+        fig = plt.figure(figsize=(8, 8))
+        plt.clf()
+        ax = plt.gca()
 
     # Patches
     plt_x = (x_edge[:-1]+x_edge[1:])/2
@@ -361,7 +247,7 @@ def fig_patch_rmse(patch_file:str, nbins:int=16):
 
     # Labeling
     fsz = 17.
-    ax.text(0.05, 0.9, f't={t_per}, p={p_per}',
+    ax.text(0.05, 0.9, stper+f'={t_per}, '+smper+f'={p_per}',
             transform=ax.transAxes,
               fontsize=fsz, ha='left', color='k')
 
@@ -375,88 +261,12 @@ def fig_patch_rmse(patch_file:str, nbins:int=16):
     # Grid
     ax.grid()
 
-    plt.savefig(outfile, dpi=300)
-    plt.close()
-    print('Wrote {:s}'.format(outfile))
+    if ax is None:
+        plt.savefig(outfile, dpi=300)
+        plt.close()
+        print('Wrote {:s}'.format(outfile))
 
     
-def fig_explore_bias(outfile:str='fig_explore_bias.png',
-                     nimg:int=50000, debug:bool=False,
-                     bias_file:str='bias.csv',
-                     clobber:bool=False):
-
-    if os.path.isfile(bias_file) and not clobber:
-        df = pandas.read_csv(bias_file)
-        print(f"Loaded: {bias_file}")
-    else:
-        # Load
-        f_orig = h5py.File(orig_file, 'r')
-        orig_img = f_orig['valid'][0:nimg,0,...]
-
-        # Analyze
-        result_dict = dict(t=[], p=[], median_bias=[], mean_bias=[])
-        for t in [10, 35, 75]:
-            if debug and t > 35:
-                break
-            for p in [10, 20, 30, 40, 50]:
-                if debug and p > 30:
-                    break
-                print(f'Working on t={t} p={p}')
-                #
-                recon_file = enki_utils.img_filename(t, p, mae_img_path=recon_path)
-                mask_file = enki_utils.mask_filename(t, p, mae_mask_path=recon_path)
-                # Load
-                f_recon = h5py.File(recon_file, 'r')
-                f_mask = h5py.File(mask_file, 'r')
-
-                # Load
-                recon_img = f_recon['valid'][0:nimg,0,...]
-                mask_img = f_mask['valid'][0:nimg,0,...].astype(int)
-
-                # Do it
-                diff_true = recon_img - orig_img 
-
-                patches = mask_img == 1
-
-                median_bias = np.median(diff_true[patches])
-                mean_bias = np.mean(diff_true[patches])
-                #mean_img = np.mean(orig_img[np.isclose(mask_img,0.)])
-
-                # Save
-                result_dict['t'].append(t)
-                result_dict['p'].append(p)
-                result_dict['median_bias'].append(median_bias)
-                result_dict['mean_bias'].append(mean_bias)
-
-        # Write
-        df = pandas.DataFrame(result_dict)
-        df.to_csv(bias_file, index=False)
-        print(f'Wrote: {bias_file}')
-
-
-    # Figure
-    sns.set_style("whitegrid")
-
-    fig = plt.figure(figsize=(10,8))
-    plt.clf()
-
-    # Plot em
-    ax = sns.scatterplot(data=df, x='p', y='median_bias', hue='t',
-                         palette='deep', 
-                         s=100, markers='o')
-                         #size='p', sizes=(100, 1000))
-
-    # Axes
-    ax.set_xlabel('Patch Fraction')
-    #ax.set_ylabel(r'j')
-    #ax.set_aspect('equal')
-
-    plotting.set_fontsize(ax, 15)
-
-    plt.savefig(outfile, dpi=300)
-    plt.close()
-    print('Wrote {:s}'.format(outfile))
-
 
 def fig_viirs_example(outfile:str, t:int, idx:int=0): 
     """ Show an example of VIIRS reconstruction
@@ -636,6 +446,109 @@ def fig_llc_inpainting(outfile:str, t:int, p:int,
     plt.close()
     print('Wrote {:s}'.format(outfile))
 
+
+def figs_rmse_vs_LL(outfile='rmse_t10only.png', ax=None):
+
+                    
+    # load rmse
+    rmse = enki_anly_rms.create_table()
+    
+    if ax is None:
+        fig = plt.figure(figsize=(10, 10))
+        plt.clf()
+        gs = gridspec.GridSpec(1,1)
+        ax = plt.subplot(gs[0])
+    
+    models = [10,35,50,75]
+    masks = [10,20,30,40,50]
+    colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple']
+    plt_labels = []
+        
+    i=0
+        
+    # plot
+    for p, c in zip(masks, colors):
+        x = rmse['median_LL']
+        y = rmse['rms_t{t}_p{p}'.format(t=models[i], p=p)]
+        plt_labels.append(smper+f'={p}')
+        plt.scatter(x, y, color=c)
+
+    #ax.set_ylim([0, 0.20])
+    ax.set_axisbelow(True)
+    ax.grid(color='gray', linestyle='dashed', linewidth = 0.5)
+    fsz = 17
+    plt.legend(labels=plt_labels, title='Patch Mask Ratio',
+                title_fontsize=fsz+1, fontsize=fsz, fancybox=True)
+    plt.title('Training Ratio: t={}'.format(models[i]))
+    plt.xlabel("Median LL Per Batch")
+    plt.ylabel("Average RMSE (K)")
+
+    plotting.set_fontsize(ax, 19)
+                         
+    #fig.tight_layout()
+    #fig.subplots_adjust(top=0.92)
+    #fig.subplots_adjust(wspace=0.2)
+    #fig.suptitle('RMSE vs LL', fontsize=16)
+    
+    if ax is None:
+        plt.savefig(outfile, dpi=300)
+        plt.close()
+        print(f'Wrote: {outfile}')
+    return rmse
+
+def fig_rmse_models(outfile='fig_rmse_models.png', ax=None, rmse=None):
+                         
+    # load rmse
+    if rmse is None:
+        rmse = enki_anly_rms.create_table()
+    
+    if ax is None:
+        fig = plt.figure(figsize=(10, 10))
+        plt.clf()
+        gs = gridspec.GridSpec(1,1)
+        ax = plt.subplot(gs[0])
+    
+    models = [10,35,50,75]
+    masks = [10,20,30,40,50]
+    colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple']
+    plt_labels = []
+        
+    
+    # plot
+    for i in range(4):
+        avg_RMSEs = []
+        for p, c in zip(masks, colors):
+            y = rmse['rms_t{t}_p{p}'.format(t=models[i], p=p)]
+            avg_RMSE = np.mean(y)
+            avg_RMSEs.append(avg_RMSE)
+        # Plot
+        plt_labels.append(stper+f'={models[i]}')
+        plt.plot(masks, avg_RMSEs, 's', ms=10, color=colors[i])
+
+    ax.set_ylim([0, 0.25])
+    ax.set_axisbelow(True)
+    ax.grid(color='gray', linestyle='dashed', linewidth = 0.5)
+    fsz = 17
+    plt.legend(labels=plt_labels, title='Training Ratio ('+stper+')',
+                title_fontsize=fsz+1, fontsize=fsz, fancybox=True)
+    #plt.xlabel("Training Ratio")
+    plt.xlabel("Patch Masking Ratio ("+smper+")")
+    plt.ylabel("Average RMSE (K)")
+
+    plotting.set_fontsize(ax, 19)
+                         
+    #fig.tight_layout()
+    #fig.subplots_adjust(top=0.92)
+    #fig.subplots_adjust(wspace=0.2)
+    #fig.suptitle('RMSE vs LL', fontsize=16)
+    
+    if ax is None:
+        plt.savefig(outfile, dpi=300)
+        plt.close()
+        print(f'Wrote: {outfile}')
+    return
+    
+
 #### ########################## #########################
 def main(flg_fig):
     if flg_fig == 'all':
@@ -643,63 +556,22 @@ def main(flg_fig):
     else:
         flg_fig = int(flg_fig)
 
-    # Uniform, non UMAP gallery for DTall
+    # Patches
     if flg_fig & (2 ** 0):
-        fig_clouds('fig_clouds.png', 'modis_2020_cloudcover.npz')
+        fig_patches('fig_patches_t10_p20.png',
+                    'mae_patches_t10_p20.npz')
 
+    # Cutouts
     if flg_fig & (2 ** 1):
-        fig_numhp_clouds('fig_numhp_clouds.png', 'modis_2020_cloudcover.npz')
-
-    if flg_fig & (2 ** 2):
-        #fig_patch_ij_binned_stats('abs_median_diff', 'median',
-        #                          'mae_patches_t75_p20.npz')
-        #fig_patch_ij_binned_stats('median_diff', 'mean',
-        #                          'mae_patches_t75_p20.npz')
-        #fig_patch_ij_binned_stats('median_diff', 'median',
-        #                          'mae_patches_t75_p20.npz')
-        fig_patch_ij_binned_stats('std_diff', 'median',
-                                  'mae_patches_t75_p20.npz')
-
-    # Explore the bias
-    if flg_fig & (2 ** 3):
-        fig_explore_bias(clobber=False)
-
-    # VIIRS recon example
-    if flg_fig & (2 ** 4):
-        fig_viirs_example('fig_viirs_example.png', 75)
-
-    # VIIRS full recon analysis
-    if flg_fig & (2 ** 5):
-        fig_viirs_recon_rmse('fig_viirs_recon.png', 10, 10)
-
-    # VIIRS inpainting analysis
-    if flg_fig & (2 ** 6):
-        fig_llc_inpainting('fig_llcinpainting.png', 10, 10)#, debug=True)
-
-    # 
-    if flg_fig & (2 ** 7):
-        fig_bias('fig_bias.png')
-
-    # Patch RMSE
-    if flg_fig & (2 ** 8):
-        fig_patch_rmse('mae_patches_t10_p20.npz')
-
-
+        fig_cutouts('fig_cutouts.png')
 
 # Command line execution
 if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg_fig = 0
-        #flg_fig += 2 ** 0  # Clouds on the sphere
-        #flg_fig += 2 ** 1  # N_C vs CC
-        #flg_fig += 2 ** 2  # Binned stats on patches
-        #flg_fig += 2 ** 3  # explore Bias
-        #flg_fig += 2 ** 4  # VIIRS example
-        #flg_fig += 2 ** 5  # VIIRS reocn analysis
-        #flg_fig += 2 ** 6  # LLC inpainting
-        #flg_fig += 2 ** 7  # Bias
-        flg_fig += 2 ** 8  # Bias
+        #flg_fig += 2 ** 0  # patches
+        flg_fig += 2 ** 1  # cutouts
     else:
         flg_fig = sys.argv[1]
 
