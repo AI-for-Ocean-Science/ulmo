@@ -183,14 +183,14 @@ def figs_rmse_models(outfile='fig_rmse_models.png',
         plt_labels.append(f't={models[i]}')
         plt.plot(masks, avg_RMSEs, 's', ms=10, color=colors[i])
 
-    ax.set_ylim([0, 0.30])
+    ax.set_ylim([0, 0.25])
     ax.set_axisbelow(True)
     ax.grid(color='gray', linestyle='dashed', linewidth = 0.5)
     fsz = 17
-    plt.legend(labels=plt_labels, title='Training Ratio',
+    plt.legend(labels=plt_labels, title=r'Training Ratio ($t$)',
                 title_fontsize=fsz+1, fontsize=fsz, fancybox=True)
     #plt.xlabel("Training Ratio")
-    plt.xlabel("Patch Masking Ratio")
+    plt.xlabel(r"Patch Masking Ratio ($p$)")
     plt.ylabel("Average RMSE (K)")
 
     plotting.set_fontsize(ax, 19)
