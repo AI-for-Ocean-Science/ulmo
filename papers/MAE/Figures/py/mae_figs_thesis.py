@@ -562,7 +562,68 @@ def plot_loss(filepath='log.txt', outfile='loss.png'):
     df.plot(x = 'epoch', y = 'train_loss', logy=True)
     plt.savefig(outfile, dpi=300)
     
+
     
+def plot_model_bias(filepath='data/enki_bias_LLC.csv', outfile='model_biases.png'):
+    biases = pd.read_csv(filepath)
+    colors = ['r','g','b','k']
+    models = [10,35,50,75]
+    x = ['10','20','30','40','50']
+    
+    fig, ax = plt.subplots()
+    plt_labels = []
+    for i in range(4):
+        p = biases[i*5:i*5+5]
+        y = p['mean'].to_numpy()
+        plt_labels.append('t={}%'.format(models[i]))
+        plt.scatter(x, y, color=colors[i])
+
+    ax.set_axisbelow(True)
+    ax.grid(color='gray', linestyle='dashed', linewidth = 0.5)
+    plt.legend(labels=plt_labels, title='Masking Ratio',
+               title_fontsize='small', fontsize='small', fancybox=True)
+    #plt.title('Calculated Biases')
+    plt.xlabel("Masking Ratio (p)")
+    plt.ylabel("Mean Bias")
+
+    
+    # save
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print(f'Wrote: {outfile}')
+    return
+
+def figs_bias_hist(orig_file='data/MAE_LLC_valid_nonoise_preproc.h5',
+                   recon_file = 'data/mae_reconstruct_t75_p10.h5',
+                   mask_file = 'data/mae_mask_t75_p10.h5'):
+    # Load up images
+    f_orig = h5py.File(orig_file, 'r')
+    f_recon = h5py.File(recon_file, 'r')
+    f_mask = h5py.File(mask_file, 'r')
+
+    median_biases = []
+    mean_biases = []
+    for idx in range(10000):
+        orig_img = f_orig['valid'][idx,0,...]
+        recon_img = f_recon['valid'][idx,0,...]
+        mask_img = f_mask['valid'][idx,0,...]
+
+        diff_true = recon_img - orig_img 
+
+        median_bias = np.median(diff_true[np.abs(diff_true) > 0.])
+        mean_bias = np.mean(diff_true[np.abs(diff_true) > 0.])
+        #mean_img = np.mean(orig_img[np.isclose(mask_img,0.)])
+        # Save
+        median_biases.append(median_bias)
+        mean_biases.append(mean_bias)
+    
+    ax = sns.histplot(df, x='median_bias')
+    plt.vlines(x=0.0267, ymin=0, ymax=600, colors='red', ls='--', label='mean bias (0.0267)')
+    plt.legend(loc='upper left')
+    ax.set_xlim(-0.1, 0.1)
+    
+    plt.savefig('bias_histogram.png', dpi=300)
+    plt.close()
 
 # Command line execution
 if __name__ == '__main__':
