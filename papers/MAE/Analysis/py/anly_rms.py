@@ -15,7 +15,7 @@ import matplotlib.ticker as ticker
 
 from ulmo.plotting import plotting
 
-from ulmo.mae import mae_utils
+from ulmo.mae import enki_utils
 from ulmo import io as ulmo_io
 from scipy.sparse import csc_matrix
 
