@@ -1,13 +1,8 @@
 """ Figures for MAE paper """
-from dataclasses import replace
-from datetime import datetime
 import os, sys
 import numpy as np
 import scipy
-from scipy import stats
-from urllib.parse import urlparse
-import datetime
-
+from pkg_resources import resource_filename
 
 import healpy as hp
 
@@ -28,15 +23,15 @@ import seaborn as sns
 import h5py
 
 from ulmo import plotting
-from ulmo.mae import mae_utils
+from ulmo.mae import enki_utils
 from ulmo import io as ulmo_io
 from ulmo.utils import image_utils
 try:
     from ulmo.mae import models_mae
-except ModuleNotFoundError:
+except (ModuleNotFoundError, ImportError):
     print("Not able to load the models")
 else:    
-    from ulmo.mae import reconstruct_LLC
+    from ulmo.mae import reconstruct
 from ulmo.mae import plotting as mae_plotting
 
 
@@ -196,16 +191,57 @@ def fig_numhp_clouds(outfile:str, analy_file:str):
     plt.close()
     print('Wrote {:s}'.format(outfile))
 
+
+def fig_bias(outfile:str):
+
+    # Bias file
+    bias_file = os.path.join(
+        resource_filename('ulmo', 'runs'),
+        'MAE', 'enki_bias_LLC.csv')
+    bias = pandas.read_csv(bias_file)
+
+    # Figure
+    fig = plt.figure(figsize=(10,8))
+    plt.clf()
+
+    ax = plt.gca()
+
+    for t in np.unique(bias.t.values):
+        all_t = bias.t == t
+        # Plot
+        ax.plot(bias[all_t].p, bias[all_t]['median'], 
+                label=f't={t}')
+
+    ax.legend(fontsize=19.)
+    ax.set_xlabel('p (%)')
+    ax.set_ylabel('Median Bias')
+    plotting.set_fontsize(ax, 21.)
+    #ax.set_yscale('log')
+    #ax.set_ylim(1., 7e4)
+
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
 def fig_patch_ij_binned_stats(metric:str,
     stat:str, patch_file:str, nbins:int=16):
+    """ Binned stats for patches
 
-    t_per, p_per = mae_utils.parse_mae_img_file(patch_file)
+    Args:
+        metric (str): _description_
+        stat (str): _description_
+        patch_file (str): _description_
+        nbins (int, optional): _description_. Defaults to 16.
+    """
+
+    # Parse
+    t_per, p_per = enki_utils.parse_enki_file(patch_file)
 
     # Outfile
     outfile = f'fig_{metric}_{stat}_t{t_per}_p{p_per}_patch_ij_binned_stats.png'
     # Load
-    patch_file = os.path.join(os.getenv("OS_DATA"),
-                              'MAE', 'Recon', patch_file)
+    patch_file = os.path.join(os.getenv("OS_OGCM"),
+        'LLC', 'Enki', 'Recon', patch_file)
     f = np.load(patch_file)
     data = f['data']
     data = data.reshape((data.shape[0]*data.shape[1], 
@@ -247,8 +283,8 @@ def fig_patch_ij_binned_stats(metric:str,
     cbaxes.ax.tick_params(labelsize=15)
 
     # Axes
-    ax.set_xlabel(r'i')
-    ax.set_ylabel(r'j')
+    ax.set_xlabel(r'$i$')
+    ax.set_ylabel(r'$j$')
     ax.set_aspect('equal')
 
     plotting.set_fontsize(ax, 15)
@@ -258,6 +294,92 @@ def fig_patch_ij_binned_stats(metric:str,
     plt.close()
     print('Wrote {:s}'.format(outfile))
 
+
+def fig_patch_rmse(patch_file:str, nbins:int=16):
+    """ Binned stats for patches
+
+    Args:
+        patch_file (str): _description_
+        nbins (int, optional): _description_. Defaults to 16.
+    """
+    lims = (-5,1)
+
+    # Parse
+    t_per, p_per = enki_utils.parse_enki_file(patch_file)
+
+    # Outfile
+    outfile = f'fig_patch_rmse_t{t_per}_p{p_per}.png'
+
+    # Load
+    patch_file = os.path.join(os.getenv("OS_OGCM"),
+        'LLC', 'Enki', 'Recon', patch_file)
+
+    f = np.load(patch_file)
+    data = f['data']
+    data = data.reshape((data.shape[0]*data.shape[1], 
+                         data.shape[2]))
+
+    items = f['items']
+    tbl = pandas.DataFrame(data, columns=items)
+
+    nbins = 32
+    metric = 'log10_std_diff'
+    stat = 'median'
+
+    x_metric = 'log10_stdT'
+    xvalues, x_lbl = anly_patches.parse_metric(tbl, x_metric)
+
+    values, lbl = anly_patches.parse_metric(tbl, metric)
+
+    good = np.isfinite(xvalues.values)
+
+    # Do it
+    eval_stats, x_edge, ibins = scipy.stats.binned_statistic(
+        xvalues.values[good], values.values[good], statistic=stat, bins=nbins)
+
+    # Figure
+    fig = plt.figure(figsize=(8, 8))
+    plt.clf()
+    ax = plt.gca()
+
+    # Patches
+    plt_x = (x_edge[:-1]+x_edge[1:])/2
+    ax.plot(plt_x, eval_stats, 'b', label='Patches')
+
+    # PMC Model
+    consts = (0.01, 8.)
+    xval = np.linspace(lims[0], lims[1], 1000)
+    yval = np.log10((10**xval + consts[0])/consts[1])
+    ax.plot(xval, yval, 'r:', label=r'$\log_{10}( \, (\sigma_T + '+f'{consts[0]})/{consts[1]}'+r')$')
+
+    # Axes
+    ax.set_xlabel(x_lbl)
+    ax.set_ylabel(f'{stat}({lbl})')
+
+    ax.set_xlim(lims[0], lims[1])
+    ax.set_ylim(lims[0], lims[1])
+
+    # Labeling
+    fsz = 17.
+    ax.text(0.05, 0.9, f't={t_per}, p={p_per}',
+            transform=ax.transAxes,
+              fontsize=fsz, ha='left', color='k')
+
+    ax.legend(loc='lower right', fontsize=fsz-2)
+
+    plotting.set_fontsize(ax, fsz)
+
+    # 1-1
+    ax.plot(lims, lims, 'k--')
+
+    # Grid
+    ax.grid()
+
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print('Wrote {:s}'.format(outfile))
+
+    
 def fig_explore_bias(outfile:str='fig_explore_bias.png',
                      nimg:int=50000, debug:bool=False,
                      bias_file:str='bias.csv',
@@ -281,8 +403,8 @@ def fig_explore_bias(outfile:str='fig_explore_bias.png',
                     break
                 print(f'Working on t={t} p={p}')
                 #
-                recon_file = mae_utils.img_filename(t, p, mae_img_path=recon_path)
-                mask_file = mae_utils.mask_filename(t, p, mae_mask_path=recon_path)
+                recon_file = enki_utils.img_filename(t, p, mae_img_path=recon_path)
+                mask_file = enki_utils.mask_filename(t, p, mae_mask_path=recon_path)
                 # Load
                 f_recon = h5py.File(recon_file, 'r')
                 f_mask = h5py.File(mask_file, 'r')
@@ -385,12 +507,6 @@ def fig_viirs_example(outfile:str, t:int, idx:int=0):
     plt.close()
     print('Wrote {:s}'.format(outfile))
 
-def fig_viirs_recon_rmse(outfile:str, t:int, p:int):
-
-    # VIIRS table
-    viirs_file = os.path.join(sst_path, 'VIIRS', 'Tables', 
-                              'VIIRS_all_100clear_std.parquet')
-    viirs = ulmo_io.load_main_table(viirs_file)
 
 def fig_llc_inpainting(outfile:str, t:int, p:int, 
                        debug:bool=False):
@@ -406,8 +522,8 @@ def fig_llc_inpainting(outfile:str, t:int, p:int,
     inpaint_file = os.path.join(
         ogcm_path, 'LLC', 'Enki', 
         'Recon', f'LLC_inpaint_t{t}_p{p}.h5')
-    recon_file = mae_utils.img_filename(t,p, local=True)
-    mask_file = mae_utils.mask_filename(t,p, local=True)
+    recon_file = enki_utils.img_filename(t,p, local=True)
+    mask_file = enki_utils.mask_filename(t,p, local=True)
 
     # Load up
     enki_tbl = ulmo_io.load_main_table(local_enki_table)
@@ -447,28 +563,73 @@ def fig_llc_inpainting(outfile:str, t:int, p:int,
     enki_tbl['frac_rms'] = enki_tbl.delta_rms / enki_tbl.DT
 
     nbad = np.sum(enki_tbl.delta_rms < 0.)
-    print(f"There are {nbad} of {len(enki_tbl)} with DeltaRMS < 0")
+    print(f"There are {100*nbad/len(enki_tbl)}% with DeltaRMS < 0")
 
     # Plot
     # Prep fig
     sns.set_style("whitegrid")
-    #fig = plt.figure(figsize=(9, 12))
+    fig = plt.figure(figsize=(12, 12))
+    gs = gridspec.GridSpec(2,2)
     plt.clf()
 
-    fg = sns.displot(data=enki_tbl, x='DT',
+    ax0 = plt.subplot(gs[1])
+    _ = sns.histplot(data=enki_tbl, x='DT',
                     y='delta_rms', log_scale=(True,True),
-                    color='purple')
-    #fg = sns.displot(data=enki_tbl, x='DT',
-    #                y='frac_rms', log_scale=(True,True),
-    #                color='purple') 
+                    color='purple', ax=ax0)
+    ax0.set_xlabel(r'$\Delta T$ (K)')                
+    ax0.set_ylabel(r'$\Delta$RMSE = RMSE$_{\rm biharmonic}$ - RMSE$_{\rm Enki}$ (K)')
+
+    # Delta RMS / Delta T
+    ax1 = plt.subplot(gs[2])
+    sns.histplot(data=enki_tbl, x='DT',
+                 y='frac_rms', log_scale=(True,False),
+                 color='gray', ax=ax1) 
+    ax1.set_xlabel(r'$\Delta T$ (K)')                
+    ax1.set_ylabel(r'$\Delta$RMSE / $\Delta T$')
+    ax1.set_ylim(-0.1, 1)
+
+    # RMS_biharmonic vs. RMS_Enki
+    ax2 = plt.subplot(gs[3])
+    scat = ax2.scatter(enki_tbl.rms_enki, 
+                enki_tbl.rms_inpaint, s=0.1,
+                c=enki_tbl.log10DT, cmap='jet')
+    ax2.set_ylabel(r'RMSE$_{\rm biharmonic}$')
+    ax2.set_xlabel(r'RMSE$_{\rm Enki}$')
+    ax2.set_yscale('log')
+    ax2.set_xscale('log')
+    cbaxes = plt.colorbar(scat)#, pad=0., fraction=0.030)
+    cbaxes.set_label(r'$\log_{10} \, \Delta T$ (K)')#, fontsize=17.)
+    #cbaxes.ax.tick_params(labelsize=15)
+
+    ax2.plot([1e-3, 10], [1e-3,10], 'k--')
+
+    # RMS_Enki vs. DT
+    nobj = len(enki_tbl)
+    hack = pandas.concat([enki_tbl,enki_tbl])
+    hack['Model'] = ['Enki']*nobj + ['Biharmonic']*nobj
+    hack['RMSE'] = np.concatenate(
+        [enki_tbl.rms_enki.values[0:nobj],
+        enki_tbl.rms_inpaint.values[0:nobj]])
+
+    ax3 = plt.subplot(gs[0])
+    sns.histplot(data=hack, x='DT',
+                 y='RMSE', 
+                 hue='Model',
+                 log_scale=(True,True),
+                 ax=ax3) 
+    #sns.histplot(data=enki_tbl, x='DT',
+    #             y='rms_enki', 
+    #             log_scale=(True,True),
+    #             color='blue', ax=ax3) 
+    ax3.set_xlabel(r'$\Delta T$ (K)')                
+    #ax3.set_ylabel(r'RMSE$_{\rm Enki}$ (K)')
 
     # Polish
-    fg.ax.set_xlabel(r'$\Delta T$ (K)')                
-    fg.ax.set_ylabel(r'$\Delta$RMSE = RMSE$_{\rm inpaint}$ - RMSE$_{\rm Enki}$ (K)')
     #fg.ax.minorticks_on()
-    plotting.set_fontsize(fg.ax, 12.)
+    for ax in [ax0, ax1, ax2, ax3]:
+        plotting.set_fontsize(ax, 14.)
 
-    plt.title(f'Enki vs. Inpaiting: t={t}, p={p}')
+    #plt.title(f'Enki vs. Inpaiting: t={t}, p={p}')
 
     # Finish
     plt.savefig(outfile, dpi=300)
@@ -484,19 +645,19 @@ def main(flg_fig):
 
     # Uniform, non UMAP gallery for DTall
     if flg_fig & (2 ** 0):
-        fig_clouds('fig_clouds.png',
-                   '/tank/xavier/Oceanography/Python/ulmo/ulmo/runs/MAE/modis_2020_cloudcover.npz')
+        fig_clouds('fig_clouds.png', 'modis_2020_cloudcover.npz')
 
     if flg_fig & (2 ** 1):
-        fig_numhp_clouds('fig_numhp_clouds.png',
-                   '/tank/xavier/Oceanography/Python/ulmo/ulmo/runs/MAE/modis_2020_cloudcover.npz')
+        fig_numhp_clouds('fig_numhp_clouds.png', 'modis_2020_cloudcover.npz')
 
     if flg_fig & (2 ** 2):
         #fig_patch_ij_binned_stats('abs_median_diff', 'median',
         #                          'mae_patches_t75_p20.npz')
         #fig_patch_ij_binned_stats('median_diff', 'mean',
         #                          'mae_patches_t75_p20.npz')
-        fig_patch_ij_binned_stats('median_diff', 'median',
+        #fig_patch_ij_binned_stats('median_diff', 'median',
+        #                          'mae_patches_t75_p20.npz')
+        fig_patch_ij_binned_stats('std_diff', 'median',
                                   'mae_patches_t75_p20.npz')
 
     # Explore the bias
@@ -513,60 +674,17 @@ def main(flg_fig):
 
     # VIIRS inpainting analysis
     if flg_fig & (2 ** 6):
-        fig_llc_inpainting('fig_llcinpainting.png', 10, 10,
-                           debug=True)
+        fig_llc_inpainting('fig_llcinpainting.png', 10, 10)#, debug=True)
+
+    # 
+    if flg_fig & (2 ** 7):
+        fig_bias('fig_bias.png')
+
+    # Patch RMSE
+    if flg_fig & (2 ** 8):
+        fig_patch_rmse('mae_patches_t10_p20.npz')
 
 
-#def rms_images(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File, 
-def rms_images(orig_imgs, recon_imgs, mask_imgs, 
-               patch_sz:int=4):
-    """_summary_
-
-    Args:
-        f_orig (h5py.File): Pointer to original images
-        f_recon (h5py.File): Pointer to reconstructed images
-        f_mask (h5py.File): Pointer to mask images
-        patch_sz (int, optional): patch size. Defaults to 4.
-
-    Returns:
-        np.array: RMS values
-    """
-    print("USE THE RIGHT ONE ONCE MERGED")
-    # Load em all
-    print("Loading images...")
-    #if nimgs is None:
-    #    nimgs = f_orig['valid'].shape[0]
-
-    # Grab em
-    #orig_imgs = f_orig['valid'][:nimgs,0,...]
-    #mask_imgs = f_mask['valid'][:nimgs,0,...]
-
-    # Allow for various shapes (hack)
-    #recon_imgs = f_recon['valid'][:nimgs,0,...]
-
-    # Mask out edges
-    print("Masking edges")
-    mask_imgs[:, 0:patch_sz, :] = 0
-    mask_imgs[:, -patch_sz:, :] = 0
-    mask_imgs[:, :, 0:patch_sz] = 0
-    mask_imgs[:, :, -patch_sz:] = 0
-
-    # Analyze
-    print("Calculate")
-    calc = (orig_imgs - recon_imgs)*mask_imgs
-
-    # Square
-    print("Square")
-    calc = calc**2
-
-    # Mean
-    print("Mean")
-    nmask = np.sum(mask_imgs, axis=(1,2))
-    calc = np.sum(calc, axis=(1,2)) / nmask
-
-    # RMS
-    print("Root")
-    return np.sqrt(calc)
 
 # Command line execution
 if __name__ == '__main__':
@@ -574,12 +692,14 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         flg_fig = 0
         #flg_fig += 2 ** 0  # Clouds on the sphere
-        #flg_fig += 2 ** 1  # Number satisfying
-        #flg_fig += 2 ** 2  # Binned stats
-        #flg_fig += 2 ** 3  # Bias
+        #flg_fig += 2 ** 1  # N_C vs CC
+        #flg_fig += 2 ** 2  # Binned stats on patches
+        #flg_fig += 2 ** 3  # explore Bias
         #flg_fig += 2 ** 4  # VIIRS example
         #flg_fig += 2 ** 5  # VIIRS reocn analysis
-        flg_fig += 2 ** 6  # LLC inpainting
+        #flg_fig += 2 ** 6  # LLC inpainting
+        #flg_fig += 2 ** 7  # Bias
+        flg_fig += 2 ** 8  # Bias
     else:
         flg_fig = sys.argv[1]
 

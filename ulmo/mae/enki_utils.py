@@ -1,4 +1,4 @@
-""" Utility methods for MAE """
+""" Utility methods for Enki """
 
 import os
 
@@ -58,14 +58,18 @@ def mask_filename(t_per:int, p_per:int,
 
     return mask_file
 
-def parse_mae_img_file(img_file:str):
-    """ Grab the train and patch percentages from the image filename
+def parse_enki_file(ifile:str):
+    """ Grab the train and patch percentages from the input filename
+
     Args:
         img_file (str): 
             Assumes mae_reconstruct_tXX_pXX.h5 format
+
+    Returns:
+        tuple: train and patch percentages (str,str`)
     """
 
-    prs = os.path.basename(img_file).split('_')
+    prs = os.path.basename(ifile).split('_')
 
     # Train %
     assert prs[2][0] == 't'

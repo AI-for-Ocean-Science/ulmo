@@ -17,6 +17,7 @@ import torch
 
 import ulmo.mae.util.misc as misc
 import ulmo.mae.util.lr_sched as lr_sched
+from ulmo.mae.util.hdfstore import HDF5Store
 
 
 def train_one_epoch(model: torch.nn.Module,
@@ -87,17 +88,35 @@ def train_one_epoch(model: torch.nn.Module,
 def reconstruct_one_epoch(model: torch.nn.Module,
                          data_loader: Iterable, optimizer: torch.optim.Optimizer,
                          device: torch.device, loss_scaler,
-                         file=None,
-                         mask_file=None,
-                         log_writer=None,
-                         args=None):
+                         mask_ratio:float,
+                         batch_size:int,
+                         accum_iter:int,
+                         image_store:HDF5Store=None,
+                         mask_store:HDF5Store=None,
+                         log_writer=None):
+    """ Reconstruct a single epoch
+
+    Args:
+        model (torch.nn.Module): _description_
+        data_loader (Iterable): _description_
+        optimizer (torch.optim.Optimizer): _description_
+        device (torch.device): _description_
+        loss_scaler (_type_): _description_
+        mask_ratio (float): _description_
+        batch_size (int): _description_
+        accum_iter (int): _description_
+        image_store (HDF5Store, optional): _description_. Defaults to None.
+        mask_store (HDF5Store, optional): _description_. Defaults to None.
+        log_writer (_type_, optional): _description_. Defaults to None.
+
+    Returns:
+        dict: _description_
+    """
     model.train(True)
     metric_logger = misc.MetricLogger(delimiter="  ")
     metric_logger.add_meter('lr', misc.SmoothedValue(window_size=1, fmt='{value:.6f}'))
     header = 'Reconstructing:'
     print_freq = 20
-
-    accum_iter = args.accum_iter
     
     optimizer.zero_grad()
 
@@ -109,7 +128,7 @@ def reconstruct_one_epoch(model: torch.nn.Module,
         samples = samples.to(device, non_blocking=True)
         
         with torch.cuda.amp.autocast():
-            loss, y, mask = model(samples, mask_ratio=args.mask_ratio)
+            loss, y, mask = model(samples, mask_ratio=mask_ratio)
             
         ## --------------------- New stuff -----------------------
         # note: despite leaving the setup for it this is not DDP comptible yet
@@ -129,9 +148,9 @@ def reconstruct_one_epoch(model: torch.nn.Module,
         im = im_paste.cpu().detach().numpy()
         m = mask.cpu().detach().numpy()
         m = np.squeeze(m, axis=1)
-        for i in range(args.batch_size):
-            file.append(im[i])
-            mask_file.append(m[i])
+        for i in range(batch_size):
+            image_store.append(im[i])
+            mask_store.append(m[i])
         
         # --------------------------------------------------------
         

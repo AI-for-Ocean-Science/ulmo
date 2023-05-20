@@ -1,39 +1,47 @@
-#!/usr/bin/env python
-# coding: utf-8
+""" Script to run Enki for image reconstructions """
 
-# ## Masked Autoencoders: Visualization Demo
-# 
-# This is a visualization demo using our pre-trained MAE models. No GPU is needed.
-
-# ### Prepare
-# Check environment. Install packages if in Colab.
-# 
-
-# In[1]:
-
-
-import sys
 import os
-import requests
 import argparse
 from pathlib import Path
 
-import torch
-import numpy as np
 import h5py
-import timm.optim.optim_factory as optim_factory
-from ulmo.mae.util.misc import NativeScalerWithGradNormCount as NativeScaler
+import torch
 
-import matplotlib.pyplot as plt
-from PIL import Image
-from ulmo.mae.util.hdfstore import HDF5Store
-import ulmo.mae.util.misc as misc
-from ulmo import io as ulmo_io
-from ulmo.utils import HDF5Dataset, id_collate, get_quantiles
+import timm.optim.optim_factory as optim_factory
+
+from ulmo.utils import HDF5Dataset, id_collate
 
 from ulmo.mae import models_mae
+from ulmo.mae import reconstruct
+import ulmo.mae.util.misc as misc
+from ulmo.mae.util.hdfstore import HDF5Store
 from ulmo.mae.mae_utils import img_filename, mask_filename
 from ulmo.mae.engine_pretrain import reconstruct_one_epoch
+from ulmo.mae.util.misc import NativeScalerWithGradNormCount as NativeScaler
+
+from ulmo import io as ulmo_io
+
+from IPython import embed
+
+def prepare_model(args):
+    # build model
+    device = torch.device(args.device)
+    model = models_mae.__dict__[args.model](norm_pix_loss=args.norm_pix_loss)
+    model.to(device)
+    model_without_ddp = model
+    
+    if args.distributed: # args.distributed:
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], output_device=args.gpu)
+        model_without_ddp = model.module
+    
+    param_groups = optim_factory.add_weight_decay(model_without_ddp, args.weight_decay)
+    optimizer = torch.optim.AdamW(param_groups, lr=args.lr, betas=(0.9, 0.95))
+    loss_scaler = NativeScaler()
+    
+    misc.load_model(args=args, model_without_ddp=model_without_ddp, optimizer=optimizer, loss_scaler=loss_scaler)
+    
+    return model, optimizer, device, loss_scaler
+
 
 def get_args_parser():
     parser = argparse.ArgumentParser('MAE reconstruction', add_help=False)
@@ -62,6 +70,8 @@ def get_args_parser():
     # Dataset parameters
     parser.add_argument('--data_path', default='LLC_uniform144_nonoise_preproc.h5', type=str,
                         help='dataset path')
+    parser.add_argument('--upload_path', type=str, help='s3 path for uploading the reconstructed file')
+    parser.add_argument('--mask_upload_path', type=str, help='s3 path for uploading the mask file')
     parser.add_argument('--output_dir', default='./output_dir',
                         help='path where to save, empty for no saving')
     parser.add_argument('--device', default='cuda',
@@ -88,109 +98,12 @@ def get_args_parser():
 
     return parser
 
-def prepare_model(args):
-    # build model
-    device = torch.device(args.device)
-    model = models_mae.__dict__[args.model](norm_pix_loss=args.norm_pix_loss)
-    model.to(device)
-    model_without_ddp = model
-    
-    if args.distributed: # args.distributed:
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], output_device=args.gpu)
-        model_without_ddp = model.module
-    
-    param_groups = optim_factory.add_weight_decay(model_without_ddp, args.weight_decay)
-    optimizer = torch.optim.AdamW(param_groups, lr=args.lr, betas=(0.9, 0.95))
-    loss_scaler = NativeScaler()
-    
-    misc.load_model(args=args, model_without_ddp=model_without_ddp, optimizer=optimizer, loss_scaler=loss_scaler)
-    
-    return model, optimizer, device, loss_scaler
-
-
-def run_one_image(img:np.ndarray, model, mask_ratio, file, mask_file):
-    x = torch.tensor(img)
-
-    # make it a batch-like
-    x = x.unsqueeze(dim=0)
-    x = x.cuda()
-    x = torch.einsum('nhwc->nchw', x)
-
-    # run MAE
-    loss, y, mask = model(x.float(), mask_ratio)
-    y = model.unpatchify(y)
-    y = torch.einsum('nchw->nhwc', y).detach()
-
-    # visualize the mask
-    mask = mask.detach()
-    mask = mask.unsqueeze(-1).repeat(1, 1, model.patch_embed.patch_size[0]**2 *1)  # (N, H*W, p*p*3)
-    mask = model.unpatchify(mask)  # 1 is removing, 0 is keeping
-    mask = torch.einsum('nchw->nhwc', mask).detach()
-    
-    x = torch.einsum('nchw->nhwc', x)
-
-    # masked image
-    im_masked = x * (1 - mask)
-
-    # MAE reconstruction pasted with visible patches (image of interest)
-    im_paste = x * (1 - mask) + y * mask
-    temp = im_paste.cpu().detach().numpy()
-    #from IPython import embed; embed(header='225 of extract')
-    im = np.squeeze(temp, axis=3)
-    m = mask.cpu().detach().numpy()
-    m = np.squeeze(m, axis=3)
-    m = np.squeeze(m, axis=0)
-    # TODO: check mask size
-    
-    file.append(im)
-    mask_file.append(m)
-
-
-def x_run_one_image(img:np.ndarray, model, mask_ratio:float):
-    """_summary_
-
-    Args:
-        img (np.ndarray): _description_
-        model (_type_): _description_
-        mask_ratio (float): _description_
-
-    Returns:
-        tuple: mask, reconstructed image, original image
-    """
-    x = torch.tensor(img)
-
-    # make it a batch-like
-    x = x.unsqueeze(dim=0)
-    x = torch.einsum('nhwc->nchw', x)
-
-    # run MAE
-    loss, y, mask = model(x.float(), mask_ratio)
-    y = model.unpatchify(y)
-    y = torch.einsum('nchw->nhwc', y).detach().cpu()
-
-    # visualize the mask
-    mask = mask.detach()
-    mask = mask.unsqueeze(-1).repeat(1, 1, model.patch_embed.patch_size[0]**2 *1)  # (N, H*W, p*p*3)
-    mask = model.unpatchify(mask)  # 1 is removing, 0 is keeping
-    mask = torch.einsum('nchw->nhwc', mask).detach().cpu()
-    
-    x = torch.einsum('nchw->nhwc', x)
-    return mask, x, y
-    
-def run_remainder(args, model, data_length, file, mask_file):
-    start = (data_length // args.batch_size) * args.batch_size
-    end = data_length
-    with h5py.File(args.data_path, 'r') as f:
-        for i in range(start, end):
-            img = f['valid'][i][0]
-            img.resize((64,64,1))
-            assert img.shape == (64, 64, 1)
-            run_one_image(img, model, args.mask_ratio, file, mask_file)
-
 def main(args):
+
+    # Handle distributed
     misc.init_distributed_mode(args)
     
-    # load data
+    # Load data (locally)
     dataset_train = HDF5Dataset(args.data_path, partition='valid')
     with h5py.File(args.data_path, 'r') as f:
         dshape=f['valid'][0].shape
@@ -205,41 +118,57 @@ def main(args):
     data_length = len(data_loader_train.dataset)
     print("training",  data_length)
     print("Datasets loaded")
-    
+
     # setup model and parameters
     model, optimizer, device, loss_scaler = prepare_model(args)
     print(args.model, "loaded")
     
     # set up file and upload path
-    upload_path = img_filename(int(100*args.model_training_mask), int(100*args.mask_ratio))
+    if args.upload_path is None:
+        upload_path = img_filename(int(100*args.model_training_mask), int(100*args.mask_ratio))
+    else:
+        upload_path = args.upload_path
+        
     filepath = os.path.join(args.output_dir, os.path.basename(upload_path))
-    file = HDF5Store(filepath, 'valid', shape=dshape)
+    images = HDF5Store(filepath, 'valid', shape=dshape)
     
     # set up mask file and upload path
-    mask_upload_path = mask_filename(int(100*args.model_training_mask), int(100*args.mask_ratio))
+    if args.mask_upload_path is None:
+        mask_upload_path = mask_filename(int(100*args.model_training_mask), int(100*args.mask_ratio))
+    else:
+        mask_upload_path = args.mask_upload_path
     mask_filepath = os.path.join(args.output_dir, os.path.basename(mask_upload_path))
-    mask_file = HDF5Store(mask_filepath, 'valid', shape=dshape)
+    masks = HDF5Store(mask_filepath, 'valid', shape=dshape)
     
     print(f"Saving to file {filepath} and uploading to {upload_path}")
     
     print(f"Start reconstructing for {data_length} images")
 
     if args.distributed: # args.distributed:??
+        raise ValueError("Distributed not supported")
         data_loader_train.sampler.set_epoch(epoch)
+
+    # Do one epoch of reconstruction
+    #  This also initializes a bunch of things
     train_stats = reconstruct_one_epoch(
         model, data_loader_train,
         optimizer, device, loss_scaler,
-        file=file,
-        mask_file=mask_file,
-        args=args
+        args.mask_ratio, args.batch_size, args.accum_iter,
+        image_store=images,
+        mask_store=masks,
     )
+
     print("Reconstructing batch remainder")
-    run_remainder(args, model, data_length, file, mask_file)
-    if not args.debug:
-        ulmo_io.upload_file_to_s3(filepath, upload_path)
-        ulmo_io.upload_file_to_s3(mask_filepath, mask_upload_path)
+    reconstruct.run_remainder(model, data_length, 
+                              images, masks,
+                              args.batch_size, 
+                              args.data_path,
+                              args.mask_ratio) 
+    ulmo_io.upload_file_to_s3(filepath, upload_path)
+    ulmo_io.upload_file_to_s3(mask_filepath, mask_upload_path)
     
-    
+
+
 if __name__ == '__main__':
     args = get_args_parser()
     args = args.parse_args()
@@ -247,4 +176,6 @@ if __name__ == '__main__':
         Path(args.output_dir).mkdir(parents=True, exist_ok=True)
     main(args)
     
-  
+# On Jupyter
+# cp ulmo/mae/correct_helpers.py /opt/conda/lib/python3.10/site-packages/timm-0.3.2-py3.10.egg/timm/models/layers/helpers.py
+# python /home/jovyan/Oceanography/python/ulmo/ulmo/scripts/enki_reconstruct.py --mask_ratio 0.1 --data_path VIIRS_all_100clear_preproc.h5 --output_dir output --resume checkpoint-270.pth --upload_path s3://llc/mae/Recon/VIIRS_100clear_t10_p10.h5 --mask_upload_path s3://llc/mae/Recon/VIIRS_100clear_t10_p10_mask.h5
