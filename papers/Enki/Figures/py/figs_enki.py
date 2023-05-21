@@ -61,7 +61,7 @@ stper = r'$t_\%$'
 
 def fig_patches(outfile:str, patch_file:str, nbins:int=16):
 
-    fig = plt.figure(figsize=(12,6))
+    fig = plt.figure(figsize=(12,7))
     plt.clf()
     gs = gridspec.GridSpec(1,2)
 
@@ -70,12 +70,12 @@ def fig_patches(outfile:str, patch_file:str, nbins:int=16):
     fig_patch_ij_binned_stats('std_diff', 'median',
                               patch_file, ax=ax0)
     lsz = 16.
-    ax0.set_title('(a)', fontsize=lsz, color='k')
+    ax0.set_title('(a)', fontsize=lsz, color='k', loc='left')
 
     # RMSE
     ax1 = plt.subplot(gs[1])
     fig_patch_rmse(patch_file, ax=ax1)
-    ax1.set_title('(b)', fontsize=lsz, color='k')
+    ax1.set_title('(b)', fontsize=lsz, color='k', loc='left')
 
     # Finish
     plt.tight_layout(pad=0.0, h_pad=0.0, w_pad=0.3)
@@ -164,13 +164,15 @@ def fig_patch_ij_binned_stats(metric:str,
                     cmap=cm, 
                     vmax=None) 
     # Color bar
-    cbaxes = plt.colorbar(mplt, pad=0., fraction=0.030)
+    cbaxes = plt.colorbar(mplt, pad=0., fraction=0.030, orientation='horizontal') #location='left')
     cbaxes.set_label(f'{stat}({lbl})', fontsize=17.)
     cbaxes.ax.tick_params(labelsize=15)
 
     # Axes
     ax.set_xlabel(r'$i$')
+    ax.xaxis.set_label_position('top')
     ax.set_ylabel(r'$j$')
+    ax.tick_params(top=True, labeltop=True, bottom=False, labelbottom=False)
     ax.set_aspect('equal')
 
     # Finish
@@ -320,7 +322,17 @@ def fig_viirs_example(outfile:str, t:int, idx:int=0):
 
 
 def fig_llc_inpainting(outfile:str, t:int, p:int, 
-                       debug:bool=False):
+                       debug:bool=False, single:bool=False):
+    """_summary_
+
+    Args:
+        outfile (str): _description_
+        t (int): _description_
+        p (int): _description_
+        debug (bool, optional): _description_. Defaults to False.
+        single (bool, optional): 
+            Show a single panel.  Defaults to False.
+    """
 
     # Files
     local_enki_table = os.path.join(
@@ -382,65 +394,83 @@ def fig_llc_inpainting(outfile:str, t:int, p:int,
     # Prep fig
     sns.set_style("whitegrid")
     fig = plt.figure(figsize=(12, 12))
-    gs = gridspec.GridSpec(2,2)
+    if single:
+        gs = gridspec.GridSpec(1,1)
+    else:
+        gs = gridspec.GridSpec(2,2)
     plt.clf()
 
-    ax0 = plt.subplot(gs[1])
-    _ = sns.histplot(data=enki_tbl, x='DT',
-                    y='delta_rms', log_scale=(True,True),
-                    color='purple', ax=ax0)
-    ax0.set_xlabel(r'$\Delta T$ (K)')                
-    ax0.set_ylabel(r'$\Delta$RMSE = RMSE$_{\rm biharmonic}$ - RMSE$_{\rm Enki}$ (K)')
+    axes = []
+    if not single:
+        ax0 = plt.subplot(gs[1])
+        _ = sns.histplot(data=enki_tbl, x='DT',
+                        y='delta_rms', log_scale=(True,True),
+                        color='purple', ax=ax0)
+        ax0.set_xlabel(r'$\Delta T$ (K)')                
+        ax0.set_ylabel(r'$\Delta$RMSE = RMSE$_{\rm biharmonic}$ - RMSE$_{\rm Enki}$ (K)')
 
-    # Delta RMS / Delta T
-    ax1 = plt.subplot(gs[2])
-    sns.histplot(data=enki_tbl, x='DT',
-                 y='frac_rms', log_scale=(True,False),
-                 color='gray', ax=ax1) 
-    ax1.set_xlabel(r'$\Delta T$ (K)')                
-    ax1.set_ylabel(r'$\Delta$RMSE / $\Delta T$')
-    ax1.set_ylim(-0.1, 1)
+        # Delta RMS / Delta T
+        ax1 = plt.subplot(gs[2])
+        sns.histplot(data=enki_tbl, x='DT',
+                    y='frac_rms', log_scale=(True,False),
+                    color='gray', ax=ax1) 
+        ax1.set_xlabel(r'$\Delta T$ (K)')                
+        ax1.set_ylabel(r'$\Delta$RMSE / $\Delta T$')
+        ax1.set_ylim(-0.1, 1)
+        # Add axes
+        axes.append(ax0)
+        axes.append(ax1)
 
     # RMS_biharmonic vs. RMS_Enki
-    ax2 = plt.subplot(gs[3])
+    if single:
+        ax2 = plt.subplot(gs[0])
+    else:
+        ax2 = plt.subplot(gs[3])
+    #embed(header='429 of figs')
     scat = ax2.scatter(enki_tbl.rms_enki, 
                 enki_tbl.rms_inpaint, s=0.1,
-                c=enki_tbl.log10DT, cmap='jet')
+                c=enki_tbl.LL, cmap='jet')
+                #c=enki_tbl.log10DT, cmap='jet')
     ax2.set_ylabel(r'RMSE$_{\rm biharmonic}$')
     ax2.set_xlabel(r'RMSE$_{\rm Enki}$')
     ax2.set_yscale('log')
     ax2.set_xscale('log')
     cbaxes = plt.colorbar(scat)#, pad=0., fraction=0.030)
-    cbaxes.set_label(r'$\log_{10} \, \Delta T$ (K)')#, fontsize=17.)
-    #cbaxes.ax.tick_params(labelsize=15)
+    #cbaxes.set_label(r'$\log_{10} \, \Delta T$ (K)', fontsize=17.)
+    cbaxes.set_label(r'$LL_{\rm Ulmo}$', fontsize=17.)
+    cbaxes.ax.tick_params(labelsize=15)
 
     ax2.plot([1e-3, 10], [1e-3,10], 'k--')
+    axes.append(ax2)
 
     # RMS_Enki vs. DT
-    nobj = len(enki_tbl)
-    hack = pandas.concat([enki_tbl,enki_tbl])
-    hack['Model'] = ['Enki']*nobj + ['Biharmonic']*nobj
-    hack['RMSE'] = np.concatenate(
-        [enki_tbl.rms_enki.values[0:nobj],
-        enki_tbl.rms_inpaint.values[0:nobj]])
+    if not single:
+        nobj = len(enki_tbl)
+        hack = pandas.concat([enki_tbl,enki_tbl])
+        hack['Model'] = ['Enki']*nobj + ['Biharmonic']*nobj
+        hack['RMSE'] = np.concatenate(
+            [enki_tbl.rms_enki.values[0:nobj],
+            enki_tbl.rms_inpaint.values[0:nobj]])
 
-    ax3 = plt.subplot(gs[0])
-    sns.histplot(data=hack, x='DT',
-                 y='RMSE', 
-                 hue='Model',
-                 log_scale=(True,True),
-                 ax=ax3) 
-    #sns.histplot(data=enki_tbl, x='DT',
-    #             y='rms_enki', 
-    #             log_scale=(True,True),
-    #             color='blue', ax=ax3) 
-    ax3.set_xlabel(r'$\Delta T$ (K)')                
-    #ax3.set_ylabel(r'RMSE$_{\rm Enki}$ (K)')
+        ax3 = plt.subplot(gs[0])
+        sns.histplot(data=hack, x='DT',
+                    y='RMSE', 
+                    hue='Model',
+                    log_scale=(True,True),
+                    ax=ax3) 
+        #sns.histplot(data=enki_tbl, x='DT',
+        #             y='rms_enki', 
+        #             log_scale=(True,True),
+        #             color='blue', ax=ax3) 
+        ax3.set_xlabel(r'$\Delta T$ (K)')                
+        #ax3.set_ylabel(r'RMSE$_{\rm Enki}$ (K)')
+        axes.append(ax3)
 
     # Polish
     #fg.ax.minorticks_on()
-    for ax in [ax0, ax1, ax2, ax3]:
-        plotting.set_fontsize(ax, 14.)
+    lsz = 17 if single else 14
+    for ax in axes:
+        plotting.set_fontsize(ax, lsz)
 
     #plt.title(f'Enki vs. Inpaiting: t={t}, p={p}')
 
@@ -570,7 +600,7 @@ def main(flg_fig):
 
     # LLC (Enki vs inpainting)
     if flg_fig & (2 ** 2):
-        fig_llc_inpainting('fig_llcinpainting.png', 10, 10)#, debug=True)
+        fig_llc_inpainting('fig_llcinpainting.png', 10, 10, single=True)#, debug=True)
 
 # Command line execution
 if __name__ == '__main__':
