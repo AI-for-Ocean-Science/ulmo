@@ -569,9 +569,9 @@ def plot_loss(filepath='data/log.txt', outfile='loss.png'):
     
 
     
-def plot_model_bias(filepath='data/enki_bias_LLC.csv', outfile='model_biases.png'):
+def plot_model_bias(filepath='enki_bias_LLC.csv', outfile='model_biases.png'):
     biases = pd.read_csv(filepath)
-    colors = ['c','g','b','m']
+    colors = ['b','g','m','c']
     models = [10,35,50,75]
     x = [10,20,30,40,50]
     
