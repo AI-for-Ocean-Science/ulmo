@@ -548,7 +548,7 @@ def parse(d):
         dictionary[pair[0].strip('\'\'\"\"')] = float(pair[1].strip('\'\'\"\"'))
     return dictionary
 
-def plot_loss(filepath='log.txt', outfile='loss.png'):
+def plot_loss(filepath='data/log.txt', outfile='loss.png'):
     loss = []
     file = open(filepath, 'rt')
     lines = file.read().split('\n')
@@ -559,36 +559,49 @@ def plot_loss(filepath='log.txt', outfile='loss.png'):
     file.close()
 
     df = pandas.DataFrame(loss)
-    df.plot(x = 'epoch', y = 'train_loss', logy=True)
+    f, ax = plt.subplots(figsize=(5, 5))
+    sns.lineplot(data = df, x = 'epoch', y = 'train_loss')
+    plt.yscale('log')
+    ax.tick_params(axis='y', which='both', direction='out', length=4, left=True,
+                   color='gray')
+    ax.grid(True, which='both', color='gray', linewidth=0.1)
     plt.savefig(outfile, dpi=300)
     
 
     
 def plot_model_bias(filepath='data/enki_bias_LLC.csv', outfile='model_biases.png'):
     biases = pd.read_csv(filepath)
-    colors = ['r','g','b','k']
+    colors = ['c','g','b','m']
     models = [10,35,50,75]
-    x = ['10','20','30','40','50']
+    x = [10,20,30,40,50]
     
     fig, ax = plt.subplots()
     plt_labels = []
+    
     for i in range(4):
         p = biases[i*5:i*5+5]
         y = p['mean'].to_numpy()
         plt_labels.append('t={}%'.format(models[i]))
-        plt.scatter(x, y, color=colors[i])
+        ax.scatter(x, y, color=colors[i], zorder=i+2, s=15)
 
+    plt_labels.append('0 bias')
+    x = np.linspace(0, 55, 50)
+    y = np.zeros(50)
+    
+    ax.plot(x,y,c='r',linestyle='dashed',linewidth=0.8,zorder=1)
+        
     ax.set_axisbelow(True)
     ax.grid(color='gray', linestyle='dashed', linewidth = 0.5)
     plt.legend(labels=plt_labels, title='Masking Ratio',
                title_fontsize='small', fontsize='small', fancybox=True)
     #plt.title('Calculated Biases')
     plt.xlabel("Masking Ratio (p)")
-    plt.ylabel("Mean Bias")
-
+    plt.ylabel("Bias (K)")
+    plt.xlim([5, 55])
     
     # save
     plt.savefig(outfile, dpi=300)
+    plt.close()
     plt.close()
     print(f'Wrote: {outfile}')
     return
@@ -601,8 +614,8 @@ def figs_bias_hist(orig_file='data/MAE_LLC_valid_nonoise_preproc.h5',
     f_recon = h5py.File(recon_file, 'r')
     f_mask = h5py.File(mask_file, 'r')
 
-    median_biases = []
-    mean_biases = []
+    median_offsets = []
+    mean_offsets = []
     for idx in range(10000):
         orig_img = f_orig['valid'][idx,0,...]
         recon_img = f_recon['valid'][idx,0,...]
@@ -610,15 +623,18 @@ def figs_bias_hist(orig_file='data/MAE_LLC_valid_nonoise_preproc.h5',
 
         diff_true = recon_img - orig_img 
 
-        median_bias = np.median(diff_true[np.abs(diff_true) > 0.])
-        mean_bias = np.mean(diff_true[np.abs(diff_true) > 0.])
+        median_offset = np.median(diff_true[np.abs(diff_true) > 0.])
+        mean_offset = np.mean(diff_true[np.abs(diff_true) > 0.])
         #mean_img = np.mean(orig_img[np.isclose(mask_img,0.)])
         # Save
-        median_biases.append(median_bias)
-        mean_biases.append(mean_bias)
+        median_offsets.append(median_offset)
+        mean_offsets.append(mean_offset)
+        
+    df = pandas.DataFrame({'median_offset': median_offsets,
+                       'mean_offset': mean_offsets})
     
-    ax = sns.histplot(df, x='median_bias')
-    plt.vlines(x=0.0267, ymin=0, ymax=600, colors='red', ls='--', label='mean bias (0.0267)')
+    ax = sns.histplot(df, x='mean_offset')
+    plt.vlines(x=0.0267, ymin=0, ymax=600, colors='red', ls='--', label='bias (0.0267)')
     plt.legend(loc='upper left')
     ax.set_xlim(-0.1, 0.1)
     
