@@ -24,6 +24,7 @@ import h5py
 
 from ulmo import plotting
 from ulmo.mae import enki_utils
+from ulmo.mae import plotting as enki_plotting
 from ulmo.mae.cutout_analysis import rms_images
 from ulmo import io as ulmo_io
 from ulmo.utils import image_utils
@@ -55,9 +56,42 @@ import enki_anly_rms
 sst_path = os.getenv('OS_SST')
 ogcm_path = os.getenv('OS_OGCM')
 enki_path = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki')
+valid_tbl_file = os.path.join(enki_path, 'Tables',
+                              'MAE_LLC_valid_nonoise.parquet')
+valid_img_file = os.path.join(enki_path, 'PreProc',
+                              'MAE_LLC_valid_nonoise_preproc.h5')
 
 smper = r'$m_\%$'
 stper = r'$t_\%$'
+
+def fig_reconstruct(outfile:str='fig_reconstruct.png', t:int=10, p:int=20):
+
+    # Load
+    tbl = ulmo_io.load_main_table(valid_tbl_file)
+    bias = enki_utils.load_bias((t,p))
+
+    # Pick one
+    LL = 0.
+    imin = np.argmin(np.abs(tbl.LL - LL))
+    cutout = tbl.iloc[imin]
+
+    # Load the images
+    recon_file = enki_utils.img_filename(t,p, local=True)
+    mask_file = enki_utils.mask_filename(t,p, local=True)
+
+    f_orig = h5py.File(valid_img_file, 'r')
+    f_recon = h5py.File(recon_file, 'r')
+    f_mask = h5py.File(mask_file, 'r')
+
+    orig_img = f_orig['valid'][cutout.pp_idx, 0, :, :]
+    recon_img = f_recon['valid'][cutout.pp_idx, 0, :, :]
+    mask_img = f_mask['valid'][cutout.pp_idx, 0, :, :]
+
+    # Figure time
+    enki_plotting.plot_recon(orig_img, recon_img, mask_img, 
+                             bias=bias, outfile=outfile,
+                             res_vmnx=(-0.1,0.1))
+
 
 def fig_patches(outfile:str, patch_file:str):
 
@@ -86,7 +120,7 @@ def fig_patches(outfile:str, patch_file:str):
 
 def fig_cutouts(outfile:str):
 
-    fig = plt.figure(figsize=(13,6))
+    fig = plt.figure(figsize=(14,6.5))
     plt.clf()
     gs = gridspec.GridSpec(1,2)
 
@@ -103,7 +137,7 @@ def fig_cutouts(outfile:str):
     ax1.set_title('(b)', fontsize=lsz, color='k')
 
     # Finish
-    plt.tight_layout(pad=0.0, h_pad=0.0, w_pad=0.3)
+    plt.tight_layout(pad=0.05, h_pad=0.1, w_pad=0.3)
     plt.savefig(outfile, dpi=300)
     plt.close()
     print('Wrote {:s}'.format(outfile))
@@ -429,9 +463,9 @@ def fig_llc_inpainting(outfile:str, t:int, p:int,
     #embed(header='429 of figs')
     scat = ax2.scatter(enki_tbl.rms_enki, 
                 enki_tbl.rms_inpaint, s=0.1,
-                c=enki_tbl.LL, cmap='jet')
+                c=enki_tbl.LL, cmap='jet', vmin=-1000.)
                 #c=enki_tbl.log10DT, cmap='jet')
-    ax2.set_ylabel(r'RMSE$_{\rm biharmonic}$')
+    ax2.set_ylabel(r'RMSE$_{\rm inpaint}$')
     ax2.set_xlabel(r'RMSE$_{\rm Enki}$')
     ax2.set_yscale('log')
     ax2.set_xscale('log')
@@ -602,6 +636,10 @@ def main(flg_fig):
     if flg_fig & (2 ** 2):
         fig_llc_inpainting('fig_llcinpainting.png', 10, 10, single=True)#, debug=True)
 
+    # Example
+    if flg_fig & (2 ** 3):
+        fig_reconstruct()
+
 # Command line execution
 if __name__ == '__main__':
 
@@ -609,7 +647,8 @@ if __name__ == '__main__':
         flg_fig = 0
         #flg_fig += 2 ** 0  # patches
         #flg_fig += 2 ** 1  # cutouts
-        flg_fig += 2 ** 2  # LLC (Enki vs inpainting)
+        #flg_fig += 2 ** 2  # LLC (Enki vs inpainting)
+        flg_fig += 2 ** 3  # Reconstruction example
     else:
         flg_fig = sys.argv[1]
 

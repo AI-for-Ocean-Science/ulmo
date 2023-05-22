@@ -1,6 +1,19 @@
 """ Utility methods for Enki """
 
+from pkg_resources import resource_filename
+
 import os
+
+import pandas
+
+def load_bias(tp:tuple=None):
+    bias_path = os.path.join(resource_filename('ulmo', 'runs'), 
+        'Enki', 'Masters', 'enki_bias_LLC.csv')
+    bias = pandas.read_csv(bias_path)
+    # Value?
+    if tp is not None:
+        bias = float(bias[(bias.t==tp[0]) & (bias.p==tp[1])]['median'])
+    return bias
 
 def img_filename(t_per:int, p_per:int,
                  mae_img_path:str=None,
