@@ -59,7 +59,7 @@ enki_path = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki')
 smper = r'$m_\%$'
 stper = r'$t_\%$'
 
-def fig_patches(outfile:str, patch_file:str, nbins:int=16):
+def fig_patches(outfile:str, patch_file:str):
 
     fig = plt.figure(figsize=(12,7))
     plt.clf()
@@ -84,7 +84,7 @@ def fig_patches(outfile:str, patch_file:str, nbins:int=16):
     print('Wrote {:s}'.format(outfile))
 
 
-def fig_cutouts(outfile:str, nbins:int=16):
+def fig_cutouts(outfile:str):
 
     fig = plt.figure(figsize=(13,6))
     plt.clf()
@@ -513,7 +513,7 @@ def figs_rmse_vs_LL(outfile='rmse_t10only.png', ax=None):
     plt.legend(labels=plt_labels, title='Patch Mask Ratio',
                 title_fontsize=fsz+1, fontsize=fsz, fancybox=True)
     plt.title('Training Ratio: t={}'.format(models[i]))
-    plt.xlabel("Median LL Per Batch")
+    plt.xlabel(r"Median $LL_{\rm Ulmo}$")
     plt.ylabel("Average RMSE (K)")
 
     plotting.set_fontsize(ax, 19)
@@ -562,10 +562,10 @@ def fig_rmse_models(outfile='fig_rmse_models.png', ax=None, rmse=None):
     ax.set_axisbelow(True)
     ax.grid(color='gray', linestyle='dashed', linewidth = 0.5)
     fsz = 17
-    plt.legend(labels=plt_labels, title='Training Ratio ('+stper+')',
+    plt.legend(labels=plt_labels, title='Training Percentile ('+stper+')',
                 title_fontsize=fsz+1, fontsize=fsz, fancybox=True)
     #plt.xlabel("Training Ratio")
-    plt.xlabel("Patch Masking Ratio ("+smper+")")
+    plt.xlabel("Patch Masking Percentile ("+smper+")")
     plt.ylabel("Average RMSE (K)")
 
     plotting.set_fontsize(ax, 19)
