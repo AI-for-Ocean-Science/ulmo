@@ -45,7 +45,7 @@ spec:
             pip install importlib-resources;
             cd ulmo; 
             git fetch;
-            git checkout mae; 
+            git checkout enki_real; 
             git pull; 
             pip install -e ".[dev]";
             cp ulmo/mae/correct_helpers.py /root/miniconda3/lib/python3.8/site-packages/timm/models/layers/helpers.py;

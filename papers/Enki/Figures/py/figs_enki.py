@@ -489,7 +489,7 @@ def figs_rmse_vs_LL(outfile='rmse_t10only.png', ax=None):
     fsz = 17
     plt.legend(labels=plt_labels, title='Patch Mask Ratio',
                 title_fontsize=fsz+1, fontsize=fsz, fancybox=True)
-    plt.title('Training Ratio: t={}'.format(models[i]))
+    plt.title('Training Percentile: t={}'.format(models[i]))
     plt.xlabel(r"Median $LL_{\rm Ulmo}$")
     plt.ylabel("Average RMSE (K)")
 
@@ -559,6 +559,48 @@ def fig_rmse_models(outfile='fig_rmse_models.png', ax=None, rmse=None):
     return
     
 
+def fig_viirs_rmse(outfile='fig_viirs_rmse.png', 
+                   t:int=10, p:int=10, ax=None, 
+                   rmse_llc=None):
+                         
+    # load rmse
+    if rmse_llc is None:
+        rmse_llc = enki_anly_rms.create_table()
+    
+    if ax is None:
+        fig = plt.figure(figsize=(10, 10))
+        plt.clf()
+        gs = gridspec.GridSpec(1,1)
+        ax = plt.subplot(gs[0])
+    
+    colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple']
+    plt_labels = []
+        
+    # LLC
+    x = rmse_llc['median_LL']
+    y = rmse_llc[f'rms_t{t}_p{p}']
+    plt.scatter(x, y, color='r', label='LLC')
+        
+    fsz = 17
+    plt.legend(title_fontsize=fsz+1, fontsize=fsz, 
+               fancybox=True)
+    #plt.title('Training Percentile: t={}'.format(models[i]))
+    plt.xlabel(r"Median $LL_{\rm Ulmo}$")
+    plt.ylabel("Average RMSE (K)")
+
+    plotting.set_fontsize(ax, 19)
+                         
+    #fig.tight_layout()
+    #fig.subplots_adjust(top=0.92)
+    #fig.subplots_adjust(wspace=0.2)
+    #fig.suptitle('RMSE vs LL', fontsize=16)
+    
+    if ax is None:
+        plt.savefig(outfile, dpi=300)
+        plt.close()
+        print(f'Wrote: {outfile}')
+    return
+
 #### ########################## #########################
 def main(flg_fig):
     if flg_fig == 'all':
@@ -579,14 +621,20 @@ def main(flg_fig):
     if flg_fig & (2 ** 2):
         fig_llc_inpainting('fig_llcinpainting.png', 10, 10, single=True)#, debug=True)
 
+    # VIIRS vs LLC with LL
+    if flg_fig & (2 ** 3):
+        fig_viirs_rmse()
+
+
 # Command line execution
 if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg_fig = 0
-        flg_fig += 2 ** 0  # patches
+        #flg_fig += 2 ** 0  # patches
         #flg_fig += 2 ** 1  # cutouts
         #flg_fig += 2 ** 2  # LLC (Enki vs inpainting)
+        flg_fig += 2 ** 3  # VIIRS LL
     else:
         flg_fig = sys.argv[1]
 
