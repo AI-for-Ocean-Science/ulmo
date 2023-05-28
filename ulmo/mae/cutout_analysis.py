@@ -7,6 +7,26 @@ from scipy.sparse import csc_matrix
 from IPython import embed
 
 def load_cutouts(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File, 
+               nimgs:int=None, debug:bool=False, patch_sz:int=None):
+    """ Load the cutouts
+
+    Args:
+        f_orig (h5py.File): 
+            Pointer to original images
+        f_recon (h5py.File): 
+            Pointer to reconstructed images
+        f_mask (h5py.File): 
+            Pointer to mask images
+        nimgs (int, optional): 
+            Number of images to load. Defaults to None which means all
+        debug (bool, optional): 
+            Debugging flag. Defaults to False.
+        patch_sz (int, optional): 
+            patch size. Defaults to None.
+
+    Returns:
+        tuple: orig_imgs, recon_imgs, mask_imgs
+    """
                nimgs:int=None, debug:bool=False, patch_sz:int=None,
                keys:list=None):
     if keys is None:
@@ -14,7 +34,7 @@ def load_cutouts(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File,
     # Load em all
     print("Loading images...")
     if nimgs is None:
-        nimgs = f_orig[keys[0]].shape[0]
+        nimgs = f_orig['valid'].shape[0]
 
     # Grab em
     orig_imgs = f_orig[keys[0]][:nimgs,0,...]
@@ -37,6 +57,8 @@ def load_cutouts(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File,
 
 def rms_images(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File, 
                patch_sz:int=4, nimgs:int=None, debug:bool=False, 
+               bias_value:float=0.):
+    """ Calculate the RMS of the cutouts
                bias_value:float=0., keys:list=None):
     """_summary_
 
@@ -106,11 +128,13 @@ def rms_single_img(orig_img, recon_img, mask_img):
 def measure_bias(f_orig, f_recon, f_mask, patch_sz=4,
                  nimgs:int=None, debug:bool=False):
     """ Measure the bias in cutouts
+    WARNING:  THIS IS REPEATED IN bias.py
 
     Args:
-        idx (_type_): _description_
-        f_orig (_type_): _description_
-        f_recon (_type_): _description_
+        f_orig (_type_): 
+            Pointer to original images
+        f_recon (_type_): 
+            Pointer to reconstructed images
         f_mask (_type_): _description_
         patch_sz (int, optional): _description_. Defaults to 4.
 

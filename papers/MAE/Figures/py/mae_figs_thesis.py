@@ -32,7 +32,10 @@ from ulmo import io as ulmo_io
 from ulmo.ssl import single_image as ssl_simage
 from ulmo.ssl import defs as ssl_defs
 from ulmo.mae import patch_analysis
-from ulmo.mae import models_mae
+try:
+    from ulmo.mae import models_mae
+except ModuleNotFoundError:
+    print("Could not import models_mae")
 from ulmo.utils import image_utils
 
 
@@ -80,7 +83,7 @@ def fig_cloud_coverage(filepath='data/modis_2020_cloudcover.npz',
     ax.set_xlim(0,1)
     ax.set_ylim(10**7,10**11)
     #ax.xaxis.set_ticks(np.arange(0, 1, 0.1))
-    ax.set_xlabel('Percentage of Clouds in Cutout (CC)')
+    ax.set_xlabel('Fraction of Clouds in Cutout (CC)')
     ax.set_ylabel(f'Cutouts Available ($N_c$)')
     #ax.set_title("Cutouts vs Cloud Coverage")
 
@@ -645,5 +648,5 @@ def figs_bias_hist(orig_file='data/MAE_LLC_valid_nonoise_preproc.h5',
 if __name__ == '__main__':
 
     #figs_training()
-    #fig_cloud_coverage()
-    figs_imgs()
+    fig_cloud_coverage()
+    #figs_imgs()
