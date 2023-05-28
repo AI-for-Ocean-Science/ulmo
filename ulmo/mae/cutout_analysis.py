@@ -7,7 +7,8 @@ from scipy.sparse import csc_matrix
 from IPython import embed
 
 def load_cutouts(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File, 
-               nimgs:int=None, debug:bool=False, patch_sz:int=None):
+               nimgs:int=None, debug:bool=False, patch_sz:int=None,
+               keys:list=None):
     """ Load the cutouts
 
     Args:
@@ -27,14 +28,12 @@ def load_cutouts(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File,
     Returns:
         tuple: orig_imgs, recon_imgs, mask_imgs
     """
-               nimgs:int=None, debug:bool=False, patch_sz:int=None,
-               keys:list=None):
     if keys is None:
         keys = ['valid']*3
     # Load em all
     print("Loading images...")
     if nimgs is None:
-        nimgs = f_orig['valid'].shape[0]
+        nimgs = f_orig[keys[0]].shape[0]
 
     # Grab em
     orig_imgs = f_orig[keys[0]][:nimgs,0,...]
@@ -60,7 +59,6 @@ def rms_images(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File,
                bias_value:float=0.):
     """ Calculate the RMS of the cutouts
                bias_value:float=0., keys:list=None):
-    """_summary_
 
     Args:
         f_orig (h5py.File): Pointer to original images
