@@ -9,6 +9,21 @@ def load_granule(filename:str,
                  field:str='SST',
                  qual_thresh=2,
                  temp_bounds = (-2, 33)):
+    """ Load a MODIS granule
+
+    Args:
+        filename (str): MODIS filename
+        field (str, optional): Field to use. Defaults to 'SST'. 
+        qual_thresh (int, optional): Quality threshold. Defaults to 2.
+        temp_bounds (tuple, optional): 
+            Temperature bounds. Defaults to (-2, 33)
+
+    Raises:
+        IOError: _description_
+
+    Returns:
+        tuple: sst, latitude, longitude, masks
+    """
 
     if filename[0:5] == 's3://':
         raise IOError("Not ready for s3 files yet. Multi-process is not working")
