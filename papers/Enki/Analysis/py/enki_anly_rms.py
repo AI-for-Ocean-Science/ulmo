@@ -2,6 +2,10 @@ import os
 import pandas
 import numpy as np
 
+import scipy
+
+from ulmo.mae import enki_utils
+
 from IPython import embed
 
 def create_table(models = [10, 35, 50, 75],
@@ -61,3 +65,55 @@ def calc_batch_RMSE(table, t, p, batch_percent:float = 10.):
     
     RMSE[num_batches-1] = RMSE[batch] = sum(arr[batch_size*(num_batches-1):num_imgs-1])/final_batch
     return RMSE
+
+def anly_patches(patch_file:str, nbins:int=32):
+
+    # Load
+    patch_file = os.path.join(os.getenv("OS_OGCM"),
+        'LLC', 'Enki', 'Recon', patch_file)
+
+    f = np.load(patch_file)
+    data = f['data']
+    data = data.reshape((data.shape[0]*data.shape[1], 
+                         data.shape[2]))
+
+    items = f['items']
+    tbl = pandas.DataFrame(data, columns=items)
+
+    metric = 'log10_std_diff'
+    stat = 'median'
+
+    x_metric = 'log10_stdT'
+    xvalues, x_lbl = enki_utils.parse_metric(tbl, x_metric)
+
+    values, lbl = enki_utils.parse_metric(tbl, metric)
+
+    good1 = np.isfinite(xvalues.values)
+    good2 = np.isfinite(values.values)
+    good = good1 & good2
+
+    # Do it
+    eval_stats, x_edge, ibins = scipy.stats.binned_statistic(
+        xvalues.values[good], values.values[good], statistic=stat, bins=nbins)
+
+
+    # Fit
+    x = (x_edge[:-1]+x_edge[1:])/2
+    gd_eval = np.isfinite(eval_stats)
+
+    gd_x = 10**x[gd_eval]
+    gd_y = 10**eval_stats[gd_eval]
+
+    popt, pcov = scipy.optimize.curve_fit(
+        dumb_model, gd_x, gd_y, p0=[0.01, 10.],
+        sigma=0.1*gd_y)
+    return x_edge, eval_stats, stat, x_lbl, lbl, popt
+
+
+def dumb_model(sigT, floor:float, scale:float):
+    rmse = (sigT+floor)/scale
+    return rmse
+    
+# Command line execution
+if __name__ == '__main__':
+    anly_patches('mae_patches_t10_p20.npz')

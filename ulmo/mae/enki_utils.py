@@ -1,6 +1,8 @@
 """ Utility methods for Enki """
-
 import os
+import numpy as np
+
+import pandas
 
 def img_filename(t_per:int, p_per:int,
                  mae_img_path:str=None,
@@ -80,3 +82,41 @@ def parse_enki_file(ifile:str):
     p_per = prs[3][1:3]
 
     return t_per, p_per
+
+
+def parse_metric(tbl:pandas.DataFrame, metric:str):
+    """ Parse the metric
+
+    Args:
+        tbl (pandas.DataFrame): 
+            Table of patch statistics
+        metric (str): 
+            Metric to parse
+
+    Raises:
+        IOError: _description_
+
+    Returns:
+        tuple: values (np.ndarray), label (str)
+    """
+
+    if metric == 'abs_median_diff':
+        values = np.abs(tbl.median_diff)
+        label = r'$|\rm median\_diff |$'
+    elif metric == 'median_diff':
+        values = tbl.median_diff
+        label = 'median_diff'
+    elif metric == 'std_diff':
+        values = tbl.std_diff
+        label = 'RMSE'
+    elif metric == 'log10_std_diff':
+        values = np.log10(tbl.std_diff)
+        label = r'$\log_{10} \, \rm RMSE$'
+    elif metric == 'log10_stdT':
+        values = np.log10(tbl.stdT)
+        label = r'$\log_{10} \, \sigma_{T}$'
+    else:
+        raise IOError(f"bad metric: {metric}")
+
+    # Return
+    return values, label

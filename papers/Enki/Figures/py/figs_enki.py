@@ -39,8 +39,6 @@ from ulmo.mae import plotting as mae_plotting
 from IPython import embed
 
 # Local
-sys.path.append(os.path.abspath("../../MAE/Analysis/py"))
-import anly_patches
 sys.path.append(os.path.abspath("../Analysis/py"))
 import enki_anly_rms
 #sys.path.append(os.path.abspath("../Figures/py"))
@@ -60,6 +58,7 @@ smper = r'$m_\%$'
 stper = r'$t_\%$'
 
 def fig_patches(outfile:str, patch_file:str):
+    lsz = 16.
 
     fig = plt.figure(figsize=(12,7))
     plt.clf()
@@ -69,7 +68,6 @@ def fig_patches(outfile:str, patch_file:str):
     ax0 = plt.subplot(gs[0])
     fig_patch_ij_binned_stats('std_diff', 'median',
                               patch_file, ax=ax0)
-    lsz = 16.
     ax0.set_title('(a)', fontsize=lsz, color='k', loc='left')
 
     # RMSE
@@ -142,7 +140,7 @@ def fig_patch_ij_binned_stats(metric:str,
     #stat = 'mean'
     #stat = 'std'
 
-    values, lbl = anly_patches.parse_metric(
+    values, lbl = enki_utils.parse_metric(
         tbl, metric)
 
     # Do it
@@ -198,32 +196,9 @@ def fig_patch_rmse(patch_file:str, nbins:int=16, ax=None):
     # Outfile
     outfile = f'fig_patch_rmse_t{t_per}_p{p_per}.png'
 
-    # Load
-    patch_file = os.path.join(os.getenv("OS_OGCM"),
-        'LLC', 'Enki', 'Recon', patch_file)
-
-    f = np.load(patch_file)
-    data = f['data']
-    data = data.reshape((data.shape[0]*data.shape[1], 
-                         data.shape[2]))
-
-    items = f['items']
-    tbl = pandas.DataFrame(data, columns=items)
-
-    nbins = 32
-    metric = 'log10_std_diff'
-    stat = 'median'
-
-    x_metric = 'log10_stdT'
-    xvalues, x_lbl = anly_patches.parse_metric(tbl, x_metric)
-
-    values, lbl = anly_patches.parse_metric(tbl, metric)
-
-    good = np.isfinite(xvalues.values)
-
-    # Do it
-    eval_stats, x_edge, ibins = scipy.stats.binned_statistic(
-        xvalues.values[good], values.values[good], statistic=stat, bins=nbins)
+    # Analysis
+    x_edge, eval_stats, stat, x_lbl, lbl, popt = enki_anly_rms.anly_patches(
+        patch_file)
 
     # Figure
     if ax is None:
@@ -233,13 +208,15 @@ def fig_patch_rmse(patch_file:str, nbins:int=16, ax=None):
 
     # Patches
     plt_x = (x_edge[:-1]+x_edge[1:])/2
-    ax.plot(plt_x, eval_stats, 'b', label='Patches')
+    ax.plot(plt_x, eval_stats, 'o', color='b', label='Patches')
 
     # PMC Model
-    consts = (0.01, 8.)
+    #consts = (0.01, 8.)
+    consts = popt
     xval = np.linspace(lims[0], lims[1], 1000)
     yval = np.log10((10**xval + consts[0])/consts[1])
-    ax.plot(xval, yval, 'r:', label=r'$\log_{10}( \, (\sigma_T + '+f'{consts[0]})/{consts[1]}'+r')$')
+    ax.plot(xval, yval, 'r:', 
+            label=r'$\log_{10}( \, (\sigma_T + '+f'{consts[0]:0.3f})/{consts[1]:0.1f}'+r')$')
 
     # Axes
     ax.set_xlabel(x_lbl)
@@ -607,9 +584,9 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg_fig = 0
-        #flg_fig += 2 ** 0  # patches
+        flg_fig += 2 ** 0  # patches
         #flg_fig += 2 ** 1  # cutouts
-        flg_fig += 2 ** 2  # LLC (Enki vs inpainting)
+        #flg_fig += 2 ** 2  # LLC (Enki vs inpainting)
     else:
         flg_fig = sys.argv[1]
 
