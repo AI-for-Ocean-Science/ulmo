@@ -560,26 +560,43 @@ def fig_rmse_models(outfile='fig_rmse_models.png', ax=None, rmse=None):
     
 
 def fig_viirs_rmse(outfile='fig_viirs_rmse.png', 
-                   t:int=10, p:int=10, ax=None, 
-                   rmse_llc=None):
+                   t:int=10, p:int=10, in_ax=None, 
+                   nbatch:int=10, e_llc=None):
                          
     # load rmse
-    if rmse_llc is None:
-        rmse_llc = enki_anly_rms.create_table()
+    llc = ulmo_io.load_main_table(os.path.join(
+        os.getenv('OS_OGCM'), 'LLC', 'Enki', 
+        'Tables', 'MAE_LLC_valid_nonoise.parquet'))
     
-    if ax is None:
+    if in_ax is None:
         fig = plt.figure(figsize=(10, 10))
         plt.clf()
         gs = gridspec.GridSpec(1,1)
         ax = plt.subplot(gs[0])
-    
-    colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple']
-    plt_labels = []
+
+    # VIIRS
+    viirs_file = os.path.join(sst_path, 'VIIRS', 'Tables',
+        'VIIRS_all_100clear_std.parquet')
+    viirs = ulmo_io.load_main_table(viirs_file)
+    rmse_viirs, starts, ends = enki_anly_rms.calc_median_LL(
+        viirs, nbatch=nbatch)
+    rmse_viirs[f'rms_t{t}_p{p}'] = enki_anly_rms.calc_batch_RMSE(
+        viirs, t, p, batch_percent=100./nbatch)
+
+    # VIIRS plot
+    x = rmse_viirs['median_LL']
+    y = rmse_viirs[f'rms_t{t}_p{p}']
+    plt.scatter(x, y, color='b', label='VIIRS')
+
+    # LLC analysis
+    x_llc, y_llc = [], []
+    for start, end in zip(starts, ends):
+        in_llc = llc.LL.between(start, end)
+        x_llc.append(np.median(llc[in_llc].LL))
+        y_llc.append(np.median(llc[in_llc][f'RMS_t{t}_p{p}']))
         
     # LLC
-    x = rmse_llc['median_LL']
-    y = rmse_llc[f'rms_t{t}_p{p}']
-    plt.scatter(x, y, color='r', label='LLC')
+    plt.scatter(x_llc, y_llc, color='r', label='LLC')
         
     fsz = 17
     plt.legend(title_fontsize=fsz+1, fontsize=fsz, 
@@ -589,13 +606,15 @@ def fig_viirs_rmse(outfile='fig_viirs_rmse.png',
     plt.ylabel("Average RMSE (K)")
 
     plotting.set_fontsize(ax, 19)
+    ax.grid(color='gray', linestyle='dashed', linewidth = 0.5)
+    plt.title(f't={t}, p={p}')
                          
     #fig.tight_layout()
     #fig.subplots_adjust(top=0.92)
     #fig.subplots_adjust(wspace=0.2)
     #fig.suptitle('RMSE vs LL', fontsize=16)
     
-    if ax is None:
+    if in_ax is None:
         plt.savefig(outfile, dpi=300)
         plt.close()
         print(f'Wrote: {outfile}')
