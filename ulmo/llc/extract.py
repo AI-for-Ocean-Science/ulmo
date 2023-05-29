@@ -159,8 +159,9 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
                                                 preproc_root,
                                                 field_size=field_size)
     # Loop
-    if debug:
-        uni_date = uni_date[0:1]
+    #if debug:
+    #    uni_date = uni_date[0:1]
+
     for udate in uni_date:
         # Parse filename
         filename = llc_io.grab_llc_datafile(udate, local=dlocal)
@@ -219,10 +220,9 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
     ppf_idx = []
     ppf_idx = catalog.match_ids(np.array(img_idx), ex_idx)
     # Write
-    llc_table = pp_utils.write_pp_fields(pp_fields, meta, llc_table, 
-                            ex_idx, ppf_idx,
-                            valid_fraction,
-                            s3_file, local_file)
+    llc_table = pp_utils.write_pp_fields(
+        pp_fields, meta, llc_table, ex_idx, ppf_idx,
+        valid_fraction, s3_file, local_file, debug=debug)
 
     # Clean up
     del pp_fields

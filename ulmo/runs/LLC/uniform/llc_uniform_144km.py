@@ -19,9 +19,11 @@ tst_file = 's3://llc/Tables/test_uniform144_r0.5_test.parquet'
 full_file = 's3://llc/Tables/LLC_uniform144_r0.5.parquet'
 nonoise_file = 's3://llc/Tables/LLC_uniform144_r0.5_nonoise.parquet'
 
+# MAE
+mae_nonoise_file = 's3://llc/mae/Tables/MAE_LLC_valid_nonoise.parquet'
 
 def u_init_144(tbl_file:str, debug=False, resol=0.5, plot=False,
-               max_lat=None):
+               max_lat=None, MAE=False):
     """ Get the show started by sampling uniformly
     in space and and time
 
@@ -31,6 +33,7 @@ def u_init_144(tbl_file:str, debug=False, resol=0.5, plot=False,
         resol (float, optional): _description_. Defaults to 0.5.
         plot (bool, optional): Plot the spatial distribution?
         max_lat (float, optional): Restrict on latitude
+        MAE (bool, optional): Generate a table for MAE?
     """
 
     if debug:
@@ -47,6 +50,9 @@ def u_init_144(tbl_file:str, debug=False, resol=0.5, plot=False,
     if debug:
         # Extract 6 days across the full range;  ends of months
         dti = pandas.date_range('2011-09-13', periods=6, freq='2M')
+    elif MAE:
+        # Extract offset from the standard extraction
+        dti = pandas.date_range('2011-09-23', periods=6, freq='2M')
     else:
         # Extract 24 days across the full range;  ends of months; every 2 weeks
         dti = pandas.date_range('2011-09-13', periods=24, freq='2W')
@@ -59,7 +65,8 @@ def u_init_144(tbl_file:str, debug=False, resol=0.5, plot=False,
 def u_extract_144(tbl_file:str, debug=False, 
                   debug_local=False, 
                   root_file=None, dlocal=True, 
-                  preproc_root='llc_144'):
+                  preproc_root='llc_144',
+                  MAE=False):
     """Extract 144km cutouts and resize to 64x64
     Add noise too (if desired)!
 
@@ -84,7 +91,7 @@ def u_extract_144(tbl_file:str, debug=False,
         debug_local = True
 
     if debug:
-        root_file = 'LLC_uniform144_test_preproc.h5'
+        root_file = 'MAE_LLC_uniform144_test_preproc.h5'
     else:
         if root_file is None:
             root_file = 'LLC_uniform144_preproc.h5'
@@ -92,6 +99,8 @@ def u_extract_144(tbl_file:str, debug=False,
     # Setup
     pp_local_file = 'PreProc/'+root_file
     pp_s3_file = 's3://llc/PreProc/'+root_file
+    if MAE:
+        pp_s3_file = pp_s3_file.replace('PreProc', 'mae/PreProc')
     if not os.path.isdir('PreProc'):
         os.mkdir('PreProc')
 
@@ -108,7 +117,7 @@ def u_extract_144(tbl_file:str, debug=False,
                                  fixed_km=144.,
                                  preproc_root=preproc_root,
                                  s3_file=pp_s3_file,
-                                 #debug=debug,
+                                 debug=debug,
                                  dlocal=dlocal,
                                  override_RAM=True)
     # Final write
@@ -150,15 +159,24 @@ def main(flg):
         #u_init_144('tmp', debug=True, plot=True)
         # Real deal
         #u_init_144(full_file, max_lat=57.)
-        u_init_144(nonoise_file, max_lat=57.)
+        #u_init_144(nonoise_file, max_lat=57.)
+
+        # For MAE validation
+        u_init_144(mae_nonoise_file, max_lat=57., MAE=True)
 
     if flg & (2**1):
         # Debug
         #u_extract_144('', debug=True, dlocal=True)
         # Real deal
         #u_extract_144(full_file)#, debug=True)
-        u_extract_144(nonoise_file, preproc_root='llc_144_nonoise',
-            root_file = 'LLC_uniform144_nonoise_preproc.h5')
+        #u_extract_144(nonoise_file, preproc_root='llc_144_nonoise',
+        #    root_file = 'LLC_uniform144_nonoise_preproc.h5')
+
+        # MAE
+        u_extract_144(mae_nonoise_file, 
+                      preproc_root='llc_144_nonoise', 
+                      root_file='MAE_LLC_valid_nonoise_preproc.h5', 
+                      MAE=True)#, debug=True)
 
     if flg & (2**2):
         u_evaluate_144(full_file)
@@ -172,7 +190,7 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg = 0
-        #flg += 2 ** 0  # 1 -- Setup Table
+        #flg += 2 ** 0  # 1 -- Setup Table(s)
         #flg += 2 ** 1  # 2 -- Extract
         #flg += 2 ** 2  # 4 -- Evaluate (with noise)
         #flg += 2 ** 3  # 8 -- Evaluate (without noise)
@@ -184,7 +202,7 @@ if __name__ == '__main__':
 # Setup
 # python -u llc_uniform_144km.py 1
 
-# Extract with noise
+# Extract 
 # python -u llc_uniform_144km.py 2 
 
 # Evaluate -- run in Nautilus
