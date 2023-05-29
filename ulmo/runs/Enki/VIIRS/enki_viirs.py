@@ -226,8 +226,8 @@ def inpaint(inpaint_file:str,
 
     # Load images
     if local:
-        local_recon_file = enki_utils.img_filename(t,p, local=True, dataset='viirs')
-        local_mask_file = enki_utils.mask_filename(t,p, local=True, dataset='viirs')
+        local_recon_file = enki_utils.img_filename(t,p, local=True, dataset='VIIRS')
+        local_mask_file = enki_utils.mask_filename(t,p, local=True, dataset='VIIRS')
         local_orig_file = viirs_100_img_file
     else:
         embed(header='Need to modify the following!')
@@ -323,3 +323,6 @@ if __name__ == '__main__':
         flg = sys.argv[1]
 
     main(flg)
+
+# Inpaint
+# python -u enki_viirs.py 2
