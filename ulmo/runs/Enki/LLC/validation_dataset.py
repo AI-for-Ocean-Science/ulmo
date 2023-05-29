@@ -111,10 +111,6 @@ def u_evaluate_144(tbl_file:str,
                    model='viirs-98'):
     """ Run Ulmo on the cutouts with the given model
     """
-    
-    
-    if debug:
-        tbl_file = tst_file
     # Load
     llc_table = ulmo_io.load_main_table(tbl_file)
 
@@ -145,10 +141,7 @@ def main(flg):
                       root_file='Enki_LLC_valid_nonoise_preproc.h5') 
 
     if flg & (2**2):
-        u_evaluate_144(full_file)
-
-    if flg & (2**3):
-        u_evaluate_144(nonoise_file, model='viirs-98')
+        u_evaluate_144(enki_valid_file)
 
 # Command line execution
 if __name__ == '__main__':
