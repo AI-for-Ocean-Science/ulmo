@@ -142,8 +142,7 @@ def main(flg):
         # Enki
         u_extract_144(enki_valid_file,
                       preproc_root='llc_144_nonoise', 
-                      root_file='Enki_LLC_valid_nonoise_preproc.h5', 
-                      MAE=True)#, debug=True)
+                      root_file='Enki_LLC_valid_nonoise_preproc.h5') 
 
     if flg & (2**2):
         u_evaluate_144(full_file)
