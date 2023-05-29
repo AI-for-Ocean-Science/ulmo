@@ -51,7 +51,8 @@ def img_filename(t_per:int, p_per:int,
 
 def mask_filename(t_per:int, p_per:int,
                  mae_img_path:str=None,
-                 local:bool=False):
+                 local:bool=False,
+                 dataset:str='LLC'):
     """Generate the image filename from the
     percentiles
     Args:
@@ -63,11 +64,14 @@ def mask_filename(t_per:int, p_per:int,
             s3 path to the image file
         local (bool, optional):
             Use local path?
+        dataset (str, optional):
+            Dataset name
     Returns:
         str: filename with s3 path
     
     """
-    recon_file = img_filename(t_per, p_per, mae_img_path=mae_img_path, local=local)
+    recon_file = img_filename(t_per, p_per, mae_img_path=mae_img_path, local=local,
+                              dataset=dataset)
     mask_file = recon_file.replace('reconstruct', 'mask')
 
     return mask_file
