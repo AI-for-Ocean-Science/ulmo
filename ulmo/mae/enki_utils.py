@@ -6,7 +6,8 @@ import pandas
 
 def img_filename(t_per:int, p_per:int,
                  mae_img_path:str=None,
-                 local:bool=False):
+                 local:bool=False,
+                 dataset:str='LLC'):
     """Generate the image filename from the
     percentiles
     Args:
@@ -18,6 +19,8 @@ def img_filename(t_per:int, p_per:int,
             path to the image file
         local (bool, optional):
             Use local path?
+        dataset (str, optional):
+            Dataset name
     Returns:
         str: filename with s3 path
     
@@ -25,11 +28,20 @@ def img_filename(t_per:int, p_per:int,
     # Path
     if mae_img_path is None:
         if local:
-            mae_img_path = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki', 'Recon')
+            if dataset == 'LLC':
+                root = 'mae'
+                dpath = os.path.join(os.getenv('OS_OGCM'), 'LLC')
+            elif dataset == 'VIIRS':
+                root = 'VIIRS_100clear'
+                dpath = os.path.join(os.getenv('OS_SST'), 'VIIRS')
+            mae_img_path = os.path.join(dpath, 'Enki', 'Recon')
         else:
+            if dataset != 'LLC':
+                raise NotImplementedError("Only LLC for now")
             mae_img_path = 's3://llc/mae/Recon'
+            root = 'mae'
     # Base
-    base_name = f'mae_reconstruct_t{t_per:02d}_p{p_per:02d}.h5'
+    base_name = f'{root}_reconstruct_t{t_per:02d}_p{p_per:02d}.h5'
 
     # Finish
     img_file = os.path.join(mae_img_path, base_name)

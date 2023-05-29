@@ -2,7 +2,9 @@
 
 import numpy as np
 import h5py
+
 from scipy.sparse import csc_matrix
+from skimage.restoration import inpaint as sk_inpaint
 
 from IPython import embed
 
@@ -156,3 +158,26 @@ def measure_bias(f_orig, f_recon, f_mask, patch_sz=4,
     #stats['mean_img'] = mean_img
     # Return
     return median_bias, mean_bias
+
+def simple_inpaint(items:list, 
+                   inpaint_type:str='biharmonic'):
+    """ Simple inpainting usually used with multi-processing
+
+    Args:
+        items (list): 
+            List of [img, mask]
+            Built this way for multi-processing
+        inpaint_type (str, optional): 
+            Inpainting type.  Defaults to 'biharmonic'.
+
+    Returns:
+        np.ndarray: Inpainted image
+    """
+    # Unpack
+    img, mask = items
+    # Do it
+    if inpaint_type == 'biharmonic':
+        return sk_inpaint.inpaint_biharmonic(
+            img, mask, channel_axis=None)
+    else:
+        raise IOError("Bad inpainting type")

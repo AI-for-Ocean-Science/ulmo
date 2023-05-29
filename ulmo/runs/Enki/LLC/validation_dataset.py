@@ -5,6 +5,8 @@ import os
 import numpy as np
 
 import pandas
+import h5py
+
 
 from ulmo.llc import extract 
 from ulmo.llc import uniform
@@ -12,6 +14,9 @@ from ulmo import io as ulmo_io
 from ulmo.analysis import evaluate as ulmo_evaluate
 from ulmo.nflows import nn 
 from ulmo.preproc import plotting as pp_plotting
+
+from ulmo.mae import enki_utils
+from ulmo.mae import cutout_analysis
 
 from IPython import embed
 

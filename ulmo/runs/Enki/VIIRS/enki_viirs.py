@@ -18,6 +18,9 @@ from ulmo.preproc import plotting as pp_plotting
 from ulmo import io as ulmo_io
 from ulmo.utils import catalog as cat_utils
 
+from ulmo.mae import enki_utils
+from ulmo.mae import cutout_analysis
+
 
 from IPython import embed
 
@@ -212,7 +215,84 @@ def extract_llc_cutouts( tbl_file:str, debug=False,
     if not debug:
         ulmo_io.write_main_table(llc_table, tbl_file)
     print("You should probably remove the PreProc/ folder")
-    
+
+
+def inpaint(inpaint_file:str, 
+            t:int, p:int, debug:bool=False,
+            patch_sz:int=4, n_cores:int=10, 
+            nsub_files:int=5000,
+            local:bool=False):
+
+
+    # Load images
+    if local:
+        local_recon_file = enki_utils.img_filename(t,p, local=True, dataset='viirs')
+        local_mask_file = enki_utils.mask_filename(t,p, local=True, dataset='viirs')
+        local_orig_file = viirs_100_img_file
+    else:
+        embed(header='Need to modify the following!')
+        recon_file = enki_utils.img_filename(t,p, local=False)
+        mask_file = enki_utils.mask_filename(t,p, local=False)
+        local_recon_file = os.path.basename(recon_file)
+        local_mask_file = os.path.basename(mask_file)
+        local_orig_file = os.path.basename(mae_valid_nonoise_file)
+        # Download?
+        for local_file, s3_file in zip(
+            [local_recon_file, local_mask_file, local_orig_file],
+            [recon_file, mask_file, mae_valid_nonoise_file]):
+            if not os.path.exists(local_file):
+                ulmo_io.download_file_from_s3(local_file, 
+                                      s3_file)
+
+    f_orig = h5py.File(local_orig_file, 'r')
+    f_recon = h5py.File(local_recon_file,'r')
+    f_mask = h5py.File(local_mask_file,'r')
+
+    if debug:
+        nfiles = 1000
+        nsub_files = 100
+        orig_imgs = f_orig['valid'][:nfiles,0,...]
+        recon_imgs = f_recon['valid'][:nfiles,0,...]
+        mask_imgs = f_mask['valid'][:nfiles,0,...]
+    else:
+        orig_imgs = f_orig['valid'][:,0,...]
+        recon_imgs = f_recon['valid'][:,0,...]
+        mask_imgs = f_mask['valid'][:,0,...]
+
+    # Mask out edges
+    mask_imgs[:, patch_sz:-patch_sz,patch_sz:-patch_sz] = 0
+
+    # Analyze
+    diff_recon = (orig_imgs - recon_imgs)*mask_imgs
+    nfiles = diff_recon.shape[0]
+
+    # Inpatinting
+    map_fn = partial(cutout_analysis.simple_inpaint)
+
+    nloop = nfiles // nsub_files + ((nfiles % nsub_files) > 0)
+    inpainted = []
+    for kk in range(nloop):
+        i0 = kk*nsub_files
+        i0 = kk*nsub_files
+        i1 = min((kk+1)*nsub_files, nfiles)
+        print('Files: {}:{} of {}'.format(i0, i1, nfiles))
+        sub_files = [(diff_recon[ii,...], mask_imgs[ii,...]) for ii in range(i0, i1)]
+        with ProcessPoolExecutor(max_workers=n_cores) as executor:
+            chunksize = len(
+                sub_files) // n_cores if len(sub_files) // n_cores > 0 else 1
+            answers = list(tqdm(executor.map(map_fn, sub_files,
+                                                chunksize=chunksize), total=len(sub_files)))
+        # Save
+        inpainted.append(np.array(answers))
+    # Collate
+    inpainted = np.concatenate(inpainted)
+
+    # Save
+    with h5py.File(inpaint_file, 'w') as f:
+        # Validation
+        f.create_dataset('inpainted', data=inpainted.astype(np.float32))
+    print(f'Wrote: {inpaint_file}')
+ 
 
 def main(flg):
     if flg== 'all':
@@ -224,6 +304,12 @@ def main(flg):
     if flg & (2**0):
         gen_llc_1km_table(llc_tot1km_tbl_file)
 
+    # Generate the VIIRS images
+    if flg & (2**1):
+        inpaint('Enki_VIIRS_inpaint_t10_p10.h5', 
+                10, 10, debug=True, local=True) 
+
+
 
 # Command line execution
 if __name__ == '__main__':
@@ -232,7 +318,7 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         flg = 0
         #flg += 2 ** 0  # 1 -- Generate the total table
-        #flg += 2 ** 1  # 2 -- Inpaint vs Enki
+        #flg += 2 ** 1  # 2 -- Inpaint 
     else:
         flg = sys.argv[1]
 
