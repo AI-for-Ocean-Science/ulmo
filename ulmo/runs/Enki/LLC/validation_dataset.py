@@ -47,20 +47,19 @@ def u_init_144(tbl_file:str, debug=False, resol=0.5, plot=False,
     print("All done with init")
 
 
-def u_extract_144(tbl_file:str, debug=False, 
+def u_extract_144(tbl_file:str, root_file:str, debug=False, 
                   debug_local=False, 
-                  root_file=None, dlocal=True, 
-                  preproc_root='llc_144',
-                  MAE=False):
+                  dlocal=True, 
+                  preproc_root='llc_144'):
     """Extract 144km cutouts and resize to 64x64
     Add noise too (if desired)!
 
     Args:
         tbl_file (str): _description_
+        root_file (_type_, optional): 
+            Output file. 
         debug (bool, optional): _description_. Defaults to False.
         debug_local (bool, optional): _description_. Defaults to False.
-        root_file (_type_, optional): _description_. Defaults to None.
-        dlocal (bool, optional): _description_. Defaults to False.
         preproc_root (str, optional): _description_. Defaults to 'llc_144'.
         dlocal (bool, optional): Use local files for LLC data.
     """
@@ -76,16 +75,12 @@ def u_extract_144(tbl_file:str, debug=False,
         debug_local = True
 
     if debug:
-        root_file = 'MAE_LLC_uniform144_test_preproc.h5'
-    else:
-        if root_file is None:
-            root_file = 'LLC_uniform144_preproc.h5'
+        root_file = 'Enki_LLC_uniform144_test_preproc.h5'
 
     # Setup
     pp_local_file = 'PreProc/'+root_file
     pp_s3_file = 's3://llc/PreProc/'+root_file
-    if MAE:
-        pp_s3_file = pp_s3_file.replace('PreProc', 'mae/PreProc')
+    pp_s3_file = pp_s3_file.replace('PreProc', 'mae/PreProc')
     if not os.path.isdir('PreProc'):
         os.mkdir('PreProc')
 
@@ -144,17 +139,10 @@ def main(flg):
         u_init_144(enki_valid_file, max_lat=57., plot=True)
 
     if flg & (2**1):
-        # Debug
-        #u_extract_144('', debug=True, dlocal=True)
-        # Real deal
-        #u_extract_144(full_file)#, debug=True)
-        #u_extract_144(nonoise_file, preproc_root='llc_144_nonoise',
-        #    root_file = 'LLC_uniform144_nonoise_preproc.h5')
-
-        # MAE
-        u_extract_144(mae_nonoise_file, 
+        # Enki
+        u_extract_144(enki_valid_file,
                       preproc_root='llc_144_nonoise', 
-                      root_file='MAE_LLC_valid_nonoise_preproc.h5', 
+                      root_file='Enki_LLC_valid_nonoise_preproc.h5', 
                       MAE=True)#, debug=True)
 
     if flg & (2**2):
