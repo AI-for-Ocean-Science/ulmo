@@ -57,7 +57,7 @@ def coords(resol, field_size, CC_max=1e-4, outfile=None,
     hp = astropy_healpix.HEALPix(nside=nside)
     hp_lon, hp_lat = hp.healpix_to_lonlat(np.arange(hp.npix))
     if rotate is not None:
-        embed(header='[uniform.coords] Before rotation 60')
+        hp_lon = hp_lon + rotate*np.pi/180. * units.rad
 
     # Coords
     hp_coord = SkyCoord(hp_lon, hp_lat, frame='galactic')
