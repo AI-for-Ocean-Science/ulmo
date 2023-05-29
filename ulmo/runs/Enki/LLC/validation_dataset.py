@@ -136,7 +136,7 @@ def main(flg):
     # Generate the LLC Table
     if flg & (2**0):
         # For Enki validation
-        u_init_144(enki_valid_file, max_lat=57., plot=True)
+        u_init_144(enki_valid_file, max_lat=57.)#, plot=True)
 
     if flg & (2**1):
         # Enki
