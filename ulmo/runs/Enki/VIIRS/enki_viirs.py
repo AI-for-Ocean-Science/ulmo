@@ -307,7 +307,7 @@ def main(flg):
     # Generate the VIIRS images
     if flg & (2**1):
         inpaint('Enki_VIIRS_inpaint_t10_p10.h5', 
-                10, 10, debug=True, local=True) 
+                10, 10, debug=False, local=True) 
 
 
 
