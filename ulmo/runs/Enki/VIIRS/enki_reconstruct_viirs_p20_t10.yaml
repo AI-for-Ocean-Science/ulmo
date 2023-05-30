@@ -54,7 +54,6 @@ spec:
             aws --endpoint https://s3-west.nrp-nautilus.io s3 cp s3://viirs/PreProc/VIIRS_all_100clear_preproc.h5 ./;
             aws --endpoint https://s3-west.nrp-nautilus.io s3 cp s3://llc/mae/mae_pretrain_ddp_mask10/checkpoint-270.pth ./;
             python enki_reconstruct.py --mask_ratio 0.2 --data_path VIIRS_all_100clear_preproc.h5 --output_dir output --resume checkpoint-270.pth --upload_path s3://llc/mae/Recon/VIIRS_100clear_t10_p20.h5 --mask_upload_path s3://llc/mae/Recon/VIIRS_100clear_t10_p20_mask.h5;
-
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"
