@@ -41,8 +41,6 @@ from ulmo.mae import plotting as mae_plotting
 from IPython import embed
 
 # Local
-sys.path.append(os.path.abspath("../../MAE/Analysis/py"))
-import anly_patches
 sys.path.append(os.path.abspath("../Analysis/py"))
 import enki_anly_rms
 #sys.path.append(os.path.abspath("../Figures/py"))
@@ -114,6 +112,7 @@ def fig_reconstruct(outfile:str='fig_reconstruct.png', t:int=10, p:int=20,
 
 
 def fig_patches(outfile:str, patch_file:str):
+    lsz = 16.
 
     fig = plt.figure(figsize=(12,7))
     plt.clf()
@@ -123,7 +122,6 @@ def fig_patches(outfile:str, patch_file:str):
     ax0 = plt.subplot(gs[0])
     fig_patch_ij_binned_stats('std_diff', 'median',
                               patch_file, ax=ax0)
-    lsz = 16.
     ax0.set_title('(a)', fontsize=lsz, color='k', loc='left')
 
     # RMSE
@@ -196,7 +194,7 @@ def fig_patch_ij_binned_stats(metric:str,
     #stat = 'mean'
     #stat = 'std'
 
-    values, lbl = anly_patches.parse_metric(
+    values, lbl = enki_utils.parse_metric(
         tbl, metric)
 
     # Do it
@@ -252,32 +250,9 @@ def fig_patch_rmse(patch_file:str, nbins:int=16, ax=None):
     # Outfile
     outfile = f'fig_patch_rmse_t{t_per}_p{p_per}.png'
 
-    # Load
-    patch_file = os.path.join(os.getenv("OS_OGCM"),
-        'LLC', 'Enki', 'Recon', patch_file)
-
-    f = np.load(patch_file)
-    data = f['data']
-    data = data.reshape((data.shape[0]*data.shape[1], 
-                         data.shape[2]))
-
-    items = f['items']
-    tbl = pandas.DataFrame(data, columns=items)
-
-    nbins = 32
-    metric = 'log10_std_diff'
-    stat = 'median'
-
-    x_metric = 'log10_stdT'
-    xvalues, x_lbl = anly_patches.parse_metric(tbl, x_metric)
-
-    values, lbl = anly_patches.parse_metric(tbl, metric)
-
-    good = np.isfinite(xvalues.values)
-
-    # Do it
-    eval_stats, x_edge, ibins = scipy.stats.binned_statistic(
-        xvalues.values[good], values.values[good], statistic=stat, bins=nbins)
+    # Analysis
+    x_edge, eval_stats, stat, x_lbl, lbl, popt = enki_anly_rms.anly_patches(
+        patch_file)
 
     # Figure
     if ax is None:
@@ -287,13 +262,15 @@ def fig_patch_rmse(patch_file:str, nbins:int=16, ax=None):
 
     # Patches
     plt_x = (x_edge[:-1]+x_edge[1:])/2
-    ax.plot(plt_x, eval_stats, 'b', label='Patches')
+    ax.plot(plt_x, eval_stats, 'o', color='b', label='Patches')
 
     # PMC Model
-    consts = (0.01, 8.)
+    #consts = (0.01, 8.)
+    consts = popt
     xval = np.linspace(lims[0], lims[1], 1000)
     yval = np.log10((10**xval + consts[0])/consts[1])
-    ax.plot(xval, yval, 'r:', label=r'$\log_{10}( \, (\sigma_T + '+f'{consts[0]})/{consts[1]}'+r')$')
+    ax.plot(xval, yval, 'r:', 
+            label=r'$\log_{10}( \, (\sigma_T + '+f'{consts[0]:0.3f})/{consts[1]:0.1f}'+r')$')
 
     # Axes
     ax.set_xlabel(x_lbl)
@@ -566,7 +543,7 @@ def figs_rmse_vs_LL(outfile='rmse_t10only.png', ax=None):
     fsz = 17
     plt.legend(labels=plt_labels, title='Patch Mask Ratio',
                 title_fontsize=fsz+1, fontsize=fsz, fancybox=True)
-    plt.title('Training Ratio: t={}'.format(models[i]))
+    plt.title('Training Percentile: t={}'.format(models[i]))
     plt.xlabel(r"Median $LL_{\rm Ulmo}$")
     plt.ylabel("Average RMSE (K)")
 
@@ -636,6 +613,67 @@ def fig_rmse_models(outfile='fig_rmse_models.png', ax=None, rmse=None):
     return
     
 
+def fig_viirs_rmse(outfile='fig_viirs_rmse.png', 
+                   t:int=10, p:int=10, in_ax=None, 
+                   nbatch:int=10, e_llc=None):
+                         
+    # load rmse
+    llc = ulmo_io.load_main_table(os.path.join(
+        os.getenv('OS_OGCM'), 'LLC', 'Enki', 
+        'Tables', 'MAE_LLC_valid_nonoise.parquet'))
+    
+    if in_ax is None:
+        fig = plt.figure(figsize=(10, 10))
+        plt.clf()
+        gs = gridspec.GridSpec(1,1)
+        ax = plt.subplot(gs[0])
+
+    # VIIRS
+    viirs_file = os.path.join(sst_path, 'VIIRS', 'Tables',
+        'VIIRS_all_100clear_std.parquet')
+    viirs = ulmo_io.load_main_table(viirs_file)
+    rmse_viirs, starts, ends = enki_anly_rms.calc_median_LL(
+        viirs, nbatch=nbatch)
+    rmse_viirs[f'rms_t{t}_p{p}'] = enki_anly_rms.calc_batch_RMSE(
+        viirs, t, p, batch_percent=100./nbatch)
+
+    # VIIRS plot
+    x = rmse_viirs['median_LL']
+    y = rmse_viirs[f'rms_t{t}_p{p}']
+    plt.scatter(x, y, color='b', label='VIIRS')
+
+    # LLC analysis
+    x_llc, y_llc = [], []
+    for start, end in zip(starts, ends):
+        in_llc = llc.LL.between(start, end)
+        x_llc.append(np.median(llc[in_llc].LL))
+        y_llc.append(np.median(llc[in_llc][f'RMS_t{t}_p{p}']))
+        
+    # LLC
+    plt.scatter(x_llc, y_llc, color='r', label='LLC')
+        
+    fsz = 17
+    plt.legend(title_fontsize=fsz+1, fontsize=fsz, 
+               fancybox=True)
+    #plt.title('Training Percentile: t={}'.format(models[i]))
+    plt.xlabel(r"Median $LL_{\rm Ulmo}$")
+    plt.ylabel("Average RMSE (K)")
+
+    plotting.set_fontsize(ax, 19)
+    ax.grid(color='gray', linestyle='dashed', linewidth = 0.5)
+    plt.title(f't={t}, p={p}')
+                         
+    #fig.tight_layout()
+    #fig.subplots_adjust(top=0.92)
+    #fig.subplots_adjust(wspace=0.2)
+    #fig.suptitle('RMSE vs LL', fontsize=16)
+    
+    if in_ax is None:
+        plt.savefig(outfile, dpi=300)
+        plt.close()
+        print(f'Wrote: {outfile}')
+    return
+
 #### ########################## #########################
 def main(flg_fig):
     if flg_fig == 'all':
@@ -660,6 +698,11 @@ def main(flg_fig):
     if flg_fig & (2 ** 3):
         fig_reconstruct()
 
+    # VIIRS vs LLC with LL
+    if flg_fig & (2 ** 4):
+        fig_viirs_rmse()
+
+
 # Command line execution
 if __name__ == '__main__':
 
@@ -668,7 +711,8 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 0  # patches
         #flg_fig += 2 ** 1  # cutouts
         #flg_fig += 2 ** 2  # LLC (Enki vs inpainting)
-        flg_fig += 2 ** 3  # Reconstruction example
+        #flg_fig += 2 ** 3  # Reconstruction example
+        flg_fig += 2 ** 4  # VIIRS LL
     else:
         flg_fig = sys.argv[1]
 

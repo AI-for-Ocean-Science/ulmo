@@ -3,6 +3,9 @@
 from pkg_resources import resource_filename
 
 import os
+import numpy as np
+
+import pandas
 
 import pandas
 
@@ -17,7 +20,8 @@ def load_bias(tp:tuple=None):
 
 def img_filename(t_per:int, p_per:int,
                  mae_img_path:str=None,
-                 local:bool=False):
+                 local:bool=False,
+                 dataset:str='LLC'):
     """Generate the image filename from the
     percentiles
     Args:
@@ -29,6 +33,8 @@ def img_filename(t_per:int, p_per:int,
             path to the image file
         local (bool, optional):
             Use local path?
+        dataset (str, optional):
+            Dataset name
     Returns:
         str: filename with s3 path
     
@@ -36,11 +42,20 @@ def img_filename(t_per:int, p_per:int,
     # Path
     if mae_img_path is None:
         if local:
-            mae_img_path = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki', 'Recon')
+            if dataset == 'LLC':
+                root = 'mae'
+                dpath = os.path.join(os.getenv('OS_OGCM'), 'LLC')
+            elif dataset == 'VIIRS':
+                root = 'VIIRS_100clear'
+                dpath = os.path.join(os.getenv('OS_SST'), 'VIIRS')
+            mae_img_path = os.path.join(dpath, 'Enki', 'Recon')
         else:
+            if dataset != 'LLC':
+                raise NotImplementedError("Only LLC for now")
             mae_img_path = 's3://llc/mae/Recon'
+            root = 'mae'
     # Base
-    base_name = f'mae_reconstruct_t{t_per:02d}_p{p_per:02d}.h5'
+    base_name = f'{root}_reconstruct_t{t_per:02d}_p{p_per:02d}.h5'
 
     # Finish
     img_file = os.path.join(mae_img_path, base_name)
@@ -50,7 +65,8 @@ def img_filename(t_per:int, p_per:int,
 
 def mask_filename(t_per:int, p_per:int,
                  mae_img_path:str=None,
-                 local:bool=False):
+                 local:bool=False,
+                 dataset:str='LLC'):
     """Generate the image filename from the
     percentiles
     Args:
@@ -62,11 +78,14 @@ def mask_filename(t_per:int, p_per:int,
             s3 path to the image file
         local (bool, optional):
             Use local path?
+        dataset (str, optional):
+            Dataset name
     Returns:
         str: filename with s3 path
     
     """
-    recon_file = img_filename(t_per, p_per, mae_img_path=mae_img_path, local=local)
+    recon_file = img_filename(t_per, p_per, mae_img_path=mae_img_path, local=local,
+                              dataset=dataset)
     mask_file = recon_file.replace('reconstruct', 'mask')
 
     return mask_file
@@ -93,3 +112,41 @@ def parse_enki_file(ifile:str):
     p_per = prs[3][1:3]
 
     return t_per, p_per
+
+
+def parse_metric(tbl:pandas.DataFrame, metric:str):
+    """ Parse the metric
+
+    Args:
+        tbl (pandas.DataFrame): 
+            Table of patch statistics
+        metric (str): 
+            Metric to parse
+
+    Raises:
+        IOError: _description_
+
+    Returns:
+        tuple: values (np.ndarray), label (str)
+    """
+
+    if metric == 'abs_median_diff':
+        values = np.abs(tbl.median_diff)
+        label = r'$|\rm median\_diff |$'
+    elif metric == 'median_diff':
+        values = tbl.median_diff
+        label = 'median_diff'
+    elif metric == 'std_diff':
+        values = tbl.std_diff
+        label = 'RMSE'
+    elif metric == 'log10_std_diff':
+        values = np.log10(tbl.std_diff)
+        label = r'$\log_{10} \, \rm RMSE$'
+    elif metric == 'log10_stdT':
+        values = np.log10(tbl.stdT)
+        label = r'$\log_{10} \, \sigma_{T}$'
+    else:
+        raise IOError(f"bad metric: {metric}")
+
+    # Return
+    return values, label

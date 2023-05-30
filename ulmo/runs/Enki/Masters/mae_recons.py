@@ -9,7 +9,6 @@ import pandas
 
 from skimage.restoration import inpaint as sk_inpaint
 
-
 from functools import partial
 from concurrent.futures import ProcessPoolExecutor
 from tqdm import tqdm

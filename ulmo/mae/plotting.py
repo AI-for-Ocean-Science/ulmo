@@ -11,22 +11,18 @@ import seaborn as sns
 from ulmo import plotting
 from ulmo.mae import patch_analysis
 
-def plot_recon_three(orig_img:np.ndarray, recon_img:np.ndarray, mask_img:np.ndarray, 
-               p_sz:int=4, outfile:str=None, gs:gridspec=None,
-               bias:float=0., img_vmnx:tuple=(-1,1),
-               res_vmnx:tuple=(None,None), show_title:bool=True):
-    """ Plot a reconstruction with a three panel plot
-        Original with patches
-        Patches only
-        Residuals
+def plot_recon(orig_img, recon_img, mask_img, p_sz:int=4,
+               outfile:str=None, gs:gridspec=None,
+               bias:float=0., 
+               img_vmnx:tuple=(-1,1),
+               res_vmnx:tuple=(None,None),
+               show_title:bool=True):
+    """ Plot a reconstruction
 
     Args:
-        orig_img (np.ndarray): 
-            Original image
-        recon_img (np.ndarray):
-            Reconstructed image 
-        mask_img (np.ndarray):
-            Mask image
+        orig_img (_type_): Original image
+        recon_img (_type_): Reconstructed image
+        mask_img (_type_): Mask 
         p_sz (int, optional): 
             Patch size. Defaults to 4.
         outfile (str, optional): 
@@ -34,13 +30,13 @@ def plot_recon_three(orig_img:np.ndarray, recon_img:np.ndarray, mask_img:np.ndar
         gs (gridspec, optional): 
             Gridspec. Defaults to None.
         bias (float, optional): 
-            Bias to subtract from the reconstructed image. Defaults to 0.
+            Bias to subtract. Defaults to 0.
         img_vmnx (tuple, optional): 
             Image vmin, vmax. Defaults to (-1,1).
         res_vmnx (tuple, optional): 
             Residual vmin, vmax. Defaults to (None,None).
         show_title (bool, optional): 
-            Show the title. Defaults to True.
+            Show title? Defaults to True.
     """
 
     # Prep

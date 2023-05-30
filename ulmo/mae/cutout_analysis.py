@@ -2,13 +2,34 @@
 
 import numpy as np
 import h5py
+
 from scipy.sparse import csc_matrix
+from skimage.restoration import inpaint as sk_inpaint
 
 from IPython import embed
 
 def load_cutouts(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File, 
                nimgs:int=None, debug:bool=False, patch_sz:int=None,
                keys:list=None):
+    """ Load the cutouts
+
+    Args:
+        f_orig (h5py.File): 
+            Pointer to original images
+        f_recon (h5py.File): 
+            Pointer to reconstructed images
+        f_mask (h5py.File): 
+            Pointer to mask images
+        nimgs (int, optional): 
+            Number of images to load. Defaults to None which means all
+        debug (bool, optional): 
+            Debugging flag. Defaults to False.
+        patch_sz (int, optional): 
+            patch size. Defaults to None.
+
+    Returns:
+        tuple: orig_imgs, recon_imgs, mask_imgs
+    """
     if keys is None:
         keys = ['valid']*3
     # Load em all
@@ -37,8 +58,9 @@ def load_cutouts(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File,
 
 def rms_images(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File, 
                patch_sz:int=4, nimgs:int=None, debug:bool=False, 
+               bias_value:float=0.):
+    """ Calculate the RMS of the cutouts
                bias_value:float=0., keys:list=None):
-    """_summary_
 
     Args:
         f_orig (h5py.File): Pointer to original images
@@ -106,11 +128,13 @@ def rms_single_img(orig_img, recon_img, mask_img):
 def measure_bias(f_orig, f_recon, f_mask, patch_sz=4,
                  nimgs:int=None, debug:bool=False):
     """ Measure the bias in cutouts
+    WARNING:  THIS IS REPEATED IN bias.py
 
     Args:
-        idx (_type_): _description_
-        f_orig (_type_): _description_
-        f_recon (_type_): _description_
+        f_orig (_type_): 
+            Pointer to original images
+        f_recon (_type_): 
+            Pointer to reconstructed images
         f_mask (_type_): _description_
         patch_sz (int, optional): _description_. Defaults to 4.
 
@@ -134,3 +158,26 @@ def measure_bias(f_orig, f_recon, f_mask, patch_sz=4,
     #stats['mean_img'] = mean_img
     # Return
     return median_bias, mean_bias
+
+def simple_inpaint(items:list, 
+                   inpaint_type:str='biharmonic'):
+    """ Simple inpainting usually used with multi-processing
+
+    Args:
+        items (list): 
+            List of [img, mask]
+            Built this way for multi-processing
+        inpaint_type (str, optional): 
+            Inpainting type.  Defaults to 'biharmonic'.
+
+    Returns:
+        np.ndarray: Inpainted image
+    """
+    # Unpack
+    img, mask = items
+    # Do it
+    if inpaint_type == 'biharmonic':
+        return sk_inpaint.inpaint_biharmonic(
+            img, mask, channel_axis=None)
+    else:
+        raise IOError("Bad inpainting type")

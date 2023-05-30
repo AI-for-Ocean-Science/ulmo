@@ -19,7 +19,8 @@ from IPython import embed
 
 
 def coords(resol, field_size, CC_max=1e-4, outfile=None, 
-           max_lat=None, localCC=True, min_lat:float=None):
+           max_lat=None, localCC=True, min_lat:float=None,
+           rotate:float=None):
     """
     Use healpix to setup a uniform extraction grid
 
@@ -31,6 +32,7 @@ def coords(resol, field_size, CC_max=1e-4, outfile=None,
         outfile (str, optional): If provided, write the table to this outfile.
             Defaults to None.
         localCC (bool, optional):  If True, load the CC_mask locally.
+        rotate (float, optional): Rotate the grid by this angle (deg)
 
     Returns:
         pandas.DataFrame: Table containing the coords
@@ -54,6 +56,8 @@ def coords(resol, field_size, CC_max=1e-4, outfile=None,
     nside = astropy_healpix.pixel_resolution_to_nside(resol*units.deg)
     hp = astropy_healpix.HEALPix(nside=nside)
     hp_lon, hp_lat = hp.healpix_to_lonlat(np.arange(hp.npix))
+    if rotate is not None:
+        hp_lon = hp_lon + rotate*np.pi/180. * units.rad
 
     # Coords
     hp_coord = SkyCoord(hp_lon, hp_lat, frame='galactic')
