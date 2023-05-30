@@ -24,6 +24,7 @@ import h5py
 
 from ulmo import plotting
 from ulmo.mae import enki_utils
+from ulmo.mae import patch_analysis
 from ulmo.mae import plotting as enki_plotting
 from ulmo.mae.cutout_analysis import rms_images
 from ulmo import io as ulmo_io
@@ -64,7 +65,8 @@ valid_img_file = os.path.join(enki_path, 'PreProc',
 smper = r'$m_\%$'
 stper = r'$t_\%$'
 
-def fig_reconstruct(outfile:str='fig_reconstruct.png', t:int=10, p:int=20):
+def fig_reconstruct(outfile:str='fig_reconstruct.png', t:int=10, p:int=20,
+                    patch_sz:int=4):
 
     # Load
     tbl = ulmo_io.load_main_table(valid_tbl_file)
@@ -88,9 +90,27 @@ def fig_reconstruct(outfile:str='fig_reconstruct.png', t:int=10, p:int=20):
     mask_img = f_mask['valid'][cutout.pp_idx, 0, :, :]
 
     # Figure time
-    enki_plotting.plot_recon(orig_img, recon_img, mask_img, 
+    enki_plotting.plot_recon_four(orig_img, recon_img, mask_img, 
                              bias=bias, outfile=outfile,
                              res_vmnx=(-0.1,0.1))
+    #enki_plotting.plot_recon_three(orig_img, recon_img, mask_img, 
+    #                         bias=bias, outfile=outfile,
+    #                         res_vmnx=(-0.1,0.1))
+
+    # Stats
+    res = recon_img - orig_img - bias
+    # Ignore boundary
+    mask_img[0:patch_sz, :] = 0
+    mask_img[-patch_sz:, :] = 0
+    mask_img[:, 0:patch_sz] = 0
+    mask_img[:, -patch_sz:] = 0
+
+    max_res = np.max(np.abs(res*mask_img))
+    results = patch_analysis.patch_stats_img([orig_img, recon_img, mask_img],
+                                             bias=bias)
+    max_rmse = np.max(results['std_diff'])
+
+    print(f'Residual max: {max_res:.3f}, RMSE max: {max_rmse:.3f}')
 
 
 def fig_patches(outfile:str, patch_file:str):

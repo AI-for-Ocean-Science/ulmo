@@ -151,7 +151,8 @@ def find_patches(mask_img, p_sz:int):
 def patch_stats_img(items:list, p_sz:int=4,
         stats=['meanT', 'stdT', 'median_diff', 
                  'std_diff', 'max_diff', 'i_patch', 
-                 'j_patch']):
+                 'j_patch'],
+        bias:float=0.):
     """Measure stats of patches in a single image
 
     Args:
@@ -181,7 +182,7 @@ def patch_stats_img(items:list, p_sz:int=4,
     for kk, patch in enumerate(patches):
         i, j = np.unravel_index(patch, mask_img.shape)
         ptch_data[kk,...] = data_img[i:i+p_sz, j:j+p_sz]
-        ptch_recon[kk,...] = recon_img[i:i+p_sz, j:j+p_sz]
+        ptch_recon[kk,...] = recon_img[i:i+p_sz, j:j+p_sz] - bias
         # Save
         i_patch[kk] = i
         j_patch[kk] = j
