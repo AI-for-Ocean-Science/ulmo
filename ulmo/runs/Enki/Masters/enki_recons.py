@@ -1,4 +1,4 @@
-""" Module to perform reconstructions for MAE
+""" Module to perform and analyze reconstructions for Enki
 """
 import os
 import numpy as np
@@ -379,7 +379,8 @@ def main(flg):
         # LLC
         #for t in [10,35,50,75]:
         #    for p in [10,20,30,40,50]:
-        for t in [35,75]:
+        #for t in [35,75]:
+        for t in [50]:
             for p in [10,20,30,40,50]:
                 print(f'Working on: t={t}, p={p}')
                 calc_rms(t, p, dataset='LLC', clobber=clobber, debug=debug)
@@ -417,3 +418,6 @@ if __name__ == '__main__':
 
 # Evaluate
 # python -u mae_eval_ulmo.py 2
+
+# RMSE
+# python -u mae_eval_ulmo.py 4
