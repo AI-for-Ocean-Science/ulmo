@@ -26,6 +26,8 @@ def load_cutouts(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File,
             Debugging flag. Defaults to False.
         patch_sz (int, optional): 
             patch size. Defaults to None.
+        keys (list, optional):
+            Keys to use for each file. Defaults to None which means ['valid']*3
 
     Returns:
         tuple: orig_imgs, recon_imgs, mask_imgs
@@ -58,7 +60,7 @@ def load_cutouts(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File,
 
 def rms_images(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File, 
                patch_sz:int=4, nimgs:int=None, debug:bool=False, 
-               bias_value:float=0.):
+               bias_value:float=0., keys:list=None):
     """ Calculate the RMS of the cutouts
                bias_value:float=0., keys:list=None):
 
@@ -69,6 +71,8 @@ def rms_images(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File,
         patch_sz (int, optional): patch size. Defaults to 4.
         bias_value (float, optional): Value to subtract from the difference. Defaults to 0.
             Defined as recon-orig (see measure_bias below)
+        keys (list, optional): Keys to use for each file. Defaults to ['valid']*3.
+        
 
     Returns:
         np.array: RMS values
