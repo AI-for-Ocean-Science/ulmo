@@ -1,5 +1,11 @@
 """ Methods related to the bias correction"""
 
+import os
+
+from pkg_resources import resource_filename
+
+import pandas
+
 import numpy as np
 import h5py
 
@@ -40,3 +46,10 @@ def measure_bias(f_orig:h5py.File, f_recon:h5py.File, nsamples:int=None):
 
     # Return
     return np.array(median_biases), np.array(mean_biases)
+
+def load_bias_table():
+    bias_file = os.path.join(
+            resource_filename('ulmo', 'runs'),
+            'Enki', 'Masters', 'enki_bias_LLC.csv')
+    bias = pandas.read_csv(bias_file)
+    return bias

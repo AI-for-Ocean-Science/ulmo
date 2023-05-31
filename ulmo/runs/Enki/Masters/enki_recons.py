@@ -19,6 +19,7 @@ from ulmo.utils import catalog as cat_utils
 from ulmo.mae import enki_utils
 from ulmo.modis import analysis as modis_analysis
 from ulmo.mae import cutout_analysis
+from ulmo.mae import bias as enki_bias
 
 from IPython import embed
 
@@ -220,10 +221,7 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
 
     if remove_bias:
         # Load
-        bias_file = os.path.join(
-            resource_filename('ulmo', 'runs'),
-            'MAE', 'enki_bias_LLC.csv')
-        bias = pandas.read_csv(bias_file)
+        bias = enki_bias.load_bias_table()
         bias_value = float(bias[(bias.t == t) & (bias.p == p)]['median'])
     else:
         bias_value = 0.
@@ -413,11 +411,5 @@ if __name__ == '__main__':
 
     main(flg)
 
-# Generate the VIIRS images
-# python -u mae_recons.py 1
-
-# Evaluate
-# python -u mae_eval_ulmo.py 2
-
 # RMSE
-# python -u mae_eval_ulmo.py 4
+# python -u enki_recons.py 4
