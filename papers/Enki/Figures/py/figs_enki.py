@@ -515,7 +515,7 @@ def figs_rmse_vs_LL(outfile='rmse_t10only.png', ax=None):
 
                     
     # load rmse
-    rmse = enki_anly_rms.create_table()
+    rmse = enki_anly_rms.create_llc_table()
     
     if ax is None:
         fig = plt.figure(figsize=(10, 10))
@@ -564,7 +564,7 @@ def fig_rmse_models(outfile='fig_rmse_models.png', ax=None, rmse=None):
                          
     # load rmse
     if rmse is None:
-        rmse = enki_anly_rms.create_table()
+        rmse = enki_anly_rms.create_llc_table()
     
     if ax is None:
         fig = plt.figure(figsize=(10, 10))
@@ -709,10 +709,10 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         flg_fig = 0
         #flg_fig += 2 ** 0  # patches
-        #flg_fig += 2 ** 1  # cutouts
+        flg_fig += 2 ** 1  # cutouts
         #flg_fig += 2 ** 2  # LLC (Enki vs inpainting)
         #flg_fig += 2 ** 3  # Reconstruction example
-        flg_fig += 2 ** 4  # VIIRS LL
+        #flg_fig += 2 ** 4  # VIIRS LL
     else:
         flg_fig = sys.argv[1]
 

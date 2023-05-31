@@ -8,10 +8,14 @@ from ulmo.mae import enki_utils
 
 from IPython import embed
 
-def calc_median_LL(table:pandas.DataFrame, nbatch:int=20):
+def calc_median_LL(table:pandas.DataFrame, nbatch:int=20,
+                   sort:bool=True):
     # Clean up
-    tbl = table[table['LL'].notna()].copy()
-    tbl = tbl.sort_values(by=['LL'])
+    if sort:
+        tbl = table[table['LL'].notna()].copy()
+        tbl = tbl.sort_values(by=['LL'])
+    else:
+        tbl = table.copy()
 
     # calculate median LL (need to fix this)
     x = ["" for i in range(nbatch)]
@@ -39,9 +43,11 @@ def create_llc_table(models = [10, 35, 50, 75],
     nbatch:int=20):
     # load tables
     table = pandas.read_parquet(data_filepath, engine='pyarrow')
+    table = table[table['LL'].notna()].copy()
+    table = table.sort_values(by=['LL'])
 
     # Median LL
-    avgs, _, _ = calc_median_LL(table, nbatch=nbatch)
+    avgs, _, _ = calc_median_LL(table, nbatch=nbatch, sort=False)
     
     # calculate batch averages
     for t in models:
