@@ -20,6 +20,7 @@ from ulmo.utils import catalog as cat_utils
 
 from ulmo.mae import enki_utils
 from ulmo.mae import cutout_analysis
+from ulmo.mae.cutout_analysis import rms_images
 
 
 from IPython import embed
@@ -293,6 +294,24 @@ def inpaint(inpaint_file:str,
         f.create_dataset('inpainted', data=inpainted.astype(np.float32))
     print(f'Wrote: {inpaint_file}')
  
+def rmse_inpaint(t:int, p:int):
+
+    # Load up
+    local_orig_file = viirs_100_img_file
+    #recon_file = enki_utils.img_filename(t,p, local=True, dataset='VIIRS')
+    mask_file = enki_utils.mask_filename(t,p, local=True, dataset='VIIRS')
+    inpaint_file = os.path.join(
+        sst_path, 'VIIRS', 'Enki', 
+        'Recon', f'Enki_VIIRS_inpaint_t{t}_p{p}.h5')
+
+    f_orig = h5py.File(local_orig_file, 'r')
+    #f_recon = h5py.File(recon_file, 'r')
+    f_inpaint = h5py.File(inpaint_file, 'r')
+    f_mask = h5py.File(mask_file, 'r')
+
+    rms_inpaint = rms_images(f_orig, f_inpaint, f_mask, #nimgs=nimgs,
+                             keys=['valid', 'inpainted', 'valid'])
+    embed(header='314 of enki_viirs.py')
 
 def main(flg):
     if flg== 'all':
@@ -304,11 +323,18 @@ def main(flg):
     if flg & (2**0):
         gen_llc_1km_table(llc_tot1km_tbl_file)
 
-    # Generate the VIIRS images
+    # Inpaint VIIRS images
     if flg & (2**1):
         inpaint('Enki_VIIRS_inpaint_t10_p10.h5', 
                 10, 10, debug=False, local=True) 
 
+    # RMSE of inpainted images
+    if flg & (2**2):
+
+        for t in [10]:
+            for p in [10]:
+                print(f'Working on: t={t}, p={p}')
+                rmse_inpaint(t, p)#, clobber=clobber, debug=debug)
 
 
 # Command line execution
@@ -319,6 +345,7 @@ if __name__ == '__main__':
         flg = 0
         #flg += 2 ** 0  # 1 -- Generate the total table
         #flg += 2 ** 1  # 2 -- Inpaint 
+        #flg += 2 ** 2  # 4 -- Inpaint RMSE
     else:
         flg = sys.argv[1]
 

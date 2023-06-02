@@ -354,7 +354,7 @@ def fig_viirs_example(outfile:str, t:int, idx:int=0):
 
 def fig_llc_inpainting(outfile:str, t:int, p:int, 
                        debug:bool=False, single:bool=False):
-    """_summary_
+    """ Compare LLC inpainting to Enki
 
     Args:
         outfile (str): _description_
