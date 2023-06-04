@@ -59,7 +59,7 @@ def create_llc_table(models = [10, 35, 50, 75],
     return avgs
         
 def calc_batch_RMSE(table, t, p, batch_percent:float = 10.,
-                    sort:bool=True):
+                    sort:bool=True, inpaint:bool=False):
     """
     Calculates RMSE in batches sorted by LL. 
     Handles extra by adding them to final batch
@@ -68,6 +68,7 @@ def calc_batch_RMSE(table, t, p, batch_percent:float = 10.,
     table:   LL table 
     t:       mask ratio during training
     p:       mask ratio during reconstruction
+    inpaint: if True, use inpainted RMSE
     """
     if sort:
         tbl = table[table['LL'].notna()].copy()
@@ -79,14 +80,18 @@ def calc_batch_RMSE(table, t, p, batch_percent:float = 10.,
     batch_size = int(num_imgs*batch_percent/100) # size of batch
     num_batches = num_imgs // batch_size # batches to run excluding final batch
     final_batch = num_imgs-batch_size*(num_batches-1)
-    label = 'RMS_t{t}_p{p}'.format(t=t, p=p)
+
+    if inpaint:
+        key = 'RMS_inpaint_t{t}_p{p}'.format(t=t, p=p)
+    else:
+        key = 'RMS_t{t}_p{p}'.format(t=t, p=p)
 
     print('Calculating batches for t{t}_p{p}'.format(t=t, p=p))
     RMSE = np.empty(num_batches, dtype=np.float64)
     for batch in range(num_batches-1):
         start = batch*batch_size
         end = start + batch_size-1
-        arr = tbl[label].to_numpy()
+        arr = tbl[key].to_numpy()
         RMSE[batch] = sum(arr[start:end])/batch_size
     
     RMSE[num_batches-1] = RMSE[batch] = sum(arr[batch_size*(num_batches-1):num_imgs-1])/final_batch

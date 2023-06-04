@@ -48,59 +48,6 @@ if sst_path is not None:
     viirs_100_img_file = os.path.join(sst_path, 'VIIRS', 'PreProc', 'VIIRS_all_100clear_preproc.h5')
 
 
-def gen_viirs_images(debug:bool=False):
-    """ Generate a file of cloud free VIIRS images
-    """
-    # Load
-    viirs = ulmo_io.load_main_table(viirs_file)
-
-    # Cut on CC
-    all_clear = np.isclose(viirs.clear_fraction, 0.)
-    viirs_100 = viirs[all_clear].copy()
-
-
-    # Generate images
-    uni_pps = np.unique(viirs_100.pp_file)
-    if debug:
-        uni_pps=uni_pps[0:2]
-
-    the_images = []
-    for pp_file in uni_pps:
-        print(f'Working on {os.path.basename(pp_file)}')
-        # Go local
-        local_file = os.path.join(sst_path, 'VIIRS', 'PreProc', 
-                                  os.path.basename(pp_file))
-        f = h5py.File(local_file, 'r')
-        if 'train' in f.keys():
-            raise IOError("train should not be found")
-        # Load em all (faster)
-        data = f['valid'][:]
-        in_file = viirs_100.pp_file == pp_file
-        idx = viirs_100.pp_idx[in_file].values
-
-        data = data[idx,...]
-        the_images.append(data)
-
-    # Write
-    the_images = np.concatenate(the_images)
-    with h5py.File(viirs_100_img_file, 'w') as f:
-        # Validation
-        f.create_dataset('valid', data=the_images.astype(np.float32))
-        # Metadata
-        dset = f.create_dataset('valid_metadata', 
-                                data=viirs_100.to_numpy(dtype=str).astype('S'))
-        #dset.attrs['columns'] = clms
-        '''
-        # Train
-        if valid_fraction < 1:
-            f.create_dataset('train', data=pp_fields[train_idx].astype(np.float32))
-            dset = f.create_dataset('train_metadata', data=main_tbl.iloc[train_idx].to_numpy(dtype=str).astype('S'))
-            dset.attrs['columns'] = clms
-        '''
-    print("Wrote: {}".format(viirs_100_img_file))
-
-    # Write
-    ulmo_io.write_main_table(viirs_100, viirs_100_s3_file)
 
 def simple_inpaint(items):
     # Unpack

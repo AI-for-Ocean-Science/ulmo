@@ -64,6 +64,7 @@ def gen_llc_1km_table(tbl_file:str, debug:bool=False,
             Typical separation of images in deg
         max_lat (float, optional): Restrict on latitude
     """
+    raise NotImplementedError("Need to update")
     # Figure out lat range
     coords_ds = llc_io.load_coords()
     R_earth = 6371. # km
@@ -119,6 +120,7 @@ def balance_cutouts_log10DT(tot_tbl_file:str,
         ncutouts (int): _description_
         debug (bool, optional): _description_. Defaults to False.
     """
+    raise NotImplementedError("Need to update")
     # Giddy up (will take a bit of memory!)
     tot_tbl = ulmo_io.load_main_table(tot_tbl_file)
 
@@ -155,68 +157,62 @@ def balance_cutouts_log10DT(tot_tbl_file:str,
 
 
 
-def extract_llc_cutouts( tbl_file:str, debug=False, 
-                        debug_local=False, root_file=None, 
-                        dlocal=True, preproc_root='llc_144', 
-                        MAE=False):
-    """Extract 64x64 cutouts 
-
-    Args:
-        tbl_file (str): filename for Table of cutouts
-        debug (bool, optional): 
-            Debug?
-        debug_local (bool, optional): _description_. Defaults to False.
-        root_file (_type_, optional): _description_. Defaults to None.
-        dlocal (bool, optional): _description_. Defaults to False.
-        preproc_root (str, optional): _description_. Defaults to 'llc_144'.
-        dlocal (bool, optional): Use local files for LLC data.
+def gen_viirs_images(debug:bool=False):
+    """ Generate a file of cloud free VIIRS images
     """
+    # Load
+    viirs = ulmo_io.load_main_table(viirs_file)
 
-    # Giddy up (will take a bit of memory!)
-    llc_table = ulmo_io.load_main_table(tbl_file)
+    # Cut on CC
+    all_clear = np.isclose(viirs.clear_fraction, 0.)
+    viirs_100 = viirs[all_clear].copy()
 
+
+    # Generate images
+    uni_pps = np.unique(viirs_100.pp_file)
     if debug:
-        # Cut down to first 2 days
-        uni_date = np.unique(llc_table.datetime)
-        gd_date = llc_table.datetime <= uni_date[1]
-        llc_table = llc_table[gd_date]
-        debug_local = True
+        uni_pps=uni_pps[0:2]
 
-    if debug:
-        root_file = 'MAE_LLC_uniform144_test_preproc.h5'
-    else:
-        if root_file is None:
-            root_file = 'LLC_uniform144_preproc.h5'
+    the_images = []
+    for pp_file in uni_pps:
+        print(f'Working on {os.path.basename(pp_file)}')
+        # Go local
+        local_file = os.path.join(sst_path, 'VIIRS', 'PreProc', 
+                                  os.path.basename(pp_file))
+        f = h5py.File(local_file, 'r')
+        if 'train' in f.keys():
+            raise IOError("train should not be found")
+        # Load em all (faster)
+        data = f['valid'][:]
+        in_file = viirs_100.pp_file == pp_file
+        idx = viirs_100.pp_idx[in_file].values
 
-    # Setup
-    pp_local_file = 'PreProc/'+root_file
-    pp_s3_file = 's3://llc/PreProc/'+root_file
-    if MAE:
-        pp_s3_file = pp_s3_file.replace('PreProc', 'mae/PreProc')
-    if not os.path.isdir('PreProc'):
-        os.mkdir('PreProc')
+        data = data[idx,...]
+        the_images.append(data)
 
-    print(f"Outputting to: {pp_s3_file}")
+    # Write
+    the_images = np.concatenate(the_images)
+    with h5py.File(viirs_100_img_file, 'w') as f:
+        # Validation
+        f.create_dataset('valid', data=the_images.astype(np.float32))
+        # Metadata
+        dset = f.create_dataset('valid_metadata', 
+                                data=viirs_100.to_numpy(dtype=str).astype('S'))
+        #dset.attrs['columns'] = clms
+        '''
+        # Train
+        if valid_fraction < 1:
+            f.create_dataset('train', data=pp_fields[train_idx].astype(np.float32))
+            dset = f.create_dataset('train_metadata', data=main_tbl.iloc[train_idx].to_numpy(dtype=str).astype('S'))
+            dset.attrs['columns'] = clms
+        '''
+    print("Wrote: {}".format(viirs_100_img_file))
 
-    # Run it
-    if debug_local:
-        pp_s3_file = None  
-    # Check indices
-    assert np.all(np.arange(len(llc_table)) == llc_table.index)
-    # Do it
-    extract.preproc_for_analysis(llc_table, 
-                                 pp_local_file,
-                                 fixed_km=144.,
-                                 preproc_root=preproc_root,
-                                 s3_file=pp_s3_file,
-                                 debug=debug,
-                                 dlocal=dlocal,
-                                 override_RAM=True)
-    # Final write
-    if not debug:
-        ulmo_io.write_main_table(llc_table, tbl_file)
-    print("You should probably remove the PreProc/ folder")
+    # Reset pp_idx
+    viirs_100.pp_idx = np.arange(len(viirs_100))
 
+    # Write
+    ulmo_io.write_main_table(viirs_100, viirs_100_s3_file)
 
 def inpaint(inpaint_file:str, 
             t:int, p:int, debug:bool=False,
@@ -294,7 +290,7 @@ def inpaint(inpaint_file:str,
         f.create_dataset('inpainted', data=inpainted.astype(np.float32))
     print(f'Wrote: {inpaint_file}')
  
-def rmse_inpaint(t:int, p:int):
+def rmse_inpaint(t:int, p:int, debug:bool=False):
 
     # Load up
     local_orig_file = viirs_100_img_file
@@ -312,6 +308,28 @@ def rmse_inpaint(t:int, p:int):
     rms_inpaint = rms_images(f_orig, f_inpaint, f_mask, #nimgs=nimgs,
                              keys=['valid', 'inpainted', 'valid'])
     embed(header='314 of enki_viirs.py')
+
+    # Table time
+    viirs_100 = ulmo_io.load_main_table(viirs_100_s3_file)
+
+    # Revise pp_idx
+    viirs_100.pp_idx = np.arange(len(viirs_100))
+
+    # Fill
+    RMS_metric = f'RMS_inpaint_t{t}_p{p}'
+    viirs_100[RMS_metric] = rms_inpaint
+
+    # Vet
+    chk, disallowed_keys = cat_utils.vet_main_table(
+        viirs_100, return_disallowed=True, cut_prefix=['MODIS_'])
+    for key in disallowed_keys:
+        assert key[0:2] in ['LL','RM', 'DT']
+
+    # Write 
+    if debug:
+        embed(header='239 of mae_recons')
+    else:
+        ulmo_io.write_main_table(viirs_100, viirs_100_s3_file)
 
 def main(flg):
     if flg== 'all':
