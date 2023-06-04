@@ -141,9 +141,14 @@ def main(flg):
 
     if flg & (2**1):
         # Enki
+        # STANDARD
+        #u_extract_144(enki_valid_file,
+        #              preproc_root='llc_144_nonoise', 
+        #              root_file='Enki_LLC_valid_nonoise_preproc.h5') 
+        # NOISE
         u_extract_144(enki_valid_file,
-                      preproc_root='llc_144_nonoise', 
-                      root_file='Enki_LLC_valid_nonoise_preproc.h5') 
+                      preproc_root='llc_144', 
+                      root_file='Enki_LLC_valid_noise_preproc.h5') 
 
     if flg & (2**2):
         u_evaluate_144(enki_valid_file)
