@@ -55,6 +55,7 @@ import enki_anly_rms
 sst_path = os.getenv('OS_SST')
 ogcm_path = os.getenv('OS_OGCM')
 enki_path = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki')
+
 valid_tbl_file = os.path.join(enki_path, 'Tables',
                               'MAE_LLC_valid_nonoise.parquet')
 valid_img_file = os.path.join(enki_path, 'PreProc',
@@ -629,18 +630,26 @@ def fig_viirs_rmse(outfile='fig_viirs_rmse.png',
         ax = plt.subplot(gs[0])
 
     # VIIRS
-    viirs_file = os.path.join(sst_path, 'VIIRS', 'Tables',
+    viirs_file = os.path.join(sst_path, 'VIIRS', 'Enki', 'Tables',
         'VIIRS_all_100clear_std.parquet')
     viirs = ulmo_io.load_main_table(viirs_file)
+
+    # LL
     rmse_viirs, starts, ends = enki_anly_rms.calc_median_LL(
         viirs, nbatch=nbatch)
+
+    # RMSE
     rmse_viirs[f'rms_t{t}_p{p}'] = enki_anly_rms.calc_batch_RMSE(
         viirs, t, p, batch_percent=100./nbatch)
+    rmse_viirs[f'rms_inpaint_t{t}_p{p}'] = enki_anly_rms.calc_batch_RMSE(
+        viirs, t, p, batch_percent=100./nbatch, inpaint=True)
 
     # VIIRS plot
     x = rmse_viirs['median_LL']
     y = rmse_viirs[f'rms_t{t}_p{p}']
-    plt.scatter(x, y, color='b', label='VIIRS')
+    y_inpaint = rmse_viirs[f'rms_inpaint_t{t}_p{p}']
+    plt.scatter(x, y, color='k', label='VIIRS Enki')
+    plt.scatter(x, y_inpaint, color='b', label='VIIRS Inpaint')
 
     # LLC analysis
     x_llc, y_llc = [], []
@@ -650,7 +659,7 @@ def fig_viirs_rmse(outfile='fig_viirs_rmse.png',
         y_llc.append(np.median(llc[in_llc][f'RMS_t{t}_p{p}']))
         
     # LLC
-    plt.scatter(x_llc, y_llc, color='r', label='LLC')
+    plt.scatter(x_llc, y_llc, color='r', label='LLC Enki')
         
     fsz = 17
     plt.legend(title_fontsize=fsz+1, fontsize=fsz, 
@@ -663,10 +672,7 @@ def fig_viirs_rmse(outfile='fig_viirs_rmse.png',
     ax.grid(color='gray', linestyle='dashed', linewidth = 0.5)
     plt.title(f't={t}, p={p}')
                          
-    #fig.tight_layout()
-    #fig.subplots_adjust(top=0.92)
-    #fig.subplots_adjust(wspace=0.2)
-    #fig.suptitle('RMSE vs LL', fontsize=16)
+    ax.set_yscale('log')
     
     if in_ax is None:
         plt.savefig(outfile, dpi=300)
@@ -709,10 +715,10 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         flg_fig = 0
         #flg_fig += 2 ** 0  # patches
-        flg_fig += 2 ** 1  # cutouts
+        #flg_fig += 2 ** 1  # cutouts
         #flg_fig += 2 ** 2  # LLC (Enki vs inpainting)
         #flg_fig += 2 ** 3  # Reconstruction example
-        #flg_fig += 2 ** 4  # VIIRS LL
+        flg_fig += 2 ** 4  # VIIRS LL
     else:
         flg_fig = sys.argv[1]
 
