@@ -21,6 +21,7 @@ from ulmo.mae import cutout_analysis
 from IPython import embed
 
 enki_valid_file = 's3://llc/mae/Tables/Enki_LLC_valid_nonoise.parquet'
+enki_valid_noise_file = 's3://llc/mae/Tables/Enki_LLC_valid_noise.parquet'
 
 def u_init_144(tbl_file:str, debug=False, resol=0.5, plot=False,
                max_lat=None, rotate:float=0.25):
@@ -137,7 +138,8 @@ def main(flg):
     # Generate the LLC Table
     if flg & (2**0):
         # For Enki validation
-        u_init_144(enki_valid_file, max_lat=57.)#, plot=True)
+        #u_init_144(enki_valid_file, max_lat=57.)#, plot=True)
+        u_init_144(enki_valid_noise_file, max_lat=57.)#, plot=True)
 
     if flg & (2**1):
         # Enki
@@ -161,8 +163,7 @@ if __name__ == '__main__':
         flg = 0
         #flg += 2 ** 0  # 1 -- Setup Table(s)
         #flg += 2 ** 1  # 2 -- Extract
-        #flg += 2 ** 2  # 4 -- Evaluate (with noise)
-        #flg += 2 ** 3  # 8 -- Evaluate (without noise)
+        #flg += 2 ** 2  # 4 -- Evaluate 
     else:
         flg = sys.argv[1]
 
