@@ -148,7 +148,7 @@ def main(flg):
         #              preproc_root='llc_144_nonoise', 
         #              root_file='Enki_LLC_valid_nonoise_preproc.h5') 
         # NOISE
-        u_extract_144(enki_valid_file,
+        u_extract_144(enki_valid_noise_file,
                       preproc_root='llc_144', 
                       root_file='Enki_LLC_valid_noise_preproc.h5') 
 
