@@ -1,0 +1,87 @@
+# Script to reconstruct LLC validation2 data
+# kubectl exec -it test-pod -- /bin/bash
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: xavier-enki-reconstruct-enki-t10s
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: NotIn
+                values:
+                  - k8s-chase-ci-01.noc.ucsb.edu
+              - key: nvidia.com/gpu.product
+                operator: In
+                values:
+                  - NVIDIA-GeForce-RTX-3090
+      containers:
+      - name: container
+        image: localhost:30081/profxj/mae_nvidia:latest  # UPDATE
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: "4"   # Using at least 4
+            memory: "16Gi"  # Using ~7
+            ephemeral-storage: 100Gi
+          limits:
+            cpu: "8"
+            memory: "50Gi"
+            ephemeral-storage: 150Gi
+            nvidia.com/gpu:  "1"  # See docs to exlude certain types
+        command: ["/bin/bash", "-c"]
+            #command: ["sh", "-c", "sleep infinity"]
+        args:
+          - pip install tensorboard;
+            pip3 install torch torchvision torchaudio --force-reinstall  --extra-index-url https://download.pytorch.org/whl/cu116;
+            pip3 install cycler;
+            pip install kiwisolver;
+            pip install importlib-resources;
+            cd ulmo; 
+            git fetch;
+            git checkout enki_real; 
+            git pull; 
+            pip install -e ".[dev]";
+            cp ulmo/mae/correct_helpers.py /root/miniconda3/lib/python3.8/site-packages/timm/models/layers/helpers.py;
+            cd ulmo/scripts;
+            aws --endpoint https://s3-west.nrp-nautilus.io s3 cp s3://llc/mae/PreProc/Enki_LLC_valid_nonoise_preproc.h5 ./;
+            aws --endpoint https://s3-west.nrp-nautilus.io s3 cp s3://llc/mae/mae_pretrain_ddp_mask10/checkpoint-276.pth ./;
+            python enki_reconstruct.py --mask_ratio 0.1 --data_path Enki_LLC_valid_nonoise_preproc.h5 --output_dir output --resume checkpoint-276.pth --upload_path s3://llc/mae/Recon/enki_reconstruct_t10_p10.h5 --mask_upload_path s3://llc/mae/Recon/enki_mask_t10_p10.h5;
+            python enki_reconstruct.py --mask_ratio 0.2 --data_path Enki_LLC_valid_nonoise_preproc.h5 --output_dir output --resume checkpoint-276.pth --upload_path s3://llc/mae/Recon/enki_reconstruct_t10_p20.h5 --mask_upload_path s3://llc/mae/Recon/enki_mask_t10_p20.h5;
+            python enki_reconstruct.py --mask_ratio 0.3 --data_path Enki_LLC_valid_nonoise_preproc.h5 --output_dir output --resume checkpoint-276.pth --upload_path s3://llc/mae/Recon/enki_reconstruct_t10_p30.h5 --mask_upload_path s3://llc/mae/Recon/enki_mask_t10_p30.h5;
+            python enki_reconstruct.py --mask_ratio 0.4 --data_path Enki_LLC_valid_nonoise_preproc.h5 --output_dir output --resume checkpoint-276.pth --upload_path s3://llc/mae/Recon/enki_reconstruct_t10_p40.h5 --mask_upload_path s3://llc/mae/Recon/enki_mask_t10_p40.h5;
+            python enki_reconstruct.py --mask_ratio 0.5 --data_path Enki_LLC_valid_nonoise_preproc.h5 --output_dir output --resume checkpoint-276.pth --upload_path s3://llc/mae/Recon/enki_reconstruct_t10_p50.h5 --mask_upload_path s3://llc/mae/Recon/enki_mask_t10_p50.h5;
+        env:
+          - name: "ENDPOINT_URL"
+            value: "http://rook-ceph-rgw-nautiluss3.rook"
+          - name: "S3_ENDPOINT"
+            value: "rook-ceph-rgw-nautiluss3.rook"
+        volumeMounts:
+          - name: prp-s3-credentials
+            mountPath: "/root/.aws/credentials"
+            subPath: "credentials"
+          - name: ephemeral
+            mountPath: "/tmp"
+          - name: "dshm"
+            mountPath: "/dev/shm"
+      nodeSelector:
+        nautilus.io/disktype: nvme
+      restartPolicy: Never
+      volumes:
+        # Secrets file for nautilus s3 credentials .aws/credentials and .s3cfg
+        - name: prp-s3-credentials
+          secret:
+            secretName: prp-s3-credentials
+        # Shared memory (necessary for Python's multiprocessing.shared_memory module to work)
+        - name: dshm
+          emptyDir:
+            medium: Memory
+        # Ephemeral storage
+        - name: ephemeral
+          emptyDir: {}
