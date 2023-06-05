@@ -1,4 +1,6 @@
-""" Analysis of cutout images"""
+""" Analysis of individual cutout images 
+See analysis.py for higher level routines
+"""
 
 import numpy as np
 import h5py

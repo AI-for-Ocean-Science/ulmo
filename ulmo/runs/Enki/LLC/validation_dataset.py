@@ -12,11 +12,9 @@ from ulmo.llc import extract
 from ulmo.llc import uniform
 from ulmo import io as ulmo_io
 from ulmo.analysis import evaluate as ulmo_evaluate
-from ulmo.nflows import nn 
 from ulmo.preproc import plotting as pp_plotting
 
-from ulmo.mae import enki_utils
-from ulmo.mae import cutout_analysis
+from ulmo.mae import analysis as enki_analysis
 
 from IPython import embed
 
@@ -163,17 +161,13 @@ def main(flg):
     if flg & (2**3):
         clobber = True
         debug=False
-        # VIIRS
-        #calc_rms(10, 10, dataset='VIIRS', clobber=clobber)
 
-        # LLC
-        #for t in [10,35,50,75]:
-        #    for p in [10,20,30,40,50]:
-        #for t in [35,75]:
-        for t in [50]:
+        # No noise
+        for t in [10]:
             for p in [10,20,30,40,50]:
                 print(f'Working on: t={t}, p={p}')
-                calc_rms(t, p, dataset='LLC', clobber=clobber, debug=debug)
+                enki_analysis.calc_rms(t, p, dataset='LLC2_nonoise', 
+                                       clobber=clobber, debug=debug)
 
 
 # Command line execution

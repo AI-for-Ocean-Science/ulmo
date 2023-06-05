@@ -45,6 +45,9 @@ def img_filename(t_per:int, p_per:int,
             if dataset == 'LLC':
                 root = 'mae'
                 dpath = os.path.join(os.getenv('OS_OGCM'), 'LLC')
+            elif dataset == 'LLC2_nonoise':
+                root = 'enki'
+                dpath = os.path.join(os.getenv('OS_OGCM'), 'LLC')
             elif dataset == 'VIIRS':
                 root = 'VIIRS_100clear'
                 dpath = os.path.join(os.getenv('OS_SST'), 'VIIRS')
@@ -150,3 +153,49 @@ def parse_metric(tbl:pandas.DataFrame, metric:str):
 
     # Return
     return values, label
+
+def set_files(dataset:str, t:int, p:int):
+    """ Set the files for a given dataset, t, p
+
+    Args:
+        dataset (str): 
+            Dataset name ['VIIRS', 'LLC', 'LLC2]
+        t (int): 
+            Train percentile
+        p (int): 
+            Patch percentile
+
+    Raises:
+        ValueError: _description_
+
+    Returns:
+        tuple: 4 str object -- tbl_file, orig_file, recon_file, mask_file
+    """
+    sst_path = os.getenv('OS_SST')
+    enki_path = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki')
+
+    if dataset == 'VIIRS':
+        tbl_file = os.path.join('s3://viirs', 'Tables', 
+                                'VIIRS_all_100clear_std.parquet')
+        viirs_100_img_file = os.path.join(sst_path, 'VIIRS', 
+                                          'PreProc', 'VIIRS_all_100clear_preproc.h5')
+        orig_file = viirs_100_img_file
+        recon_file = os.path.join(sst_path, 'VIIRS', 'Enki', 'Recon',
+                                  f'VIIRS_100clear_t{t}_p{p}.h5')
+        mask_file = recon_file.replace('.h5', '_mask.h5')
+    elif dataset == 'LLC':
+        tbl_file = 's3://llc/mae/Tables/MAE_LLC_valid_nonoise.parquet'
+        recon_file = img_filename(t,p, local=True)
+        mask_file = mask_filename(t,p, local=True)
+        orig_file = os.path.join(enki_path, 'PreProc', 
+                                 'MAE_LLC_valid_nonoise_preproc.h5')
+    elif dataset == 'LLC2_nonoise':
+        tbl_file = 's3://llc/mae/Tables/Enki_LLC_valid_nonoise.parquet'
+        recon_file = img_filename(t,p, local=True)
+        mask_file = mask_filename(t,p, local=True)
+        orig_file = os.path.join(enki_path, 'PreProc', 
+                                 'MAE_LLC_valid_nonoise_preproc.h5')
+    else:
+        raise ValueError("Bad dataset")
+
+    return tbl_file, orig_file, recon_file, mask_file
