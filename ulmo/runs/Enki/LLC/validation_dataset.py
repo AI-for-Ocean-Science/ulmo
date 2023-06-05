@@ -179,6 +179,7 @@ if __name__ == '__main__':
         #flg += 2 ** 0  # 1 -- Setup Table(s)
         #flg += 2 ** 1  # 2 -- Extract
         #flg += 2 ** 2  # 4 -- Evaluate 
+        #flg += 2 ** 3  # 8 -- RMSE
     else:
         flg = sys.argv[1]
 
@@ -186,3 +187,6 @@ if __name__ == '__main__':
 
 # Setup
 # python -u validation_dataset.py 1
+
+# RMSE
+# python -u validation_dataset.py 8

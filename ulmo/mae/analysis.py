@@ -48,6 +48,10 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
         return
 
     # Open up
+    print(f'Opening: {orig_file}')
+    print(f'Opening: {recon_file}')
+    print(f'Opening: {mask_file}')
+
     f_orig = h5py.File(orig_file, 'r')
     f_recon = h5py.File(recon_file, 'r')
     f_mask = h5py.File(mask_file, 'r')
