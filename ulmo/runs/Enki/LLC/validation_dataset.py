@@ -13,6 +13,7 @@ from ulmo.llc import uniform
 from ulmo import io as ulmo_io
 from ulmo.analysis import evaluate as ulmo_evaluate
 from ulmo.preproc import plotting as pp_plotting
+from ulmo.utils import catalog as cat_utils
 
 from ulmo.mae import analysis as enki_analysis
 
@@ -105,6 +106,7 @@ def u_extract_144(tbl_file:str, root_file:str, debug=False,
                                  dlocal=dlocal,
                                  override_RAM=True)
     # Final write
+    assert cat_utils.vet_main_table(llc_table)
     if not debug:
         ulmo_io.write_main_table(llc_table, tbl_file)
     print("You should probably remove the PreProc/ folder")
@@ -125,6 +127,7 @@ def u_evaluate_144(tbl_file:str,
                                  model=model)
 
     # Write 
+    assert cat_utils.vet_main_table(llc_table)
     ulmo_io.write_main_table(llc_table, tbl_file)
 
 
