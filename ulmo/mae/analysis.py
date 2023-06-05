@@ -27,6 +27,7 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
     Raises:
         ValueError: _description_
     """
+    print(f"Working on: t={t}, p={p} for {dataset}")
     tbl_file, orig_file, recon_file, mask_file = enki_utils.set_files(
         dataset, t, p)
 
