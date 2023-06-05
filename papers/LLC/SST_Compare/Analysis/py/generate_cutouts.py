@@ -3,30 +3,24 @@ import healpy as hp
 import h5py
 import numpy as np
 import os
+import pandas
 
 from ulmo import io as ulmo_io
 from ulmo.utils import image_utils 
 
+import sst_compare_utils
+
 from IPython import embed
 
-def grab_cutouts(nside=64, 
+
+def grab_healpix_cutouts(dataset:str, nside=64, 
                        local_file='equatorial_cutouts.h5', 
-                       llc=False,
                        lon=-120.,  # Define the equator 
                        lat = 0.,
                        local=False):
 
     # Load table
-    if not llc:
-        table_file = 's3://viirs/Tables/VIIRS_all_98clear_std.parquet'
-    else:
-        if local:
-            table_file = os.path.join(
-                os.getenv('SST_OOD'), 'LLC/Tables/llc_viirs_match.parquet')
-        else:
-            table_file = 's3://llc/Tables/llc_viirs_match.parquet'
-    eval_tbl = ulmo_io.load_main_table(table_file)
-
+    eval_tbl = sst_compare_utils.load_table(dataset, local=local)
 
     # Healpix coord
     theta = (90 - lat) * np.pi / 180.  # convert into radians
@@ -46,34 +40,71 @@ def grab_cutouts(nside=64,
     # Match
     gd = idx_all == idx
     print(f'There are {np.sum(gd)} cutouts')
-
     # Cutouts
     cut_tbl = eval_tbl[gd]
+
+    write_cutouts(cut_tbl, local_file)
+
+def grab_rectangular_cutouts(dataset:str, outfile:str, 
+                             lon_minmax:tuple, lat_minmax:tuple, 
+                             local:bool=False, debug:bool=False):
+    # Load table
+    eval_tbl = sst_compare_utils.load_table(dataset, local=local)
+
+    # Cut on lon/lat
+    gd_lon = (eval_tbl.lon > lon_minmax[0]) & (eval_tbl.lon <= lon_minmax[1])
+    gd_lat = (eval_tbl.lat > lat_minmax[0]) & (eval_tbl.lat <= lat_minmax[1])
+
+    cut_tbl = eval_tbl[gd_lon & gd_lat].copy()
+    cut_tbl.reset_index(drop=True, inplace=True)
+    if debug:
+        embed(header='62 of generate_cutouts')
+
+    # Write
+    write_cutouts(cut_tbl, outfile, local=local)
+
+def grab_cutout(cutout, local:bool=False):
+    if local:
+        if 'viirs' in cutout.pp_file:
+            path = os.path.join(os.getenv('SST_OOD'), 'VIIRS')
+        elif 'llc' in cutout.pp_file:
+            path = os.path.join(os.getenv('SST_OOD'), 'LLC')
+        else:
+            raise ValueError("Not ready for this")
+        lppfile = os.path.join(path, 'PreProc', 
+                                    os.path.basename(cutout.pp_file))
+    else:
+        lppfile = None
+    # Grab it
+    img = image_utils.grab_image(cutout, local_file=lppfile)
+    return img
+
+def write_cutouts(cut_tbl:pandas.DataFrame, outfile:str,
+                  debug=False, local:bool=False):
 
     images = []
     ii = 0
     for idx in cut_tbl.index:
         print(f'{ii} of {len(cut_tbl)}')
-        cutout = cut_tbl.loc[idx]
         # Grab it
-        img = image_utils.grab_image(cutout)
+        cutout = cut_tbl.loc[idx]
+        img = grab_cutout(cutout, local=local)
         # Save it
         images.append(img)
         ii += 1
 
     # Write to disk
     clms = list(cut_tbl.keys())
-
     
-    print("Writing: {}".format(local_file))
-    with h5py.File(local_file, 'w') as f:
+    print("Writing: {}".format(outfile))
+    with h5py.File(outfile, 'w') as f:
         # Validation
         f.create_dataset('valid', data=np.array(images).astype(np.float32))
         # Metadata
         dset = f.create_dataset('valid_metadata', 
                                 data=cut_tbl.to_numpy(dtype=str).astype('S'))
         dset.attrs['columns'] = clms
-    print("Wrote: {}".format(local_file))
+    print("Wrote: {}".format(outfile))
 
 
 # Command line execution
@@ -122,8 +153,33 @@ if __name__ == '__main__':
     #             llc=True, local=True)
 
     # PMC ACC 43497 -- Same 
-    grab_cutouts(lat=-50.4800445, lon=116.32075,
-                 local_file='ACC_cutouts_43497_VIIRS.h5')
-    grab_cutouts(lat=-50.4800445, lon=116.32075,
-                 local_file='ACC_cutouts_43497_LLC.h5',
-                 llc=True, local=True)
+    #grab_cutouts(lat=-50.4800445, lon=116.32075,
+    #             local_file='ACC_cutouts_43497_VIIRS.h5')
+    #grab_cutouts(lat=-50.4800445, lon=116.32075,
+    #             local_file='ACC_cutouts_43497_LLC.h5',
+    #             llc=True, local=True)
+
+    # #########################################
+    # Rectangular cutouts
+
+    '''
+    # Equatorial
+    grab_rectangular_cutouts('viirs', 'viirs_eq_rect_cutouts.h5',
+                             (245.-360, 255.-360), (-2., 2.), local=True)#, debug=True)
+    grab_rectangular_cutouts('llc_match', 'llc_eq_rect_cutouts.h5',
+                             (245.-360, 255.-360), (-2., 2.), local=True)#, debug=True)
+    '''
+
+    '''
+    # Gulf                            
+    grab_rectangular_cutouts('viirs', 'viirs_gulf_rect_cutouts.h5',
+                             (290.-360, 310.-360), (34., 42.), local=True)#, debug=True)
+    grab_rectangular_cutouts('llc_match', 'llc_gulf_rect_cutouts.h5',
+                             (290.-360, 310.-360), (34., 42.), local=True)#, debug=True)
+    '''
+
+    # Southern
+    grab_rectangular_cutouts('viirs', 'viirs_south_rect_cutouts.h5',
+                             (115., 124.), (-55, -49.), local=True)#, debug=True)
+    grab_rectangular_cutouts('llc_match', 'llc_south_rect_cutouts.h5',
+                             (115., 124.), (-55, -49.), local=True)#, debug=True)

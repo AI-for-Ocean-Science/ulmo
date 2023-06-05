@@ -1,6 +1,5 @@
 """ Run SSL Analysis specific to the paper """
 
-from pkg_resources import resource_filename
 import os
 import numpy as np
 
@@ -14,6 +13,7 @@ from statsmodels.stats.stattools import durbin_watson
 import statsmodels.formula.api as smf
 
 from ulmo import io as ulmo_io
+from ulmo.ssl import defs as ulmo_ssl_defs
 
 import ssl_defs
 
@@ -29,30 +29,31 @@ if os.getenv('SST_OOD'):
     local_modis_96_file = os.path.join(os.getenv('SST_OOD'),
                                     'MODIS_L2/Tables/MODIS_SSL_96clear.parquet')
 
-# Geo graphical regions
-geo_regions = {}
-geo_regions['eqpacific'] = dict(
-    lons=[-140, -90.],   # W
-    lats=[-10, 10.])    # Equitorial 
-geo_regions['baybengal'] = dict(
-    lons=[79, 95.],   # E
-    lats=[16, 23.])    # N
-geo_regions['med'] = dict(
-    lons=[0, 60.],   # E
-    lats=[30, 45.])    # N
-geo_regions['south_atlantic'] = dict(
-    lons=[-40, 0.],   # W (Pretty crude)
-    lats=[-20, -10.])      # N
-geo_regions['south_pacific'] = dict(
-    lons=[-120, -90.],   # W (Pretty crude)
-    lats=[-30, -10.])      # S
-geo_regions['global'] = dict(
-    lons=[-999., 999.],   # E
-    lats=[-999, 999.])    # N
-geo_regions['north'] = dict(
-    lons=[-999., 999.],   # E
-    lats=[0, 999.])    # N
+# Geography
+geo_regions = ulmo_ssl_defs.geo_regions
 
+# UMAP ranges for the paper
+umap_rngs_dict = {}
+#umap_rngs_dict['weak_DT15'] = [[1.5,3.],  # DT15, old UMAP
+#                          [1.5,3]]
+umap_rngs_dict['weak_DT1'] = [[0, 2.0],  # DT1, new UMAP
+                          [-2.5,-0.3]]
+#umap_rngs_dict['weak_DT1'] = [[-1, 1.],  # DT1, new UMAP
+#                          [-3.,-0.5]]
+umap_rngs_dict['strong_DT1'] = [[4.0,8-0.7],  # DT1, new UMAP
+                          [2.4,4]]
+
+def lon_to_lbl(lon):
+    if lon < 0:
+        return '{:d}W'.format(int(-lon))
+    else:
+        return '{:d}E'.format(int(lon))
+        
+def lat_to_lbl(lat):
+    if lat < 0:
+        return '{:d}S'.format(int(-lat))
+    else:
+        return '{:d}N'.format(int(lat))
 
 def load_modis_tbl(table:str=None, 
                    local=False, cuts:str=None, 
@@ -95,25 +96,14 @@ def load_modis_tbl(table:str=None,
                 base1 = 'MODIS_SSL_96clear_v4'
             dtstr = table.split('_')[-1]
             base2 = '_'+dtstr
+        elif 'v4_a' in table:
+            base1 = 'MODIS_SSL_96clear_v4'
+            dtstr = table.split('_')[-1]
+            base2 = '_'+dtstr
         else:
             base2 = ''
         # 
         basename = base1+base2+'.parquet'
-
-    '''
-    elif table == 'CF':
-        basename = 'MODIS_SSL_cloud_free.parquet'
-    elif table == 'CF_DT0':
-        basename = 'MODIS_SSL_cloud_free_DT0.parquet'
-    elif table == 'CF_DT1':
-        basename = 'MODIS_SSL_cloud_free_DT1.parquet'
-    elif table == 'CF_DT15':
-        basename = 'MODIS_SSL_cloud_free_DT15.parquet'
-    elif table == 'CF_DT2':
-        basename = 'MODIS_SSL_cloud_free_DT2.parquet'
-    elif table == 'CF_DT1_DT2':
-        basename = 'UT1_2003.parquet'
-    '''
 
     if local:
         tbl_file = os.path.join(os.getenv('SST_OOD'), 'MODIS_L2', 'Tables', basename)
@@ -289,29 +279,3 @@ def gen_umap_keys(umap_dim:int, umap_comp:str):
         umap_keys = ('U3_'+umap_comp[0], 'U3_'+umap_comp[-1])
     return umap_keys
 
-
-def grid_umap(U0, U1, nxy:int=16, 
-              percent:list=[0.1, 99.9]):
-    """ 
-    """
-
-    # Boundaries of the grid
-    xmin, xmax = np.percentile(U0, percent)
-    ymin, ymax = np.percentile(U1, percent)
-    dxv = (xmax-xmin)/nxy
-    dyv = (ymax-ymin)/nxy
-
-    # Edges
-    xmin -= dxv
-    xmax += dxv
-    ymin -= dyv
-    ymax += dyv
-
-    # Grid
-    xval = np.arange(xmin, xmax+dxv, dxv)
-    yval = np.arange(ymin, ymax+dyv, dyv)
-
-    # Return
-    grid = dict(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax,
-                xval=xval, yval=yval, dxv=dxv, dyv=dyv)
-    return grid

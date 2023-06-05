@@ -1,1 +1,3 @@
-Put matlab scripts here
+HEALPix_plots.m is the function used to plot many of the figures for this paper. In addition to the functions it calls--in Functions--and the data it 
+uses--in Data-- there is a data file that is too big for GitHub. It is in the Zenodo repository for large files. It can be accessed here:
+https://doi.org/10.5281/zenodo.7761238.

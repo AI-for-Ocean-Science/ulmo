@@ -12,7 +12,7 @@ from IPython import embed
 
 def healpix_stats(dataset:str, outfile:str, local=False, 
                   debug:bool=False, cut_DT:tuple=None,
-                  nside:int=64, cut:str=None, CC=None):
+                  nside:int=64, time_cut:str=None, CC=None):
     """_summary_
 
     Args:
@@ -32,19 +32,22 @@ def healpix_stats(dataset:str, outfile:str, local=False,
     # Load table
     eval_tbl = sst_compare_utils.load_table(dataset, 
                                             local=local,
-                                            cut_DT=cut_DT)
+                                            cut_DT=cut_DT,
+                                            time_cut=time_cut)
+    if debug:
+        embed(header='37 stats')
 
     # Heads
-    if cut is not None:
-        if cut == 'head':
-            cutt = (eval_tbl.datetime.dt.year > 2011) & (
-                eval_tbl.datetime.dt.year < 2015) 
-        elif cut == 'tail':
-            cutt = (eval_tbl.datetime.dt.year > 2017) & (
-                eval_tbl.datetime.dt.year < 2021) 
-        else:
-            raise IOError("Bad cut")
-        eval_tbl = eval_tbl[cutt].copy()
+    #if cut is not None:
+    #    if cut == 'head':
+    #        cutt = (eval_tbl.datetime.dt.year > 2011) & (
+    #            eval_tbl.datetime.dt.year < 2015) 
+    #    elif cut == 'tail':
+    #        cutt = (eval_tbl.datetime.dt.year > 2017) & (
+    #            eval_tbl.datetime.dt.year < 2021) 
+    #    else:
+    #        raise IOError("Bad cut")
+    #    eval_tbl = eval_tbl[cutt].copy()
 
     # Clouds?
     if CC is not None:
@@ -97,17 +100,17 @@ def healpix_stats(dataset:str, outfile:str, local=False,
 if __name__ == '__main__':
 
     # All
-    #healpix_stats('viirs', 'all_viirs.csv', local=True)#, debug=True)
+    #healpix_stats('viirs', 'all_viirs.csv')#, debug=True)
 
     # DT cuts
-    healpix_stats('viirs', 'DT115_viirs.csv', local=True, cut_DT=(1.,1.5))#, debug=True)
+    #healpix_stats('viirs', 'DT115_viirs.csv', local=True, cut_DT=(1.,1.5))#, debug=True)
 
     # Head/tail
-    #healpix_stats('head_viirs.csv', local=True, cut='head')
-    #healpix_stats('tail_viirs.csv', local=True, cut='tail')
+    healpix_stats('viirs', 'head_viirs.csv', time_cut='head')
+    healpix_stats('viirs', 'tail_viirs.csv', time_cut='tail')
 
     # LLC
-    #healpix_stats('all_llc.csv', local=True, llc=True)
+    healpix_stats('llc_match', 'all_llc.csv')
 
     # MODIS
     #healpix_stats('modis_all', 'all_modis.csv')

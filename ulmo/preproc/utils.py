@@ -333,7 +333,7 @@ def preproc_tbl(data_tbl:pandas.DataFrame,
                 clobber=False, 
                 inpainted_mask=False,
                 n_cores=10):
-    """ Pre-process a Table of extracted files
+    """ PreProcess a set of images
 
     Args:
         data_tbl (pandas.DataFrame): 
@@ -452,10 +452,6 @@ def preproc_tbl(data_tbl:pandas.DataFrame,
             img_idx += [item[1] for item in answers]
             meta += [item[2] for item in answers]
 
-            #if debug:
-            #    from ulmo.plotting import plotting
-            #    embed(header='426 of preproc')
-
             # Clean up
             del answers, fields, items
             if use_mask:
@@ -498,8 +494,10 @@ def write_pp_fields(pp_fields:list, meta:list,
     Args:
         pp_fields (list): List of preprocessed fields
         meta (list): List of meta measurements
+            Should be same size as pp_fields
         main_tbl (pandas.DataFrame): Main table
         ex_idx (np.ndarray): Items in table extracted
+            Should be same size and aligned to pp_fields
         ppf_idx (np.ndarray): Order of items in table extracted
         valid_fraction (float): Valid fraction (the rest is Train)
         s3_file (str): [description]
@@ -525,8 +523,12 @@ def write_pp_fields(pp_fields:list, meta:list,
     idx_idx = ex_idx[ppf_idx]
 
     # Mu
+    if debug:
+        embed(header='528 of preproc/utils')
     clms = list(main_tbl.keys())
     if not skip_meta:
+        #main_tbl['mean_temperature'] = [imeta['mu'] for imeta in meta]
+        #clms += ['mean_temperature']
         # Others
         all_tf = np.array([False]*len(main_tbl))
         all_tf[idx_idx] = True
@@ -534,15 +536,14 @@ def write_pp_fields(pp_fields:list, meta:list,
             ikey = 'mean_temperature' if key == 'mu' else key
 
             if key in meta[0].keys():
-                # Init?
-                if ikey not in clms:
-                    main_tbl[ikey] = 0.
-                # unravel em
-                mvalues = []
-                for jj in ppf_idx:
-                    mvalues.append(meta[jj][key])
-                # Assign
-                main_tbl.loc[all_tf, ikey] = mvalues
+                # Create the column?
+                if ikey not in main_tbl.keys():
+                    mvalues = np.zeros(len(main_tbl))
+                else:
+                    mvalues = main_tbl[ikey].values
+                # Fill
+                mvalues[idx_idx] = [item[key] for item in meta]
+                main_tbl[ikey] = mvalues
                 # Add to clms
                 if key not in clms:
                     clms += [key]
@@ -552,7 +553,7 @@ def write_pp_fields(pp_fields:list, meta:list,
     valid_idx, train_idx = idx[:n], idx[n:]
 
     if debug:
-        embed(header='526 of preproc')
+        embed(header='558 of preproc/utils')
 
     # Update table (this indexing is brutal..)
     #all_tf = np.array([False]*len(main_tbl))

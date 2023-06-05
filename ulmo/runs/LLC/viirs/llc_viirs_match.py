@@ -11,6 +11,8 @@ from ulmo import io as ulmo_io
 from ulmo.analysis import evaluate as ulmo_evaluate 
 from ulmo.utils import catalog as cat_utils
 
+from ulmo.viirs import utils as viirs_utils
+
 
 from astropy import units
 from astropy.coordinates import SkyCoord, match_coordinates_sky
@@ -248,21 +250,35 @@ def llc_viirs_evaluate_144(tbl_file:str,
     # Write 
     ulmo_io.write_main_table(llc_table, tbl_file)
 
-def viirs_add_uid(debug=False):
+def viirs_add_uid(debug=False, clobber=True):
     """ Add a UID to the VIIRS table
     """
     # Load
-    tbl_file = 's3://viirs/Tables/VIIRS_2013_tst.parquet'
-    viirs_table = ulmo_io.load_main_table(tbl_file)
+    s3_path = 's3://viirs/Tables/'
+    tbl_files = ulmo_io.list_of_bucket_files(
+        s3_path, include_prefix=True) 
+    if debug:
+        tbl_files = tbl_files[0:1]
 
-    # Add
-    viirs_table['UID'] = np.arange(len(viirs_table))
+    for tbl_file in tbl_files:
+        viirs_table = ulmo_io.load_main_table(tbl_file)
 
-    # Vet
-    assert cat_utils.vet_main_table(modis_table)
+        if 'UID' in viirs_table.keys() and not clobber:
+            print("UID already in table")
+            continue
 
-    # Write
-    ulmo_io.write_main_table(viirs_table, tbl_file)
+        # Add
+        viirs_table['UID'] = viirs_utils.viirs_uid(viirs_table)
+
+        # Vet
+        assert cat_utils.vet_main_table(viirs_table,
+                                        cut_prefix=['MODIS_'])
+
+        # Write
+        if not debug:
+            ulmo_io.write_main_table(viirs_table, tbl_file)
+        else:
+            print("Not writing file")
 
 
 def main(flg):
@@ -283,7 +299,7 @@ def main(flg):
 
     # Add UID for *all* VIIRS tables
     if flg & (2**3):
-        viirs_add_uid(debug=True)
+        viirs_add_uid()#debug=True)
 
 # Command line execution
 if __name__ == '__main__':
@@ -293,11 +309,8 @@ if __name__ == '__main__':
         flg = 0
         #flg += 2 ** 0  # 1 -- Setup coords and table
         #flg += 2 ** 1  # 2 -- Extract
-        flg += 2 ** 2  # 4 -- Evaluate
+        #flg += 2 ** 2  # 4 -- Evaluate
         flg += 2 ** 3  # 8 -- UID
-
-
-
 
     else:
         flg = sys.argv[1]
