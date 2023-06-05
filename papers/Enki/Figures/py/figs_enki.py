@@ -648,8 +648,8 @@ def fig_viirs_rmse(outfile='fig_viirs_rmse.png',
     x = rmse_viirs['median_LL']
     y = rmse_viirs[f'rms_t{t}_p{p}']
     y_inpaint = rmse_viirs[f'rms_inpaint_t{t}_p{p}']
-    plt.scatter(x, y, color='k', label='VIIRS Enki')
-    plt.scatter(x, y_inpaint, color='b', label='VIIRS Inpaint')
+    plt.scatter(x, y, marker='s', color='k', label='VIIRS Enki')
+    plt.scatter(x, y_inpaint, marker='s', color='b', label='VIIRS Inpaint')
 
     # LLC analysis
     x_llc, y_llc = [], []
@@ -659,7 +659,7 @@ def fig_viirs_rmse(outfile='fig_viirs_rmse.png',
         y_llc.append(np.median(llc[in_llc][f'RMS_t{t}_p{p}']))
         
     # LLC
-    plt.scatter(x_llc, y_llc, color='r', label='LLC Enki')
+    plt.scatter(x_llc, y_llc, marker='*', color='r', label='LLC Enki')
         
     fsz = 17
     plt.legend(title_fontsize=fsz+1, fontsize=fsz, 

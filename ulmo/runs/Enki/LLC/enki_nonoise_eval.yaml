@@ -1,8 +1,10 @@
-# Script to evaluate MAE outputs with VIIRS 98 Ulm
+# Script to evaluate Enki outputs with VIIRS 98 Ulm
+#   THIS FAILED!!
+#   TRYING JupyterHub instead..
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-enki-eval-nonoise
+  name: xavier-enki-eval
 spec:
   backoffLimit: 0
   template:

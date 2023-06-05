@@ -116,6 +116,8 @@ def u_evaluate_144(tbl_file:str,
                    clobber_local=False, debug=False,
                    model='viirs-98'):
     """ Run Ulmo on the cutouts with the given model
+
+    RAN IN JupyterHub
     """
     # Load
     llc_table = ulmo_io.load_main_table(tbl_file)
