@@ -680,6 +680,68 @@ def fig_viirs_rmse(outfile='fig_viirs_rmse.png',
         print(f'Wrote: {outfile}')
     return
 
+def fig_chk_valid(outfile='fig_chk_valid.png'):
+
+    # load rmse
+    rmse1 = enki_anly_rms.create_llc_table()
+    rmse2 = enki_anly_rms.create_llc_table(
+        models=[10],
+        data_filepath=os.path.join(
+        os.getenv('OS_OGCM'), 
+        'LLC', 'Enki', 'Tables', 'Enki_LLC_valid_nonoise.parquet'))
+    
+    fig = plt.figure(figsize=(10, 10))
+    plt.clf()
+    gs = gridspec.GridSpec(1,1)
+    ax = plt.subplot(gs[0])
+    
+    models = [10]
+    masks = [10,20,30,40,50]
+    colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple']
+    plt_labels = []
+        
+    i=0
+        
+    # plot
+    for p, c in zip(masks, colors):
+        x1 = rmse1['median_LL']
+        y1 = rmse1['rms_t{t}_p{p}'.format(t=models[i], p=p)]
+        x2 = rmse2['median_LL']
+        y2 = rmse2['rms_t{t}_p{p}'.format(t=models[i], p=p)]
+        #
+        plt_labels.append(smper+f'={p}')
+        if p == 10:
+            lbl1 = 'Valid 1'
+            lbl2 = 'Valid 2'
+        else:
+            lbl1, lbl2 = None, None
+        plt.scatter(x1, y1, marker='s', color=c, label=lbl1)
+        plt.scatter(x2, y2, marker='o', color=c, label=lbl2)
+
+    #ax.set_ylim([0, 0.20])
+    ax.set_axisbelow(True)
+    ax.grid(color='gray', linestyle='dashed', linewidth = 0.5)
+    fsz = 17
+    plt.legend(labels=plt_labels, title='Patch Mask Ratio',
+                title_fontsize=fsz+1, fontsize=fsz, fancybox=True)
+    plt.title('Training Percentile: t={}'.format(models[i]))
+    plt.xlabel(r"Median $LL_{\rm Ulmo}$")
+    plt.ylabel("Average RMSE (K)")
+
+    plotting.set_fontsize(ax, 19)
+    ax.legend()
+                         
+    #fig.tight_layout()
+    #fig.subplots_adjust(top=0.92)
+    #fig.subplots_adjust(wspace=0.2)
+    #fig.suptitle('RMSE vs LL', fontsize=16)
+    
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print(f'Wrote: {outfile}')
+
+    return 
+
 #### ########################## #########################
 def main(flg_fig):
     if flg_fig == 'all':
@@ -708,6 +770,10 @@ def main(flg_fig):
     if flg_fig & (2 ** 4):
         fig_viirs_rmse()
 
+    # Check valid 2
+    if flg_fig & (2 ** 5):
+        fig_chk_valid()
+
 
 # Command line execution
 if __name__ == '__main__':
@@ -718,7 +784,8 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 1  # cutouts
         #flg_fig += 2 ** 2  # LLC (Enki vs inpainting)
         #flg_fig += 2 ** 3  # Reconstruction example
-        flg_fig += 2 ** 4  # VIIRS LL
+        #flg_fig += 2 ** 4  # VIIRS LL
+        flg_fig += 2 ** 5  # VIIRS LL
     else:
         flg_fig = sys.argv[1]
 
