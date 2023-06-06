@@ -48,6 +48,11 @@ def measure_bias(f_orig:h5py.File, f_recon:h5py.File, nsamples:int=None):
     return np.array(median_biases), np.array(mean_biases)
 
 def load_bias_table():
+    """ Simple method to load up the bias values
+
+    Returns:
+        pandas.DataFrame: table of bias values
+    """
     bias_file = os.path.join(
             resource_filename('ulmo', 'runs'),
             'Enki', 'Masters', 'enki_bias_LLC.csv')

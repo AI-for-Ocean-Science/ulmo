@@ -15,14 +15,14 @@ from ulmo import io as ulmo_io
 from IPython import embed
 
 
-def anlayze_full_test(recon_file,
+def anlayze_full(recon_file,
     orig_file='MAE_LLC_valid_nonoise_preproc.h5',
     stats=['meanT', 'stdT', 'DT', 'median_diff', 
            'std_diff', 'max_diff', 'i_patch', 'j_patch',
            'DT_recon'],
     nsub:int=10000, n_cores:int=4, p_sz:int=4, 
     keep_orig:bool=True,
-    debug:bool=False):
+    debug:bool=False, bias:float=0.):
     """ Analyze the patches in a given file of 
     reconstructed images
 
@@ -65,7 +65,7 @@ def anlayze_full_test(recon_file,
         nimages = 10000
 
     map_fn = partial(patch_stats_img, p_sz=p_sz,
-                     stats=stats)
+                     stats=stats, bias=bias)
 
     # Run one to get the number of patches and number of items?
     items = [f_orig['valid'][0,0,...], 
