@@ -1,0 +1,19 @@
+{
+    "field_size": 192,
+    "nadir_offset": 0,
+    "sub_grid_step": 2,
+    "nrepeat": 1,
+    "temp_bounds": [
+        -3,
+        34
+    ],
+    "clear_threshold": 85,
+    "downscale": true,
+    "dscale_size": [
+        3,
+        3
+    ],
+    "inpaint": false,
+    "median": false,
+    "only_inpaint": false
+}
