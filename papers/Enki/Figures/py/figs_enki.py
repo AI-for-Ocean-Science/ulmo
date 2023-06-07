@@ -127,7 +127,7 @@ def fig_patches(outfile:str, patch_file:str):
 
     # RMSE
     ax1 = plt.subplot(gs[1])
-    fig_patch_rmse(patch_file, ax=ax1)
+    fig_patch_rmse(patch_file, in_ax=ax1)
     ax1.set_title('(b)', fontsize=lsz, color='k', loc='left')
 
     # Finish
@@ -162,7 +162,7 @@ def fig_cutouts(outfile:str):
     print('Wrote {:s}'.format(outfile))
 
 def fig_patch_ij_binned_stats(metric:str,
-    stat:str, patch_file:str, nbins:int=16, ax=None):
+    stat:str, patch_file:str, nbins:int=16, in_ax=None):
     """ Binned stats for patches
 
     Args:
@@ -205,10 +205,12 @@ def fig_patch_ij_binned_stats(metric:str,
         bins=[nbins,nbins])
 
     # Figure
-    if ax is None:
+    if in_ax is None:
         fig = plt.figure(figsize=(10,8))
         plt.clf()
         ax = plt.gca()
+    else:
+        ax = in_ax
 
     cmap = 'Blues'
     cm = plt.get_cmap(cmap)
@@ -229,37 +231,43 @@ def fig_patch_ij_binned_stats(metric:str,
     ax.set_aspect('equal')
 
     # Finish
-    if ax is None:
+    if in_ax is None:
         plotting.set_fontsize(ax, 15)
         plt.savefig(outfile, dpi=300)
         plt.close()
         print('Wrote {:s}'.format(outfile))
 
 
-def fig_patch_rmse(patch_file:str, nbins:int=16, ax=None):
+def fig_patch_rmse(patch_file:str, in_ax=None, outfile:str=None,
+                   tp:tuple=None):
     """ Binned stats for patches
 
     Args:
         patch_file (str): _description_
-        nbins (int, optional): _description_. Defaults to 16.
     """
     lims = (-5,1)
 
     # Parse
-    t_per, p_per = enki_utils.parse_enki_file(patch_file)
+    if tp is None:
+        t_per, p_per = enki_utils.parse_enki_file(patch_file)
+    else:
+        t_per, p_per = tp
 
     # Outfile
-    outfile = f'fig_patch_rmse_t{t_per}_p{p_per}.png'
+    if outfile is None:
+        outfile = f'fig_patch_rmse_t{t_per}_p{p_per}.png'
 
     # Analysis
     x_edge, eval_stats, stat, x_lbl, lbl, popt = enki_anly_rms.anly_patches(
         patch_file)
 
     # Figure
-    if ax is None:
+    if in_ax is None:
         fig = plt.figure(figsize=(8, 8))
         plt.clf()
         ax = plt.gca()
+    else:
+        ax = in_ax
 
     # Patches
     plt_x = (x_edge[:-1]+x_edge[1:])/2
@@ -296,7 +304,7 @@ def fig_patch_rmse(patch_file:str, nbins:int=16, ax=None):
     # Grid
     ax.grid()
 
-    if ax is None:
+    if in_ax is None:
         plt.savefig(outfile, dpi=300)
         plt.close()
         print('Wrote {:s}'.format(outfile))
@@ -774,6 +782,13 @@ def main(flg_fig):
     if flg_fig & (2 ** 5):
         fig_chk_valid()
 
+    # VIIRS patches
+    if flg_fig & (2 ** 6):
+        fig_patch_rmse(
+            '/home/xavier/Projects/Oceanography/SST/VIIRS/Enki/Recon/VIIRS_100clear_patches_t10_p10.npz',
+            outfile='fig_viirs_patches_t10_p10.png',
+            tp=(10,10))
+
 
 # Command line execution
 if __name__ == '__main__':
@@ -785,7 +800,8 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 2  # LLC (Enki vs inpainting)
         #flg_fig += 2 ** 3  # Reconstruction example
         #flg_fig += 2 ** 4  # VIIRS LL
-        flg_fig += 2 ** 5  # VIIRS LL
+        #flg_fig += 2 ** 5  # Check valid 2
+        flg_fig += 2 ** 6  # VIIRS patches
     else:
         flg_fig = sys.argv[1]
 
