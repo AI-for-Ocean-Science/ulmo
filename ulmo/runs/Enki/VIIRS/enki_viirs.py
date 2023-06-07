@@ -21,6 +21,9 @@ from ulmo.utils import catalog as cat_utils
 from ulmo.mae import enki_utils
 from ulmo.mae import cutout_analysis
 from ulmo.mae.cutout_analysis import rms_images
+from ulmo.preproc import io as pp_io 
+from ulmo.viirs import extract as viirs_extract
+from ulmo.modis import utils as modis_utils
 
 
 from IPython import embed
@@ -331,6 +334,144 @@ def rmse_inpaint(t:int, p:int, debug:bool=False):
     else:
         ulmo_io.write_main_table(viirs_100, viirs_100_s3_file)
 
+
+def viirs_extract_2013(debug=False, n_cores=20, 
+                       nsub_files=5000,
+                       ndebug_files=0,
+                       save_fields:bool=False):
+    """Extract "cloud free" images for 2013
+
+    Args:
+        debug (bool, optional): [description]. Defaults to False.
+        n_cores (int, optional): Number of cores to use. Defaults to 20.
+        nsub_files (int, optional): Number of sub files to process at a time. Defaults to 5000.
+        ndebug_files (int, optional): [description]. Defaults to 0.
+    """
+    # 10 cores took 6hrs
+    # 20 cores took 3hrs
+
+    if debug:
+        tbl_file = 's3://viirs/Tables/VIIRS_2013_tst.parquet'
+    else:
+        tbl_file = 's3://viirs/Tables/VIIRS_2013_cc15.parquet'
+    # Pre-processing (and extraction) settings
+    pdict = pp_io.load_options('viirs_cc15')
+    
+    # 2013 
+    print("Grabbing the file list")
+    all_viirs_files = ulmo_io.list_of_bucket_files('viirs')
+    files = []
+    bucket = 's3://viirs/'
+    for ifile in all_viirs_files:
+        if 'data/2013' in ifile:
+            files.append(bucket+ifile)
+
+    # Output
+    if debug:
+        save_path = ('VIIRS_2013'
+                 '_{}clear_{}x{}_tst_inpaint.h5'.format(pdict['clear_threshold'],
+                                                    pdict['field_size'],
+                                                    pdict['field_size']))
+    else:                                                
+        save_path = ('VIIRS_2013'
+                 '_{}clear_{}x{}_inpaint.h5'.format(pdict['clear_threshold'],
+                                                    pdict['field_size'],
+                                                    pdict['field_size']))
+    s3_filename = 's3://viirs/Extractions/{}'.format(save_path)
+
+
+    # Setup for preproc
+    map_fn = partial(viirs_extract.extract_file,
+                     field_size=(pdict['field_size'], pdict['field_size']),
+                     CC_max=1.-pdict['clear_threshold'] / 100.,
+                     nadir_offset=pdict['nadir_offset'],
+                     temp_bounds=tuple(pdict['temp_bounds']),
+                     nrepeat=pdict['nrepeat'],
+                     sub_grid_step=pdict['sub_grid_step'],
+                     inpaint=True)
+
+    # Local file for writing
+    f_h5 = h5py.File(save_path, 'w')
+    print("Opened local file: {}".format(save_path))
+    
+    nloop = len(files) // nsub_files + ((len(files) % nsub_files) > 0)
+    metadata = None
+    for kk in range(nloop):
+        # Zero out
+        fields, inpainted_masks = None, None
+        #
+        i0 = kk*nsub_files
+        i1 = min((kk+1)*nsub_files, len(files))
+        print('Files: {}:{} of {}'.format(i0, i1, len(files)))
+        sub_files = files[i0:i1]
+
+        with ProcessPoolExecutor(max_workers=n_cores) as executor:
+            chunksize = len(sub_files) // n_cores if len(sub_files) // n_cores > 0 else 1
+            answers = list(tqdm(executor.map(map_fn, sub_files,
+                                             chunksize=chunksize), total=len(sub_files)))
+
+        # Trim None's
+        answers = [f for f in answers if f is not None]
+        fields = np.concatenate([item[0] for item in answers])
+        inpainted_masks = np.concatenate([item[1] for item in answers])
+        if metadata is None:
+            metadata = np.concatenate([item[2] for item in answers])
+        else:
+            metadata = np.concatenate([metadata]+[item[2] for item in answers], axis=0)
+        del answers
+
+        # Write
+        if kk == 0:
+            if save_fields:
+                f_h5.create_dataset('fields', data=fields, 
+                                compression="gzip", chunks=True,
+                                maxshape=(None, fields.shape[1], fields.shape[2]))
+            f_h5.create_dataset('inpainted_masks', data=inpainted_masks,
+                                compression="gzip", chunks=True,
+                                maxshape=(None, inpainted_masks.shape[1], inpainted_masks.shape[2]))
+        else:
+            # Resize
+            for key in ['fields', 'inpainted_masks']:
+                if not save_fields:
+                    continue
+                f_h5[key].resize((f_h5[key].shape[0] + fields.shape[0]), axis=0)
+            # Fill
+            if save_fields:
+                f_h5['fields'][-fields.shape[0]:] = fields
+            f_h5['inpainted_masks'][-fields.shape[0]:] = inpainted_masks
+    
+
+    # Metadata
+    columns = ['filename', 'row', 'column', 'latitude', 'longitude', 
+               'clear_fraction']
+    dset = f_h5.create_dataset('metadata', data=metadata.astype('S'))
+    dset.attrs['columns'] = columns
+    # Close
+    f_h5.close() 
+
+    # Table time
+    viirs_table = pandas.DataFrame()
+    viirs_table['filename'] = [item[0] for item in metadata]
+    viirs_table['row'] = [int(item[1]) for item in metadata]
+    viirs_table['col'] = [int(item[2]) for item in metadata]
+    viirs_table['lat'] = [float(item[3]) for item in metadata]
+    viirs_table['lon'] = [float(item[4]) for item in metadata]
+    viirs_table['clear_fraction'] = [float(item[5]) for item in metadata]
+    viirs_table['field_size'] = pdict['field_size']
+    basefiles = [os.path.basename(ifile) for ifile in viirs_table.filename.values]
+    viirs_table['datetime'] = modis_utils.times_from_filenames(basefiles, ioff=-1, toff=0)
+    viirs_table['ex_filename'] = s3_filename
+
+    # Vet
+    assert cat_utils.vet_main_table(viirs_table)
+
+    # Final write
+    ulmo_io.write_main_table(viirs_table, tbl_file)
+    
+    # Push to s3
+    print("Pushing to s3")
+    ulmo_io.upload_file_to_s3(save_path, s3_filename)
+
 def main(flg):
     if flg== 'all':
         flg= np.sum(np.array([2 ** ii for ii in range(25)]))
@@ -354,6 +495,10 @@ def main(flg):
                 print(f'Working on: t={t}, p={p}')
                 rmse_inpaint(t, p)#, clobber=clobber, debug=debug)
 
+    # Extract with clouds at ~10%
+    if flg & (2**3):
+        viirs_extract_2013()
+
 
 # Command line execution
 if __name__ == '__main__':
@@ -364,6 +509,7 @@ if __name__ == '__main__':
         #flg += 2 ** 0  # 1 -- Generate the total table
         #flg += 2 ** 1  # 2 -- Inpaint 
         #flg += 2 ** 2  # 4 -- Inpaint RMSE
+        flg += 2 ** 3  # 8 -- Extract VIIRS to CC15 (for cloud masks!)
     else:
         flg = sys.argv[1]
 
