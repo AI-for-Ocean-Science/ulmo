@@ -165,7 +165,6 @@ def main(flg):
         clobber = False
         debug=False
 
-        '''
         # No noise
         for t in [10,35,50,75]:
             for p in [10,20,30,40,50]:
@@ -180,6 +179,7 @@ def main(flg):
                 print(f'Working on: t={t}, p={p}')
                 enki_analysis.calc_rms(t, p, dataset='LLC2_noise', 
                                        clobber=clobber, debug=debug)
+        '''
 
 
 
