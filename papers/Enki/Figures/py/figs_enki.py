@@ -705,10 +705,13 @@ def fig_chk_valid(outfile='fig_chk_valid.png'):
     # load rmse
     rmse1 = enki_anly_rms.create_llc_table()
     rmse2 = enki_anly_rms.create_llc_table(
-        models=[10],
-        data_filepath=os.path.join(
+        models=[10], data_filepath=os.path.join(
         os.getenv('OS_OGCM'), 
         'LLC', 'Enki', 'Tables', 'Enki_LLC_valid_nonoise.parquet'))
+    rmse3 = enki_anly_rms.create_llc_table(
+        models=[10], data_filepath=os.path.join(
+        os.getenv('OS_OGCM'), 
+        'LLC', 'Enki', 'Tables', 'Enki_LLC_valid_noise.parquet'))
     
     fig = plt.figure(figsize=(10, 10))
     plt.clf()
@@ -724,19 +727,30 @@ def fig_chk_valid(outfile='fig_chk_valid.png'):
         
     # plot
     for p, c in zip(masks, colors):
-        x1 = rmse1['median_LL']
-        y1 = rmse1['rms_t{t}_p{p}'.format(t=models[i], p=p)]
-        x2 = rmse2['median_LL']
-        y2 = rmse2['rms_t{t}_p{p}'.format(t=models[i], p=p)]
-        #
         plt_labels.append(smper+f'={p}')
-        if p == 10:
-            lbl1 = 'Valid 1'
-            lbl2 = 'Valid 2'
-        else:
-            lbl1, lbl2 = None, None
-        plt.scatter(x1, y1, marker='s', color=c, label=lbl1)
-        plt.scatter(x2, y2, marker='o', color=c, label=lbl2)
+        for ss, rmse in enumerate([rmse1, rmse2, rmse3]):
+            x = rmse['median_LL']
+            y = rmse['rms_t{t}_p{p}'.format(t=models[i], p=p)]
+
+            # Marker
+            if ss == 0:
+                mrkr = 's'
+            elif ss == 1:
+                mrkr = 'o'
+            elif ss == 2:
+                mrkr = '*'
+            
+            # Labels
+            if p == 10:
+                if ss == 0:
+                    lbl = 'Original'
+                elif ss == 1:
+                    lbl = 'Offset by 0.25deg'
+                elif ss == 2:
+                    lbl = 'Offset + noise'
+            else:
+                lbl = None
+            plt.scatter(x, y, marker=mrkr, color=c, label=lbl)
 
     #ax.set_ylim([0, 0.20])
     ax.set_axisbelow(True)
@@ -793,7 +807,7 @@ def main(flg_fig):
     if flg_fig & (2 ** 4):
         fig_viirs_rmse()
 
-    # Check valid 2
+    # Check valid 2, with and without noise
     if flg_fig & (2 ** 5):
         fig_chk_valid()
 
@@ -814,8 +828,8 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 1  # cutouts
         #flg_fig += 2 ** 2  # LLC (Enki vs inpainting)
         #flg_fig += 2 ** 3  # Reconstruction example
-        flg_fig += 2 ** 4  # VIIRS LL
-        #flg_fig += 2 ** 5  # Check valid 2
+        #flg_fig += 2 ** 4  # VIIRS LL
+        flg_fig += 2 ** 5  # Check valid 2
         #flg_fig += 2 ** 6  # VIIRS patches
     else:
         flg_fig = sys.argv[1]

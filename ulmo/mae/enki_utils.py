@@ -48,6 +48,9 @@ def img_filename(t_per:int, p_per:int,
             elif dataset == 'LLC2_nonoise':
                 root = 'enki'
                 dpath = os.path.join(os.getenv('OS_OGCM'), 'LLC')
+            elif dataset == 'LLC2_noise':
+                root = 'enki_noise'
+                dpath = os.path.join(os.getenv('OS_OGCM'), 'LLC')
             elif dataset == 'VIIRS':
                 root = 'VIIRS_100clear'
                 dpath = os.path.join(os.getenv('OS_SST'), 'VIIRS')
@@ -187,6 +190,10 @@ def set_files(dataset:str, t:int, p:int):
         tbl_file = 's3://llc/mae/Tables/Enki_LLC_valid_nonoise.parquet'
         orig_file = os.path.join(enki_path, 'PreProc', 
                                  'Enki_LLC_valid_nonoise_preproc.h5')
+    elif dataset == 'LLC2_noise':
+        tbl_file = 's3://llc/mae/Tables/Enki_LLC_valid_noise.parquet'
+        orig_file = os.path.join(enki_path, 'PreProc', 
+                                 'Enki_LLC_valid_noise_preproc.h5')
     else:
         raise ValueError("Bad dataset")
 
