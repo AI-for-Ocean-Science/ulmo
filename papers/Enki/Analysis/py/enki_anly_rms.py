@@ -137,7 +137,6 @@ def anly_patches(patch_file:str, nbins:int=32, model:str='std'):
     eval_stats, x_edge, ibins = scipy.stats.binned_statistic(
         xvalues.values[good], values.values[good], statistic=stat, bins=nbins)
 
-
     # Fit
     x = (x_edge[:-1]+x_edge[1:])/2
     gd_eval = np.isfinite(eval_stats)
@@ -155,7 +154,7 @@ def anly_patches(patch_file:str, nbins:int=32, model:str='std'):
         raise ValueError(f'Unknown model: {model}')
     popt, pcov = scipy.optimize.curve_fit(
         fit_model, gd_x, gd_y, p0=p0, sigma=0.1*gd_y)
-    return x_edge, eval_stats, stat, x_lbl, lbl, popt
+    return x_edge, eval_stats, stat, x_lbl, lbl, popt, tbl
 
 
 def two_param_model(sigT, floor:float, scale:float):

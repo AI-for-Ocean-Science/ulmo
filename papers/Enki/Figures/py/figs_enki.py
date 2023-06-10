@@ -117,17 +117,16 @@ def fig_patches(outfile:str, patch_file:str, model:str='std'):
 
     fig = plt.figure(figsize=(12,7))
     plt.clf()
-    gs = gridspec.GridSpec(1,2)
+    gs = gridspec.GridSpec(4,8)
 
     # Spatial
-    ax0 = plt.subplot(gs[0])
+    ax0 = plt.subplot(gs[:,0:4])
     fig_patch_ij_binned_stats('std_diff', 'median',
                               patch_file, in_ax=ax0)
     ax0.set_title('(a)', fontsize=lsz, color='k', loc='left')
 
     # RMSE
-    ax1 = plt.subplot(gs[1])
-    fig_patch_rmse(patch_file, in_ax=ax1, model=model)
+    ax1 = fig_patch_rmse(patch_file, in_ax=gs, model=model)
     ax1.set_title('(b)', fontsize=lsz, color='k', loc='left')
 
     # Finish
@@ -258,7 +257,7 @@ def fig_patch_rmse(patch_file:str, in_ax=None, outfile:str=None,
         outfile = f'fig_patch_rmse_t{t_per}_p{p_per}.png'
 
     # Analysis
-    x_edge, eval_stats, stat, x_lbl, lbl, popt = enki_anly_rms.anly_patches(
+    x_edge, eval_stats, stat, x_lbl, lbl, popt, tbl = enki_anly_rms.anly_patches(
         patch_file, model=model)
 
 
@@ -267,8 +266,11 @@ def fig_patch_rmse(patch_file:str, in_ax=None, outfile:str=None,
         fig = plt.figure(figsize=(8, 8))
         plt.clf()
         ax = plt.gca()
-    else:
+    elif isinstance(in_ax, plt.Axes):
         ax = in_ax
+    else:
+        ax = plt.subplot(in_ax[1:,4:])
+        ax_hist = plt.subplot(in_ax[0,4:], sharex=ax)
 
     # Patches
     plt_x = (x_edge[:-1]+x_edge[1:])/2
@@ -286,12 +288,19 @@ def fig_patch_rmse(patch_file:str, in_ax=None, outfile:str=None,
     consts = popt
     xval = np.linspace(lims[0], lims[1], 1000)
     if model == 'std':
-        yval = enki_anly_rms.two_param_model(xval, floor=consts[0], scale=consts[1])
+        yval = enki_anly_rms.two_param_model(10**xval, floor=consts[0], scale=consts[1])
     elif model == 'denom':
-        yval = enki_anly_rms.denom_model(xval, floor=consts[0], scale=consts[1])
+        yval = enki_anly_rms.denom_model(10**xval, floor=consts[0], scale=consts[1])
         
-    ax.plot(xval, yval, 'r:', 
+    ax.plot(xval, np.log10(yval), 'r:', 
             label=r'$\log_{10}( \, (\sigma_T + '+f'{consts[0]:0.3f})/{consts[1]:0.1f}'+r')$')
+
+    # Histogram
+    if ax_hist is not None:
+        keep = tbl.stdT > 0.
+        ax_hist.hist(np.log10(tbl.stdT.values[keep]), bins=100, density=True, color='b')#, alpha=0.5)
+        plt.setp(ax_hist.get_xticklabels(), visible=False)
+
 
     # Axes
     ax.set_xlabel(x_lbl)
@@ -320,6 +329,8 @@ def fig_patch_rmse(patch_file:str, in_ax=None, outfile:str=None,
         plt.savefig(outfile, dpi=300)
         plt.close()
         print('Wrote {:s}'.format(outfile))
+
+    return ax_hist if ax_hist is not None else ax
 
     
 
@@ -836,11 +847,11 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg_fig = 0
-        #flg_fig += 2 ** 0  # patches
+        flg_fig += 2 ** 0  # patches
         #flg_fig += 2 ** 1  # cutouts
         #flg_fig += 2 ** 2  # LLC (Enki vs inpainting)
         #flg_fig += 2 ** 3  # Reconstruction example
-        flg_fig += 2 ** 4  # VIIRS LL
+        #flg_fig += 2 ** 4  # VIIRS LL
         #flg_fig += 2 ** 5  # Check valid 2
         #flg_fig += 2 ** 6  # VIIRS patches
     else:
