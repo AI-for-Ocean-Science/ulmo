@@ -112,7 +112,7 @@ def fig_reconstruct(outfile:str='fig_reconstruct.png', t:int=10, p:int=20,
     print(f'Residual max: {max_res:.3f}, RMSE max: {max_rmse:.3f}')
 
 
-def fig_patches(outfile:str, patch_file:str):
+def fig_patches(outfile:str, patch_file:str, model:str='std'):
     lsz = 16.
 
     fig = plt.figure(figsize=(12,7))
@@ -122,12 +122,12 @@ def fig_patches(outfile:str, patch_file:str):
     # Spatial
     ax0 = plt.subplot(gs[0])
     fig_patch_ij_binned_stats('std_diff', 'median',
-                              patch_file, ax=ax0)
+                              patch_file, in_ax=ax0)
     ax0.set_title('(a)', fontsize=lsz, color='k', loc='left')
 
     # RMSE
     ax1 = plt.subplot(gs[1])
-    fig_patch_rmse(patch_file, in_ax=ax1)
+    fig_patch_rmse(patch_file, in_ax=ax1, model=model)
     ax1.set_title('(b)', fontsize=lsz, color='k', loc='left')
 
     # Finish
@@ -239,7 +239,7 @@ def fig_patch_ij_binned_stats(metric:str,
 
 
 def fig_patch_rmse(patch_file:str, in_ax=None, outfile:str=None,
-                   tp:tuple=None):
+                   tp:tuple=None, model:str='std'):
     """ Binned stats for patches
 
     Args:
@@ -259,7 +259,8 @@ def fig_patch_rmse(patch_file:str, in_ax=None, outfile:str=None,
 
     # Analysis
     x_edge, eval_stats, stat, x_lbl, lbl, popt = enki_anly_rms.anly_patches(
-        patch_file)
+        patch_file, model=model)
+
 
     # Figure
     if in_ax is None:
@@ -273,11 +274,22 @@ def fig_patch_rmse(patch_file:str, in_ax=None, outfile:str=None,
     plt_x = (x_edge[:-1]+x_edge[1:])/2
     ax.plot(plt_x, eval_stats, 'o', color='b', label='Patches')
 
+    # Write
+    df = pandas.DataFrame()
+    df['log10_sigT'] = plt_x
+    df['log10_RMSE'] = eval_stats
+    df.to_csv('fig_patch_rmse.csv', index=False)
+    print(f'Wrote: fig_patch_rmse.csv')
+
     # PMC Model
     #consts = (0.01, 8.)
     consts = popt
     xval = np.linspace(lims[0], lims[1], 1000)
-    yval = np.log10((10**xval + consts[0])/consts[1])
+    if model == 'std':
+        yval = enki_anly_rms.two_param_model(xval, floor=consts[0], scale=consts[1])
+    elif model == 'denom':
+        yval = enki_anly_rms.denom_model(xval, floor=consts[0], scale=consts[1])
+        
     ax.plot(xval, yval, 'r:', 
             label=r'$\log_{10}( \, (\sigma_T + '+f'{consts[0]:0.3f})/{consts[1]:0.1f}'+r')$')
 
@@ -678,7 +690,7 @@ def fig_viirs_rmse(outfile='fig_viirs_rmse.png',
 
     plotting.set_fontsize(ax, 19)
     ax.grid(color='gray', linestyle='dashed', linewidth = 0.5)
-    plt.title(f't={t}, p={p}')
+    #plt.title(f't={t}, p={p}')
                          
     ax.set_yscale('log')
     
@@ -761,6 +773,9 @@ def main(flg_fig):
     if flg_fig & (2 ** 0):
         fig_patches('fig_patches_t10_p20.png',
                     'mae_patches_t10_p20.npz')
+        #fig_patches('fig_patches_t10_p20_denom.png',
+        #            'mae_patches_t10_p20.npz',
+        #            model='denom')
 
     # Cutouts
     if flg_fig & (2 ** 1):
@@ -799,9 +814,9 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 1  # cutouts
         #flg_fig += 2 ** 2  # LLC (Enki vs inpainting)
         #flg_fig += 2 ** 3  # Reconstruction example
-        #flg_fig += 2 ** 4  # VIIRS LL
+        flg_fig += 2 ** 4  # VIIRS LL
         #flg_fig += 2 ** 5  # Check valid 2
-        flg_fig += 2 ** 6  # VIIRS patches
+        #flg_fig += 2 ** 6  # VIIRS patches
     else:
         flg_fig = sys.argv[1]
 

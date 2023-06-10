@@ -162,7 +162,7 @@ def main(flg):
 
     # Calculate RMS for various reconstructions
     if flg & (2**3):
-        clobber = True
+        clobber = False
         debug=False
 
         # No noise

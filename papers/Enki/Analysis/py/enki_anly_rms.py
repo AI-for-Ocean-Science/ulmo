@@ -97,7 +97,17 @@ def calc_batch_RMSE(table, t, p, batch_percent:float = 10.,
     RMSE[num_batches-1] = RMSE[batch] = sum(arr[batch_size*(num_batches-1):num_imgs-1])/final_batch
     return RMSE
 
-def anly_patches(patch_file:str, nbins:int=32):
+def anly_patches(patch_file:str, nbins:int=32, model:str='std'):
+    """ Analyze the patches
+
+    Args:
+        patch_file (str): _description_
+        nbins (int, optional): _description_. Defaults to 32.
+        nfit (int, optional): Number of parameters for the fit. Defaults to 2.
+
+    Returns:
+        _type_: _description_
+    """
 
     # Load
     patch_file = os.path.join(os.getenv("OS_OGCM"),
@@ -135,14 +145,25 @@ def anly_patches(patch_file:str, nbins:int=32):
     gd_x = 10**x[gd_eval]
     gd_y = 10**eval_stats[gd_eval]
 
+    if model == 'std':
+        fit_model = two_param_model 
+        p0=[0.01, 10.]
+    elif model == 'denom':
+        fit_model = denom_model
+        p0 = None
+    else:
+        raise ValueError(f'Unknown model: {model}')
     popt, pcov = scipy.optimize.curve_fit(
-        dumb_model, gd_x, gd_y, p0=[0.01, 10.],
-        sigma=0.1*gd_y)
+        fit_model, gd_x, gd_y, p0=p0, sigma=0.1*gd_y)
     return x_edge, eval_stats, stat, x_lbl, lbl, popt
 
 
-def dumb_model(sigT, floor:float, scale:float):
+def two_param_model(sigT, floor:float, scale:float):
     rmse = (sigT+floor)/scale
+    return rmse
+
+def denom_model(sigT, floor:float, scale:float):
+    rmse = (sigT+floor)/(np.sqrt(sigT) + scale)
     return rmse
     
 # Command line execution
