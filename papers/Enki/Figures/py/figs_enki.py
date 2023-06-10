@@ -636,7 +636,8 @@ def fig_rmse_models(outfile='fig_rmse_models.png', ax=None, rmse=None):
 
 def fig_viirs_rmse(outfile='fig_viirs_rmse.png', 
                    t:int=10, p:int=10, in_ax=None, 
-                   nbatch:int=10, e_llc=None):
+                   nbatch:int=10, show_inpaint:bool=True,
+                   show_llc_quad:bool=False):
                          
     # load rmse
     llc = ulmo_io.load_main_table(os.path.join(
@@ -669,7 +670,8 @@ def fig_viirs_rmse(outfile='fig_viirs_rmse.png',
     y = rmse_viirs[f'rms_t{t}_p{p}']
     y_inpaint = rmse_viirs[f'rms_inpaint_t{t}_p{p}']
     plt.scatter(x, y, marker='s', color='k', label='VIIRS Enki')
-    plt.scatter(x, y_inpaint, marker='s', color='b', label='VIIRS Inpaint')
+    if show_inpaint:
+        plt.scatter(x, y_inpaint, marker='s', color='b', label='VIIRS Inpaint')
 
     # LLC analysis
     x_llc, y_llc = [], []
@@ -680,6 +682,11 @@ def fig_viirs_rmse(outfile='fig_viirs_rmse.png',
         
     # LLC
     plt.scatter(x_llc, y_llc, marker='*', color='r', label='LLC Enki')
+
+    # LLC quad
+    if show_llc_quad:
+        y_llc_quad = np.sqrt(np.array(y_llc)**2 + 0.03**2)
+        plt.scatter(x_llc, y_llc_quad, marker='o', color='r', label='LLC Enki + VIIRS noise')
         
     fsz = 17
     plt.legend(title_fontsize=fsz+1, fontsize=fsz, 
@@ -692,7 +699,8 @@ def fig_viirs_rmse(outfile='fig_viirs_rmse.png',
     ax.grid(color='gray', linestyle='dashed', linewidth = 0.5)
     #plt.title(f't={t}, p={p}')
                          
-    ax.set_yscale('log')
+    if show_inpaint:                         
+        ax.set_yscale('log')
     
     if in_ax is None:
         plt.savefig(outfile, dpi=300)
@@ -806,6 +814,10 @@ def main(flg_fig):
     # VIIRS vs LLC with LL
     if flg_fig & (2 ** 4):
         fig_viirs_rmse()
+        fig_viirs_rmse(outfile='fig_viirs_rmse_noinpaint.png',
+                       show_inpaint=False)
+        fig_viirs_rmse(outfile='fig_viirs_rmse_quad.png',
+                       show_inpaint=False, show_llc_quad=True)
 
     # Check valid 2, with and without noise
     if flg_fig & (2 ** 5):
@@ -828,8 +840,8 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 1  # cutouts
         #flg_fig += 2 ** 2  # LLC (Enki vs inpainting)
         #flg_fig += 2 ** 3  # Reconstruction example
-        #flg_fig += 2 ** 4  # VIIRS LL
-        flg_fig += 2 ** 5  # Check valid 2
+        flg_fig += 2 ** 4  # VIIRS LL
+        #flg_fig += 2 ** 5  # Check valid 2
         #flg_fig += 2 ** 6  # VIIRS patches
     else:
         flg_fig = sys.argv[1]
