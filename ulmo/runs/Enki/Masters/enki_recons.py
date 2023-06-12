@@ -152,7 +152,8 @@ def calc_bias(dataset:str='LLC', clobber:bool=False, debug:bool=False,
 
     # Loop me
     ts, ps, medians, means = [], [], [], []
-    for t in [10,20,35,50,75]:
+    all_ts = [10,20,35,50,75] if dataset == 'LLC2' else [10,35,50,75]
+    for t in all_ts:
         for p in [10,20,30,40,50]:
             if update is not None:
                 if (t,p) not in update:
