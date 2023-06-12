@@ -142,8 +142,6 @@ def calc_bias(dataset:str='LLC', clobber:bool=False, debug:bool=False,
     Raises:
         ValueError: _description_
     """
-    if update is not None:
-        raise ValueError("Not properly implemented!")
     outfile = f'enki_bias_{dataset}.csv'
     if os.path.isfile(outfile) and not clobber:
         if update is not None:
@@ -154,7 +152,7 @@ def calc_bias(dataset:str='LLC', clobber:bool=False, debug:bool=False,
 
     # Loop me
     ts, ps, medians, means = [], [], [], []
-    for t in [10,35,50,75]:
+    for t in [10,20,35,50,75]:
         for p in [10,20,30,40,50]:
             if update is not None:
                 if (t,p) not in update:
@@ -192,7 +190,8 @@ def calc_bias(dataset:str='LLC', clobber:bool=False, debug:bool=False,
                 df.loc[idx, 'mean'] = mean_bias
 
     # Write
-    df = pandas.DataFrame(dict(t=ts, p=ps, median=medians, mean=means))
+    if update is None:
+        df = pandas.DataFrame(dict(t=ts, p=ps, median=medians, mean=means))
     df.to_csv(outfile, index=False)
     print(f"Wrote: {outfile}")
 
@@ -234,10 +233,11 @@ def main(flg):
         #calc_rms(10, 10, dataset='VIIRS', clobber=clobber)
 
         # LLC
-        calc_bias(dataset='LLC', debug=debug, clobber=True)
+        #calc_bias(dataset='LLC', debug=debug, clobber=True)
         #calc_bias(dataset='LLC', debug=debug,
-        #          update=[(35,10),(35,20),(35,30),(35,40),(35,50),
-        #                  (75,10),(75,20),(75,30),(75,40),(75,50),])
+        #          update=[(20,10),(20,20),(20,30),(20,40),(20,50)])
+
+        calc_bias(dataset='LLC2', debug=debug, clobber=True)
 
 
 # Command line execution

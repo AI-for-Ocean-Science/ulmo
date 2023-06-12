@@ -166,7 +166,8 @@ def main(flg):
         debug=False
 
         # No noise
-        for t in [10,35,50,75]:
+        #for t in [10,35,50,75]:
+        for t in [20]:
             for p in [10,20,30,40,50]:
                 print(f'Working on: t={t}, p={p}')
                 enki_analysis.calc_rms(t, p, dataset='LLC2_nonoise', 
