@@ -338,6 +338,7 @@ def rmse_inpaint(t:int, p:int, debug:bool=False):
 def viirs_extract_2013(debug=False, n_cores=20, 
                        nsub_files=5000,
                        ndebug_files=0,
+                       local:bool=False,
                        save_fields:bool=False):
     """Extract "cloud free" images for 2013
 
@@ -346,6 +347,8 @@ def viirs_extract_2013(debug=False, n_cores=20,
         n_cores (int, optional): Number of cores to use. Defaults to 20.
         nsub_files (int, optional): Number of sub files to process at a time. Defaults to 5000.
         ndebug_files (int, optional): [description]. Defaults to 0.
+        local (bool, optional): Use local files?
+            Defaults to False.
     """
     # 10 cores took 6hrs
     # 20 cores took 3hrs
@@ -404,6 +407,16 @@ def viirs_extract_2013(debug=False, n_cores=20,
         i1 = min((kk+1)*nsub_files, len(files))
         print('Files: {}:{} of {}'.format(i0, i1, len(files)))
         sub_files = files[i0:i1]
+
+        # Local?
+        if local:
+            local_sub = []
+            path = '/tank/xavier/Oceanography/data/VIIRS'
+            for ifile in sub_files:
+                tmp = ifile.split('/')
+                new_file = os.path.join(path, '2013', tmp[5], os.path.basename(ifile))
+                local_sub.append(new_file)
+            sub_files = local_sub
 
         with ProcessPoolExecutor(max_workers=n_cores) as executor:
             chunksize = len(sub_files) // n_cores if len(sub_files) // n_cores > 0 else 1
@@ -497,7 +510,7 @@ def main(flg):
 
     # Extract with clouds at ~10%
     if flg & (2**3):
-        viirs_extract_2013()
+        viirs_extract_2013(local=True)
 
 
 # Command line execution
