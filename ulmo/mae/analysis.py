@@ -86,7 +86,7 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
     print("Adding to table")
     if debug:
         embed(header='231 of mae_recons')
-    if dataset == 'LLC':
+    if dataset[0:3] == 'LLC':
         # Allow for bad/missing images
         all_rms = np.nan * np.ones(len(tbl))
         pp_idx = tbl.pp_idx.values

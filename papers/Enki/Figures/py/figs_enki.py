@@ -817,13 +817,20 @@ def fig_llc_many_inpainting(outfile='fig_llc_many_inpainting.png',
     rmse_std = enki_anly_rms.create_llc_table(table=llc, models=models, masks=masks)
     rmse_biharm = enki_anly_rms.create_llc_table(table=llc, method='biharmonic',
                                                  models=models, masks=masks)
+    rmse_nearest = enki_anly_rms.create_llc_table(table=llc, method='grid_nearest',
+                                                 models=models, masks=masks)
+    rmse_linear = enki_anly_rms.create_llc_table(table=llc, method='grid_linear',
+                                                 models=models, masks=masks)
+    rmse_cubic = enki_anly_rms.create_llc_table(table=llc, method='grid_cubic',
+                                                 models=models, masks=masks)
 
 
     # Plot me
-    for tbl, lbl in zip([rmse_std, rmse_biharm], ['std', 'biharm']):
+    for tbl, lbl in zip([rmse_std, rmse_biharm, rmse_nearest, rmse_linear, rmse_cubic], 
+                        ['std', 'biharm', 'nearest', 'linear', 'cubic']):
         x_llc = tbl['median_LL']
         y_llc = tbl[f'rms_t{t}_p{p}']
-        plt.scatter(x_llc, y_llc, marker='o', color='r', label=lbl)
+        plt.scatter(x_llc, y_llc, marker='o', label=lbl)
 
         
     fsz = 17

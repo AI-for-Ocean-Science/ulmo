@@ -242,28 +242,25 @@ def inpaint_images(inpaint_file:str,
         dataset, t, p)
 
     f_orig = h5py.File(orig_file, 'r')
-    f_recon = h5py.File(recon_file,'r')
+    #f_recon = h5py.File(recon_file,'r')
     f_mask = h5py.File(mask_file,'r')
 
     if debug:
         nfiles = 1000
         nsub_files = 100
         orig_imgs = f_orig['valid'][:nfiles,0,...]
-        recon_imgs = f_recon['valid'][:nfiles,0,...]
+        #recon_imgs = f_recon['valid'][:nfiles,0,...]
         mask_imgs = f_mask['valid'][:nfiles,0,...]
     else:
         print("Loading images...")
         orig_imgs = f_orig['valid'][:,0,...]
-        recon_imgs = f_recon['valid'][:,0,...]
+        #recon_imgs = f_recon['valid'][:,0,...]
         mask_imgs = f_mask['valid'][:,0,...]
 
-    # Mask out edges
-    print("Masking edges...")
-    mask_imgs[:, patch_sz:-patch_sz,patch_sz:-patch_sz] = 0
+    nfiles = orig_imgs.shape[0]
 
     # Analyze
-    diff_recon = (orig_imgs - recon_imgs)*mask_imgs
-    nfiles = diff_recon.shape[0]
+    #diff_recon = (orig_imgs - recon_imgs)*mask_imgs
 
     # Inpatinting
     map_fn = partial(simple_inpaint, inpaint_type=method)
@@ -275,7 +272,7 @@ def inpaint_images(inpaint_file:str,
         i0 = kk*nsub_files
         i1 = min((kk+1)*nsub_files, nfiles)
         print('Files: {}:{} of {}'.format(i0, i1, nfiles))
-        sub_files = [(diff_recon[ii,...], mask_imgs[ii,...]) for ii in range(i0, i1)]
+        sub_files = [(orig_imgs[ii,...], mask_imgs[ii,...]) for ii in range(i0, i1)]
         with ProcessPoolExecutor(max_workers=n_cores) as executor:
             chunksize = len(
                 sub_files) // n_cores if len(sub_files) // n_cores > 0 else 1
@@ -287,8 +284,11 @@ def inpaint_images(inpaint_file:str,
     inpainted = np.concatenate(inpainted)
 
     # Save
-    with h5py.File(inpaint_file, 'w') as f:
-        # Validation
-        f.create_dataset('inpainted', data=inpainted.astype(np.float32))
-    print(f'Wrote: {inpaint_file}')
+    if not debug:
+        with h5py.File(inpaint_file, 'w') as f:
+            # Validation
+            f.create_dataset('inpainted', data=inpainted.astype(np.float32))
+        print(f'Wrote: {inpaint_file}')
+    else:
+        embed(header='297 of cutout_analysis.py')
  

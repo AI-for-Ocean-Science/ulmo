@@ -135,7 +135,7 @@ def u_evaluate_144(tbl_file:str,
 
 def inpaint(t:int, p:int, dataset:str,
             method:str, debug:bool=False, n_cores:int=10,
-            clobber:bool=False):
+            clobber:bool=False, rmse_clobber:bool=False):
     """ Wrapper to inpaint_images
 
     Args:
@@ -147,6 +147,7 @@ def inpaint(t:int, p:int, dataset:str,
         patch_sz (int, optional): patch size. Defaults to 4.
         n_cores (int, optional): number of cores. Defaults to 10.
         clobber (bool, optional): Clobber? Defaults to False.
+        rmse_clobber (bool, optional): Clobber? Defaults to False.
     """
     # Outfile
     outfile = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki', 'Recon',
@@ -154,13 +155,13 @@ def inpaint(t:int, p:int, dataset:str,
     # Do it
     if not os.path.isfile(outfile) or clobber:
         cutout_analysis.inpaint_images(outfile, t, p, dataset, method=method,
-                                   n_cores=n_cores)
+                                   n_cores=n_cores, debug=debug)
     else:                            
         print(f"Found: {outfile}.  Not clobbering..")
 
     # RMSE time
     enki_analysis.calc_rms(t, p, dataset, method=method, debug=debug,
-                           in_recon_file=outfile,
+                           in_recon_file=outfile, clobber=rmse_clobber,
                            keys=['valid', 'inpainted', 'valid'])
                                                  
 
@@ -215,11 +216,10 @@ def main(flg):
 
     # Inpainting galore
     if flg & (2**4):
-        #inpaint(10, 10, 'LLC2_nonoise', 'biharmonic', debug=False)
-        #inpaint(10, 10, 'LLC2_nonoise', 'grid_nearest', debug=False)
-        inpaint(10, 10, 'LLC2_nonoise', 'grid_linear', debug=False)
-        inpaint(10, 10, 'LLC2_nonoise', 'grid_cubic', debug=False)
-
+        inpaint(10, 10, 'LLC2_nonoise', 'biharmonic', debug=False, rmse_clobber=True, clobber=True)
+        inpaint(10, 10, 'LLC2_nonoise', 'grid_nearest', debug=False, rmse_clobber=True)
+        inpaint(10, 10, 'LLC2_nonoise', 'grid_linear', debug=False, rmse_clobber=True)
+        inpaint(10, 10, 'LLC2_nonoise', 'grid_cubic', debug=False, rmse_clobber=True)
 
 # Command line execution
 if __name__ == '__main__':
