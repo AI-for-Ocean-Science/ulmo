@@ -13,7 +13,9 @@ from IPython import embed
 
 
 def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
-             debug:bool=False, remove_bias:bool=True):
+            method:str=None, in_recon_file:str=None,
+             debug:bool=False, remove_bias:bool=True,
+             keys:list=None):
     """ Calculate the RMSE
 
     Args:
@@ -23,6 +25,8 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
         clobber (bool, optional): Clobber?
         remove_bias (bool, optional): Remove bias?
         debug (bool, optional): Debug?
+        method (str, optional): Inpainting method. Defaults to None (aka Enki).
+        in_recon_file (str, optional): Input recon file. Defaults to None.
 
     Raises:
         ValueError: _description_
@@ -30,6 +34,9 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
     print(f"Working on: t={t}, p={p} for {dataset}")
     tbl_file, orig_file, recon_file, mask_file = enki_utils.set_files(
         dataset, t, p)
+
+    if in_recon_file is not None:
+        recon_file = in_recon_file
 
     # Load table
     tbl = ulmo_io.load_main_table(tbl_file)
@@ -43,7 +50,10 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
 
 
     # Already exist?
-    RMS_metric = f'RMS_t{t}_p{p}'
+    if method is None:
+        RMS_metric = f'RMS_t{t}_p{p}'
+    else:
+        RMS_metric = f'RMS_{method}_t{t}_p{p}'
     if RMS_metric in tbl.keys() and not clobber:
         print(f"RMS metric = {RMS_metric} already evaluated.  Skipping..")
         return
@@ -60,7 +70,8 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
     # Do it!
     print("Calculating RMS metric")
     rms = cutout_analysis.rms_images(f_orig, f_recon, f_mask, debug=debug,
-                                     bias_value=bias_value)
+                                     bias_value=bias_value,
+                                     keys=keys)
 
     # Check one (or more)
     if debug:

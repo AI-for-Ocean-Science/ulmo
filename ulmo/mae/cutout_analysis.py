@@ -1,12 +1,19 @@
 """ Analysis of individual cutout images 
 See analysis.py for higher level routines
 """
-
+import os
 import numpy as np
 import h5py
 
+from functools import partial
+from concurrent.futures import ProcessPoolExecutor
+from tqdm import tqdm
+
 from scipy.sparse import csc_matrix
+from scipy.interpolate import griddata
 from skimage.restoration import inpaint as sk_inpaint
+
+from ulmo.mae import enki_utils
 
 from IPython import embed
 
@@ -104,16 +111,22 @@ def rms_images(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File,
     return np.sqrt(calc)
 
 
-def rms_single_img(orig_img, recon_img, mask_img):
-    """ Calculate rms of a single image (ignore edges)
-        orig_img:  original img (64x64)
-        recon_img: reconstructed image (64x64)
-        mask_img:  mask of recon_image (64x64)
+def rms_single_img(orig_img:np.array, recon_img:np.array, mask_img:np.array, patch_sz=4):
+    """ Calculate the RMS of a single image
+
+    Args:
+        orig_img (np.array): Original image
+        recon_img (np.array): Reconstructed image
+        mask_img (np.array): Mask image
+        patch_sz (int, optional): Patch size. Defaults to 4.
+
+    Returns:
+        float: RMS value
     """
     # remove edges
-    orig_img  = orig_img[4:-4, 4:-4]
-    recon_img = recon_img[4:-4, 4:-4]
-    mask_img  = mask_img[4:-4, 4:-4]
+    orig_img  = orig_img[patch_sz:-patch_sz, patch_sz:-patch_sz]
+    recon_img = recon_img[patch_sz:-patch_sz, patch_sz:-patch_sz]
+    mask_img  = mask_img[patch_sz:-patch_sz, patch_sz:-patch_sz]
     
     # Find i,j positions from mask
     mask_sparse = csc_matrix(mask_img)
@@ -175,15 +188,107 @@ def simple_inpaint(items:list,
             Built this way for multi-processing
         inpaint_type (str, optional): 
             Inpainting type.  Defaults to 'biharmonic'.
+            biharmonic : sk_inpaint.inpaint_biharmonic
 
     Returns:
         np.ndarray: Inpainted image
     """
     # Unpack
     img, mask = items
+
     # Do it
     if inpaint_type == 'biharmonic':
         return sk_inpaint.inpaint_biharmonic(
             img, mask, channel_axis=None)
+    elif inpaint_type[0:4] == 'grid':
+        flavor = inpaint_type.split('_')[1]
+        unmasked = np.where(mask == 0)
+        x_pts = unmasked[0]
+        y_pts = unmasked[1]
+        vals = img[unmasked] 
+        # Interpolate
+        all_x, all_y = np.meshgrid(np.arange(img.shape[0]), 
+                                   np.arange(img.shape[1]), 
+                                   indexing='ij')
+        # Do it
+        return griddata((x_pts, y_pts), vals, (all_x, all_y), method=flavor) 
     else:
         raise IOError("Bad inpainting type")
+
+
+def inpaint_images(inpaint_file:str, 
+            t:int, p:int, dataset:str,
+            debug:bool=False, 
+            method:str='biharmonic',
+            patch_sz:int=4, n_cores:int=10, 
+            nsub_files:int=5000):
+    """ Inpaint images with one of the inpainting methods
+
+    Args:
+        inpaint_file (str):  Output file
+        t (int): training percentile
+        p (int): mask percentile
+        dataset (str): dataset ['VIIRS', 'LLC', 'LLC2_nonoise]
+        method (str, optional): Inpainting method. Defaults to 'biharmonic'.
+        debug (bool, optional): Debug?. Defaults to False.
+        patch_sz (int, optional): patch size. Defaults to 4.
+        n_cores (int, optional): number of cores. Defaults to 10.
+        nsub_files (int, optional): Number of sub files Defaults to 5000.
+    """
+
+
+    # Load images
+    tbl_file, orig_file, recon_file, mask_file = enki_utils.set_files(
+        dataset, t, p)
+
+    f_orig = h5py.File(orig_file, 'r')
+    f_recon = h5py.File(recon_file,'r')
+    f_mask = h5py.File(mask_file,'r')
+
+    if debug:
+        nfiles = 1000
+        nsub_files = 100
+        orig_imgs = f_orig['valid'][:nfiles,0,...]
+        recon_imgs = f_recon['valid'][:nfiles,0,...]
+        mask_imgs = f_mask['valid'][:nfiles,0,...]
+    else:
+        print("Loading images...")
+        orig_imgs = f_orig['valid'][:,0,...]
+        recon_imgs = f_recon['valid'][:,0,...]
+        mask_imgs = f_mask['valid'][:,0,...]
+
+    # Mask out edges
+    print("Masking edges...")
+    mask_imgs[:, patch_sz:-patch_sz,patch_sz:-patch_sz] = 0
+
+    # Analyze
+    diff_recon = (orig_imgs - recon_imgs)*mask_imgs
+    nfiles = diff_recon.shape[0]
+
+    # Inpatinting
+    map_fn = partial(simple_inpaint, inpaint_type=method)
+
+    nloop = nfiles // nsub_files + ((nfiles % nsub_files) > 0)
+    inpainted = []
+    for kk in range(nloop):
+        i0 = kk*nsub_files
+        i0 = kk*nsub_files
+        i1 = min((kk+1)*nsub_files, nfiles)
+        print('Files: {}:{} of {}'.format(i0, i1, nfiles))
+        sub_files = [(diff_recon[ii,...], mask_imgs[ii,...]) for ii in range(i0, i1)]
+        with ProcessPoolExecutor(max_workers=n_cores) as executor:
+            chunksize = len(
+                sub_files) // n_cores if len(sub_files) // n_cores > 0 else 1
+            answers = list(tqdm(executor.map(map_fn, sub_files,
+                                                chunksize=chunksize), total=len(sub_files)))
+        # Save
+        inpainted.append(np.array(answers))
+    # Collate
+    inpainted = np.concatenate(inpainted)
+
+    # Save
+    with h5py.File(inpaint_file, 'w') as f:
+        # Validation
+        f.create_dataset('inpainted', data=inpainted.astype(np.float32))
+    print(f'Wrote: {inpaint_file}')
+ 

@@ -9,9 +9,21 @@ import pandas
 
 import pandas
 
-def load_bias(tp:tuple=None):
-    bias_path = os.path.join(resource_filename('ulmo', 'runs'), 
-        'Enki', 'Masters', 'enki_bias_LLC.csv')
+def load_bias(tp:tuple=None, bias_path:str=None, dataset:str='LLC2_nonoise'):
+    """ Load the bias values
+
+    Args:
+        tp (tuple, optional): _description_. Defaults to None.
+
+    Returns:
+        _type_: _description_
+    """
+    # Name
+    if bias_path is None:
+        bias_path = os.path.join(resource_filename('ulmo', 'runs'), 
+            'Enki', 'Masters', f'enki_bias_{dataset}.csv')
+    # Load
+    print(f"Loading bias table from {bias_path}")
     bias = pandas.read_csv(bias_path)
     # Value?
     if tp is not None:
