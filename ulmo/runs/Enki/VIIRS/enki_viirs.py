@@ -369,7 +369,7 @@ def viirs_extract_2013(debug=False, n_cores=20,
         else:
             # Resize
             for key in ['fields', 'inpainted_masks']:
-                if not save_fields:
+                if not save_fields and key == 'fields':
                     continue
                 f_h5[key].resize((f_h5[key].shape[0] + fields.shape[0]), axis=0)
             # Fill
@@ -434,7 +434,7 @@ def main(flg):
 
     # Extract with clouds at ~10%
     if flg & (2**3):
-        viirs_extract_2013(local=True)
+        viirs_extract_2013(local=True, save_fields=True)
 
 
 # Command line execution
