@@ -206,7 +206,7 @@ def main(flg):
     if flg & (2**0):
         gen_viirs_images()#debug=True)
 
-    # Generate the VIIRS images
+    # Inpainting 
     if flg & (2**1):
         compare_with_inpainting('LLC_inpaint_t10_p10.h5', 
                                 10, 10, local=False)
