@@ -104,16 +104,22 @@ def rms_images(f_orig:h5py.File, f_recon:h5py.File, f_mask:h5py.File,
     return np.sqrt(calc)
 
 
-def rms_single_img(orig_img, recon_img, mask_img):
-    """ Calculate rms of a single image (ignore edges)
-        orig_img:  original img (64x64)
-        recon_img: reconstructed image (64x64)
-        mask_img:  mask of recon_image (64x64)
+def rms_single_img(orig_img:np.array, recon_img:np.array, mask_img:np.array, patch_sz=4):
+    """ Calculate the RMS of a single image
+
+    Args:
+        orig_img (np.array): Original image
+        recon_img (np.array): Reconstructed image
+        mask_img (np.array): Mask image
+        patch_sz (int, optional): Patch size. Defaults to 4.
+
+    Returns:
+        float: RMS value
     """
     # remove edges
-    orig_img  = orig_img[4:-4, 4:-4]
-    recon_img = recon_img[4:-4, 4:-4]
-    mask_img  = mask_img[4:-4, 4:-4]
+    orig_img  = orig_img[patch_sz:-patch_sz, patch_sz:-patch_sz]
+    recon_img = recon_img[patch_sz:-patch_sz, patch_sz:-patch_sz]
+    mask_img  = mask_img[patch_sz:-patch_sz, patch_sz:-patch_sz]
     
     # Find i,j positions from mask
     mask_sparse = csc_matrix(mask_img)

@@ -104,7 +104,7 @@ def find_patches(mask_img, p_sz:int):
     It assumes they are square and whole
 
     Args:
-        mask_img (np.ndarray): Masked image
+        mask_img (np.ndarray): Masked image; 1=masked
         p_sz (int): Size of the patch (edge)
 
     Returns:
