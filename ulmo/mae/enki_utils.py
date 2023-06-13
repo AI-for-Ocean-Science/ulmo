@@ -7,8 +7,6 @@ import numpy as np
 
 import pandas
 
-import pandas
-
 def load_bias(tp:tuple=None, bias_path:str=None, dataset:str='LLC2_nonoise'):
     """ Load the bias values
 

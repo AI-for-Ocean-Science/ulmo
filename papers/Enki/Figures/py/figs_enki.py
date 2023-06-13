@@ -804,51 +804,27 @@ def fig_llc_many_inpainting(outfile='fig_llc_many_inpainting.png',
     # load rmse
     llc = ulmo_io.load_main_table(os.path.join(
         os.getenv('OS_OGCM'), 'LLC', 'Enki', 
-        'Tables', 'MAE_LLC_valid_nonoise.parquet'))
+        'Tables', 'Enki_LLC_valid_nonoise.parquet'))
     
-    if in_ax is None:
-        fig = plt.figure(figsize=(10, 10))
-        plt.clf()
-        gs = gridspec.GridSpec(1,1)
-        ax = plt.subplot(gs[0])
+    fig = plt.figure(figsize=(10, 10))
+    plt.clf()
+    gs = gridspec.GridSpec(1,1)
+    ax = plt.subplot(gs[0])
 
-    # VIIRS
-    viirs_file = os.path.join(sst_path, 'VIIRS', 'Enki', 'Tables',
-        'VIIRS_all_100clear_std.parquet')
-    viirs = ulmo_io.load_main_table(viirs_file)
+    # Calculations
+    models = [t]
+    masks = [p]
+    rmse_std = enki_anly_rms.create_llc_table(table=llc, models=models, masks=masks)
+    rmse_biharm = enki_anly_rms.create_llc_table(table=llc, method='biharmonic',
+                                                 models=models, masks=masks)
 
-    # LL
-    rmse_viirs, starts, ends = enki_anly_rms.calc_median_LL(
-        viirs, nbatch=nbatch)
 
-    # RMSE
-    rmse_viirs[f'rms_t{t}_p{p}'] = enki_anly_rms.calc_batch_RMSE(
-        viirs, t, p, batch_percent=100./nbatch)
-    rmse_viirs[f'rms_inpaint_t{t}_p{p}'] = enki_anly_rms.calc_batch_RMSE(
-        viirs, t, p, batch_percent=100./nbatch, inpaint=True)
+    # Plot me
+    for tbl, lbl in zip([rmse_std, rmse_biharm], ['std', 'biharm']):
+        x_llc = tbl['median_LL']
+        y_llc = tbl[f'rms_t{t}_p{p}']
+        plt.scatter(x_llc, y_llc, marker='o', color='r', label=lbl)
 
-    # VIIRS plot
-    x = rmse_viirs['median_LL']
-    y = rmse_viirs[f'rms_t{t}_p{p}']
-    y_inpaint = rmse_viirs[f'rms_inpaint_t{t}_p{p}']
-    plt.scatter(x, y, marker='s', color='k', label='VIIRS Enki')
-    if show_inpaint:
-        plt.scatter(x, y_inpaint, marker='s', color='b', label='VIIRS Inpaint')
-
-    # LLC analysis
-    x_llc, y_llc = [], []
-    for start, end in zip(starts, ends):
-        in_llc = llc.LL.between(start, end)
-        x_llc.append(np.median(llc[in_llc].LL))
-        y_llc.append(np.median(llc[in_llc][f'RMS_t{t}_p{p}']))
-        
-    # LLC
-    plt.scatter(x_llc, y_llc, marker='*', color='r', label='LLC Enki')
-
-    # LLC quad
-    if show_llc_quad:
-        y_llc_quad = np.sqrt(np.array(y_llc)**2 + 0.03**2)
-        plt.scatter(x_llc, y_llc_quad, marker='o', color='r', label='LLC Enki + VIIRS noise')
         
     fsz = 17
     plt.legend(title_fontsize=fsz+1, fontsize=fsz, 
@@ -859,16 +835,10 @@ def fig_llc_many_inpainting(outfile='fig_llc_many_inpainting.png',
 
     plotting.set_fontsize(ax, 19)
     ax.grid(color='gray', linestyle='dashed', linewidth = 0.5)
-    #plt.title(f't={t}, p={p}')
                          
-    if show_inpaint:                         
-        ax.set_yscale('log')
-    
-    if in_ax is None:
-        plt.savefig(outfile, dpi=300)
-        plt.close()
-        print(f'Wrote: {outfile}')
-    return
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print(f'Wrote: {outfile}')
 
 #### ########################## #########################
 def main(flg_fig):
@@ -916,20 +886,23 @@ def main(flg_fig):
             outfile='fig_viirs_patches_t10_p10.png',
             tp=(10,10))
 
+    # Lots of LLC2 with inpainting
+    if flg_fig & (2 ** 7):
+        fig_llc_many_inpainting()
 
 # Command line execution
 if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg_fig = 0
-        flg_fig += 2 ** 0  # patches
+        #flg_fig += 2 ** 0  # patches
         #flg_fig += 2 ** 1  # cutouts
         #flg_fig += 2 ** 2  # LLC (Enki vs inpainting)
         #flg_fig += 2 ** 3  # Reconstruction example
         #flg_fig += 2 ** 4  # VIIRS LL
         #flg_fig += 2 ** 5  # Check valid 2
         #flg_fig += 2 ** 6  # VIIRS patches
-        #flg_fig += 2 ** 7  # Compare Enki against many inpainting
+        flg_fig += 2 ** 7  # Compare Enki against many inpainting
     else:
         flg_fig = sys.argv[1]
 

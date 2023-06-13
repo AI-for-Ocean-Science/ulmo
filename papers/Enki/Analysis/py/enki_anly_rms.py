@@ -35,14 +35,20 @@ def calc_median_LL(table:pandas.DataFrame, nbatch:int=20,
     # Return
     return medL, starts, ends
 
-def create_llc_table(models = [10, 35, 50, 75],
+def create_llc_table(
+    models = [10, 35, 50, 75],
     masks = [10, 20, 30, 40, 50],
+    table:pandas.DataFrame=None,
+    method:str=None,
     data_filepath=os.path.join(
         os.getenv('OS_OGCM'), 
         'LLC', 'Enki', 'Tables', 'MAE_LLC_valid_nonoise.parquet'),
     nbatch:int=20):
+
     # load tables
-    table = pandas.read_parquet(data_filepath, engine='pyarrow')
+    if table is None:
+        table = pandas.read_parquet(data_filepath, engine='pyarrow')
+
     table = table[table['LL'].notna()].copy()
     table = table.sort_values(by=['LL'])
 
@@ -53,13 +59,15 @@ def create_llc_table(models = [10, 35, 50, 75],
     for t in models:
         for p in masks:
             index = 'rms_t{}_p{}'.format(t, p)
-            avg_rms = calc_batch_RMSE(table, t, p, 100/nbatch, sort=False)
+            avg_rms = calc_batch_RMSE(table, t, p, 100/nbatch, sort=False,
+                                      method=method)
             avgs[index] = avg_rms
 
     return avgs
         
 def calc_batch_RMSE(table, t, p, batch_percent:float = 10.,
-                    sort:bool=True, inpaint:bool=False):
+                    sort:bool=True, inpaint:bool=False,
+                    method:str=None):
     """
     Calculates RMSE in batches sorted by LL. 
     Handles extra by adding them to final batch
@@ -69,6 +77,7 @@ def calc_batch_RMSE(table, t, p, batch_percent:float = 10.,
     t:       mask ratio during training
     p:       mask ratio during reconstruction
     inpaint: if True, use inpainted RMSE
+    method:  if not None, use this method to calculate RMSE
     """
     if sort:
         tbl = table[table['LL'].notna()].copy()
@@ -83,6 +92,8 @@ def calc_batch_RMSE(table, t, p, batch_percent:float = 10.,
 
     if inpaint:
         key = 'RMS_inpaint_t{t}_p{p}'.format(t=t, p=p)
+    elif method is not None:
+        key = f'RMS_{method}_t{t}_p{p}'
     else:
         key = 'RMS_t{t}_p{p}'.format(t=t, p=p)
 
