@@ -43,8 +43,7 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
 
     if remove_bias:
         # Load
-        bias = enki_bias.load_bias_table()
-        bias_value = float(bias[(bias.t == t) & (bias.p == p)]['median'])
+        bias_value = enki_utils.load_bias((t,p), dataset=dataset)
     else:
         bias_value = 0.
 
