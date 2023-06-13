@@ -152,7 +152,7 @@ def calc_bias(dataset:str='LLC', clobber:bool=False, debug:bool=False,
 
     # Loop me
     ts, ps, medians, means = [], [], [], []
-    all_ts = [10,20,35,50,75] if dataset == 'LLC2' else [10,35,50,75]
+    all_ts = [10,20,35,50,75] if dataset == 'LLC2_nonoise' else [10,35,50,75]
     for t in all_ts:
         for p in [10,20,30,40,50]:
             if update is not None:
@@ -238,7 +238,7 @@ def main(flg):
         #calc_bias(dataset='LLC', debug=debug,
         #          update=[(20,10),(20,20),(20,30),(20,40),(20,50)])
 
-        calc_bias(dataset='LLC2', debug=debug, clobber=True)
+        calc_bias(dataset='LLC2_nonoise', debug=debug, clobber=True)
 
 
 # Command line execution
