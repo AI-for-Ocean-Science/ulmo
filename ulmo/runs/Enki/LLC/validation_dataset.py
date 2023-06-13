@@ -216,8 +216,9 @@ def main(flg):
 
     # Inpainting galore
     if flg & (2**4):
-        inpaint(10, 10, 'LLC2_nonoise', 'biharmonic', debug=False)
+        #inpaint(10, 10, 'LLC2_nonoise', 'biharmonic', debug=False)
         #inpaint(10, 10, 'LLC2_nonoise', 'grid_nearest', debug=False)
+        inpaint(10, 10, 'LLC2_nonoise', 'grid_linear', debug=False)
 
 
 # Command line execution
