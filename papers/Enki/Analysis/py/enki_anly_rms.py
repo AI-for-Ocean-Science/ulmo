@@ -103,7 +103,9 @@ def calc_batch_RMSE(table, t, p, batch_percent:float = 10.,
         start = batch*batch_size
         end = start + batch_size-1
         arr = tbl[key].to_numpy()
-        RMSE[batch] = sum(arr[start:end])/batch_size
+        # Deal with NaNs
+        good = np.isfinite(arr[start:end])
+        RMSE[batch] = np.sum(arr[start:end][good])/np.sum(good)
     
     RMSE[num_batches-1] = RMSE[batch] = sum(arr[batch_size*(num_batches-1):num_imgs-1])/final_batch
     return RMSE

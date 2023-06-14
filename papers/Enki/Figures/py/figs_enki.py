@@ -824,13 +824,18 @@ def fig_llc_many_inpainting(outfile='fig_llc_many_inpainting.png',
     rmse_cubic = enki_anly_rms.create_llc_table(table=llc, method='grid_cubic',
                                                  models=models, masks=masks)
 
+    #embed(header='827 of figs')
 
     # Plot me
     for tbl, lbl in zip([rmse_std, rmse_biharm, rmse_nearest, rmse_linear, rmse_cubic], 
-                        ['std', 'biharm', 'nearest', 'linear', 'cubic']):
+                        ['Enki', 'biharm', 'nearest', 'linear', 'cubic']):
         x_llc = tbl['median_LL']
         y_llc = tbl[f'rms_t{t}_p{p}']
-        plt.scatter(x_llc, y_llc, marker='o', label=lbl)
+        if lbl == 'Enki':
+            marker = '*'
+        else:
+            marker = 'o'
+        plt.scatter(x_llc, y_llc, marker=marker, label=lbl)
 
         
     fsz = 17
