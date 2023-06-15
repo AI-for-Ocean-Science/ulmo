@@ -544,18 +544,31 @@ def fig_llc_inpainting(outfile:str, t:int, p:int,
 
 
 def figs_rmse_vs_LL(outfile='rmse_t10only.png', ax=None):
+    """_summary_
 
-                    
+    Args:
+        outfile (str, optional): _description_. Defaults to 'rmse_t10only.png'.
+        ax (_type_, optional): _description_. Defaults to None.
+
+    Returns:
+        _type_: _description_
+    """
+
+    # Setup
+    models = [10,20,35,50,75]
+    enki_file = os.path.join(os.getenv('OS_OGCM'), 
+        'LLC', 'Enki', 'Tables', 'Enki_LLC_valid_nonoise.parquet')
+
     # load rmse
-    rmse = enki_anly_rms.create_llc_table()
-    
+    rmse = enki_anly_rms.create_llc_table(models=models,
+        data_filepath=enki_file)
+        
     if ax is None:
         fig = plt.figure(figsize=(10, 10))
         plt.clf()
         gs = gridspec.GridSpec(1,1)
         ax = plt.subplot(gs[0])
     
-    models = [10,35,50,75]
     masks = [10,20,30,40,50]
     colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple']
     plt_labels = []
@@ -862,7 +875,7 @@ def main(flg_fig):
     # Patches
     if flg_fig & (2 ** 0):
         fig_patches('fig_patches_t10_p20.png',
-                    'mae_patches_t10_p20.npz')
+                    'enki_patches_t10_p20.npz')
         #fig_patches('fig_patches_t10_p20_denom.png',
         #            'mae_patches_t10_p20.npz',
         #            model='denom')
@@ -907,14 +920,14 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg_fig = 0
-        #flg_fig += 2 ** 0  # patches
+        flg_fig += 2 ** 0  # patches
         #flg_fig += 2 ** 1  # cutouts
         #flg_fig += 2 ** 2  # LLC (Enki vs inpainting)
         #flg_fig += 2 ** 3  # Reconstruction example
         #flg_fig += 2 ** 4  # VIIRS LL
         #flg_fig += 2 ** 5  # Check valid 2
         #flg_fig += 2 ** 6  # VIIRS patches
-        flg_fig += 2 ** 7  # Compare Enki against many inpainting
+        #flg_fig += 2 ** 7  # Compare Enki against many inpainting
     else:
         flg_fig = sys.argv[1]
 
