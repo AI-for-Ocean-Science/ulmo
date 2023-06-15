@@ -113,6 +113,7 @@ def fig_reconstruct(outfile:str='fig_reconstruct.png', t:int=10, p:int=20,
 
 
 def fig_patches(outfile:str, patch_file:str, model:str='std'):
+    print(f"Using: {patch_file}")
     lsz = 16.
 
     fig = plt.figure(figsize=(12,7))
@@ -143,15 +144,16 @@ def fig_cutouts(outfile:str):
     gs = gridspec.GridSpec(1,2)
 
     # Spatial
+    models = [10,20,35,50,75]
     ax0 = plt.subplot(gs[0])
-    rmse = figs_rmse_vs_LL(ax=ax0)
+    rmse = figs_rmse_vs_LL(ax=ax0, models=models)
 
     lsz = 16.
     ax0.set_title('(a)', fontsize=lsz, color='k')
 
     # RMSE
     ax1 = plt.subplot(gs[1])
-    fig_rmse_models(ax=ax1, rmse=rmse)
+    fig_rmse_models(ax=ax1, rmse=rmse, models=models)
     ax1.set_title('(b)', fontsize=lsz, color='k')
 
     # Finish
@@ -237,12 +239,14 @@ def fig_patch_ij_binned_stats(metric:str,
         print('Wrote {:s}'.format(outfile))
 
 
-def fig_patch_rmse(patch_file:str, in_ax=None, outfile:str=None,
+def fig_patch_rmse(patch_file:str, in_ax=None, outfile:str=None, 
+                   another_patch_file:str=None,
                    tp:tuple=None, model:str='std'):
     """ Binned stats for patches
 
     Args:
-        patch_file (str): _description_
+        patch_file (str): Path to patch file
+        another_patch_file (str, optional): Path to another patch file. Defaults to None.
     """
     lims = (-5,1)
 
@@ -260,6 +264,10 @@ def fig_patch_rmse(patch_file:str, in_ax=None, outfile:str=None,
     x_edge, eval_stats, stat, x_lbl, lbl, popt, tbl = enki_anly_rms.anly_patches(
         patch_file, model=model)
 
+    # Another?
+    if another_patch_file is not None:
+        x_edge2, eval_stats2, stat2, x_lbl2, lbl2, popt2, tbl2 = enki_anly_rms.anly_patches(
+            another_patch_file, model=model)
 
     # Figure
     if in_ax is None:
@@ -543,7 +551,7 @@ def fig_llc_inpainting(outfile:str, t:int, p:int,
     print('Wrote {:s}'.format(outfile))
 
 
-def figs_rmse_vs_LL(outfile='rmse_t10only.png', ax=None):
+def figs_rmse_vs_LL(outfile='rmse_t10only.png', ax=None, models=None):
     """_summary_
 
     Args:
@@ -555,7 +563,8 @@ def figs_rmse_vs_LL(outfile='rmse_t10only.png', ax=None):
     """
 
     # Setup
-    models = [10,20,35,50,75]
+    if models is None:
+        models = [10,20,35,50,75]
     enki_file = os.path.join(os.getenv('OS_OGCM'), 
         'LLC', 'Enki', 'Tables', 'Enki_LLC_valid_nonoise.parquet')
 
@@ -605,7 +614,7 @@ def figs_rmse_vs_LL(outfile='rmse_t10only.png', ax=None):
         print(f'Wrote: {outfile}')
     return rmse
 
-def fig_rmse_models(outfile='fig_rmse_models.png', ax=None, rmse=None):
+def fig_rmse_models(outfile='fig_rmse_models.png', ax=None, rmse=None, models=None):
                          
     # load rmse
     if rmse is None:
@@ -617,14 +626,15 @@ def fig_rmse_models(outfile='fig_rmse_models.png', ax=None, rmse=None):
         gs = gridspec.GridSpec(1,1)
         ax = plt.subplot(gs[0])
     
-    models = [10,35,50,75]
+    if models is None:
+        models = [10,20,35,50,75]
     masks = [10,20,30,40,50]
-    colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple']
+    colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 'tab:brown']
     plt_labels = []
         
     
     # plot
-    for i in range(4):
+    for i in range(len(models)):
         avg_RMSEs = []
         for p, c in zip(masks, colors):
             y = rmse['rms_t{t}_p{p}'.format(t=models[i], p=p)]
@@ -904,8 +914,15 @@ def main(flg_fig):
     if flg_fig & (2 ** 5):
         fig_chk_valid()
 
-    # VIIRS patches
+    # More patch figures
     if flg_fig & (2 ** 6):
+        fig_patch_rmse(
+            '/home/xavier/Projects/Oceanography/SST/VIIRS/Enki/Recon/VIIRS_100clear_patches_t10_p10.npz',
+            another_patch_file=
+            '/home/xavier/Projects/Oceanography/SST/VIIRS/Enki/Recon/VIIRS_100clear_patches_t10_p10.npz',
+            outfile='fig_viirs_patches_t10_p10.png',
+            tp=(10,10))
+
         fig_patch_rmse(
             '/home/xavier/Projects/Oceanography/SST/VIIRS/Enki/Recon/VIIRS_100clear_patches_t10_p10.npz',
             outfile='fig_viirs_patches_t10_p10.png',
@@ -920,13 +937,13 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg_fig = 0
-        flg_fig += 2 ** 0  # patches
+        #flg_fig += 2 ** 0  # patches
         #flg_fig += 2 ** 1  # cutouts
         #flg_fig += 2 ** 2  # LLC (Enki vs inpainting)
         #flg_fig += 2 ** 3  # Reconstruction example
         #flg_fig += 2 ** 4  # VIIRS LL
         #flg_fig += 2 ** 5  # Check valid 2
-        #flg_fig += 2 ** 6  # VIIRS patches
+        flg_fig += 2 ** 6  # More patch figures
         #flg_fig += 2 ** 7  # Compare Enki against many inpainting
     else:
         flg_fig = sys.argv[1]
