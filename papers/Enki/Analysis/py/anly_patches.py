@@ -39,7 +39,7 @@ if __name__ == "__main__":
     
     # LLC2 noise
     t=10
-    p=20
+    p=10
     tbl_file, orig_file, recon_file, mask_file = enki_utils.set_files(
         dataset='LLC2_noise', t=t, p=p)
     bias = 0.
