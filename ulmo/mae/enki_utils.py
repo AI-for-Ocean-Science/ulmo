@@ -7,11 +7,21 @@ import numpy as np
 
 import pandas
 
-import pandas
+def load_bias(tp:tuple=None, bias_path:str=None, dataset:str='LLC2_nonoise'):
+    """ Load the bias values
 
-def load_bias(tp:tuple=None):
-    bias_path = os.path.join(resource_filename('ulmo', 'runs'), 
-        'Enki', 'Masters', 'enki_bias_LLC.csv')
+    Args:
+        tp (tuple, optional): _description_. Defaults to None.
+
+    Returns:
+        _type_: _description_
+    """
+    # Name
+    if bias_path is None:
+        bias_path = os.path.join(resource_filename('ulmo', 'runs'), 
+            'Enki', 'Masters', f'enki_bias_{dataset}.csv')
+    # Load
+    print(f"Loading bias table from {bias_path}")
     bias = pandas.read_csv(bias_path)
     # Value?
     if tp is not None:
@@ -47,6 +57,9 @@ def img_filename(t_per:int, p_per:int,
                 dpath = os.path.join(os.getenv('OS_OGCM'), 'LLC')
             elif dataset == 'LLC2_nonoise':
                 root = 'enki'
+                dpath = os.path.join(os.getenv('OS_OGCM'), 'LLC')
+            elif dataset == 'LLC2_noise':
+                root = 'enki_noise'
                 dpath = os.path.join(os.getenv('OS_OGCM'), 'LLC')
             elif dataset == 'VIIRS':
                 root = 'VIIRS_100clear'
@@ -187,6 +200,10 @@ def set_files(dataset:str, t:int, p:int):
         tbl_file = 's3://llc/mae/Tables/Enki_LLC_valid_nonoise.parquet'
         orig_file = os.path.join(enki_path, 'PreProc', 
                                  'Enki_LLC_valid_nonoise_preproc.h5')
+    elif dataset == 'LLC2_noise':
+        tbl_file = 's3://llc/mae/Tables/Enki_LLC_valid_noise.parquet'
+        orig_file = os.path.join(enki_path, 'PreProc', 
+                                 'Enki_LLC_valid_noise_preproc.h5')
     else:
         raise ValueError("Bad dataset")
 

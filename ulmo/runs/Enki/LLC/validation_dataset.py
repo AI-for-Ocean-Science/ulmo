@@ -16,6 +16,8 @@ from ulmo.preproc import plotting as pp_plotting
 from ulmo.utils import catalog as cat_utils
 
 from ulmo.mae import analysis as enki_analysis
+from ulmo.mae import cutout_analysis
+from ulmo.mae import enki_utils
 
 from IPython import embed
 
@@ -131,6 +133,37 @@ def u_evaluate_144(tbl_file:str,
     ulmo_io.write_main_table(llc_table, tbl_file)
 
 
+def inpaint(t:int, p:int, dataset:str,
+            method:str, debug:bool=False, n_cores:int=10,
+            clobber:bool=False, rmse_clobber:bool=False):
+    """ Wrapper to inpaint_images
+
+    Args:
+        t (int): training percentile
+        p (int): mask percentile
+        dataset (str): dataset ['VIIRS', 'LLC', 'LLC2_nonoise]
+        method (str, optional): Inpainting method. Defaults to 'biharmonic'.
+        debug (bool, optional): Debug?. Defaults to False.
+        patch_sz (int, optional): patch size. Defaults to 4.
+        n_cores (int, optional): number of cores. Defaults to 10.
+        clobber (bool, optional): Clobber? Defaults to False.
+        rmse_clobber (bool, optional): Clobber? Defaults to False.
+    """
+    # Outfile
+    outfile = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki', 'Recon',
+        f'Enki_{dataset}_{method}_t{t}_p{p}.h5')
+    # Do it
+    if not os.path.isfile(outfile) or clobber:
+        cutout_analysis.inpaint_images(outfile, t, p, dataset, method=method,
+                                   n_cores=n_cores, debug=debug)
+    else:                            
+        print(f"Found: {outfile}.  Not clobbering..")
+
+    # RMSE time
+    enki_analysis.calc_rms(t, p, dataset, method=method, debug=debug,
+                           in_recon_file=outfile, clobber=rmse_clobber,
+                           keys=['valid', 'inpainted', 'valid'])
+                                                 
 
 def main(flg):
     if flg== 'all':
@@ -162,16 +195,31 @@ def main(flg):
 
     # Calculate RMS for various reconstructions
     if flg & (2**3):
-        clobber = True
+        clobber = False
         debug=False
 
         # No noise
-        for t in [10]:
+        for t in [10,20,35,50,75]:
             for p in [10,20,30,40,50]:
                 print(f'Working on: t={t}, p={p}')
                 enki_analysis.calc_rms(t, p, dataset='LLC2_nonoise', 
                                        clobber=clobber, debug=debug)
+        '''
 
+        # Noise
+        for t in [10, 35, 50, 75]:
+            for p in [10,20,30,40,50]:
+                print(f'Working on: t={t}, p={p}')
+                enki_analysis.calc_rms(t, p, dataset='LLC2_noise', 
+                                       clobber=clobber, debug=debug)
+        '''
+
+    # Inpainting galore
+    if flg & (2**4):
+        inpaint(10, 10, 'LLC2_nonoise', 'biharmonic', debug=False, rmse_clobber=True, clobber=True)
+        inpaint(10, 10, 'LLC2_nonoise', 'grid_nearest', debug=False, rmse_clobber=True)
+        inpaint(10, 10, 'LLC2_nonoise', 'grid_linear', debug=False, rmse_clobber=True)
+        inpaint(10, 10, 'LLC2_nonoise', 'grid_cubic', debug=False, rmse_clobber=True)
 
 # Command line execution
 if __name__ == '__main__':
@@ -183,6 +231,7 @@ if __name__ == '__main__':
         #flg += 2 ** 1  # 2 -- Extract
         #flg += 2 ** 2  # 4 -- Evaluate 
         #flg += 2 ** 3  # 8 -- RMSE
+        #flg += 2 ** 4  # 16 -- Inpainting
     else:
         flg = sys.argv[1]
 

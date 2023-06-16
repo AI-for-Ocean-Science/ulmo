@@ -21,11 +21,8 @@ def anlayze_full(recon_file,
            'std_diff', 'max_diff', 'i_patch', 'j_patch',
            'DT_recon'],
     nsub:int=10000, n_cores:int=4, p_sz:int=4, 
-    keep_orig:bool=True,
-    debug:bool=False, bias:float=0.,
-    local:bool=False):
-    """ Analyze the patches in a given file of 
-    reconstructed images
+    debug:bool=False, bias:float=0.):
+    """ Analyze the patches in a given file of reconstructed images
 
     Args:
         recon_file (str): 
@@ -36,7 +33,6 @@ def anlayze_full(recon_file,
         stats (list, optional):
         p_sz (int, optional): _description_. Defaults to 4.
         debug (bool, optional): _description_. Defaults to False.
-        local (bool, optional): Use local files. Defaults to False.
     """
     mask_file = recon_file.replace('reconstruct', 'mask')
 
@@ -104,7 +100,7 @@ def find_patches(mask_img, p_sz:int):
     It assumes they are square and whole
 
     Args:
-        mask_img (np.ndarray): Masked image
+        mask_img (np.ndarray): Masked image; 1=masked
         p_sz (int): Size of the patch (edge)
 
     Returns:
