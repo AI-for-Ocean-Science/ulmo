@@ -3,7 +3,7 @@ import os
 from pkg_resources import resource_filename
 
 from ulmo import io as ulmo_io
-from ulmo.ssl.train_util import option_preprocess
+from ulmo.nenya.train_util import option_preprocess
 
 def load_opt(model:str):
     # Prep

@@ -6,10 +6,10 @@ import umap
 
 import torch
 
-from ulmo.ssl import latents_extraction
-from ulmo.ssl import io as ssl_io
+from ulmo.nenya import latents_extraction
+from ulmo.nenya import io as ssl_io
 from ulmo import io as ulmo_io
-from ulmo.ssl import ssl_umap
+from ulmo.nenya import ssl_umap
 
 from IPython import embed
 

@@ -13,11 +13,11 @@ import torch.backends.cudnn as cudnn
 from torchvision import transforms, datasets
 from torch.utils.data import DataLoader, Dataset
 
-from ulmo.ssl.models.resnet_big import SupConResNet
-from ulmo.ssl.losses import SupConLoss
+from ulmo.nenya.models.resnet_big import SupConResNet
+from ulmo.nenya.losses import SupConLoss
 
-from ulmo.ssl.util import TwoCropTransform, AverageMeter
-from ulmo.ssl.util import warmup_learning_rate
+from ulmo.nenya.util import TwoCropTransform, AverageMeter
+from ulmo.nenya.util import warmup_learning_rate
 
 from ulmo import io as ulmo_io
     

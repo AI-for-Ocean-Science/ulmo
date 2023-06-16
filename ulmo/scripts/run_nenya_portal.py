@@ -24,8 +24,8 @@ def main(pargs):
     import json
     import os
 
-    from ulmo.ssl import portal
-    from ulmo.ssl import analyze_image
+    from ulmo.nenya import portal
+    from ulmo.nenya import analyze_image
 
     from IPython import embed
 

@@ -8,9 +8,9 @@ import pandas
 import umap
 
 from ulmo import io as ulmo_io
-from ulmo.ssl.train_util import option_preprocess
+from ulmo.nenya.train_util import option_preprocess
 from ulmo.utils import catalog as cat_utils
-from ulmo.ssl import defs as ssl_defs
+from ulmo.nenya import defs as ssl_defs
 
 from IPython import embed
 

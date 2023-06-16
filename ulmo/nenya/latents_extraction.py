@@ -13,8 +13,8 @@ import tqdm
 from ulmo.io import Params
 from ulmo.utils import id_collate
 
-from ulmo.ssl.train_util import option_preprocess
-from ulmo.ssl.train_util import modis_loader, set_model
+from ulmo.nenya.train_util import option_preprocess
+from ulmo.nenya.train_util import modis_loader, set_model
 
 from IPython import embed
 

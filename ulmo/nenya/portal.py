@@ -31,7 +31,7 @@ from ulmo import io as ulmo_io
 from ulmo.utils import catalog 
 #from ulmo.webpage_dynamic import os_portal
 from ulmo.webpage_dynamic import utils as portal_utils
-from ulmo.ssl import analyze_image
+from ulmo.nenya import analyze_image
 
 from IPython import embed
 
