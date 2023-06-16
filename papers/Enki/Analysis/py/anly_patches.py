@@ -23,10 +23,11 @@ if __name__ == "__main__":
     patch_analysis.anlayze_full(
         recon_file, orig_file=orig_file, bias=bias) 
     
+    '''
 
     # LLC2 no noise
     t=10
-    p=20
+    p=10 #20
     tbl_file, orig_file, recon_file, mask_file = enki_utils.set_files(
         dataset='LLC2_nonoise', t=t, p=p)
     bias = enki_utils.load_bias((t,p), dataset='LLC2_nonoise')
@@ -36,6 +37,7 @@ if __name__ == "__main__":
         recon_file, orig_file=orig_file, bias=bias) 
 
     
+    '''
     # LLC2 noise
     t=10
     p=10
@@ -48,18 +50,3 @@ if __name__ == "__main__":
     patch_analysis.anlayze_full(
         recon_file, orig_file=orig_file, bias=bias, nsub=100000, n_cores=12) 
     '''
-
-    
-    # LLC2 nonoise
-    t=10
-    p=10
-    tbl_file, orig_file, recon_file, mask_file = enki_utils.set_files(
-        dataset='LLC2_nonoise', t=t, p=p)
-    bias = 0.
-    print(f"WARNING: Using bias={bias} for {recon_file}")
-
-    print(f"Working on: {recon_file} using orig={orig_file}")
-    patch_analysis.anlayze_full(
-        recon_file, orig_file=orig_file, bias=bias, nsub=100000, n_cores=12) 
-
-    
