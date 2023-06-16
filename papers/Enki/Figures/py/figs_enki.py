@@ -240,7 +240,8 @@ def fig_patch_ij_binned_stats(metric:str,
 
 
 def fig_patch_rmse(patch_file:str, in_ax=None, outfile:str=None, 
-                   another_patch_file:str=None,
+                   other_patch_files:list=None,
+                   lbls:list=None,
                    tp:tuple=None, model:str='std'):
     """ Binned stats for patches
 
@@ -264,10 +265,12 @@ def fig_patch_rmse(patch_file:str, in_ax=None, outfile:str=None,
     x_edge, eval_stats, stat, x_lbl, lbl, popt, tbl = enki_anly_rms.anly_patches(
         patch_file, model=model)
 
-    # Another?
-    if another_patch_file is not None:
-        x_edge2, eval_stats2, stat2, x_lbl2, lbl2, popt2, tbl2 = enki_anly_rms.anly_patches(
-            another_patch_file, model=model)
+    # Others
+    if other_patch_files is not None:
+        items = []
+        for other_patch_file in other_patch_files:
+            items.append(enki_anly_rms.anly_patches(
+                other_patch_file, model=model))
 
     # Figure
     ax_hist = None
@@ -283,11 +286,17 @@ def fig_patch_rmse(patch_file:str, in_ax=None, outfile:str=None,
 
     # Patches
     plt_x = (x_edge[:-1]+x_edge[1:])/2
-    ax.plot(plt_x, eval_stats, 'o', color='b', label='Patches')
+    ax.plot(plt_x, eval_stats, 'o', color='b', 
+            label='Patches' if lbls is None else lbls[0])
 
-    if another_patch_file:
-        plt_x2 = (x_edge2[:-1]+x_edge2[1:])/2
-        ax.plot(plt_x2, eval_stats2, '*', color='g', label='Other Patches')
+    markers = ['*', 's', '^']
+    colors = ['g', 'purple']
+    if other_patch_files is not None:
+        for kk in range(len(other_patch_files)):
+            x_edge2, eval_stats2, _, _, _, _, _ = items[kk]
+            plt_x2 = (x_edge2[:-1]+x_edge2[1:])/2
+            ax.plot(plt_x2, eval_stats2, markers[kk], 
+                    color=colors[kk], label=lbls[kk+1])
 
     # Write
     df = pandas.DataFrame()
@@ -924,7 +933,8 @@ def main(flg_fig):
     if flg_fig & (2 ** 6):
         fig_patch_rmse(
             '/home/xavier/Projects/Oceanography/SST/VIIRS/Enki/Recon/VIIRS_100clear_patches_t10_p10.npz',
-            another_patch_file='/backup/Oceanography/OGCM/LLC/Enki/Recon/enki_noise_patches_t10_p10.npz',
+            other_patch_files=['/backup/Oceanography/OGCM/LLC/Enki/Recon/enki_noise_patches_t10_p10.npz'],
+            lbls=['VIIRS', 'LLC2 NoNoise', 'LLC2 Noise'],
             outfile='fig_viirs_llc_patches_t10_p10.png',
             tp=(10,10))
 
