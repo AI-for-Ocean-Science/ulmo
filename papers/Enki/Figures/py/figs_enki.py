@@ -795,13 +795,13 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg_fig = 0
-        #flg_fig += 2 ** 0  # patches
+        flg_fig += 2 ** 0  # patches
         #flg_fig += 2 ** 1  # cutouts
         #flg_fig += 2 ** 2  # LLC (Enki vs inpainting)
         #flg_fig += 2 ** 3  # Reconstruction example
         #flg_fig += 2 ** 4  # VIIRS LL
         #flg_fig += 2 ** 5  # Check valid 2
-        flg_fig += 2 ** 6  # VIIRS patches
+        #flg_fig += 2 ** 6  # VIIRS patches
     else:
         flg_fig = sys.argv[1]
 

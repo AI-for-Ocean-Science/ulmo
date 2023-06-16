@@ -51,6 +51,7 @@ spec:
             pip install -e ".[dev]";
             cp ulmo/mae/correct_helpers.py /root/miniconda3/lib/python3.8/site-packages/timm/models/layers/helpers.py;
             cd ../tmp;
+            mkdir foo;
             cd foo; 
             mkdir PreProc;   
             python -u /ulmo/ulmo/runs/Enki/VIIRS/enki_viirs.py 8
