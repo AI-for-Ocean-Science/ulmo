@@ -270,6 +270,7 @@ def fig_patch_rmse(patch_file:str, in_ax=None, outfile:str=None,
             another_patch_file, model=model)
 
     # Figure
+    ax_hist = None
     if in_ax is None:
         fig = plt.figure(figsize=(8, 8))
         plt.clf()
@@ -283,6 +284,10 @@ def fig_patch_rmse(patch_file:str, in_ax=None, outfile:str=None,
     # Patches
     plt_x = (x_edge[:-1]+x_edge[1:])/2
     ax.plot(plt_x, eval_stats, 'o', color='b', label='Patches')
+
+    if another_patch_file:
+        plt_x2 = (x_edge2[:-1]+x_edge2[1:])/2
+        ax.plot(plt_x2, eval_stats2, '*', color='g', label='Other Patches')
 
     # Write
     df = pandas.DataFrame()
@@ -302,6 +307,7 @@ def fig_patch_rmse(patch_file:str, in_ax=None, outfile:str=None,
         
     ax.plot(xval, np.log10(yval), 'r:', 
             label=r'$\log_{10}( \, (\sigma_T + '+f'{consts[0]:0.3f})/{consts[1]:0.1f}'+r')$')
+
 
     # Histogram
     if ax_hist is not None:
@@ -918,9 +924,8 @@ def main(flg_fig):
     if flg_fig & (2 ** 6):
         fig_patch_rmse(
             '/home/xavier/Projects/Oceanography/SST/VIIRS/Enki/Recon/VIIRS_100clear_patches_t10_p10.npz',
-            another_patch_file=
-            '/home/xavier/Projects/Oceanography/SST/VIIRS/Enki/Recon/VIIRS_100clear_patches_t10_p10.npz',
-            outfile='fig_viirs_patches_t10_p10.png',
+            another_patch_file='/backup/Oceanography/OGCM/LLC/Enki/Recon/enki_noise_patches_t10_p10.npz',
+            outfile='fig_viirs_llc_patches_t10_p10.png',
             tp=(10,10))
 
         fig_patch_rmse(
