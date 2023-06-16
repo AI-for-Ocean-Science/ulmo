@@ -34,7 +34,7 @@ if __name__ == "__main__":
 
     print(f"Working on: {recon_file} using orig={orig_file}")
     patch_analysis.anlayze_full(
-        recon_file, orig_file=orig_file, bias=bias) 
+        recon_file, orig_file=orig_file, bias=bias, nsub=100000, n_cores=12) 
 
     
     '''
