@@ -934,7 +934,7 @@ def main(flg_fig):
         fig_patch_rmse(
             '/home/xavier/Projects/Oceanography/SST/VIIRS/Enki/Recon/VIIRS_100clear_patches_t10_p10.npz',
             other_patch_files=['/backup/Oceanography/OGCM/LLC/Enki/Recon/enki_noise_patches_t10_p10.npz',
-                '/backup/Oceanography/OGCM/LLC/Enki/Recon/enki_nonoise_patches_t10_p10.npz'],
+                '/backup/Oceanography/OGCM/LLC/Enki/Recon/enki_patches_t10_p10.npz'],
             lbls=['VIIRS', 'LLC2 Noise', 'LLC2 NoNoise'],
             outfile='fig_viirs_llc_patches_t10_p10.png',
             tp=(10,10))
