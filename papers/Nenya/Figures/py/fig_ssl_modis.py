@@ -1,4 +1,4 @@
-""" Figures for SSL paper on MODIS """
+""" Figures for Nenya paper on MODIS """
 from datetime import datetime
 import os, sys
 import numpy as np
@@ -33,9 +33,9 @@ from ulmo import plotting
 from ulmo.utils import utils as utils
 
 from ulmo import io as ulmo_io
-from ulmo.ssl import single_image as ssl_simage
+from ulmo.nenya import single_image as ssl_simage
 from ulmo.utils import image_utils
-from ulmo.ssl import ssl_umap
+from ulmo.nenya import ssl_umap
 
 from IPython import embed
 
@@ -67,6 +67,7 @@ yrngs_CF_U3_12 = 5.5, 13.5
 metric_lbls = dict(min_slope=r'$\alpha_{\rm min}$',
                    clear_fraction='1-CC',
                    DT=r'$\Delta T$',
+                   dT=r'$\delta T$ (K)',
                    lowDT=r'$\Delta T_{\rm low}$',
                    absDT=r'$|T_{90}| - |T_{10}|$',
                    LL='LL',
@@ -152,7 +153,7 @@ def fig_augmenting(outfile='fig_augmenting.png', use_s3=False):
     if use_s3:
         modis_dataset_path = 's3://modis-l2/PreProc/MODIS_R2019_2003_95clear_128x128_preproc_std.h5'
     else:
-        modis_dataset_path = os.path.join(os.getenv('SST_OOD'),
+        modis_dataset_path = os.path.join(os.getenv('OS_SST'),
                                           "MODIS_L2/PreProc/MODIS_R2019_2003_95clear_128x128_preproc_std.h5")
     with ulmo_io.open(modis_dataset_path, 'rb') as f:
         hf = h5py.File(f, 'r')
@@ -164,16 +165,20 @@ def fig_augmenting(outfile='fig_augmenting.png', use_s3=False):
     plt.clf()
     gs = gridspec.GridSpec(1,3)
 
+    # Temperature range
+    Trange = img[0,...].min(), img[0,...].max()
+    print(f'Temperature range: {Trange}')
+
     # No augmentation
     ax0 = plt.subplot(gs[0])
     sns.heatmap(img[0,...], ax=ax0, xticklabels=[], 
                 yticklabels=[], cmap=cm, cbar=False,
+                vmin=Trange[0], vmax=Trange[1],
                 square=True)
 
-    # Temperature range
-    Trange = img[0,...].min(), img[0,...].max()
-    print(f'Temperature range: {Trange}')
-    
+    cb = ax0.figure.colorbar(ax0.collections[0], pad=0., fraction=0.03)
+    cb.set_label(metric_lbls['dT'], fontsize=10.)
+     
     # Augment me
     loader = ssl_simage.image_loader(img, version='v4')
     test_batch = next(iter(loader))
@@ -591,7 +596,7 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
     ax_cbar = ax_gallery.inset_axes(
                     [xmax + dxv/10, ymin, dxv/2, (ymax-ymin)*0.2],
                     transform=ax_gallery.transData)
-    cbar_kws = dict(label=r'$\Delta T$ (K)')
+    cbar_kws = dict(label=r'SSTa (K)')
 
     for x in xval[:-1]:
         for y in yval[:-1]:
@@ -615,7 +620,7 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
             try:
                 if local:
                     parsed_s3 = urlparse(cutout.pp_file)
-                    local_file = os.path.join(os.getenv('SST_OOD'),
+                    local_file = os.path.join(os.getenv('OS_SST'),
                                               'MODIS_L2',
                                               parsed_s3.path[1:])
                     cutout_img = image_utils.grab_image(
@@ -623,7 +628,7 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
                 else:
                     cutout_img = image_utils.grab_image(cutout, close=True)
             except:
-                embed(header='598 of plotting')                                                    
+                embed(header='631 of plotting')                                                    
             # Cut down?
             if cut_to_inner is not None:
                 imsize = cutout_img.shape[0]
