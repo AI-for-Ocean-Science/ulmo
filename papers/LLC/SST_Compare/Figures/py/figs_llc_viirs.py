@@ -489,10 +489,10 @@ def fig_eq_pacific(outfile='fig_equator_histograms.png',
         llc = ulmo_io.load_main_table('s3://llc/Tables/LLC_uniform144_r0.5.parquet')
     else:
         v98 = ulmo_io.load_main_table(os.path.join(
-            os.getenv('SST_OOD'), 'VIIRS', 'Tables', 
+            os.getenv('OS_SST'), 'VIIRS', 'Tables', 
             'VIIRS_all_98clear_std.parquet'))
         llc = ulmo_io.load_main_table(os.path.join(
-            os.getenv('SST_OOD'), 'LLC', 'Tables', 
+            os.getenv('OS_OGCM'), 'LLC', 'Ulmo', 'Tables', 
             'LLC_uniform144_r0.5.parquet'))
 
     # DT
