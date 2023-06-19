@@ -109,7 +109,7 @@ def fig_reconstruct(outfile:str='fig_reconstruct.png', t:int=10, p:int=20,
                                              bias=bias)
     max_rmse = np.max(results['std_diff'])
 
-    print(f'Residual max: {max_res:.3f}, RMSE max: {max_rmse:.3f}')
+    print(f'Residual max: {max_res:.3f}, RMSE max: {max_rmse:.3f}, Average RMSE: {np.mean(results["std_diff"]):.3f}')
 
 
 def fig_patches(outfile:str, patch_file:str, model:str='std'):
@@ -920,10 +920,11 @@ def main(flg_fig):
     # VIIRS vs LLC with LL
     if flg_fig & (2 ** 4):
         fig_viirs_rmse()
-        fig_viirs_rmse(outfile='fig_viirs_rmse_noinpaint.png',
-                       show_inpaint=False)
-        fig_viirs_rmse(outfile='fig_viirs_rmse_quad.png',
-                       show_inpaint=False, show_llc_quad=True)
+        fig_viirs_rmse(outfile='fig_viirs_rmse_t20p20.png')
+        #fig_viirs_rmse(outfile='fig_viirs_rmse_noinpaint.png',
+        #               show_inpaint=False)
+        #fig_viirs_rmse(outfile='fig_viirs_rmse_quad.png',
+        #               show_inpaint=False, show_llc_quad=True)
 
     # Check valid 2, with and without noise
     if flg_fig & (2 ** 5):
@@ -956,10 +957,10 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 0  # patches
         #flg_fig += 2 ** 1  # cutouts
         #flg_fig += 2 ** 2  # LLC (Enki vs inpainting)
-        #flg_fig += 2 ** 3  # Reconstruction example
-        #flg_fig += 2 ** 4  # VIIRS LL
+        # flg_fig += 2 ** 3  # Reconstruction example
+        flg_fig += 2 ** 4  # VIIRS LL (Figure 5)
         #flg_fig += 2 ** 5  # Check valid 2
-        flg_fig += 2 ** 6  # More patch figures
+        #flg_fig += 2 ** 6  # More patch figures
         #flg_fig += 2 ** 7  # Compare Enki against many inpainting
     else:
         flg_fig = sys.argv[1]
