@@ -70,8 +70,8 @@ Following is a list of the contents of the dataset:
     5.  idx - the HEALPix cell number.
 
 2) tail_viirs.csv - as for head_viirs.cs but for 2018-2020.
-3) all viirs.csv - as above but for the entire period, 2012-2020.
-4) all llo.csv - table of values for LLC4320 HEALPix cells.
+3) all_viirs.csv - as above but for the entire period, 2012-2020.
+4) all_llc.csv - table of values for LLC4320 HEALPix cells.
 5) hp_lons_V98 - the longitude values for each HEALPix cell in the same order as in the .csv files.
 6) hp_lats_V98 - the latitude values for each HEALPix cell.
 7) flow.pt - This is a pytorch file holding the normalizing flow model of Ulmo used for the project.
