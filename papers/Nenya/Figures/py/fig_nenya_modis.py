@@ -147,7 +147,7 @@ def update_outfile(outfile, table, umap_dim=2,
     
 
 
-def fig_augmenting(outfile='fig_augmenting.png', use_s3=False):
+def fig_augmenting(outfile='fig_augmenting.png', use_s3=False, single:bool=True):
 
     # Load up an image
     if use_s3:
@@ -159,11 +159,17 @@ def fig_augmenting(outfile='fig_augmenting.png', use_s3=False):
         hf = h5py.File(f, 'r')
         img = hf['valid'][400]
 
+    if single:
+        outfile = outfile.replace('.png', '_single.png')
+
     # Figure time
     _, cm = plotting.load_palette()
-    fig = plt.figure(figsize=(7, 2))
-    plt.clf()
-    gs = gridspec.GridSpec(1,3)
+    if single:
+        fig = plt.figure(figsize=(4, 4))
+        gs = gridspec.GridSpec(1,1)
+    else:
+        fig = plt.figure(figsize=(7, 2))
+        gs = gridspec.GridSpec(1,3)
 
     # Temperature range
     Trange = img[0,...].min(), img[0,...].max()
@@ -176,34 +182,35 @@ def fig_augmenting(outfile='fig_augmenting.png', use_s3=False):
                 vmin=Trange[0], vmax=Trange[1],
                 square=True)
 
-    cb = ax0.figure.colorbar(ax0.collections[0], pad=0., fraction=0.03)
-    cb.set_label(metric_lbls['dT'], fontsize=10.)
+    if not single:
+        cb = ax0.figure.colorbar(ax0.collections[0], pad=0., fraction=0.03)
+        cb.set_label(metric_lbls['dT'], fontsize=10.)
      
-    # Augment me
-    loader = ssl_simage.image_loader(img, version='v4')
-    test_batch = next(iter(loader))
-    img1, img2 = test_batch
-    # Should be: Out[2]: torch.Size([1, 3, 64, 64])
+        # Augment me
+        loader = ssl_simage.image_loader(img, version='v4')
+        test_batch = next(iter(loader))
+        img1, img2 = test_batch
+        # Should be: Out[2]: torch.Size([1, 3, 64, 64])
 
-    # Numpy
-    img1 = img1.cpu().detach().numpy()
-    img2 = img2.cpu().detach().numpy()
+        # Numpy
+        img1 = img1.cpu().detach().numpy()
+        img2 = img2.cpu().detach().numpy()
 
-    print(f'Mean of img1: {img1.mean()}')
-    print(f'Mean of img2: {img2.mean()}')
-    #embed(header='159 of figs')
+        print(f'Mean of img1: {img1.mean()}')
+        print(f'Mean of img2: {img2.mean()}')
+        #embed(header='159 of figs')
 
-    # Plot
-    ax1 = plt.subplot(gs[1])
-    sns.heatmap(img1[0,0,...], ax=ax1, xticklabels=[], 
-                yticklabels=[], cbar=False, cmap=cm,
-                vmin=Trange[0], vmax=Trange[1],
-                square=True)
-    ax2 = plt.subplot(gs[2])
-    sns.heatmap(img2[0,0,...], ax=ax2, xticklabels=[], 
-                yticklabels=[], cbar=False, cmap=cm,
-                vmin=Trange[0], vmax=Trange[1],
-                square=True)
+        # Plot
+        ax1 = plt.subplot(gs[1])
+        sns.heatmap(img1[0,0,...], ax=ax1, xticklabels=[], 
+                    yticklabels=[], cbar=False, cmap=cm,
+                    vmin=Trange[0], vmax=Trange[1],
+                    square=True)
+        ax2 = plt.subplot(gs[2])
+        sns.heatmap(img2[0,0,...], ax=ax2, xticklabels=[], 
+                    yticklabels=[], cbar=False, cmap=cm,
+                    vmin=Trange[0], vmax=Trange[1],
+                    square=True)
 
     plt.tight_layout(pad=0.5, h_pad=0.5, w_pad=0.5)
     plt.savefig(outfile, dpi=300)
