@@ -44,7 +44,7 @@ def load_CC_mask(field_size=(64,64), verbose=True, local=True):
         xr.DataSet: CC_mask
     """
     if local:
-        CC_mask_file = os.path.join(os.getenv('LLC_DATA'), 'CC',
+        CC_mask_file = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'data', 'CC',
                                    'LLC_CC_mask_{}.nc'.format(field_size[0]))
         CC_mask = xr.open_dataset(CC_mask_file)
     else:
