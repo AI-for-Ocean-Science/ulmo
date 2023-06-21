@@ -147,6 +147,7 @@ def dineof_ncfile(tbl_file:str, root_file:str, out_file:str, debug=False):
     # Images
     if debug:
         images = np.random.rand(len(dineof),64,64)
+        mask = np.random.randint(2, size=(64,64))
     else:
         f = h5py.File(root_file, 'r')
         images = f['valid'][:,0,...]
@@ -164,10 +165,10 @@ def dineof_ncfile(tbl_file:str, root_file:str, out_file:str, debug=False):
     # Nc file
     da = xarray.DataArray(images, coords=[dineof.datetime.values, lats, lons],
                           dims=['time', 'lat', 'lon'])
-    ds = xarray.Dataset({'SST': da})
+    da_mask = xarray.DataArray(mask, coords=[lats, lons],
+                          dims=['lat', 'lon'])
+    ds = xarray.Dataset({'SST': da, 'mask': da_mask})
     ds.to_netcdf(out_file, engine='h5netcdf')
-
-    embed(header='165 of llc_dineof.py')
 
 def main(flg):
     if flg== 'all':
