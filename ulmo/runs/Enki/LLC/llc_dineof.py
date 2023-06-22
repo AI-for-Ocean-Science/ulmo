@@ -12,16 +12,10 @@ from astropy import units
 from astropy.coordinates import SkyCoord, match_coordinates_sky
 
 from ulmo.llc import extract 
-from ulmo.llc import uniform
 from ulmo.llc import io as llc_io
 from ulmo import io as ulmo_io
-from ulmo.analysis import evaluate as ulmo_evaluate
 from ulmo.preproc import plotting as pp_plotting
 from ulmo.utils import catalog as cat_utils
-
-from ulmo.mae import analysis as enki_analysis
-from ulmo.mae import cutout_analysis
-from ulmo.mae import enki_utils
 
 from IPython import embed
 
