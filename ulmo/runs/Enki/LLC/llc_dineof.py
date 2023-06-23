@@ -13,9 +13,11 @@ from astropy.coordinates import SkyCoord, match_coordinates_sky
 
 from ulmo.llc import extract 
 from ulmo.llc import io as llc_io
+from ulmo.llc import slurp
 from ulmo import io as ulmo_io
 from ulmo.preproc import plotting as pp_plotting
 from ulmo.utils import catalog as cat_utils
+from ulmo.scripts import grab_llc
 
 from IPython import embed
 
@@ -133,7 +135,20 @@ def dineof_extract(tbl_file:str, root_file:str, debug=False,
     print("You should probably remove the PreProc/ folder")
     
 
-def dineof_ncfile(tbl_file:str, root_file:str, out_file:str, debug=False):
+def dineof_ncfile(tbl_file:str, root_file:str, out_file:str, debug=False,
+                  add_mask:bool=True):
+    """ Create a DINEOF compatible nc file
+
+    Args:
+        tbl_file (str): 
+            Table file
+        root_file (str): 
+            Root file for the pre-processed LLC data
+        out_file (str): 
+            Output file for the nc file
+        debug (bool, optional): _description_. Defaults to False.
+        add_mask (bool, optional): _description_. Defaults to False.
+    """
 
     # Load up
     dineof = ulmo_io.load_main_table(tbl_file)
@@ -142,9 +157,12 @@ def dineof_ncfile(tbl_file:str, root_file:str, out_file:str, debug=False):
     if debug:
         images = np.random.rand(len(dineof),64,64)
         mask = np.random.randint(2, size=(64,64))
+        add_mask = True
     else:
         f = h5py.File(root_file, 'r')
         images = f['valid'][:,0,...]
+        mask = np.zeros_like(images[0,...])
+
 
     # Grab coords
     field_size = (images.shape[-1], images.shape[-1])
@@ -159,10 +177,21 @@ def dineof_ncfile(tbl_file:str, root_file:str, out_file:str, debug=False):
     # Nc file
     da = xarray.DataArray(images, coords=[dineof.datetime.values, lats, lons],
                           dims=['time', 'lat', 'lon'])
-    da_mask = xarray.DataArray(mask, coords=[lats, lons],
+    ds_dict = {'SST': da}
+
+    if add_mask:
+        da_mask = xarray.DataArray(mask, coords=[lats, lons],
                           dims=['lat', 'lon'])
-    ds = xarray.Dataset({'SST': da, 'mask': da_mask})
+        ds_dict['mask'] = da_mask
+    ds = xarray.Dataset(ds_dict)
     ds.to_netcdf(out_file, engine='h5netcdf')
+    print(f'Wrote: {out_file}')
+
+def llc_grab_missing():
+    """ Grab the missing LLC files
+    """
+    pargs = grab_llc.parser(['12','--var', 'Theta,U,V,W,Salt', '--istart', '46'])
+    grab_llc.main(pargs)
 
 def main(flg):
     if flg== 'all':
@@ -182,9 +211,13 @@ def main(flg):
     # Generate nc file
     if flg & (2**2):
         dineof_ncfile(enki_dineof_file,
-                      'Enki_LLC_DINEOF_preproc.h5',
-                      'Enki_LLC_DINEOF.nc',
-                      debug=True) 
+                      'PreProc/Enki_LLC_DINEOF_preproc.h5',
+                      'Enki_LLC_DINEOF.nc')
+                      #debug=True) 
+
+    # Grab missing file
+    if flg & (2**3):
+        llc_grab_missing()
 
 
 # Command line execution
@@ -195,9 +228,8 @@ if __name__ == '__main__':
         flg = 0
         #flg += 2 ** 0  # 1 -- Setup Table(s)
         #flg += 2 ** 1  # 2 -- Extract
-        #flg += 2 ** 2  # 4 -- Evaluate 
-        #flg += 2 ** 3  # 8 -- RMSE
-        #flg += 2 ** 4  # 16 -- Inpainting
+        #flg += 2 ** 2  # 4 -- nc file
+        #flg += 2 ** 3  # 8 -- Grab missing LLC file(s)
     else:
         flg = sys.argv[1]
 
@@ -205,3 +237,6 @@ if __name__ == '__main__':
 
 # Init
 # python -u llc_dineof.py 1
+
+# Missing LLC
+# python -u llc_dineof.py 8

@@ -220,11 +220,13 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
 
         del answers, fields, items, sst
         ds.close()
+        #embed(header='extract 223')
 
     # Fuss with indices
     ex_idx = np.array(all_sub)
     ppf_idx = []
     ppf_idx = catalog.match_ids(np.array(img_idx), ex_idx)
+    
     # Write
     llc_table = pp_utils.write_pp_fields(
         pp_fields, meta, llc_table, ex_idx, ppf_idx,
