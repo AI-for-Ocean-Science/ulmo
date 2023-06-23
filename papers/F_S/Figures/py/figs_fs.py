@@ -12,12 +12,13 @@ from IPython import embed
 def load_tbl(survey:str, DT:str='DT1'):
     if survey == 'viirs':
         # VIIRS
-        tbl_file = f'/data/Projects/Oceanography/AI/OOD/SST/VIIRS/Tables/VIIRS_Nenya_{DT}.parquet'
+        tbl_file = os.path.join(os.getenv('OS_SST'), 'VIIRS', 'Nenya', 'Tables', 
+                                f'VIIRS_Nenya_{DT}.parquet')
     elif survey == 'llc':
         tbl_file = f'/data/Projects/Oceanography/AI/OOD/SST/LLC/Tables/LLC_A_Nenya_{DT}.parquet'
     elif survey == 'modis':
         tbl_file = os.path.join(os.getenv('OS_AI'),
-                                f'/data/Projects/Oceanography/AI/OOD/SST/LLC/Tables/LLC_A_Nenya_{DT}.parquet'
+                                f'/data/Projects/Oceanography/AI/OOD/SST/LLC/Tables/LLC_A_Nenya_{DT}.parquet')
     #
     tbl = table_utils.load(tbl_file)
     return tbl
@@ -55,7 +56,7 @@ def main(flg):
     if flg & (2**1):
         viirs = load_tbl('viirs')
         figures.umap_gallery(viirs, 'fig_nenya_viirs_gallery_DT1.png',
-                             local=os.path.join(os.getenv('SST_OOD'), 'VIIRS'),
+                             local=os.path.join(os.getenv('OS_SST'), 'VIIRS'),
                              in_vmnx=[-0.75, 0.75])
 
 
