@@ -184,7 +184,8 @@ def dineof_ncfile(tbl_file:str, root_file:str, out_file:str, debug=False,
                           dims=['lat', 'lon'])
         ds_dict['mask'] = da_mask
     ds = xarray.Dataset(ds_dict)
-    ds.to_netcdf(out_file, engine='h5netcdf')
+    #ds.to_netcdf(out_file, engine='h5netcdf')
+    ds.to_netcdf(out_file, engine='netcdf4')
     print(f'Wrote: {out_file}')
 
 def llc_grab_missing():
@@ -212,7 +213,7 @@ def main(flg):
     if flg & (2**2):
         dineof_ncfile(enki_dineof_file,
                       'PreProc/Enki_LLC_DINEOF_preproc.h5',
-                      'Enki_LLC_DINEOF.nc')
+                      'Enki_LLC_DINEOF_4.nc') # NetCDF4
                       #debug=True) 
 
     # Grab missing file
