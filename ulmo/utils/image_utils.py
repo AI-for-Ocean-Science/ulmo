@@ -1,7 +1,12 @@
 import os
 import numpy as np
 import h5py
-import healpy as hp
+import warnings
+try: 
+    import healpy as hp
+except ModuleNotFoundError:
+    warnings.warn("healpy not installed.  Not all functions will work!")
+
 
 import pandas
 
