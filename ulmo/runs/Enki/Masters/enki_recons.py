@@ -96,6 +96,7 @@ def compare_with_inpainting(inpaint_file:str, t:int, p:int, debug:bool=False,
     mask_imgs[:, patch_sz:-patch_sz,patch_sz:-patch_sz] = 0
 
     # Analyze
+    raise ValueError("I think the line of code below is a bug..")
     diff_recon = (orig_imgs - recon_imgs)*mask_imgs
     nfiles = diff_recon.shape[0]
 

@@ -240,6 +240,7 @@ def inpaint_images(inpaint_file:str,
     # Load images
     tbl_file, orig_file, recon_file, mask_file = enki_utils.set_files(
         dataset, t, p)
+    print(f"Inpainting {orig_file} with {method}")
 
     f_orig = h5py.File(orig_file, 'r')
     #f_recon = h5py.File(recon_file,'r')
