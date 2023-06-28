@@ -827,7 +827,7 @@ def fig_chk_valid(outfile='fig_chk_valid.png'):
 
 
 def fig_llc_many_inpainting(outfile='fig_llc_many_inpainting.png', 
-                   t:int=10, p:int=10, in_ax=None, 
+                   t:int=20, p:int=30, in_ax=None, 
                    nbatch:int=10, show_inpaint:bool=True,
                    show_llc_quad:bool=False):
                          
@@ -1018,12 +1018,12 @@ if __name__ == '__main__':
         flg_fig = 0
         #flg_fig += 2 ** 0  # patches
         #flg_fig += 2 ** 1  # cutouts
-        flg_fig += 2 ** 2  # LLC (Enki vs inpainting)
+        #flg_fig += 2 ** 2  # LLC (Enki vs inpainting)
         # flg_fig += 2 ** 3  # Reconstruction example
         #flg_fig += 2 ** 4  # VIIRS LL (Figure 5)
         #flg_fig += 2 ** 5  # Check valid 2
         #flg_fig += 2 ** 6  # More patch figures
-        #flg_fig += 2 ** 7  # Compare Enki against many inpainting
+        flg_fig += 2 ** 7  # Compare Enki against many inpainting
         #flg_fig += 2 ** 8  # DINEOF
     else:
         flg_fig = sys.argv[1]
