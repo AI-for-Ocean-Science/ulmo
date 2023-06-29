@@ -86,8 +86,7 @@ if __name__ == "__main__":
     # Ugly for loop..
     new_orig = np.zeros_like(orig_imgs)
 
-    embed(header='89 of anly_patches.py')
-    for ss in len(noise_tbl):
+    for ss in range(len(noise_tbl)):
         if ss % 1000 == 0:
             print(f'ss: {ss}')
         if noise_tbl.iloc[ss].pp_idx < 0:
