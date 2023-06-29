@@ -38,7 +38,7 @@ def init_l3s_tbl():
     viirs_keys = ['row', 'col', 'UID', 'LL', 'pp_file', 
                 'pp_idx', 'T90', 'T10', 'DT', 'pp_type',
                 'clear_fraction', 'datetime', 'filename',
-                'ex_filename']
+                'ex_filename', 'lat', 'lon']
     for key in viirs_keys:
         l3s[f'VIIRS_{key}'] = viirs[key]
 
