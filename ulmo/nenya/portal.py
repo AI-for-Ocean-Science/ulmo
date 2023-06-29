@@ -1010,12 +1010,14 @@ class OSSinglePortal(object):
         self.status2_text.text = '(Status) '+text
 
     def open_files(self):
+        """ Open up the files
+        """
         # Open files
         self.file_dict = {}
         uni_ppfiles = np.unique(self.umap_tbl.pp_file.values)
         for ppfile in uni_ppfiles:
             base = os.path.basename(ppfile)
-            ifile = os.path.join(os.getenv('SST_OOD'), 
+            ifile = os.path.join(os.getenv('OS_SST'), 
                                  'MODIS_L2', 'PreProc', base)
             self.file_dict[base] = h5py.File(ifile, 'r')
 
@@ -1138,7 +1140,7 @@ class OSSinglePortal(object):
 if __name__ == "__main__":
     #tmp = OSSinglePortal(None, None)
     table_file = os.path.join(
-            os.getenv('SST_OOD'), 
+            os.getenv('OS_SST'), 
             'MODIS_L2', 'Tables',
             'MODIS_SSL_96clear_v4_DT15.parquet')
 
