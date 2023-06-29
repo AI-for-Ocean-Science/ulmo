@@ -220,6 +220,7 @@ def main(flg):
                 print(f'Working on: t={t}, p={p}')
                 enki_analysis.calc_rms(t, p, dataset='LLC2_noise', 
                     method='noiseless',
+                    remove_bias=False,
                     clobber=clobber, debug=debug)
 
     # Inpainting galore

@@ -64,7 +64,9 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
 
     # Use noiseless patches?
     if method == 'noiseless':
+        # Allow for various noise models
         noise_root = dataset.split('_')[1]
+        # Do it
         orig_file = orig_file.replace(noise_root, 'nonoise')
         print(f'Now using original file: {orig_file}')
 
