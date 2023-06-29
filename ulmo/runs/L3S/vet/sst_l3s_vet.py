@@ -32,18 +32,15 @@ def init_l3s_tbl():
     viirs = ulmo_io.load_main_table(viirs_tbl_file)
 
     # Copy
-    l3s = viirs.copy(deep=True)
+    l3s = pandas.DataFrame()
 
-    # Save VIIRS keys
+    # Save VIIRS info
     viirs_keys = ['row', 'col', 'UID', 'LL', 'pp_file', 
                 'pp_idx', 'T90', 'T10', 'DT', 'pp_type',
                 'clear_fraction', 'datetime', 'filename',
                 'ex_filename']
     for key in viirs_keys:
-        l3s[f'VIIRS_{key}'] = l3s[key]
-
-    # Remove them
-    l3s.drop(columns=viirs_keys, inplace=True)
+        l3s[f'VIIRS_{key}'] = viirs[key]
 
     # Generate the L3S table
     embed(header='43 of sst_l3s_vet.py')
