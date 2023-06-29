@@ -25,7 +25,7 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
         clobber (bool, optional): Clobber?
         remove_bias (bool, optional): Remove bias?
         debug (bool, optional): Debug?
-        method (str, optional): Inpainting method. Defaults to None (aka Enki).
+        method (str, optional): Inpainting/analysis method. Defaults to None (aka Enki).
         in_recon_file (str, optional): Input recon file. Defaults to None.
 
     Raises:
@@ -61,6 +61,12 @@ def calc_rms(t:int, p:int, dataset:str='LLC', clobber:bool=False,
     print(f'Opening: {orig_file}')
     print(f'Opening: {recon_file}')
     print(f'Opening: {mask_file}')
+
+    # Use noiseless patches?
+    if method == 'noiseless':
+        noise_root = dataset.split('_')[1]
+        orig_file = orig_file.replace(noise_root, 'nonoise')
+        print(f'Now using original file: {orig_file}')
 
     f_orig = h5py.File(orig_file, 'r')
     f_recon = h5py.File(recon_file, 'r')

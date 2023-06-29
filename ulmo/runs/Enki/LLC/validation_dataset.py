@@ -23,6 +23,7 @@ from IPython import embed
 
 enki_valid_file = 's3://llc/mae/Tables/Enki_LLC_valid_nonoise.parquet'
 enki_valid_noise_file = 's3://llc/mae/Tables/Enki_LLC_valid_noise.parquet'
+enki_valid_noise1_file = 's3://llc/mae/Tables/Enki_LLC_valid_noise01.parquet'
 
 def u_init_144(tbl_file:str, debug=False, resol=0.5, plot=False,
                max_lat=None, rotate:float=0.25):
@@ -198,13 +199,13 @@ def main(flg):
         clobber = False
         debug=False
 
+        '''
         # No noise
         for t in [10,20,35,50,75]:
             for p in [10,20,30,40,50]:
                 print(f'Working on: t={t}, p={p}')
                 enki_analysis.calc_rms(t, p, dataset='LLC2_nonoise', 
                                        clobber=clobber, debug=debug)
-        '''
 
         # Noise
         for t in [10, 35, 50, 75]:
@@ -213,6 +214,13 @@ def main(flg):
                 enki_analysis.calc_rms(t, p, dataset='LLC2_noise', 
                                        clobber=clobber, debug=debug)
         '''
+        # 0.04K Noise but noisless original
+        for t in [10]:
+            for p in [10]:
+                print(f'Working on: t={t}, p={p}')
+                enki_analysis.calc_rms(t, p, dataset='LLC2_noise', 
+                    method='noiseless',
+                    clobber=clobber, debug=debug)
 
     # Inpainting galore
     if flg & (2**4):

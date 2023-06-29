@@ -172,7 +172,7 @@ def set_files(dataset:str, t:int, p:int):
 
     Args:
         dataset (str): 
-            Dataset name ['VIIRS', 'LLC', 'LLC2]
+            Dataset name ['VIIRS', 'LLC', 'LLC2', 'LLC2_nonoise']
         t (int): 
             Train percentile
         p (int): 
@@ -204,6 +204,10 @@ def set_files(dataset:str, t:int, p:int):
         tbl_file = 's3://llc/mae/Tables/Enki_LLC_valid_noise.parquet'
         orig_file = os.path.join(enki_path, 'PreProc', 
                                  'Enki_LLC_valid_noise_preproc.h5')
+    elif dataset == 'LLC2_noise1':
+        tbl_file = 's3://llc/mae/Tables/Enki_LLC_valid_noise1.parquet'
+        orig_file = os.path.join(enki_path, 'PreProc', 
+                                 'Enki_LLC_valid_noise1_preproc.h5')
     else:
         raise ValueError("Bad dataset")
 
