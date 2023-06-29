@@ -57,7 +57,7 @@ def add_days(llc_table:pandas.DataFrame, dti:pandas.DatetimeIndex, outfile=None)
 
     # Write
     if outfile is not None:
-        assert catalog.cat_utils.vet_main_table(llc_table)
+        assert catalog.vet_main_table(llc_table)
         ulmo_io.write_main_table(llc_table, outfile)
 
     # Return
