@@ -1,4 +1,5 @@
 """ Routines to analyze patches """
+
 import numpy as np
 import os
 
@@ -50,6 +51,20 @@ def llc_noise_patches():
     print(f"Working on: {recon_file} using orig={orig_file}")
     patch_analysis.anlayze_full(
         recon_file, orig_file=orig_file, bias=bias, nsub=100000, n_cores=12) 
+
+def llc_noise02_patches():
+    # LLC2 noise
+    t=10
+    p=10
+    tbl_file, orig_file, recon_file, mask_file = enki_utils.set_files(
+        dataset='LLC2_noise02', t=t, p=p)
+    bias = 0.
+    print(f"WARNING: Using bias={bias} for {recon_file}")
+
+    print(f"Working on: {recon_file} using orig={orig_file}")
+    patch_analysis.anlayze_full(
+        recon_file, orig_file=orig_file, bias=bias, nsub=100000, n_cores=12) 
+
 
 def generate_aligned_orig():
     """ Generate a file of aligned orig images
@@ -120,4 +135,5 @@ def llc_noise_noiseless_patches():
 
 if __name__ == "__main__":
 
-    llc_noise_noiseless_patches()
+    #llc_noise_noiseless_patches()
+    llc_noise02_patches()
