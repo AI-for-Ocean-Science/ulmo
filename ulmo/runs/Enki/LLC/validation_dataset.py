@@ -186,10 +186,15 @@ def main(flg):
         #              preproc_root='llc_144_nonoise', 
         #              root_file='Enki_LLC_valid_nonoise_preproc.h5') 
 
-        # NOISE
-        u_extract_144(enki_valid_noise_file,
+        # NOISE with 0.04K
+        #u_extract_144(enki_valid_noise_file,
+        #              preproc_root='llc_144', 
+        #              root_file='Enki_LLC_valid_noise_preproc.h5') 
+
+        # NOISE with 0.02K
+        u_extract_144(enki_valid_noise02_file,
                       preproc_root='llc_144_noise02', 
-                      root_file='Enki_LLC_valid_noise_preproc.h5') 
+                      root_file='Enki_LLC_valid_noise02_preproc.h5') 
 
     if flg & (2**2):
         '''
