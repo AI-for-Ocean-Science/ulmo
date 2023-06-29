@@ -1,22 +1,14 @@
 """ module for vet of the SST L3S dataset
 """
-from email import header
-from operator import mod
 import os
-from typing import IO
 import numpy as np
-import glob
 
 import time
 import h5py
 import numpy as np
-from tqdm.auto import trange
 import argparse
 
 import pandas
-from functools import partial
-from concurrent.futures import ProcessPoolExecutor
-from tqdm import tqdm
 
 from matplotlib import pyplot as plt
 import seaborn as sns
@@ -39,16 +31,28 @@ def init_l3s_tbl():
     # Load VIIRS table
     viirs = ulmo_io.load_main_table(viirs_tbl_file)
 
+    # Copy
+    l3s = viirs.copy(deep=True)
+
     # Save VIIRS keys
-    for key in ['row', 'col', 'UID', 'LL', 'pp_file', 'pp_idx', 'T90', 'T10', 'DT']:
+    viirs_keys = ['row', 'col', 'UID', 'LL', 'pp_file', 
+                'pp_idx', 'T90', 'T10', 'DT', 'pp_type',
+                'clear_fraction', 'datetime', 'filename',
+                'ex_filename']
+    for key in viirs_keys:
+        l3s[f'VIIRS_{key}'] = l3s[key]
+
+    # Remove them
+    l3s.drop(columns=viirs_keys, inplace=True)
 
     # Generate the L3S table
     embed(header='43 of sst_l3s_vet.py')
 
     # Check the table
+    assert cat_utils.vet_main_table(l3s, cut_prefix='VIIRS_')
 
     # Write
-    ulmo_io.write_main_table(l3s, l3s_viirs_tbl_file
+    ulmo_io.write_main_table(l3s, l3s_viirs_tbl_file)
 
 def main(flg):
     if flg== 'all':
