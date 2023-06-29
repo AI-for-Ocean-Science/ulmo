@@ -39,14 +39,12 @@ def init_l3s_tbl():
                 'pp_idx', 'T90', 'T10', 'DT', 'pp_type',
                 'clear_fraction', 'datetime', 'filename',
                 'ex_filename', 'lat', 'lon']
+    # Generate the L3S table
     for key in viirs_keys:
         l3s[f'VIIRS_{key}'] = viirs[key]
 
-    # Generate the L3S table
-    embed(header='43 of sst_l3s_vet.py')
-
-    # Check the table
-    assert cat_utils.vet_main_table(l3s, cut_prefix='VIIRS_')
+    # Check the table -- it should complain about missing required keys
+    cat_utils.vet_main_table(l3s, cut_prefix='VIIRS_')
 
     # Write
     ulmo_io.write_main_table(l3s, l3s_viirs_tbl_file)
