@@ -30,7 +30,8 @@ def u_init_144(tbl_file:str, debug=False, resol=0.5, plot=False,
     Args:
         tbl_file (str): _description_
         debug (bool, optional): _description_. Defaults to True.
-        resol (float, optional): _description_. Defaults to 0.5.
+        resol (float, optional): 
+            Typical separation of images in deg
         plot (bool, optional): Plot the spatial distribution?
         max_lat (float, optional): Restrict on latitude
         MAE (bool, optional): Generate a table for MAE?

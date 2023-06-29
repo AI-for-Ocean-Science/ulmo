@@ -112,6 +112,7 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
                          n_cores=10,
                          valid_fraction=1., 
                          dlocal=False,
+                         write_cutouts:bool=True,
                          override_RAM=False,
                          s3_file=None, debug=False):
     """Main routine to extract and pre-process LLC data for later SST analysis
@@ -128,9 +129,14 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         dlocal (bool, optional): Data files are local? Defaults to False.
         override_RAM (bool, optional): Over-ride RAM warning?
         s3_file (str, optional): s3 URL for file to write. Defaults to None.
+        write_cutouts (bool, optional): 
+            Write the cutouts to disk?
 
     Raises:
         IOError: [description]
+
+    Returns:
+        pandas.DataFrame: Modified in place table
 
     """
     # Load coords?
@@ -214,15 +220,18 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
 
         del answers, fields, items, sst
         ds.close()
+        #embed(header='extract 223')
 
     # Fuss with indices
     ex_idx = np.array(all_sub)
     ppf_idx = []
     ppf_idx = catalog.match_ids(np.array(img_idx), ex_idx)
+    
     # Write
     llc_table = pp_utils.write_pp_fields(
         pp_fields, meta, llc_table, ex_idx, ppf_idx,
-        valid_fraction, s3_file, local_file, debug=debug)
+        valid_fraction, s3_file, local_file, debug=debug,
+        write_cutouts=write_cutouts)
 
     # Clean up
     del pp_fields

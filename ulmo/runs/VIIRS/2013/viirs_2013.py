@@ -6,7 +6,6 @@ import subprocess
 
 import pandas
 import h5py
-from skimage.restoration import inpaint 
 
 from sklearn.utils import shuffle
 
