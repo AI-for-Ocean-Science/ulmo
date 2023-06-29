@@ -994,8 +994,10 @@ def main(flg_fig):
             other_patch_files=['/backup/Oceanography/OGCM/LLC/Enki/Recon/enki_noise_patches_t10_p10.npz',
                 '/backup/Oceanography/OGCM/LLC/Enki/Recon/enki_patches_t10_p10.npz',
                 '/backup/Oceanography/OGCM/LLC/Enki/Recon/enki_noise_patches_noiseless_t10_p10.npz',
+                '/backup/Oceanography/OGCM/LLC/Enki/Recon/enki_noise02_patches_t10_p10.npz',
             ],
-            lbls=['VIIRS', 'LLC2 Noise', 'LLC2 NoNoise', 'LLC2 Noise/Noiseless'],
+            lbls=['VIIRS', 'LLC2 Noise 0.04K', 'LLC2 NoNoise', 
+                  'LLC2 Noise/Noiseless', 'LLC2 Noise 0.02K'],
             outfile='fig_viirs_llc_patches_t10_p10.png',
             tp=(10,10))
 
