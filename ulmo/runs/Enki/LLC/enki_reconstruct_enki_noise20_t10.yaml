@@ -52,7 +52,7 @@ spec:
             cd ulmo/scripts;
             aws --endpoint https://s3-west.nrp-nautilus.io s3 cp s3://llc/mae/PreProc/Enki_LLC_valid_noise02_preproc.h5 ./;
             aws --endpoint https://s3-west.nrp-nautilus.io s3 cp s3://llc/mae/mae_pretrain_ddp_mask10/checkpoint-276.pth ./;
-            python enki_reconstruct.py --mask_ratio 0.1 --data_path Enki_LLC_valid_noise02_preproc.h5 --output_dir output --resume checkpoint-276.pth --upload_path s3://llc/mae/Recon/enki_noise_reconstruct_t10_p10.h5 --mask_upload_path s3://llc/mae/Recon/enki_noise02_mask_t10_p10.h5;
+            python enki_reconstruct.py --mask_ratio 0.1 --data_path Enki_LLC_valid_noise02_preproc.h5 --output_dir output --resume checkpoint-276.pth --upload_path s3://llc/mae/Recon/enki_noise02_reconstruct_t10_p10.h5 --mask_upload_path s3://llc/mae/Recon/enki_noise02_mask_t10_p10.h5;
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"
