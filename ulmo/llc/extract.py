@@ -53,11 +53,11 @@ def add_days(llc_table:pandas.DataFrame, dti:pandas.DatetimeIndex, outfile=None)
         llc_table = pandas.concat([llc_table, new_tbl], ignore_index=True)
 
     # Drop index
-    embed(header='add_days 56')
+    llc_table.drop(columns=['index'], inplace=True)
 
     # Write
     if outfile is not None:
-        assert cat_utils.vet_main_table(llc_table)
+        assert catalog.cat_utils.vet_main_table(llc_table)
         ulmo_io.write_main_table(llc_table, outfile)
 
     # Return
