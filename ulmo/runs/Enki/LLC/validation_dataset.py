@@ -254,5 +254,8 @@ if __name__ == '__main__':
 # Setup
 # python -u validation_dataset.py 1
 
+# Extract
+# python -u validation_dataset.py 2
+
 # RMSE
 # python -u validation_dataset.py 8

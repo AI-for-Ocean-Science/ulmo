@@ -49,7 +49,8 @@ def add_days(llc_table:pandas.DataFrame, dti:pandas.DatetimeIndex, outfile=None)
     for date in dti[1:]:
         new_tbl = llc_table[llc_table['datetime'] == dti[0]].copy()
         new_tbl['datetime'] = date
-        llc_table = llc_table.append(new_tbl, ignore_index=True)
+        #llc_table = llc_table.append(new_tbl, ignore_index=True)
+        llc_table = pandas.concat([llc_table, new_tbl], ignore_index=True)
 
     # Write
     if outfile is not None:
