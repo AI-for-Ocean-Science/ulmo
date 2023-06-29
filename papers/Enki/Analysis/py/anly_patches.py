@@ -76,8 +76,8 @@ if __name__ == "__main__":
         dataset='LLC2_nonoise', t=t, p=p)
 
     # Load tables
-    noise_tbl = ulmo_io.load_table(tbl_file)
-    nonoise_tbl = ulmo_io.load_table(tbl_file2)
+    noise_tbl = ulmo_io.load_main_table(tbl_file)
+    nonoise_tbl = ulmo_io.load_main_table(tbl_file2)
 
     # Load up orig_file
     f_orig = h5py.File(orig_file, 'r')
