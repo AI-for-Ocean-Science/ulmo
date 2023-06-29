@@ -289,8 +289,8 @@ def fig_patch_rmse(patch_file:str, in_ax=None, outfile:str=None,
     ax.plot(plt_x, eval_stats, 'o', color='b', 
             label='Patches' if lbls is None else lbls[0])
 
-    markers = ['*', 's', '^']
-    colors = ['g', 'purple']
+    markers = ['*', 's', '^', 'v']
+    colors = ['g', 'purple', 'orange', 'cyan']
     if other_patch_files is not None:
         for kk in range(len(other_patch_files)):
             x_edge2, eval_stats2, _, _, _, _, _ = items[kk]
