@@ -23,9 +23,9 @@ from IPython import embed
 
 enki_valid_file = 's3://llc/mae/Tables/Enki_LLC_valid_nonoise.parquet'
 enki_valid_noise_file = 's3://llc/mae/Tables/Enki_LLC_valid_noise.parquet'
-enki_valid_noise1_file = 's3://llc/mae/Tables/Enki_LLC_valid_noise01.parquet'
+enki_valid_noise02_file = 's3://llc/mae/Tables/Enki_LLC_valid_noise02.parquet'
 
-def u_init_144(tbl_file:str, debug=False, resol=0.5, plot=False,
+def u_init_144(tbl_file:str, resol=0.5, plot=False,
                max_lat=None, rotate:float=0.25):
     """ Get the show started by sampling uniformly
     in space and and time
@@ -176,7 +176,8 @@ def main(flg):
     if flg & (2**0):
         # For Enki validation
         #u_init_144(enki_valid_file, max_lat=57.)#, plot=True)
-        u_init_144(enki_valid_noise_file, max_lat=57.)#, plot=True)
+        #u_init_144(enki_valid_noise_file, max_lat=57.)#, plot=True)
+        u_init_144(enki_valid_noise02_file, max_lat=57.)#, plot=True)
 
     if flg & (2**1):
         # Enki
@@ -187,12 +188,15 @@ def main(flg):
 
         # NOISE
         u_extract_144(enki_valid_noise_file,
-                      preproc_root='llc_144', 
+                      preproc_root='llc_144_noise02', 
                       root_file='Enki_LLC_valid_noise_preproc.h5') 
 
     if flg & (2**2):
+        '''
         u_evaluate_144(enki_valid_file)
         u_evaluate_144(enki_valid_noise_file)
+        '''
+        u_evaluate_144(enki_valid_noise02_file)
 
     # Calculate RMS for various reconstructions
     if flg & (2**3):
