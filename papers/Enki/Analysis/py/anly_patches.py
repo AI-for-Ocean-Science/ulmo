@@ -10,9 +10,9 @@ from ulmo import io as ulmo_io
 
 from IPython import embed
 
-if __name__ == "__main__":
 
-    '''
+
+def viirs_patches()
     # VIIRS
     t=10
     p=10
@@ -23,9 +23,8 @@ if __name__ == "__main__":
     patch_analysis.anlayze_full(
         recon_file, orig_file=orig_file, bias=bias) 
     
-    '''
 
-    '''
+def llc_nonoise_patches():
     # LLC2 no noise
     t=10
     p=10 #20
@@ -38,6 +37,7 @@ if __name__ == "__main__":
         recon_file, orig_file=orig_file, bias=bias, nsub=100000, n_cores=12) 
 
     
+def llc_noise_patches():
     # LLC2 noise
     t=10
     p=10
@@ -50,23 +50,9 @@ if __name__ == "__main__":
     patch_analysis.anlayze_full(
         recon_file, orig_file=orig_file, bias=bias, nsub=100000, n_cores=12) 
 
-    # LLC2 noise but with noiseless patches
-    t=10
-    p=10
-    tbl_file, orig_file, recon_file, mask_file = enki_utils.set_files(
-        dataset='LLC2_noise', t=t, p=p)
-    _, orig_file, _, _ = enki_utils.set_files(
-        dataset='LLC2_nonoise', t=t, p=p)
-    bias = 0.
-    print(f"WARNING: Using bias={bias} for {recon_file}")
-
-    print(f"Working on: {recon_file} using orig={orig_file}")
-    patch_analysis.anlayze_full(
-        recon_file, orig_file=orig_file, bias=bias, 
-        nsub=100000, n_cores=12,
-        outfile='enki_noise_patches_noiseless_t10_p10.npz')
-    '''
-
+def generate_aligned_orig():
+    """ Generate a file of aligned orig images
+    """
     # Generate aligned orig file
     t=10
     p=10
@@ -80,6 +66,7 @@ if __name__ == "__main__":
     nonoise_tbl = ulmo_io.load_main_table(tbl_file2)
 
     # Load up orig_file
+    print("Loading orig file")
     f_orig = h5py.File(orig_file, 'r')
     orig_imgs = f_orig['valid'][:]
 
@@ -109,3 +96,27 @@ if __name__ == "__main__":
     # Upload
     ulmo_io.upload_file_to_s3(
         outfile, 's3://llc/mae/PreProc/'+outfile)
+
+def llc_noise_noiseless_patches()
+    # ######################
+    # LLC2 noise but with noiseless patches
+    t=10
+    p=10
+    tbl_file, _, recon_file, mask_file = enki_utils.set_files(
+        dataset='LLC2_noise', t=t, p=p)
+    bias = 0.
+    print(f"WARNING: Using bias={bias} for {recon_file}")
+    # Aligned orig file (without noise)
+    orig_file = os.path.join(os.getenv('OS_OGCM'),
+        'LLC', 'Enki', 'PreProc', 
+        'Enki_LLC_valid_noise_nonoise_preproc.h5')
+
+    print(f"Working on: {recon_file} using orig={orig_file}")
+    patch_analysis.anlayze_full(
+        recon_file, orig_file=orig_file, bias=bias, 
+        nsub=100000, n_cores=12,
+        outfile='enki_noise_patches_noiseless_t10_p10.npz')
+
+if __name__ == "__main__":
+
+    llc_noise_noiseless_patches()
