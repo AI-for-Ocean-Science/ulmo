@@ -21,7 +21,8 @@ def anlayze_full(recon_file,
            'std_diff', 'max_diff', 'i_patch', 'j_patch',
            'DT_recon'],
     nsub:int=10000, n_cores:int=4, p_sz:int=4, 
-    debug:bool=False, bias:float=0.):
+    debug:bool=False, bias:float=0.,
+    outfile:str=None):
     """ Analyze the patches in a given file of reconstructed images
 
     Args:
@@ -33,12 +34,15 @@ def anlayze_full(recon_file,
         stats (list, optional):
         p_sz (int, optional): _description_. Defaults to 4.
         debug (bool, optional): _description_. Defaults to False.
+        outfile (str, optional): Output file. 
+            Defaults to None and uses recon_file to generate it.
     """
     mask_file = recon_file.replace('reconstruct', 'mask')
 
     # Outfile
-    outfile = mask_file.replace('mask', 'patches')
-    outfile = outfile.replace('.h5', '.npz')
+    if outfile is None:
+        outfile = mask_file.replace('mask', 'patches')
+        outfile = outfile.replace('.h5', '.npz')
 
     # Load up
     f_mask = h5py.File(mask_file, 'r')
