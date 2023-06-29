@@ -992,8 +992,10 @@ def main(flg_fig):
         fig_patch_rmse(
             '/home/xavier/Projects/Oceanography/SST/VIIRS/Enki/Recon/VIIRS_100clear_patches_t10_p10.npz',
             other_patch_files=['/backup/Oceanography/OGCM/LLC/Enki/Recon/enki_noise_patches_t10_p10.npz',
-                '/backup/Oceanography/OGCM/LLC/Enki/Recon/enki_patches_t10_p10.npz'],
-            lbls=['VIIRS', 'LLC2 Noise', 'LLC2 NoNoise'],
+                '/backup/Oceanography/OGCM/LLC/Enki/Recon/enki_patches_t10_p10.npz',
+                '/backup/Oceanography/OGCM/LLC/Enki/Recon/enki_noise_patches_noiseless_t10_p10.npz',
+            ],
+            lbls=['VIIRS', 'LLC2 Noise', 'LLC2 NoNoise', 'LLC2 Noise/Noiseless'],
             outfile='fig_viirs_llc_patches_t10_p10.png',
             tp=(10,10))
 
@@ -1022,8 +1024,8 @@ if __name__ == '__main__':
         # flg_fig += 2 ** 3  # Reconstruction example
         #flg_fig += 2 ** 4  # VIIRS LL (Figure 5)
         #flg_fig += 2 ** 5  # Check valid 2
-        #flg_fig += 2 ** 6  # More patch figures
-        flg_fig += 2 ** 7  # Compare Enki against many inpainting
+        flg_fig += 2 ** 6  # More patch figures
+        #flg_fig += 2 ** 7  # Compare Enki against many inpainting
         #flg_fig += 2 ** 8  # DINEOF
     else:
         flg_fig = sys.argv[1]
