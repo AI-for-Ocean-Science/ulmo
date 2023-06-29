@@ -15,16 +15,15 @@ from ulmo import io as ulmo_io
 from IPython import embed
 
 
-def anlayze_full_test(recon_file,
+def anlayze_full(recon_file,
     orig_file='MAE_LLC_valid_nonoise_preproc.h5',
     stats=['meanT', 'stdT', 'DT', 'median_diff', 
            'std_diff', 'max_diff', 'i_patch', 'j_patch',
            'DT_recon'],
     nsub:int=10000, n_cores:int=4, p_sz:int=4, 
-    keep_orig:bool=True,
-    debug:bool=False):
-    """ Analyze the patches in a given file of 
-    reconstructed images
+    debug:bool=False, bias:float=0.,
+    outfile:str=None):
+    """ Analyze the patches in a given file of reconstructed images
 
     Args:
         recon_file (str): 
@@ -35,29 +34,19 @@ def anlayze_full_test(recon_file,
         stats (list, optional):
         p_sz (int, optional): _description_. Defaults to 4.
         debug (bool, optional): _description_. Defaults to False.
+        outfile (str, optional): Output file. 
+            Defaults to None and uses recon_file to generate it.
     """
-
-    # Reconstruction file
-    base_recon = os.path.basename(recon_file)
-    if not os.path.isfile(base_recon):
-        ulmo_io.download_file_from_s3(base_recon, recon_file)
-    # Mask file
     mask_file = recon_file.replace('reconstruct', 'mask')
-    base_mask = os.path.basename(mask_file)
-    if not os.path.isfile(base_mask):
-        ulmo_io.download_file_from_s3(base_mask, mask_file)
-    # Original file
-    if not os.path.isfile(orig_file):
-        ulmo_io.download_file_from_s3(
-            orig_file, 's3://llc/mae/PreProc/MAE_LLC_valid_nonoise_preproc.h5')
 
     # Outfile
-    outfile = base_mask.replace('mask', 'patches')
-    outfile = outfile.replace('.h5', '.npz')
+    if outfile is None:
+        outfile = mask_file.replace('mask', 'patches')
+        outfile = outfile.replace('.h5', '.npz')
 
     # Load up
-    f_mask = h5py.File(base_mask, 'r')
-    f_recon = h5py.File(base_recon, 'r')
+    f_mask = h5py.File(mask_file, 'r')
+    f_recon = h5py.File(recon_file, 'r')
     f_orig = h5py.File(orig_file, 'r')
     nimages = f_mask['valid'].shape[0]
 
@@ -65,7 +54,7 @@ def anlayze_full_test(recon_file,
         nimages = 10000
 
     map_fn = partial(patch_stats_img, p_sz=p_sz,
-                     stats=stats)
+                     stats=stats, bias=bias)
 
     # Run one to get the number of patches and number of items?
     items = [f_orig['valid'][0,0,...], 
@@ -107,13 +96,6 @@ def anlayze_full_test(recon_file,
     ulmo_io.upload_file_to_s3(
         outfile, 's3://llc/mae/Recon/'+outfile)
 
-    # Clean up
-    if not debug:
-        os.remove(base_mask)
-        os.remove(base_recon)
-        if not keep_orig:
-            os.remove(orig_file)
-
 # TODO -- Consider using jit on the following method
 def find_patches(mask_img, p_sz:int):
     """ Simple algorithm to find the patches
@@ -122,7 +104,7 @@ def find_patches(mask_img, p_sz:int):
     It assumes they are square and whole
 
     Args:
-        mask_img (np.ndarray): Masked image
+        mask_img (np.ndarray): Masked image; 1=masked
         p_sz (int): Size of the patch (edge)
 
     Returns:
@@ -151,7 +133,8 @@ def find_patches(mask_img, p_sz:int):
 def patch_stats_img(items:list, p_sz:int=4,
         stats=['meanT', 'stdT', 'median_diff', 
                  'std_diff', 'max_diff', 'i_patch', 
-                 'j_patch']):
+                 'j_patch'],
+        bias:float=0.):
     """Measure stats of patches in a single image
 
     Args:
@@ -181,7 +164,7 @@ def patch_stats_img(items:list, p_sz:int=4,
     for kk, patch in enumerate(patches):
         i, j = np.unravel_index(patch, mask_img.shape)
         ptch_data[kk,...] = data_img[i:i+p_sz, j:j+p_sz]
-        ptch_recon[kk,...] = recon_img[i:i+p_sz, j:j+p_sz]
+        ptch_recon[kk,...] = recon_img[i:i+p_sz, j:j+p_sz] - bias
         # Save
         i_patch[kk] = i
         j_patch[kk] = j

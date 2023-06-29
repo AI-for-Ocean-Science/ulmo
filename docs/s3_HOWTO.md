@@ -9,7 +9,10 @@ aws s3api create-bucket --bucket BUCKETNAME --profile prp
 
 1. Grab the policy file: aws s3api  get-bucket-acl --bucket modis-l2 --endpoint https://s3-west.nrp-nautilus.io 
 
-1. Add Grantee, keeping all previous: aws s3api put-bucket-acl --profile default --bucket modis-l2 --grant-full-control id=profx,id=erdong,id=petercornillon,id=mskelm,id=aagabin --endpoint https://s3-west.nrp-nautilus.io
+1. Add Grantee, keeping all previous: 
+   aws s3api put-bucket-acl --profile default --bucket modis-l2 --grant-full-control id=profx,id=erdong,id=petercornillon,id=mskelm,id=aagabin --endpoint https://s3-west.nrp-nautilus.io
+   aws s3api put-bucket-acl --profile default --bucket viirs --grant-full-control id=profx,id=erdong,id=petercornillon,id=mskelm,id=aagabin,id=nityatripathi --endpoint https://s3-west.nrp-nautilus.io
+
 
 1. Add Grantee, keeping all previous: aws s3api put-bucket-acl --profile default --bucket llc --grant-full-control id=profx,id=erdong,id=petercornillon,id=aagabin --endpoint https://s3-west.nrp-nautilus.io
 

@@ -15,7 +15,7 @@ from ulmo.mae import models_mae
 from ulmo.mae import reconstruct
 import ulmo.mae.util.misc as misc
 from ulmo.mae.util.hdfstore import HDF5Store
-from ulmo.mae.mae_utils import img_filename, mask_filename
+from ulmo.mae.enki_utils import img_filename, mask_filename
 from ulmo.mae.engine_pretrain import reconstruct_one_epoch
 from ulmo.mae.util.misc import NativeScalerWithGradNormCount as NativeScaler
 
