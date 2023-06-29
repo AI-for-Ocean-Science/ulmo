@@ -12,7 +12,7 @@ from IPython import embed
 
 
 
-def viirs_patches()
+def viirs_patches():
     # VIIRS
     t=10
     p=10
@@ -97,7 +97,7 @@ def generate_aligned_orig():
     ulmo_io.upload_file_to_s3(
         outfile, 's3://llc/mae/PreProc/'+outfile)
 
-def llc_noise_noiseless_patches()
+def llc_noise_noiseless_patches():
     # ######################
     # LLC2 noise but with noiseless patches
     t=10
