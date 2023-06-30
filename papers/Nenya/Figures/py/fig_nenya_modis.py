@@ -36,6 +36,7 @@ from ulmo import io as ulmo_io
 from ulmo.nenya import single_image as ssl_simage
 from ulmo.utils import image_utils
 from ulmo.nenya import ssl_umap
+from ulmo.dynamics import rossby
 
 from IPython import embed
 
@@ -1818,7 +1819,9 @@ def fig_umap_multi_metric(stat='median',
         cmap = 'gist_rainbow'
         cmap = 'rainbow'
 
-    metrics = ['DT40', 'stdDT40', 'slope', 'clouds', 'abslat', 'counts']
+    metrics = ['DT40', 'stdDT40', 'slope', 'clouds', 
+               'log_rossby', 'counts']
+               #'abslat', 'counts']
 
     # Start the figure
     fig = plt.figure(figsize=(12, 6.5))
@@ -1910,6 +1913,14 @@ def parse_metric(metric:str, modis_tbl:pandas.DataFrame):
     elif metric == 'abslat':
         lmetric = r'$|$ latitude $|$ (deg)'
         values = np.abs(modis_tbl.lat.values)
+    elif metric == 'rossby':
+        lmetric = r'Rossby radius (km)'
+        values = rossby.calc_rossby_radius(modis_tbl.lon.values,
+                                    modis_tbl.lat.values)
+    elif metric == 'log_rossby':
+        lmetric = r'$\log_{10}$ Rossby radius (km)'
+        values = np.log10(rossby.calc_rossby_radius(modis_tbl.lon.values,
+                                    modis_tbl.lat.values))
     elif metric == 'counts':
         lmetric = 'Counts'
         values = np.ones(len(modis_tbl))

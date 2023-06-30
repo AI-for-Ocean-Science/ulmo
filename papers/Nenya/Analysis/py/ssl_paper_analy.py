@@ -106,7 +106,9 @@ def load_modis_tbl(table:str=None,
         basename = base1+base2+'.parquet'
 
     if local:
-        tbl_file = os.path.join(os.getenv('OS_SST'), 'MODIS_L2', 'Tables', basename)
+        tbl_file = os.path.join(os.getenv('OS_SST'), 
+                                'MODIS_L2', 'Nenya',
+                                'Tables', basename)
     else:
         tbl_file = 's3://modis-l2/Tables/'+basename
 
