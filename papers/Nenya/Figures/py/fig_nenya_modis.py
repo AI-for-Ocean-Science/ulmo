@@ -1841,9 +1841,10 @@ def fig_umap_multi_metric(stat='median',
             istat = stat
         if metric == 'rossby':
             #norm = colors.LogNorm(vmin=values.min(), vmax=values.max())
-            norm = colors.LogNorm(vmin=10., vmax=values.max())
+            norm = colors.LogNorm(vmin=10., vmax=200.) #values.max())
         else:
             norm = None
+            cmap = 'rainbow'
         # Do it
         stat2d, xedges, yedges, _ =\
             stats.binned_statistic_2d(
