@@ -53,7 +53,6 @@ def nenya_v5_umap(opt_path:str, debug=False, local=False, metric:str='DT40'):
 
     if 'DT' in metric: 
         subsets =  ['DT15', 'DT0', 'DT1', 'DT2', 'DT4', 'DT5', 'DTall']
-        subsets = ['DT5']
         if debug:
             subsets = ['DT5']
     elif metric == 'alpha':
