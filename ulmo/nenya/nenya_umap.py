@@ -1,4 +1,4 @@
-""" UMAP utitlies for SSL """
+""" UMAP utitlies for Nenya """
 import numpy as np
 import os, shutil
 import pickle
@@ -32,6 +32,24 @@ def DT_interval(inp:tuple):
         return (DT-dDT, DT+dDT)
 
 def load(model_name:str, DT:float=None, use_s3:bool=False):
+    """ Load a UMAP model
+
+    Args:
+        model_name (str): 
+            Model name
+        DT (float, optional):
+            DT value (K). Defaults to None. 
+        use_s3 (bool, optional): 
+            Use s3? Defaults to False.
+
+    Raises:
+        IOError: _description_
+        IOError: _description_
+        IOError: _description_
+
+    Returns:
+        tuple: UMAP model, table file
+    """
     tbl_file = None
     if model_name == 'LLC':
         umap_file = 's3://llc/SSL/LLC_MODIS_2012_model/ssl_LLC_v1_umap.pkl'
@@ -46,8 +64,10 @@ def load(model_name:str, DT:float=None, use_s3:bool=False):
         # Root
         if model_name == 'CF':
             umap_root = 'cloud_free'
-        elif model_name == 'v4':
+        elif model_name == 'v4':  # Probably lost to the vaguries of UMAP pickeling
             umap_root = '96clear_v4'
+        elif model_name == 'v5':  # Probably lost to the vaguries of UMAP pickeling
+            umap_root = '96clear_v5'
         else:
             raise IOError("Bad model_name")
         
