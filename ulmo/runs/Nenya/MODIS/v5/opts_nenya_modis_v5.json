@@ -20,7 +20,7 @@
     "train_key": "train",
     "valid_key": "valid",
     "tbl_file": "s3://modis-l2/Nenya/Tables/MODIS_Nenya_v5.parquet",
-    "s3_outdir": "s3://modis-l2/Nenya/",
+    "s3_outdir": "s3://modis-l2/SSL/",
     "temp": 0.07,
     "cosine": true,
     "syncBN": false,

@@ -38,7 +38,7 @@ def nenya_v5_umap(opt_path:str, debug=False, local=False, metric:str='DT40'):
     # Load v5 Table
     if local:
         tbl_file = os.path.join(os.getenv('OS_SST'),
-                                'MODIS_L2', 'Tables', 
+                                'MODIS_L2', 'Nenya', 'Tables', 
                                 os.path.basename(opt.tbl_file))
     else:                            
         tbl_file = opt.tbl_file
@@ -53,6 +53,7 @@ def nenya_v5_umap(opt_path:str, debug=False, local=False, metric:str='DT40'):
 
     if 'DT' in metric: 
         subsets =  ['DT15', 'DT0', 'DT1', 'DT2', 'DT4', 'DT5', 'DTall']
+        subsets = ['DT5']
         if debug:
             subsets = ['DT5']
     elif metric == 'alpha':
@@ -67,10 +68,13 @@ def nenya_v5_umap(opt_path:str, debug=False, local=False, metric:str='DT40'):
         # Files
         outfile = os.path.join(
             os.getenv('OS_SST'), 
-            f'MODIS_L2/Nenya/Tables/MODIS_SSL_{base1}_{subset}.parquet')
-        umap_savefile = os.path.join(
-            os.getenv('OS_SST'), 
-            f'MODIS_L2/Nenya/UMAP/MODIS_SSL_{base1}_{subset}_UMAP.pkl')
+            f'MODIS_L2/Nenya/Tables/MODIS_Nenya_{base1}_{subset}.parquet')
+        if debug:
+            umap_savefile = 'umap_test.pkl'
+        else:
+            umap_savefile = os.path.join(
+                os.getenv('OS_SST'), 
+                f'MODIS_L2/Nenya/UMAP/MODIS_Nenya_{base1}_{subset}_UMAP.pkl')
 
         DT_cut = None 
         alpha_cut = None 
@@ -82,8 +86,8 @@ def nenya_v5_umap(opt_path:str, debug=False, local=False, metric:str='DT40'):
         else:
             raise ValueError("Bad metric")
 
-        if debug:
-            embed(header='940 of v5')
+        #if debug:
+        #    embed(header='86 of v5')
 
         # Run
         if os.path.isfile(umap_savefile):
@@ -106,6 +110,8 @@ def nenya_v5_umap(opt_path:str, debug=False, local=False, metric:str='DT40'):
                              train_umap=train_umap, 
                              umap_savefile=umap_savefile,
                              remove=False, CF=False)
+        print(f"Done with {subset}")
+    print("All done!")
 
 def parse_option():
     """

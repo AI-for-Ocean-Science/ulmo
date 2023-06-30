@@ -151,9 +151,6 @@ def umap_subset(modis_tbl:pandas.DataFrame,
         else:
             keep = np.abs(modis_tbl.min_slope - alpha_cuts[0]) < alpha_cuts[1]
 
-    if debug:
-        embed(header='138 of umap')
-
     modis_tbl = modis_tbl[keep].copy()
     print(f"After the cuts, we have {len(modis_tbl)} cutouts to work on.")
 
@@ -177,6 +174,9 @@ def umap_subset(modis_tbl:pandas.DataFrame,
     if debug:
         latent_files = latent_files[0:2]
 
+    if debug:
+        embed(header='178 of umap')
+
     all_latents = []
     sv_idx = []
     for latents_file in latent_files:
@@ -187,9 +187,9 @@ def umap_subset(modis_tbl:pandas.DataFrame,
         if not os.path.isfile(basefile):
             # Try local if local is True
             if local:
-                local_file = latents_file.replace('s3://modis-l2/SSL',
-                    os.path.join(os.getenv('SST_OOD'),
-                                                  'MODIS_L2', 'SSL'))
+                local_file = latents_file.replace('s3://modis-l2/SSL', # yes, SSL as these are the latest
+                    os.path.join(os.getenv('OS_SST'),
+                                                  'MODIS_L2', 'Nenya'))
                 print(f"Copying {local_file}")
                 shutil.copyfile(local_file, basefile)
             if not os.path.isfile(basefile):
@@ -245,7 +245,7 @@ def umap_subset(modis_tbl:pandas.DataFrame,
         print("Done..")
 
         # Save?
-        if umap_savefile is not None and not debug:
+        if umap_savefile is not None:
             pickle.dump(latents_mapping, open(umap_savefile, "wb" ) )
             print(f"Saved UMAP to {umap_savefile}")
     else:
