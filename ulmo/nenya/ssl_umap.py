@@ -41,8 +41,8 @@ def load(model_name:str, DT:float=None, use_s3:bool=False):
         if use_s3:
             raise IOError("Not ready for s3!")
         else:
-            umap_path = os.path.join(os.getenv('SST_OOD'),
-                                 'MODIS_L2', 'UMAP')
+            umap_path = os.path.join(os.getenv('OS_SST'),
+                                 'MODIS_L2', 'Nenya', 'UMAP')
         # Root
         if model_name == 'CF':
             umap_root = 'cloud_free'

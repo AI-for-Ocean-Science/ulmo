@@ -16,6 +16,8 @@ import matplotlib.gridspec as gridspec
 from matplotlib import pyplot as plt
 from matplotlib.patches import Rectangle, Ellipse
 import matplotlib.dates as mdates
+import matplotlib.colors as colors
+
 
 
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
@@ -1820,7 +1822,7 @@ def fig_umap_multi_metric(stat='median',
         cmap = 'rainbow'
 
     metrics = ['DT40', 'stdDT40', 'slope', 'clouds', 
-               'log_rossby', 'counts']
+               'rossby', 'counts']
                #'abslat', 'counts']
 
     # Start the figure
@@ -1832,10 +1834,16 @@ def fig_umap_multi_metric(stat='median',
     for ss, metric in enumerate(metrics):
         ax = plt.subplot(gs[ss])
         lmetric, values = parse_metric(metric, modis_tbl)
+        # By hand fussing
         if 'std' in metric: 
             istat = 'std'
         else:
             istat = stat
+        if metric == 'rossby':
+            #norm = colors.LogNorm(vmin=values.min(), vmax=values.max())
+            norm = colors.LogNorm(vmin=10., vmax=values.max())
+        else:
+            norm = None
         # Do it
         stat2d, xedges, yedges, _ =\
             stats.binned_statistic_2d(
@@ -1856,10 +1864,10 @@ def fig_umap_multi_metric(stat='median',
         stat2d[bad_counts] = np.nan
         if metric == 'counts':
             img = ax.pcolormesh(xedges, yedges, 
-                             counts.T, cmap=cmap) 
+                             counts.T, cmap=cmap)
         else:
             img = ax.pcolormesh(xedges, yedges, 
-                             stat2d.T, cmap=cmap) 
+                             stat2d.T, cmap=cmap, norm=norm) 
 
         # Color bar
         cb = plt.colorbar(img, pad=0., fraction=0.030)
@@ -1872,6 +1880,8 @@ def fig_umap_multi_metric(stat='median',
         ax.text(0.95, 0.9, a_lbls[ss], transform=ax.transAxes,
               fontsize=14, ha='right', color='k')
         plotting.set_fontsize(ax, fsz)
+        # Grid
+        ax.grid()
 
     plt.tight_layout(pad=0.0, h_pad=0.0, w_pad=0.0)
     plt.savefig(outfile, dpi=300)
