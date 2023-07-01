@@ -70,6 +70,8 @@ def fig_reconstruct(outfile:str='fig_reconstruct.png', t:int=20,
     # Load
     tbl_file, orig_file, recon_file, mask_file = enki_utils.set_files(
         'LLC2_nonoise', 20, 30)
+
+    print(f"Orig: {orig_file}")
     print(f"Recon: {recon_file}")
     print(f"Mask: {mask_file}")
 
@@ -82,7 +84,7 @@ def fig_reconstruct(outfile:str='fig_reconstruct.png', t:int=20,
     cutout = tbl.iloc[imin]
 
 
-    f_orig = h5py.File(valid_img_file, 'r')
+    f_orig = h5py.File(orig_file, 'r')
     f_recon = h5py.File(recon_file, 'r')
     f_mask = h5py.File(mask_file, 'r')
 
