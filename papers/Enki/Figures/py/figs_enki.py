@@ -1023,7 +1023,7 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 0  # patches
         #flg_fig += 2 ** 1  # cutouts
         #flg_fig += 2 ** 2  # LLC (Enki vs inpainting)
-         flg_fig += 2 ** 3  # Reconstruction example
+        flg_fig += 2 ** 3  # Reconstruction example
         #flg_fig += 2 ** 4  # VIIRS LL (Figure 5)
         #flg_fig += 2 ** 5  # Check valid 2
         #flg_fig += 2 ** 6  # More patch figures
