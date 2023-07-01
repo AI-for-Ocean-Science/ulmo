@@ -70,7 +70,7 @@ def load(model_name:str, DT:float=None, use_s3:bool=False):
             nname = 'SSL'
         elif model_name == 'v5':  # Probably lost to the vaguries of UMAP pickeling
             umap_root = '96clear_v5'
-            nname = 'Nenya`'
+            nname = 'Nenya'
         else:
             raise IOError("Bad model_name")
         
