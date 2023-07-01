@@ -985,7 +985,8 @@ def main(flg_fig):
     # VIIRS vs LLC with LL
     if flg_fig & (2 ** 4):
         #fig_viirs_rmse()
-        fig_viirs_rmse(outfile='fig_viirs_rmse_t20p20.png')
+        fig_viirs_rmse(outfile='fig_viirs_rmse_t20p20.png',
+                       t=20, p=20)
         #fig_viirs_rmse(outfile='fig_viirs_rmse_noinpaint.png',
         #               show_inpaint=False)
         #fig_viirs_rmse(outfile='fig_viirs_rmse_quad.png',
