@@ -36,7 +36,7 @@ def load(model_name:str, DT:float=None, use_s3:bool=False):
 
     Args:
         model_name (str): 
-            Model name
+            Model name ['LLC', 'LLC_local', 'CF', 'v4', 'v5']
         DT (float, optional):
             DT value (K). Defaults to None. 
         use_s3 (bool, optional): 
@@ -55,7 +55,7 @@ def load(model_name:str, DT:float=None, use_s3:bool=False):
         umap_file = 's3://llc/SSL/LLC_MODIS_2012_model/ssl_LLC_v1_umap.pkl'
     elif model_name == 'LLC_local':
         umap_file = './ssl_LLC_v1_umap.pkl'
-    if model_name in ['CF', 'v4']:
+    elif model_name in ['CF', 'v4', 'v5']:
         if use_s3:
             raise IOError("Not ready for s3!")
         else:
@@ -86,6 +86,8 @@ def load(model_name:str, DT:float=None, use_s3:bool=False):
                 '_UMAP.pkl', '.parquet'))
     else:
         raise IOError("bad model")
+
+    # Download?
     if use_s3:
         umap_base = os.path.basename(umap_file)
         if not os.path.isfile(umap_base):
@@ -93,6 +95,7 @@ def load(model_name:str, DT:float=None, use_s3:bool=False):
     else: # local
         umap_base = umap_file
     print(f"Loading UMAP: {umap_base}")
+
     # Return
     return pickle.load(ulmo_io.open(umap_base, "rb")), tbl_file
 

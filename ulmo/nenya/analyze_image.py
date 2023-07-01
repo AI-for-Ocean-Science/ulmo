@@ -137,7 +137,7 @@ def umap_image(model:str, img:np.ndarray):
     print("Image has DT={:g}".format(DT))
 
     # UMAP me
-    embed(header='umap_image: about to embed')
+    #embed(header='umap_image: about to embed')
     print("Embedding")
     latents_mapping, table_file = nenya_umap.load(model, DT=DT)
     embedding = latents_mapping.transform(latents)
