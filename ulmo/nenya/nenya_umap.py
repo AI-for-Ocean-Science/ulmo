@@ -64,10 +64,13 @@ def load(model_name:str, DT:float=None, use_s3:bool=False):
         # Root
         if model_name == 'CF':
             umap_root = 'cloud_free'
+            nname = 'SSL'
         elif model_name == 'v4':  # Probably lost to the vaguries of UMAP pickeling
             umap_root = '96clear_v4'
+            nname = 'SSL'
         elif model_name == 'v5':  # Probably lost to the vaguries of UMAP pickeling
             umap_root = '96clear_v5'
+            nname = 'Nenya`'
         else:
             raise IOError("Bad model_name")
         
@@ -78,10 +81,10 @@ def load(model_name:str, DT:float=None, use_s3:bool=False):
             if DT_rng[0] < DT <= DT_rng[1]:
                 umap_file = os.path.join(
                     umap_path, 
-                    f'MODIS_SSL_{umap_root}_{key}_UMAP.pkl')
+                    f'MODIS_{nname}_{umap_root}_{key}_UMAP.pkl')
                                     
         tbl_file = os.path.join(
-            os.getenv('SST_OOD'), 'MODIS_L2', 'Tables', 
+            os.getenv('OS_SST'), 'MODIS_L2', 'Tables', 
             os.path.basename(umap_file).replace(
                 '_UMAP.pkl', '.parquet'))
     else:
