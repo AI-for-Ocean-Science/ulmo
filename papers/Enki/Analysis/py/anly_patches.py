@@ -28,8 +28,8 @@ def viirs_patches():
 
 def llc_nonoise_patches():
     # LLC2 no noise
-    t=10
-    p=10 #20
+    t=20
+    p=30 #20
     tbl_file, orig_file, recon_file, mask_file = enki_utils.set_files(
         dataset='LLC2_nonoise', t=t, p=p)
     bias = enki_utils.load_bias((t,p), dataset='LLC2_nonoise')
@@ -136,4 +136,5 @@ def llc_noise_noiseless_patches():
 if __name__ == "__main__":
 
     #llc_noise_noiseless_patches()
-    llc_noise02_patches()
+    llc_noise_patches()
+    #llc_noise02_patches()
