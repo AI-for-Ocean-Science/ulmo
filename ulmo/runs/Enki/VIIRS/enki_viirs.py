@@ -440,13 +440,13 @@ def inpaint(t:int, p:int, dataset:str,
         f'Enki_{dataset}_inpaint_t{t}_p{p}.h5')
     # Do it
     if not os.path.isfile(outfile) or clobber:
-        cutout_analysis.inpaint_images(outfile, t, p, dataset, method=None,
+        cutout_analysis.inpaint_images(outfile, t, p, dataset, 
                                    n_cores=n_cores, debug=debug)
     else:                            
         print(f"Found: {outfile}.  Not clobbering..")
 
     # RMSE time
-    enki_analysis.calc_rms(t, p, dataset, method=None, debug=debug,
+    enki_analysis.calc_rms(t, p, dataset, debug=debug, method='inpaint',
                            in_recon_file=outfile, clobber=rmse_clobber,
                            keys=['valid', 'inpainted', 'valid'])
                                                  
