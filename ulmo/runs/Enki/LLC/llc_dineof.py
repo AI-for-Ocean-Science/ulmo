@@ -194,6 +194,12 @@ def llc_grab_missing():
     pargs = grab_llc.parser(['12','--var', 'Theta,U,V,W,Salt', '--istart', '46'])
     grab_llc.main(pargs)
 
+def dineof_prep_enki():
+    # Read nc files
+    orig_file = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki', 'DINEOF',
+                             'Enki_LLC_orig.nc')
+    ds_orig = xarray.open_dataset(orig_file)
+
 def main(flg):
     if flg== 'all':
         flg= np.sum(np.array([2 ** ii for ii in range(25)]))
@@ -219,6 +225,10 @@ def main(flg):
     # Grab missing file
     if flg & (2**3):
         llc_grab_missing()
+
+    # Prep for Enki
+    if flg & (2**4):
+        dineof_prep_enki()
 
 
 # Command line execution

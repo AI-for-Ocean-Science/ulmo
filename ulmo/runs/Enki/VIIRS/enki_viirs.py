@@ -436,6 +436,19 @@ def main(flg):
     if flg & (2**3):
         viirs_extract_2013(local=True, save_fields=True)
 
+        # 0.04K Noise but noisless original
+    if flg & (2**4):
+
+        clobber= False
+        debug=False
+
+        for t in [10,20]:
+            for p in [10,20,30,40]:
+                print(f'Working on: t={t}, p={p}')
+                enki_analysis.calc_rms(t, p, 
+                    dataset='VIIRS', 
+                    clobber=clobber, debug=debug)
+
 
 # Command line execution
 if __name__ == '__main__':
