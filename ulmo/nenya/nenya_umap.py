@@ -84,7 +84,7 @@ def load(model_name:str, DT:float=None, use_s3:bool=False):
                     f'MODIS_{nname}_{umap_root}_{key}_UMAP.pkl')
                                     
         tbl_file = os.path.join(
-            os.getenv('OS_SST'), 'MODIS_L2', 'Tables', 
+            os.getenv('OS_SST'), 'MODIS_L2', 'Nenya', 'Tables', 
             os.path.basename(umap_file).replace(
                 '_UMAP.pkl', '.parquet'))
     else:
