@@ -1,4 +1,4 @@
-""" Figures for MAE paper """
+""" Figures for Enki paper """
 import os, sys
 import numpy as np
 import scipy
@@ -57,9 +57,9 @@ ogcm_path = os.getenv('OS_OGCM')
 enki_path = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki')
 
 valid_tbl_file = os.path.join(enki_path, 'Tables',
-                              'MAE_LLC_valid_nonoise.parquet')
+                              'Enki_LLC_valid_nonoise.parquet')
 valid_img_file = os.path.join(enki_path, 'PreProc',
-                              'MAE_LLC_valid_nonoise_preproc.h5')
+                              'Enki_LLC_valid_nonoise_preproc.h5')
 
 smper = r'$m_\%$'
 stper = r'$t_\%$'
@@ -381,7 +381,7 @@ def fig_viirs_example(outfile:str, t:int, idx:int=0):
     img, _ = image_utils.grab_image(cutout, pp_hf=f_pp2012, close=False)
 
     # Load model
-    chkpt_file = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'MAE', 'models', f'mae_t{t}_399.pth')
+    chkpt_file = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki', 'models', f'mae_t{t}_399.pth')
     model = models_mae.prepare_model(chkpt_file)
 
     # Reconstruct
@@ -683,7 +683,7 @@ def fig_viirs_rmse(outfile='fig_viirs_rmse.png',
     # load rmse
     llc = ulmo_io.load_main_table(os.path.join(
         os.getenv('OS_OGCM'), 'LLC', 'Enki', 
-        'Tables', 'MAE_LLC_valid_nonoise.parquet'))
+        'Tables', 'Enki_LLC_valid_nonoise.parquet'))
     
     if in_ax is None:
         fig = plt.figure(figsize=(10, 10))
