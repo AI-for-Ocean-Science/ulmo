@@ -6,9 +6,11 @@ MODIS + 96% clear
 
 Same as v4
 
-Copied v4 table to v5
+## Copied v4 table to v5
 
-## cp MODIS_SSL_v4.parquet MODIS_Nenya_v5.parquet
+```
+cp MODIS_SSL_v4.parquet MODIS_Nenya_v5.parquet
+```
 
 # UMAP
 
