@@ -974,7 +974,8 @@ def main(flg_fig):
     if flg_fig & (2 ** 2):
         #fig_llc_inpainting('fig_llcinpainting_t10_p10.png', 10, 10, 
         #                   single=True)#, debug=True)
-        fig_llc_inpainting('fig_llcinpainting_t20_p30.png', 20, 30, 
+        fig_llc_inpainting('fig_llcinpainting_t20_p30.png', 
+                           20, 30, 
                            single=True)#, debug=True)
 
     # Example
@@ -983,7 +984,7 @@ def main(flg_fig):
 
     # VIIRS vs LLC with LL
     if flg_fig & (2 ** 4):
-        fig_viirs_rmse()
+        #fig_viirs_rmse()
         fig_viirs_rmse(outfile='fig_viirs_rmse_t20p20.png')
         #fig_viirs_rmse(outfile='fig_viirs_rmse_noinpaint.png',
         #               show_inpaint=False)
@@ -1029,7 +1030,7 @@ if __name__ == '__main__':
         flg_fig = 0
         flg_fig += 2 ** 0  # patches
         #flg_fig += 2 ** 1  # cutouts
-        #flg_fig += 2 ** 2  # LLC (Enki vs inpainting)
+        #flg_fig += 2 ** 2  # LLC RMSE (Enki vs inpainting)
         #flg_fig += 2 ** 3  # Reconstruction example
         #flg_fig += 2 ** 4  # VIIRS LL (Figure 5)
         #flg_fig += 2 ** 5  # Check valid 2
