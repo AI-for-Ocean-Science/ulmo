@@ -79,7 +79,8 @@ def fig_reconstruct(outfile:str='fig_reconstruct.png', t:int=20,
     bias = enki_utils.load_bias((t,p))
 
     # Pick one
-    LL = 0.
+    #LL = 1. # Pretty nice
+    LL = 2. # Pretty nice
     imin = np.argmin(np.abs(tbl.LL - LL))
     cutout = tbl.iloc[imin]
 
