@@ -444,6 +444,8 @@ def main(flg):
 
         for t in [10,20]:
             for p in [10,20,30,40]:
+                if t==20 and p==10:
+                    continue
                 print(f'Working on: t={t}, p={p}')
                 enki_analysis.calc_rms(t, p, 
                     dataset='VIIRS', 
