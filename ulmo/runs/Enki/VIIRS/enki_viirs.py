@@ -217,55 +217,55 @@ def gen_viirs_images(debug:bool=False):
     # Write
     ulmo_io.write_main_table(viirs_100, viirs_100_s3_file)
 
-def rmse_inpaint(t:int, p:int, debug:bool=False,
-                 clobber:bool=False):
-    """ Measure the RMSE of inpainted images
-
-    Args:
-        t (int): training percentile
-        p (int): mask percentil
-        debug (bool, optional): _description_. Defaults to False.
-    """
-    # Table time
-    viirs_100 = ulmo_io.load_main_table(viirs_100_s3_file)
-    RMS_metric = f'RMS_inpaint_t{t}_p{p}'
-    if RMS_metric in viirs_100.keys() and not clobber:
-        print(f"Found {RMS_metric} in table. Skipping..")
-        return
-    # Load up
-    local_orig_file = viirs_100_img_file
-    #recon_file = enki_utils.img_filename(t,p, local=True, dataset='VIIRS')
-    mask_file = enki_utils.mask_filename(t,p, local=True, dataset='VIIRS')
-    inpaint_file = os.path.join(
-        sst_path, 'VIIRS', 'Enki', 
-        'Recon', f'Enki_VIIRS_inpaint_t{t}_p{p}.h5')
-
-    f_orig = h5py.File(local_orig_file, 'r')
-    #f_recon = h5py.File(recon_file, 'r')
-    f_inpaint = h5py.File(inpaint_file, 'r')
-    f_mask = h5py.File(mask_file, 'r')
-
-    rms_inpaint = rms_images(f_orig, f_inpaint, f_mask, #nimgs=nimgs,
-                             keys=['valid', 'inpainted', 'valid'])
-
-
-    # Revise pp_idx
-    viirs_100.pp_idx = np.arange(len(viirs_100))
-
-    # Fill
-    viirs_100[RMS_metric] = rms_inpaint
-
-    # Vet
-    chk, disallowed_keys = cat_utils.vet_main_table(
-        viirs_100, return_disallowed=True, cut_prefix=['MODIS_'])
-    for key in disallowed_keys:
-        assert key[0:2] in ['LL','RM', 'DT']
-
-    # Write 
-    if debug:
-        embed(header='239 of mae_recons')
-    else:
-        ulmo_io.write_main_table(viirs_100, viirs_100_s3_file)
+#def rmse_inpaint(t:int, p:int, debug:bool=False,
+#                 clobber:bool=False):
+#    """ Measure the RMSE of inpainted images
+#
+#    Args:
+#        t (int): training percentile
+#        p (int): mask percentil
+#        debug (bool, optional): _description_. Defaults to False.
+#    """
+##    # Table time
+#    viirs_100 = ulmo_io.load_main_table(viirs_100_s3_file)
+#    RMS_metric = f'RMS_inpaint_t{t}_p{p}'
+#    if RMS_metric in viirs_100.keys() and not clobber:
+#        print(f"Found {RMS_metric} in table. Skipping..")
+#        return
+#    # Load up
+#    local_orig_file = viirs_100_img_file
+#    #recon_file = enki_utils.img_filename(t,p, local=True, dataset='VIIRS')
+#    mask_file = enki_utils.mask_filename(t,p, local=True, dataset='VIIRS')
+#    inpaint_file = os.path.join(
+#        sst_path, 'VIIRS', 'Enki', 
+#        'Recon', f'Enki_VIIRS_inpaint_t{t}_p{p}.h5')
+#
+#    f_orig = h5py.File(local_orig_file, 'r')
+#    #f_recon = h5py.File(recon_file, 'r')
+#    f_inpaint = h5py.File(inpaint_file, 'r')
+#    f_mask = h5py.File(mask_file, 'r')
+#
+#    rms_inpaint = rms_images(f_orig, f_inpaint, f_mask, #nimgs=nimgs,
+#                             keys=['valid', 'inpainted', 'valid'])
+#
+#
+#    # Revise pp_idx
+#    viirs_100.pp_idx = np.arange(len(viirs_100))
+#
+#    # Fill
+#    viirs_100[RMS_metric] = rms_inpaint
+#
+#    # Vet
+#    chk, disallowed_keys = cat_utils.vet_main_table(
+#        viirs_100, return_disallowed=True, cut_prefix=['MODIS_'])
+#    for key in disallowed_keys:
+#        assert key[0:2] in ['LL','RM', 'DT']
+#
+#    # Write 
+#    if debug:
+#        embed(header='239 of mae_recons')
+#    else:
+#        ulmo_io.write_main_table(viirs_100, viirs_100_s3_file)
 
 
 def viirs_extract_2013(debug=False, n_cores=20, 
@@ -467,7 +467,7 @@ def main(flg):
             for p in [10,20,30,40]:
                 if t==20 and p==10:
                     continue
-                inpaint(t, p, 'VIIRS', debug=False, local=True) 
+                inpaint(t, p, 'VIIRS', debug=False)
 
     # Extract with clouds at ~10%
     if flg & (2**3):
