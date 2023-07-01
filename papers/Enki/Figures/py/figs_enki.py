@@ -68,7 +68,10 @@ def fig_reconstruct(outfile:str='fig_reconstruct.png', t:int=20,
                     p:int=30, patch_sz:int=4):
 
     # Load
-    tbl = ulmo_io.load_main_table(valid_tbl_file)
+    tbl_file, orig_file, recon_file, mask_file = enki_utils.set_files(
+        'LLC2_nonoise', 20, 30)
+
+    tbl = ulmo_io.load_main_table(tbl_file)
     bias = enki_utils.load_bias((t,p))
 
     # Pick one
@@ -76,9 +79,6 @@ def fig_reconstruct(outfile:str='fig_reconstruct.png', t:int=20,
     imin = np.argmin(np.abs(tbl.LL - LL))
     cutout = tbl.iloc[imin]
 
-    # Load the images
-    recon_file = enki_utils.img_filename(t,p, local=True, dataset='LLC2_nonoise')
-    mask_file = enki_utils.mask_filename(t,p, local=True, dataset='LLC2_nonoise')
 
     f_orig = h5py.File(valid_img_file, 'r')
     f_recon = h5py.File(recon_file, 'r')
