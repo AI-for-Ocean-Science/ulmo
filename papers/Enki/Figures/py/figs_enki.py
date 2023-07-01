@@ -957,8 +957,10 @@ def main(flg_fig):
 
     # Patches
     if flg_fig & (2 ** 0):
-        fig_patches('fig_patches_t10_p20.png',
-                    'enki_patches_t10_p20.npz')
+        #fig_patches('fig_patches_t10_p20.png',
+        #            'enki_patches_t10_p20.npz')
+        fig_patches('fig_patches_t20_p30.png',
+                    'enki_patches_t20_p30.npz')
         #fig_patches('fig_patches_t10_p20_denom.png',
         #            'mae_patches_t10_p20.npz',
         #            model='denom')
@@ -1024,10 +1026,10 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg_fig = 0
-        #flg_fig += 2 ** 0  # patches
+        flg_fig += 2 ** 0  # patches
         #flg_fig += 2 ** 1  # cutouts
         #flg_fig += 2 ** 2  # LLC (Enki vs inpainting)
-        flg_fig += 2 ** 3  # Reconstruction example
+        #flg_fig += 2 ** 3  # Reconstruction example
         #flg_fig += 2 ** 4  # VIIRS LL (Figure 5)
         #flg_fig += 2 ** 5  # Check valid 2
         #flg_fig += 2 ** 6  # More patch figures
