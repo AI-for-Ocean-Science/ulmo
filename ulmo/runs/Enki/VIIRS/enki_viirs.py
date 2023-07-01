@@ -459,7 +459,8 @@ if __name__ == '__main__':
         #flg += 2 ** 0  # 1 -- Generate the total table
         #flg += 2 ** 1  # 2 -- Inpaint 
         #flg += 2 ** 2  # 4 -- Inpaint RMSE
-        flg += 2 ** 3  # 8 -- Extract VIIRS to CC15 (for cloud masks!)
+        #flg += 2 ** 3  # 8 -- Extract VIIRS to CC15 (for cloud masks!)
+        flg += 2 ** 4  # 8 -- Extract VIIRS to CC15 (for cloud masks!)
     else:
         flg = sys.argv[1]
 
