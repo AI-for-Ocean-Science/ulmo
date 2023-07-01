@@ -42,7 +42,7 @@ def main(pargs):
         else:
             raise IOError("Not ready for this image type")
         # Latents and UMAP
-        embedding, pp_img, table_file, DT = analyze_image.umap_image('v4', img)
+        embedding, pp_img, table_file, DT = analyze_image.umap_image('v5', img)
         Us = embedding[0,:]
         # Prep
         inp_Image = portal.Image(
