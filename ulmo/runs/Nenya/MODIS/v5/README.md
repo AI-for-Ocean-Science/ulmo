@@ -20,7 +20,9 @@ Rerun of UMAP (pickle problems!!)
 
 # packages in environment at /home/xavier/miniconda3/envs/os:
 #
-# Name                    Version                   Build  Channel
+
+```
+  Name                    Version                   Build  Channel
 _libgcc_mutex             0.1                 conda_forge    conda-forge
 _openmp_mutex             4.5                  2_kmp_llvm    conda-forge
 abseil-cpp                20211102.0           h27087fc_1    conda-forge
@@ -327,3 +329,4 @@ zipp                      3.15.0                   pypi_0    pypi
 zlib                      1.2.13               h166bdaf_4    conda-forge
 zlib-ng                   2.0.6                h166bdaf_0    conda-forge
 zstd                      1.5.2                ha4553b6_0  
+```
