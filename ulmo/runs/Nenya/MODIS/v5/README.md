@@ -14,12 +14,15 @@ Copied v4 table to v5
 
 Rerun of UMAP (pickle problems!!)
 
-## python nenya_modis_v5.py --func_flag umap --debug --local
+## Ran
+
+```
+python nenya_modis_v5.py --func_flag umap --debug --local
+```
 
 ## conda list
 
-# packages in environment at /home/xavier/miniconda3/envs/os:
-#
+packages in environment at /home/xavier/miniconda3/envs/os:
 
 ```
   Name                    Version                   Build  Channel
