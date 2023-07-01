@@ -136,5 +136,5 @@ def llc_noise_noiseless_patches():
 if __name__ == "__main__":
 
     #llc_noise_noiseless_patches()
-    llc_nnooise_patches()
+    llc_nonoise_patches()
     #llc_noise02_patches()
