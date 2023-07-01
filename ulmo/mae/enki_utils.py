@@ -19,7 +19,7 @@ def load_bias(tp:tuple=None, bias_path:str=None, dataset:str='LLC2_nonoise'):
     # Name
     if bias_path is None:
         if dataset == 'VIIRS':
-            dataset = 'LLC2_noonoise'
+            dataset = 'LLC2_nonoise'
         bias_path = os.path.join(resource_filename('ulmo', 'runs'), 
             'Enki', 'Masters', f'enki_bias_{dataset}.csv')
     # Load
