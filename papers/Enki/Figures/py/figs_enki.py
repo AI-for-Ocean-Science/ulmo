@@ -64,8 +64,8 @@ valid_img_file = os.path.join(enki_path, 'PreProc',
 smper = r'$m_\%$'
 stper = r'$t_\%$'
 
-def fig_reconstruct(outfile:str='fig_reconstruct.png', t:int=10, p:int=20,
-                    patch_sz:int=4):
+def fig_reconstruct(outfile:str='fig_reconstruct.png', t:int=20, 
+                    p:int=30, patch_sz:int=4):
 
     # Load
     tbl = ulmo_io.load_main_table(valid_tbl_file)
@@ -77,8 +77,8 @@ def fig_reconstruct(outfile:str='fig_reconstruct.png', t:int=10, p:int=20,
     cutout = tbl.iloc[imin]
 
     # Load the images
-    recon_file = enki_utils.img_filename(t,p, local=True)
-    mask_file = enki_utils.mask_filename(t,p, local=True)
+    recon_file = enki_utils.img_filename(t,p, local=True, dataset='LLC2_nonoise')
+    mask_file = enki_utils.mask_filename(t,p, local=True, dataset='LLC2_nonoise')
 
     f_orig = h5py.File(valid_img_file, 'r')
     f_recon = h5py.File(recon_file, 'r')
@@ -1023,10 +1023,10 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 0  # patches
         #flg_fig += 2 ** 1  # cutouts
         #flg_fig += 2 ** 2  # LLC (Enki vs inpainting)
-        # flg_fig += 2 ** 3  # Reconstruction example
+         flg_fig += 2 ** 3  # Reconstruction example
         #flg_fig += 2 ** 4  # VIIRS LL (Figure 5)
         #flg_fig += 2 ** 5  # Check valid 2
-        flg_fig += 2 ** 6  # More patch figures
+        #flg_fig += 2 ** 6  # More patch figures
         #flg_fig += 2 ** 7  # Compare Enki against many inpainting
         #flg_fig += 2 ** 8  # DINEOF
     else:
