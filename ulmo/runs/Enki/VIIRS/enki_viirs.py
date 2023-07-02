@@ -475,20 +475,21 @@ def main(flg):
     if flg & (2**3):
         viirs_extract_2013(local=True, save_fields=True)
 
-        # 0.04K Noise but noisless original
+    # RMSE recalc
     if flg & (2**4):
 
-        clobber= False
-        debug=False
+        debug = False
+        dataset = 'VIIRS`'
 
-        for t in [10,20]:
-            for p in [10,20,30,40]:
-                if t==20 and p==10:
-                    continue
+        for t in [10]:
+            for p in [10]:
                 print(f'Working on: t={t}, p={p}')
-                enki_analysis.calc_rms(t, p, 
-                    dataset='VIIRS', 
-                    clobber=clobber, debug=debug)
+                outfile = os.path.join(os.getenv('OS_SST'), 'VIIRS', 'Enki', 'Recon',
+                    f'Enki_{dataset}_inpaint_t{t}_p{p}.h5')
+                enki_analysis.calc_rms(t, p, dataset, debug=debug, 
+                                       method='inpaint',
+                           in_recon_file=outfile, clobber=True,
+                           keys=['valid', 'inpainted', 'valid'])
 
 
 # Command line execution
