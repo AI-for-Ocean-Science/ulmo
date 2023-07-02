@@ -16,7 +16,7 @@ from ulmo.mae import reconstruct
 import ulmo.mae.util.misc as misc
 from ulmo.mae.util.hdfstore import HDF5Store
 from ulmo.mae.enki_utils import img_filename, mask_filename
-from ulmo.mae.engine_pretrain import reconstruct_one_epoch
+from ulmo.mae.reconstruct import reconstruct_one_epoch
 from ulmo.mae.util.misc import NativeScalerWithGradNormCount as NativeScaler
 
 from ulmo import io as ulmo_io
@@ -149,7 +149,8 @@ def main(args):
         data_loader_train.sampler.set_epoch(epoch)
 
     # Do one epoch of reconstruction
-    #  This also initializes a bunch of things
+    #  This runs on all the data except the last batch
+    #  which was dropped (in case it was the wrong length)
     train_stats = reconstruct_one_epoch(
         model, data_loader_train,
         optimizer, device, loss_scaler,
@@ -157,9 +158,9 @@ def main(args):
         image_store=images,
         mask_store=masks
     )
-    embed(header='160 of enki_reconstruct.py')
 
-    print("Reconstructing batch remainder")
+    # Now get the last batch and write to disk
+    print("Reconstructing the batch remainder")
     reconstruct.run_remainder(model, data_length, 
                               images, masks,
                               args.batch_size, 
