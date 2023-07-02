@@ -148,6 +148,8 @@ class MaskedAutoencoderViT(nn.Module):
         # unshuffle to get the binary mask
         mask = torch.gather(mask, dim=1, index=ids_restore)
 
+        embed(header='151 of models_mae.py')
+
         return x_masked, mask, ids_restore
 
     def forward_encoder(self, x, mask_ratio):
