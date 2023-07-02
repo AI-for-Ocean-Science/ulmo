@@ -128,6 +128,9 @@ class MaskedAutoencoderViT(nn.Module):
         Perform per-sample random masking by per-sample shuffling.
         Per-sample shuffling is done by argsort random noise.
         x: [N, L, D], sequence
+
+        Returns:
+            tuple: x_masked, mask, ids_restore
         """
         N, L, D = x.shape  # batch, length, dim
         len_keep = int(L * (1 - mask_ratio))
@@ -148,9 +151,37 @@ class MaskedAutoencoderViT(nn.Module):
         # unshuffle to get the binary mask
         mask = torch.gather(mask, dim=1, index=ids_restore)
 
-        embed(header='151 of models_mae.py')
 
         return x_masked, mask, ids_restore
+
+    def impose_masking(self, x, mask):
+        """
+        Perform per-sample masking using the input masks
+        x: [N, L, D], sequence
+        masks: [N, D], sequence
+
+        Returns:
+            tuple: x_masked, mask, ids_restore
+        """
+        N, L, D = x.shape  # batch, length, dim
+
+        # Build the ids
+        keep = []
+        shuffle = []
+        for i in range(N):
+            keep.append(torch.where(mask[i] == 0)[0])
+            shuffle.append(torch.cat((keep[-1],torch.where(
+                mask[i] == 1)[0])))
+        ids_keep2 = torch.cat(keep).reshape((N, -1))
+        ids_shuffle2 = torch.cat(shuffle).reshape((N, -1))
+        ids_restore2 = torch.argsort(ids_shuffle2, dim=1)
+
+        # x
+        x_masked = torch.gather(x, dim=1, index=ids_keep2.unsqueeze(-1).repeat(1, 1, D))
+
+        # Return
+        return x_masked, mask, ids_restore2
+
 
     def forward_encoder(self, x, mask_ratio):
         # embed patches
