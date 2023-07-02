@@ -710,7 +710,7 @@ def fig_viirs_rmse(outfile='fig_viirs_rmse.png',
         viirs, t, p, batch_percent=100./nbatch)
     rmse_viirs[f'rms_inpaint_t{t}_p{p}'] = enki_anly_rms.calc_batch_RMSE(
         viirs, t, p, batch_percent=100./nbatch, inpaint=True)
-    embed(header='fig_: 719')
+    #embed(header='fig_: 719')
 
     # VIIRS plot
     x = rmse_viirs['median_LL']
