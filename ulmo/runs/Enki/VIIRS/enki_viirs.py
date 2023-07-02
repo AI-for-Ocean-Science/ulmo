@@ -465,11 +465,18 @@ def main(flg):
 
     # Inpaint VIIRS images
     if flg & (2**1):
+        '''
         for t in [10,20]:
             for p in [10,20,30,40]:
                 if t==20 and p==10:
                     continue
                 inpaint(t, p, 'VIIRS', debug=False)
+        '''
+        # Redo 10,10
+        for t in [10]:
+            for p in [10]:
+                inpaint(t, p, 'VIIRS', debug=False,
+                        clobber=True, rmse_clobber=True)
 
     # Extract with clouds at ~10%
     if flg & (2**3):
@@ -501,7 +508,7 @@ if __name__ == '__main__':
         #flg += 2 ** 0  # 1 -- Generate the total table
         #flg += 2 ** 1  # 2 -- Inpaint  + RMSE
         #flg += 2 ** 3  # 8 -- Extract VIIRS to CC15 (for cloud masks!)
-        flg += 2 ** 4  # 16 -- RMSE
+        #flg += 2 ** 4  # 16 -- RMSE
     else:
         flg = sys.argv[1]
 
