@@ -86,7 +86,8 @@ def train_one_epoch(model: torch.nn.Module,
 
 
 def reconstruct_one_epoch(model: torch.nn.Module,
-                         data_loader: Iterable, optimizer: torch.optim.Optimizer,
+                         data_loader: Iterable, 
+                         optimizer: torch.optim.Optimizer,
                          device: torch.device, loss_scaler,
                          mask_ratio:float,
                          batch_size:int,
@@ -97,8 +98,8 @@ def reconstruct_one_epoch(model: torch.nn.Module,
     """ Reconstruct a single epoch
 
     Args:
-        model (torch.nn.Module): _description_
-        data_loader (Iterable): _description_
+        model (torch.nn.Module): MAE model
+        data_loader (Iterable): torch DataLoader
         optimizer (torch.optim.Optimizer): _description_
         device (torch.device): _description_
         loss_scaler (_type_): _description_

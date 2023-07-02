@@ -19,6 +19,8 @@ from timm.models.vision_transformer import PatchEmbed, Block
 
 from ulmo.mae.util.pos_embed import get_2d_sincos_pos_embed
 
+from IPython import embed
+
 
 class MaskedAutoencoderViT(nn.Module):
     """ Masked Autoencoder with VisionTransformer backbone
@@ -156,6 +158,7 @@ class MaskedAutoencoderViT(nn.Module):
 
         # masking: length -> length * mask_ratio
         x, mask, ids_restore = self.random_masking(x, mask_ratio)
+        embed(header='161 of models')
 
         # append cls token
         cls_token = self.cls_token + self.pos_embed[:, :1, :]
