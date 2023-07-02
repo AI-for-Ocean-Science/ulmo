@@ -155,8 +155,9 @@ def main(args):
         optimizer, device, loss_scaler,
         args.mask_ratio, args.batch_size, args.accum_iter,
         image_store=images,
-        mask_store=masks,
+        mask_store=masks
     )
+    embed(header='160 of enki_reconstruct.py')
 
     print("Reconstructing batch remainder")
     reconstruct.run_remainder(model, data_length, 

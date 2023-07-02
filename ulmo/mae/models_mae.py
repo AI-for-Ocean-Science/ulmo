@@ -138,7 +138,6 @@ class MaskedAutoencoderViT(nn.Module):
         ids_shuffle = torch.argsort(noise, dim=1)  # ascend: small is keep, large is remove
         ids_restore = torch.argsort(ids_shuffle, dim=1)
 
-        embed(header='141 of models')
         # keep the first subset
         ids_keep = ids_shuffle[:, :len_keep]
         x_masked = torch.gather(x, dim=1, index=ids_keep.unsqueeze(-1).repeat(1, 1, D))
@@ -159,7 +158,6 @@ class MaskedAutoencoderViT(nn.Module):
 
         # masking: length -> length * mask_ratio
         x, mask, ids_restore = self.random_masking(x, mask_ratio)
-        embed(header='161 of models')
 
         # append cls token
         cls_token = self.cls_token + self.pos_embed[:, :1, :]
