@@ -441,7 +441,8 @@ def inpaint(t:int, p:int, dataset:str,
     # Do it
     if not os.path.isfile(outfile) or clobber:
         cutout_analysis.inpaint_images(outfile, t, p, dataset, 
-                                   n_cores=n_cores, debug=debug)
+                                   n_cores=n_cores, debug=debug,
+                                   nsub_files=100000)
     else:                            
         print(f"Found: {outfile}.  Not clobbering..")
 
