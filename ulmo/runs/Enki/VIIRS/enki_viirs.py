@@ -479,7 +479,7 @@ def main(flg):
     if flg & (2**4):
 
         debug = False
-        dataset = 'VIIRS`'
+        dataset = 'VIIRS'
 
         for t in [10]:
             for p in [10]:
