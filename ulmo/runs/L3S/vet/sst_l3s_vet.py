@@ -15,12 +15,9 @@ import seaborn as sns
 
 from ulmo import io as ulmo_io
 from ulmo.utils import catalog as cat_utils
-from ulmo.preproc import utils as pp_utils
 
-from ulmo.preproc import io as pp_io 
-from ulmo.modis import utils as modis_utils
-from ulmo.modis import extract as modis_extract
-from ulmo.analysis import evaluate as ulmo_evaluate 
+from ulmo.sst_l3s import extract
+
 
 from IPython import embed
 
@@ -51,19 +48,19 @@ def init_l3s_tbl():
     ulmo_io.write_main_table(l3s, l3s_viirs_tbl_file)
 
 # EXTRACTION
-def llc_viirs_extract(tbl_file:str, 
+def l3s_viirs_extract(tbl_file:str, 
                       root_file=None, dlocal=True, 
-                      preproc_root='llc_144', 
+                      preproc_root='l3s_viirs', 
                       debug=False):
 
     # Giddy up (will take a bit of memory!)
-    llc_table = ulmo_io.load_main_table(tbl_file)
+    l3s_table = ulmo_io.load_main_table(tbl_file)
 
     if debug:
         # Cut down to first 2 days
-        uni_date = np.unique(llc_table.datetime)
-        gd_date = llc_table.datetime <= uni_date[1]
-        llc_table = llc_table[gd_date]
+        uni_date = np.unique(l3s_table.datetime)
+        gd_date = l3s_table.datetime <= uni_date[1]
+        l3s_table = l3s_table[gd_date]
         debug_local = True
 
     if debug:
@@ -84,25 +81,22 @@ def llc_viirs_extract(tbl_file:str,
     #if debug_local:
     #    pp_s3_file = None  
     # Check indices
-    llc_table.reset_index(drop=True, inplace=True)
-    assert np.all(np.arange(len(llc_table)) == llc_table.index)
+    l3s_table.reset_index(drop=True, inplace=True)
+    assert np.all(np.arange(len(l3s_table)) == l3s_table.index)
     # Do it
     if debug:
         embed(header='210 of llc viirs')
-    extract.preproc_for_analysis(llc_table, 
+    extract.preproc_for_analysis(l3s_table, 
                                  pp_local_file,
-                                 fixed_km=144.,
                                  preproc_root=preproc_root,
                                  s3_file=pp_s3_file,
-                                 #debug=debug,
-                                 dlocal=dlocal,
                                  override_RAM=True)
     # Vet
-    assert cat_utils.vet_main_table(llc_table, cut_prefix=['viirs_', 'MODIS_'])
+    assert cat_utils.vet_main_table(l3s_table, cut_prefix=['VIIRS_'])
 
     # Final write
     if not debug:
-        ulmo_io.write_main_table(llc_table, tbl_file)
+        ulmo_io.write_main_table(l3s_table, tbl_file)
     print("You should probably remove the PreProc/ folder")
     
 
