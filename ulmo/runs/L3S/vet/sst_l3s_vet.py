@@ -110,6 +110,10 @@ def main(flg):
     if flg & (2**0):
         init_l3s_tbl()
 
+    # Generate the VIIRS images
+    if flg & (2**1):
+        l3s_viirs_extract(l3s_viirs_tbl_file, debug=True)
+
 
 # Command line execution
 if __name__ == '__main__':
