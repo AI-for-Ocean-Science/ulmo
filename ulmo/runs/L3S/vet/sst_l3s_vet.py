@@ -15,12 +15,9 @@ import seaborn as sns
 
 from ulmo import io as ulmo_io
 from ulmo.utils import catalog as cat_utils
-from ulmo.preproc import utils as pp_utils
 
-from ulmo.preproc import io as pp_io 
-from ulmo.modis import utils as modis_utils
-from ulmo.modis import extract as modis_extract
-from ulmo.analysis import evaluate as ulmo_evaluate 
+from ulmo.sst_l3s import extract
+
 
 from IPython import embed
 
@@ -37,6 +34,7 @@ def init_l3s_tbl():
     # Save VIIRS info
     viirs_keys = ['row', 'col', 'UID', 'LL', 'pp_file', 
                 'pp_idx', 'T90', 'T10', 'DT', 'pp_type',
+                'Tmin', 'Tmax',
                 'clear_fraction', 'datetime', 'filename',
                 'ex_filename', 'lat', 'lon']
     # Generate the L3S table
@@ -49,6 +47,59 @@ def init_l3s_tbl():
     # Write
     ulmo_io.write_main_table(l3s, l3s_viirs_tbl_file)
 
+# EXTRACTION
+def l3s_viirs_extract(tbl_file:str, 
+                      root_file=None, dlocal=True, 
+                      preproc_root='l3s_viirs', 
+                      debug=False):
+
+    # Giddy up (will take a bit of memory!)
+    l3s_table = ulmo_io.load_main_table(tbl_file)
+
+    if debug:
+        # Cut down to first 2 days
+        uni_date = np.unique(l3s_table.datetime)
+        gd_date = l3s_table.datetime <= uni_date[1]
+        l3s_table = l3s_table[gd_date]
+        debug_local = True
+
+    if debug:
+        root_file = 'LLC_VIIRS144_test_preproc.h5'
+    else:
+        if root_file is None:
+            root_file = 'LLC_VIIRS144_preproc.h5'
+
+    # Setup
+    pp_local_file = 'PreProc/'+root_file
+    pp_s3_file = 's3://llc/PreProc/'+root_file
+    if not os.path.isdir('PreProc'):
+        os.mkdir('PreProc')
+
+    print(f"Outputting to: {pp_s3_file}")
+
+    # Run it
+    #if debug_local:
+    #    pp_s3_file = None  
+    # Check indices
+    l3s_table.reset_index(drop=True, inplace=True)
+    assert np.all(np.arange(len(l3s_table)) == l3s_table.index)
+    # Do it
+    if debug:
+        embed(header='210 of llc viirs')
+    extract.preproc_for_analysis(l3s_table, 
+                                 pp_local_file,
+                                 preproc_root=preproc_root,
+                                 s3_file=pp_s3_file,
+                                 override_RAM=True)
+    # Vet
+    assert cat_utils.vet_main_table(l3s_table, cut_prefix=['VIIRS_'])
+
+    # Final write
+    if not debug:
+        ulmo_io.write_main_table(l3s_table, tbl_file)
+    print("You should probably remove the PreProc/ folder")
+    
+
 def main(flg):
     if flg== 'all':
         flg= np.sum(np.array([2 ** ii for ii in range(25)]))
@@ -58,6 +109,10 @@ def main(flg):
     # Generate the VIIRS images
     if flg & (2**0):
         init_l3s_tbl()
+
+    # Generate the VIIRS images
+    if flg & (2**1):
+        l3s_viirs_extract(l3s_viirs_tbl_file, debug=True)
 
 
 # Command line execution
