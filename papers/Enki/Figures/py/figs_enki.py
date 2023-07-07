@@ -1034,10 +1034,10 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 1  # cutouts
         #flg_fig += 2 ** 2  # LLC RMSE (Enki vs inpainting)
         #flg_fig += 2 ** 3  # Reconstruction example
-        flg_fig += 2 ** 4  # VIIRS RMSE vs LL (Figure 5)
+        #flg_fig += 2 ** 4  # VIIRS RMSE vs LL (Figure 5)
         #flg_fig += 2 ** 5  # Check valid 2
         #flg_fig += 2 ** 6  # More patch figures
-        #flg_fig += 2 ** 7  # Compare Enki against many inpainting
+        flg_fig += 2 ** 7  # Compare Enki against many inpainting
         #flg_fig += 2 ** 8  # DINEOF
     else:
         flg_fig = sys.argv[1]
