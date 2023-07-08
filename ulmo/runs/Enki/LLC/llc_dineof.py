@@ -202,16 +202,16 @@ def dineof_prep_enki():
     orig_imgs = np.asarray(ds_orig.variables['SST'])
 
     for p in [10, 20, 30, 40, 50]:
-        print(f'Working on p={p}')
         # open files
-        #dineof_file = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki', 'DINEOF',
-        #    f'Enki_LLC_DINEOF_p{p}.nc')
         #print(f'Working on: {dineof_file}')
         #ds_recon = xarray.open_dataset(dineof_file)
         mask_file = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki', 'Recon',
             f'mae_mask_t75_p{p}.h5')
         f_ma = h5py.File(mask_file, 'r')
 
+        dineof_file = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki', 'DINEOF',
+            f'Enki_LLC_DINEOF_p{p}.nc')
+        print(f'Working on: {dineof_file}')
         preproc_file = dineof_file.replace('DINEOF', 'DINEOF_pproc')
 
         # Extract
