@@ -212,7 +212,7 @@ def dineof_prep_enki():
         dineof_file = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki', 'DINEOF',
             f'Enki_LLC_DINEOF_p{p}.nc')
         print(f'Working on: {dineof_file}')
-        preproc_file = dineof_file.replace('DINEOF', 'DINEOF_pproc')
+        preproc_file = dineof_file.replace('DINEOF_', 'DINEOF_pproc_')
 
         # Extract
         #recon_imgs = np.asarray(ds_recon.variables['sst_filled'])
