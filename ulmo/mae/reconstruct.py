@@ -191,10 +191,10 @@ def reconstruct_one_epoch(model: torch.nn.Module,
         samples = items[0]
         samples = samples.to(device, non_blocking=True)
 
-        embed(header='reconstruct_one_epoch 196')
+        #embed(header='reconstruct_one_epoch 196')
         if use_mask:
             masks = items[1]
-            masks = masks.to(device, non_blocking=True)
+            masks = torch.Tensor(masks).to(device, non_blocking=True)
         
         with torch.cuda.amp.autocast():
             loss, y, mask = model(samples, mask_ratio=mask_ratio,
