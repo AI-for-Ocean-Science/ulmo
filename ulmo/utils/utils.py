@@ -15,7 +15,7 @@ class HDF5Dataset(data.Dataset):
     """
     def __init__(self, file_path, partition, 
                  return_mask:bool=False,
-                 mask_partition:str='mask'):
+                 mask_partition:str='masks'):
         super().__init__()
         self.file_path = file_path
         self.partition = partition
