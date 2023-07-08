@@ -243,7 +243,8 @@ def dineof_enki_reconstruct():
                 '--output_dir', 'output', 
                 '--resume', 'checkpoint-254.pth', 
                 '--upload_path', f's3://llc/mae/DINEOF/Enki_LLC_DINEOF_enki_p{p}.nc',
-                '--mask_upload_path', f's3://llc/mae/DINEOF/Enki_LLC_DINEOF_mask_p{p}.nc']
+                '--mask_upload_path', f's3://llc/mae/DINEOF/Enki_LLC_DINEOF_mask_p{p}.nc',
+                '--use_masks']
         pargs = args.parse_args(largs)
         enki_reconstruct.main(pargs)
     
