@@ -160,7 +160,8 @@ def main(args):
         optimizer, device, loss_scaler,
         args.mask_ratio, args.batch_size, args.accum_iter,
         image_store=images,
-        mask_store=masks
+        mask_store=masks,
+        use_mask=args.use_masks
     )
 
     # Now get the last batch and write to disk
