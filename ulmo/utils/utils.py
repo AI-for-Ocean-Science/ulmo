@@ -38,7 +38,7 @@ class HDF5Dataset(data.Dataset):
 
         if self.return_mask:
             mask = self.h5f[self.mask_partition][index]
-            return data, metadata, mask
+            return data, mask
         else:
             return data, metadata
     
