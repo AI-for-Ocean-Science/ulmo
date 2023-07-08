@@ -202,10 +202,11 @@ def dineof_prep_enki():
     orig_imgs = np.asarray(ds_orig.variables['SST'])
 
     for p in [10, 20, 30, 40, 50]:
+        print(f'Working on p={p}')
         # open files
-        dineof_file = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki', 'DINEOF',
-            f'Enki_LLC_DINEOF_p{p}.nc')
-        print(f'Working on: {dineof_file}')
+        #dineof_file = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki', 'DINEOF',
+        #    f'Enki_LLC_DINEOF_p{p}.nc')
+        #print(f'Working on: {dineof_file}')
         #ds_recon = xarray.open_dataset(dineof_file)
         mask_file = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki', 'Recon',
             f'mae_mask_t75_p{p}.h5')
@@ -221,7 +222,7 @@ def dineof_prep_enki():
         mask_imgs = np.asarray(mask_imgs)
 
         # Write as hdf5
-        with h5py.File(local_file, 'w') as f:
+        with h5py.File(preproc_file, 'w') as f:
             # Validation
             f.create_dataset('valid', data=orig_imgs.astype(np.float32))
             # Metadata
