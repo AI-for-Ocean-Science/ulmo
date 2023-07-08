@@ -93,6 +93,8 @@ def get_args_parser():
     parser.add_argument('--dist_on_itp', action='store_true')
     parser.add_argument('--dist_url', default='env://',
                         help='url used to set up distributed training')
+    parser.add_argument('--use_masks', action='store_true',
+                        help='Use Masks?')
     parser.add_argument('--debug', action='store_true',
                         help='Debug')
 
@@ -104,7 +106,9 @@ def main(args):
     misc.init_distributed_mode(args)
     
     # Load data (locally)
-    dataset_train = HDF5Dataset(args.data_path, partition='valid')
+    dataset_train = HDF5Dataset(args.data_path, 
+                                partition='valid',
+                                return_mask=args.use_masks)
     with h5py.File(args.data_path, 'r') as f:
         dshape=f['valid'][0].shape
     data_loader_train = torch.utils.data.DataLoader(

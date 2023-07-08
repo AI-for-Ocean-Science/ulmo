@@ -148,7 +148,8 @@ def reconstruct_one_epoch(model: torch.nn.Module,
                          accum_iter:int,
                          image_store:HDF5Store=None,
                          mask_store:HDF5Store=None,
-                         log_writer=None):
+                         log_writer=None,
+                         use_mask:bool=False):
     """ Reconstruct a single epoch of data, modulo
     the very last bit (in case it does not match the batch_size)
 
@@ -164,6 +165,8 @@ def reconstruct_one_epoch(model: torch.nn.Module,
         image_store (HDF5Store, optional): _description_. Defaults to None.
         mask_store (HDF5Store, optional): _description_. Defaults to None.
         log_writer (_type_, optional): _description_. Defaults to None.
+        use_mask (bool, optional): If True, use the user-supplied mask
+            and not a random one
 
     Returns:
         dict: _description_
@@ -185,9 +188,14 @@ def reconstruct_one_epoch(model: torch.nn.Module,
         # Unpack
         samples = items[0]
         samples = samples.to(device, non_blocking=True)
+
+        if use_mask:
+            masks = items[1]
+            masks = masks.to(device, non_blocking=True)
         
         with torch.cuda.amp.autocast():
-            loss, y, mask = model(samples, mask_ratio=mask_ratio)
+            loss, y, mask = model(samples, mask_ratio=mask_ratio,
+                                  masks=masks if use_mask else None)
             
         ## --------------------- New stuff -----------------------
         # note: despite leaving the setup for it this is not DDP comptible yet

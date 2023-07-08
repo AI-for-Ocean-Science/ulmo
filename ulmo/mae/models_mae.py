@@ -158,7 +158,7 @@ class MaskedAutoencoderViT(nn.Module):
         """
         Perform per-sample masking using the input masks
         x: [N, L, D], sequence
-        masks: [N, D], sequence
+        mask: [N, D], sequence
 
         Returns:
             tuple: x_masked, mask, ids_restore
@@ -183,14 +183,17 @@ class MaskedAutoencoderViT(nn.Module):
         return x_masked, mask, ids_restore2
 
 
-    def forward_encoder(self, x, mask_ratio):
+    def forward_encoder(self, x, mask_ratio, user_masks=None):
         # embed patches
         x = self.patch_embed(x)
         # add pos embed w/o cls token
         x = x + self.pos_embed[:, 1:, :]
 
         # masking: length -> length * mask_ratio
-        x, mask, ids_restore = self.random_masking(x, mask_ratio)
+        if user_masks is None:
+            x, mask, ids_restore = self.random_masking(x, mask_ratio)
+        else:
+            x, mask, ids_restore = self.impose_masking(x, user_masks)
 
         # append cls token
         cls_token = self.cls_token + self.pos_embed[:, :1, :]
@@ -248,8 +251,22 @@ class MaskedAutoencoderViT(nn.Module):
         loss = (loss * mask).sum() / mask.sum()  # mean loss on removed patches
         return loss
 
-    def forward(self, imgs, mask_ratio=0.75):
-        latent, mask, ids_restore = self.forward_encoder(imgs, mask_ratio)
+    def forward(self, imgs, mask_ratio=0.75, masks=None):
+        """ Forward pass of the model
+
+        Args:
+            imgs (_type_): _description_
+            mask_ratio (float, optional): 
+                Masking ratio. Defaults to 0.75.
+                Over-ridden by masks, if provided
+            masks (array-like, optional): 
+                Masks to be used for reconstruction. 
+
+        Returns:
+            _type_: _description_
+        """
+        latent, mask, ids_restore = self.forward_encoder(
+            imgs, mask_ratio, masks=masks)
         pred = self.forward_decoder(latent, ids_restore)  # [N, L, p*p*3] --> [N, L, p*p*1]?
         loss = self.forward_loss(imgs, pred, mask)
         return loss, pred, mask
