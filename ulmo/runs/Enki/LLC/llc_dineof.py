@@ -233,7 +233,7 @@ def dineof_prep_enki():
             # Masks
             f.create_dataset('masks', data=mask_imgs.astype(np.float32))
 
-def dineof_enki_reconstruct():
+def dineof_enki_reconstruct(debug:bool=False):
     # On Nautilus
     #aws --endpoint https://s3-west.nrp-nautilus.io s3 cp s3://llc/mae/mae_pretrain_ddp_mask20/checkpoint-254.pth ./;
     #cp ulmo/mae/correct_helpers.py /opt/conda/lib/python3.10/site-packages/timm/models/layers/helpers.py;
@@ -243,8 +243,9 @@ def dineof_enki_reconstruct():
                 '--output_dir', 'output', 
                 '--resume', 'checkpoint-254.pth', 
                 '--upload_path', f's3://llc/mae/DINEOF/Enki_LLC_DINEOF_enki_p{p}.nc',
-                '--mask_upload_path', f's3://llc/mae/DINEOF/Enki_LLC_DINEOF_mask_p{p}.nc',
-                '--use_masks']
+                '--mask_upload_path', f's3://llc/mae/DINEOF/Enki_LLC_DINEOF_mask_p{p}.nc']
+        if not debug:
+            largs += ['--use_masks']
         pargs = args.parse_args(largs)
         enki_reconstruct.main(pargs)
     
@@ -282,7 +283,7 @@ def main(flg):
         #dineof_prep_enki()
 
         # Then this
-        dineof_enki_reconstruct()
+        dineof_enki_reconstruct(debug=True)
 
 
 # Command line execution
