@@ -234,14 +234,16 @@ def dineof_prep_enki():
             f.create_dataset('masks', data=mask_imgs.astype(np.float32))
 
 def dineof_enki_reconstruct():
+    # On Nautilus
     #aws --endpoint https://s3-west.nrp-nautilus.io s3 cp s3://llc/mae/mae_pretrain_ddp_mask20/checkpoint-254.pth ./;
+    #cp ulmo/mae/correct_helpers.py /opt/conda/lib/python3.10/site-packages/timm/models/layers/helpers.py;
     for p in [10, 20, 30, 40, 50]:
         args = ['--data_path', f'Enki_LLC_DINEOF_pproc_p{p}.nc',
                 '--output_dir', 'output', 
                 '--resume', 'checkpoint-254.pth', 
                 '--upload_path', f's3://llc/mae/DINEOF/Enki_LLC_DINEOF_enki_p{p}.nc',
                 '--mask_upload_path', f's3://llc/mae/DINEOF/Enki_LLC_DINEOF_mask_p{p}.nc']
-        pargs = enki_reconstruct.parser(args)
+        pargs = enki_reconstruct.get_args_parser(args)
         enki_reconstruct.main(pargs)
     
     pass
