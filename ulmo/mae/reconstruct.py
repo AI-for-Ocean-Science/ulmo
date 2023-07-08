@@ -187,11 +187,11 @@ def reconstruct_one_epoch(model: torch.nn.Module,
     #for data_iter_step, (samples, _) in enumerate(metric_logger.log_every(data_loader, print_freq, header)):
     for data_iter_step, items in enumerate(metric_logger.log_every(data_loader, print_freq, header)):
         
-        #embed(header='reconstruct_one_epoch 196')
         # Unpack
         samples = items[0]
         samples = samples.to(device, non_blocking=True)
 
+        embed(header='reconstruct_one_epoch 196')
         if use_mask:
             masks = items[1]
             masks = masks.to(device, non_blocking=True)
