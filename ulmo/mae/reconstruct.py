@@ -190,7 +190,7 @@ def reconstruct_one_epoch(model: torch.nn.Module,
         samples = samples.to(device, non_blocking=True)
 
         if use_mask:
-            masks = items[1]
+            masks = items[2]
             masks = masks.to(device, non_blocking=True)
         
         with torch.cuda.amp.autocast():
