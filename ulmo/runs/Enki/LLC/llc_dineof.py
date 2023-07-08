@@ -199,6 +199,38 @@ def dineof_prep_enki():
     orig_file = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki', 'DINEOF',
                              'Enki_LLC_orig.nc')
     ds_orig = xarray.open_dataset(orig_file)
+    orig_imgs = np.asarray(ds_orig.variables['SST'])
+
+    for p in [10, 20, 30, 40, 50]:
+        # open files
+        dineof_file = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki', 'DINEOF',
+            f'Enki_LLC_DINEOF_p{p}.nc')
+        print(f'Working on: {dineof_file}')
+        #ds_recon = xarray.open_dataset(dineof_file)
+        mask_file = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki', 'Recon',
+            f'mae_mask_t75_p{p}.h5')
+        f_ma = h5py.File(mask_file, 'r')
+
+        preproc_file = dineof_file.replace('DINEOF', 'DINEOF_pproc')
+
+        # Extract
+        #recon_imgs = np.asarray(ds_recon.variables['sst_filled'])
+        mask_imgs = []
+        for i in range(180):
+            mask_imgs.append(f_ma['valid'][i,0,...])
+        mask_imgs = np.asarray(mask_imgs)
+
+        # Write as hdf5
+        with h5py.File(local_file, 'w') as f:
+            # Validation
+            f.create_dataset('valid', data=orig_imgs.astype(np.float32))
+            # Metadata
+            #dset = f.create_dataset('valid_metadata', data=main_tbl.iloc[valid_idx].to_numpy(dtype=str).astype('S'))
+            #dset.attrs['columns'] = clms
+
+            # Masks
+            f.create_dataset('masks', data=mask_imgs.astype(np.float32))
+
 
 def main(flg):
     if flg== 'all':
@@ -226,8 +258,9 @@ def main(flg):
     if flg & (2**3):
         llc_grab_missing()
 
-    # Prep for Enki
+    # Reconstruct with Enki
     if flg & (2**4):
+        # Only run this once!
         dineof_prep_enki()
 
 
@@ -241,6 +274,7 @@ if __name__ == '__main__':
         #flg += 2 ** 1  # 2 -- Extract
         #flg += 2 ** 2  # 4 -- nc file
         #flg += 2 ** 3  # 8 -- Grab missing LLC file(s)
+        flg += 2 ** 4  # 16 -- Reconstruct with Enki
     else:
         flg = sys.argv[1]
 
