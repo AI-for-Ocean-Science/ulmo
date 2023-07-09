@@ -151,6 +151,8 @@ class MaskedAutoencoderViT(nn.Module):
         # unshuffle to get the binary mask
         mask = torch.gather(mask, dim=1, index=ids_restore)
 
+        embed(header='154 of random')
+
 
         return x_masked, mask, ids_restore
 
