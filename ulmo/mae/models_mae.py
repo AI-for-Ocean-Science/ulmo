@@ -179,6 +179,7 @@ class MaskedAutoencoderViT(nn.Module):
         ids_restore2 = torch.argsort(ids_shuffle2, dim=1)
 
         # x
+        embed(header='182 of models')
         x_masked = torch.gather(x, dim=1, index=ids_keep2.unsqueeze(-1).repeat(1, 1, D))
 
         # Return
