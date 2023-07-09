@@ -169,6 +169,7 @@ class MaskedAutoencoderViT(nn.Module):
         # Build the ids
         keep = []
         shuffle = []
+        embed(header='172 of models')
         for i in range(N):
             keep.append(torch.where(mask[i] == 0)[0])
             shuffle.append(torch.cat((keep[-1],torch.where(
@@ -192,6 +193,7 @@ class MaskedAutoencoderViT(nn.Module):
         x = x + self.pos_embed[:, 1:, :]
 
         # masking: length -> length * mask_ratio
+        embed(header='195 of models')
         if user_masks is None:
             x, mask, ids_restore = self.random_masking(x, mask_ratio)
         else:
