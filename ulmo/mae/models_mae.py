@@ -193,7 +193,6 @@ class MaskedAutoencoderViT(nn.Module):
         x = x + self.pos_embed[:, 1:, :]
 
         # masking: length -> length * mask_ratio
-        #embed(header='195 of models')
         if user_masks is None:
             x, mask, ids_restore = self.random_masking(x, mask_ratio)
         else:
@@ -205,6 +204,7 @@ class MaskedAutoencoderViT(nn.Module):
         x = torch.cat((cls_tokens, x), dim=1)
 
         # apply Transformer blocks
+        embed(header='207 of models')
         for blk in self.blocks:
             x = blk(x)
         x = self.norm(x)
