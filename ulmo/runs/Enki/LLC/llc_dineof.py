@@ -201,6 +201,10 @@ def dineof_prep_enki():
                              'Enki_LLC_orig.nc')
     ds_orig = xarray.open_dataset(orig_file)
     orig_imgs = np.asarray(ds_orig.variables['SST'])
+    # Reshape
+    orig_imgs = orig_imgs.reshape((orig_imgs.shape[0], 1, 
+                                   orig_imgs.shape[1],
+                                   orig_imgs.shape[2]))
 
     for p in [10, 20, 30, 40, 50]:
         # open files
@@ -221,8 +225,7 @@ def dineof_prep_enki():
         for i in range(180):
             mask_imgs.append(f_ma['valid'][i,...])
         mask_imgs = np.asarray(mask_imgs)
-        embed(header='224 of llc dineof')
-
+        
         # Write as hdf5
         with h5py.File(preproc_file, 'w') as f:
             # Validation
