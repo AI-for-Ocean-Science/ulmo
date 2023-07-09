@@ -152,6 +152,7 @@ class MaskedAutoencoderViT(nn.Module):
         mask = torch.gather(mask, dim=1, index=ids_restore)
         embed(header='153 of models')
 
+
         # Return
         return x_masked, mask, ids_restore
 
@@ -185,6 +186,7 @@ class MaskedAutoencoderViT(nn.Module):
 
 
     def forward_encoder(self, x, mask_ratio, user_masks=None):
+        embed(header='189 of forward_encoder')
         # embed patches
         x = self.patch_embed(x)
         # add pos embed w/o cls token
