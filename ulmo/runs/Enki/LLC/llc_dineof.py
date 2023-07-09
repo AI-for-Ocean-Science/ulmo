@@ -284,10 +284,10 @@ def main(flg):
     # Reconstruct with Enki
     if flg & (2**4):
         # Only run this once!
-        dineof_prep_enki()
+        #dineof_prep_enki()
 
         # Then this
-        #dineof_enki_reconstruct(debug=True)
+        dineof_enki_reconstruct()#debug=True)
 
 
 # Command line execution
