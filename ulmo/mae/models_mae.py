@@ -166,15 +166,16 @@ class MaskedAutoencoderViT(nn.Module):
         """
         N, L, D = x.shape  # batch, length, dim
 
-        mask = torch.Tensor(mask[:,...]).to(torch.device('cuda'), non_blocking=True)
+        mask = torch.Tensor(mask).to(torch.device('cuda'), non_blocking=True)
+        mask = mask.reshape((N, L))
         # Build the ids
         keep = []
         shuffle = []
         for i in range(N):
             # Hopefully this is the right order
-            keep.append(torch.where(mask[i].flatten() == 0)[0])
+            keep.append(torch.where(mask[i] == 0)[0])
             shuffle.append(torch.cat((keep[-1],torch.where(
-                mask[i].flatten() == 1)[0])))
+                mask[i] == 1)[0])))
         ids_keep2 = torch.cat(keep).reshape((N, -1))
         ids_shuffle2 = torch.cat(shuffle).reshape((N, -1))
         ids_restore2 = torch.argsort(ids_shuffle2, dim=1)
@@ -194,7 +195,6 @@ class MaskedAutoencoderViT(nn.Module):
         x = x + self.pos_embed[:, 1:, :]
 
         # masking: length -> length * mask_ratio
-        embed(header='197 of models')
         if user_masks is None:
             x, mask, ids_restore = self.random_masking(x, mask_ratio)
         else:
