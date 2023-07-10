@@ -126,6 +126,8 @@ def find_patches(mask_img, p_sz:int):
             f_idx = np.ravel_multi_index((i_s, j_s), mask_img.shape)
             flat_mask[f_idx] = 0
 
+    embed(header='129 of patch_analysis')
+
     # Return
     return patches
 

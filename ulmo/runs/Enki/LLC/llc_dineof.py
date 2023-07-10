@@ -19,6 +19,7 @@ from ulmo.preproc import plotting as pp_plotting
 from ulmo.utils import catalog as cat_utils
 from ulmo.scripts import grab_llc
 from ulmo.scripts import enki_reconstruct
+from ulmo.mae import patch_analysis
 
 from IPython import embed
 
@@ -195,7 +196,7 @@ def llc_grab_missing():
     pargs = grab_llc.parser(['12','--var', 'Theta,U,V,W,Salt', '--istart', '46'])
     grab_llc.main(pargs)
 
-def dineof_prep_enki():
+def dineof_prep_enki(p_sz:int=4):
     # Read nc files
     orig_file = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki', 'DINEOF',
                              'Enki_LLC_orig.nc')
@@ -223,8 +224,13 @@ def dineof_prep_enki():
         #recon_imgs = np.asarray(ds_recon.variables['sst_filled'])
         mask_imgs = []
         for i in range(180):
+            mask_img = f_ma['valid'][i,0,...]
+            patch_analysis.find_patches(mask_img, p_sz=p_sz)
+
             mask_imgs.append(f_ma['valid'][i,...])
         mask_imgs = np.asarray(mask_imgs)
+
+        
         
         # Write as hdf5
         with h5py.File(preproc_file, 'w') as f:
@@ -284,10 +290,10 @@ def main(flg):
     # Reconstruct with Enki
     if flg & (2**4):
         # Only run this once!
-        #dineof_prep_enki()
+        dineof_prep_enki()
 
         # Then this
-        dineof_enki_reconstruct()#debug=True)
+        #dineof_enki_reconstruct()#debug=True)
 
 
 # Command line execution

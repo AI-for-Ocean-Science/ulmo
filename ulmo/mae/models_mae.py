@@ -166,11 +166,12 @@ class MaskedAutoencoderViT(nn.Module):
         """
         N, L, D = x.shape  # batch, length, dim
 
-        mask = torch.Tensor(mask).to(torch.device('cuda'), non_blocking=True)
+        mask = torch.Tensor(mask[:,0,...]).to(torch.device('cuda'), non_blocking=True)
         # Build the ids
         keep = []
         shuffle = []
         for i in range(N):
+            # Need to find the patches, not pixels
             keep.append(torch.where(mask[i] == 0)[0])
             shuffle.append(torch.cat((keep[-1],torch.where(
                 mask[i] == 1)[0])))
