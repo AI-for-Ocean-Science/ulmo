@@ -227,7 +227,7 @@ def dineof_prep_enki(p_sz:int=4):
             mask_img = f_ma['valid'][i,0,...]
             patches = patch_analysis.find_patches(mask_img, p_sz=p_sz)
             #
-            mask_patch_img = np.zeros((mask_img.shape[0]//p_sz,, 
+            mask_patch_img = np.zeros((mask_img.shape[0]//p_sz, 
                                        mask_img.shape[1]//p_sz))
             for patch in patches:
                 i, j = np.unravel_index(patch, mask_img.shape)
