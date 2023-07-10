@@ -219,6 +219,7 @@ def dineof_prep_enki(p_sz:int=4):
             f'Enki_LLC_DINEOF_p{p}.nc')
         print(f'Working on: {dineof_file}')
         preproc_file = dineof_file.replace('DINEOF_', 'DINEOF_pproc_')
+        preproc_file = preproc_file.replace('nc', 'h5')
 
         # Extract
         #recon_imgs = np.asarray(ds_recon.variables['sst_filled'])
@@ -300,7 +301,6 @@ def main(flg):
         # Then this
         dineof_enki_reconstruct()#debug=True)
 
-
 # Command line execution
 if __name__ == '__main__':
     import sys
@@ -311,7 +311,7 @@ if __name__ == '__main__':
         #flg += 2 ** 1  # 2 -- Extract
         #flg += 2 ** 2  # 4 -- nc file
         #flg += 2 ** 3  # 8 -- Grab missing LLC file(s)
-        flg += 2 ** 4  # 16 -- Reconstruct with Enki
+        #flg += 2 ** 4  # 16 -- Reconstruct with Enki
     else:
         flg = sys.argv[1]
 
