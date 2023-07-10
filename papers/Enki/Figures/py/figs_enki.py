@@ -896,6 +896,16 @@ def fig_dineof(outfile='fig_dineof.png'):
     orig_file = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki', 'DINEOF',
                              'Enki_LLC_orig.nc')
     ds_orig = xarray.open_dataset(orig_file)
+    orig_imgs = np.asarray(ds_orig.variables['SST'])
+
+    def simple_rmse(recon_imgs, mask_imgs):
+        calc = (recon_imgs - orig_imgs)*mask_imgs
+        calc = calc**2
+        nmask = np.sum(mask_imgs, axis=(1,2))
+        calc = np.sum(calc, axis=(1,2)) / nmask
+        rmse = np.sqrt(calc)
+        return np.mean(rmse)
+
     def rmse_DINEOF(p):
         # open files
         dineof_file = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki', 'DINEOF',
@@ -907,24 +917,31 @@ def fig_dineof(outfile='fig_dineof.png'):
         f_ma = h5py.File(mask_file, 'r')
         
         # extract data
-        orig_imgs = np.asarray(ds_orig.variables['SST'])
         recon_imgs = np.asarray(ds_recon.variables['sst_filled'])
-        mask_imgs = []
-        for i in range(180):
-            mask_imgs.append(f_ma['valid'][i,0,...])
+        mask_imgs = f_ma['valid'][:180,0,...]
+        #for i in range(180):
+        #    mask_imgs.append(f_ma['valid'][i,0,...])
+
+        return simple_rmse(recon_imgs, mask_imgs)
             
-        calc = (recon_imgs - orig_imgs)*mask_imgs
-        calc = calc**2
-        nmask = np.sum(mask_imgs, axis=(1,2))
-        calc = np.sum(calc, axis=(1,2)) / nmask
-        rmse = np.sqrt(calc)
-        
-        return np.mean(rmse)
+    def rmse_enki(p):
+        enki_file = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki', 'DINEOF',
+            f'Enki_LLC_DINEOF_enki_p{p}.nc')
+        mask_file = enki_file.replace('enki', 'mask')
+        # Load
+        f_enki = h5py.File(enki_file, 'r')
+        recon_imgs = np.asarray(f_enki['valid'][:,0,...])
+        f_mask = h5py.File(mask_file, 'r')
+        mask_imgs = np.asarray(f_mask['valid'][:,0,...])
+
+        return simple_rmse(recon_imgs, mask_imgs)
 
     rmses = []
+    enki_rmses = []
     ps = [10, 20, 30, 40, 50]
     for p in ps:
         rmses.append(rmse_DINEOF(p))
+        enki_rmses.append(rmse_enki(p))
     
     # Plot
     fig = plt.figure(figsize=(10, 10))
@@ -933,6 +950,7 @@ def fig_dineof(outfile='fig_dineof.png'):
     ax = plt.subplot(gs[0])
 
     plt.plot(ps, rmses, 'o', label='DINEOF')
+    plt.plot(ps, enki_rmses, 's', color='k', label='Enki')
 
     fsz = 17
     plt.legend(title_fontsize=fsz+1, fontsize=fsz, 
@@ -1034,11 +1052,11 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 1  # cutouts
         #flg_fig += 2 ** 2  # LLC RMSE (Enki vs inpainting)
         #flg_fig += 2 ** 3  # Reconstruction example
-        flg_fig += 2 ** 4  # VIIRS RMSE vs LL (Figure 5)
+        #flg_fig += 2 ** 4  # VIIRS RMSE vs LL (Figure 5)
         #flg_fig += 2 ** 5  # Check valid 2
         #flg_fig += 2 ** 6  # More patch figures
         #flg_fig += 2 ** 7  # Compare Enki against many inpainting
-        #flg_fig += 2 ** 8  # DINEOF
+        flg_fig += 2 ** 8  # DINEOF
     else:
         flg_fig = sys.argv[1]
 
