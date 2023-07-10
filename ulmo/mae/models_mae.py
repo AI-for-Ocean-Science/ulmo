@@ -171,16 +171,15 @@ class MaskedAutoencoderViT(nn.Module):
         keep = []
         shuffle = []
         for i in range(N):
-            # Need to find the patches, not pixels
-            keep.append(torch.where(mask[i] == 0)[0])
+            # Hopefully this is the right order
+            keep.append(torch.where(mask[i].flatten() == 0)[0])
             shuffle.append(torch.cat((keep[-1],torch.where(
-                mask[i] == 1)[0])))
+                mask[i].flatten() == 1)[0])))
         ids_keep2 = torch.cat(keep).reshape((N, -1))
         ids_shuffle2 = torch.cat(shuffle).reshape((N, -1))
         ids_restore2 = torch.argsort(ids_shuffle2, dim=1)
 
         # x
-        embed(header='182 of models')
         x_masked = torch.gather(x, dim=1, index=ids_keep2.unsqueeze(-1).repeat(1, 1, D))
 
         # Return
