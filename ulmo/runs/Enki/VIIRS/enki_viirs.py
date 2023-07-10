@@ -471,12 +471,17 @@ def main(flg):
                 if t==20 and p==10:
                     continue
                 inpaint(t, p, 'VIIRS', debug=False)
-        '''
         # Redo 10,10
         for t in [10]:
             for p in [10]:
                 inpaint(t, p, 'VIIRS', debug=False,
                         clobber=True, rmse_clobber=True)
+        '''
+
+        # More
+        for t in [20]:
+            for p in [50]:
+                inpaint(t, p, 'VIIRS', debug=False,
 
     # Extract with clouds at ~10%
     if flg & (2**3):

@@ -716,9 +716,9 @@ def fig_viirs_rmse(outfile='fig_viirs_rmse.png',
     x = rmse_viirs['median_LL']
     y = rmse_viirs[f'rms_t{t}_p{p}']
     y_inpaint = rmse_viirs[f'rms_inpaint_t{t}_p{p}']
-    plt.scatter(x, y, marker='s', color='k', label='VIIRS Enki')
+    plt.scatter(x, y, marker='s', color='k', label=f'VIIRS Enki ({stper}={t}, {smper}={p})')
     if show_inpaint:
-        plt.scatter(x, y_inpaint, marker='s', color='b', label='VIIRS Inpaint')
+        plt.scatter(x, y_inpaint, marker='o', color='b', label='VIIRS Biharmonic')
 
     # LLC analysis
     x_llc, y_llc = [], []
@@ -746,8 +746,8 @@ def fig_viirs_rmse(outfile='fig_viirs_rmse.png',
     ax.grid(color='gray', linestyle='dashed', linewidth = 0.5)
     #plt.title(f't={t}, p={p}')
                          
-    if show_inpaint:                         
-        ax.set_yscale('log')
+    #if show_inpaint:                         
+    #    ax.set_yscale('log')
     
     if in_ax is None:
         plt.savefig(outfile, dpi=300)
