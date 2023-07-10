@@ -225,11 +225,16 @@ def dineof_prep_enki(p_sz:int=4):
         mask_imgs = []
         for i in range(180):
             mask_img = f_ma['valid'][i,0,...]
-            patch_analysis.find_patches(mask_img, p_sz=p_sz)
+            patches = patch_analysis.find_patches(mask_img, p_sz=p_sz)
+            #
+            mask_patch_img = np.zeros((mask_img.shape[0]//p_sz,, 
+                                       mask_img.shape[1]//p_sz))
+            for patch in patches:
+                i, j = np.unravel_index(patch, mask_img.shape)
+                mask_patch_img[i//p_sz, j//p_sz] = 1.
 
-            mask_imgs.append(f_ma['valid'][i,...])
+            mask_imgs.append(mask_patch_img)
         mask_imgs = np.asarray(mask_imgs)
-
         
         
         # Write as hdf5

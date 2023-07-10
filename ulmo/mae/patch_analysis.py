@@ -97,7 +97,7 @@ def anlayze_full(recon_file,
         outfile, 's3://llc/mae/Recon/'+outfile)
 
 # TODO -- Consider using jit on the following method
-def find_patches(mask_img, p_sz:int):
+def find_patches(mask_img, p_sz:int, patch_space:bool=False):
     """ Simple algorithm to find the patches
     in a masked MAE image
 
@@ -106,6 +106,9 @@ def find_patches(mask_img, p_sz:int):
     Args:
         mask_img (np.ndarray): Masked image; 1=masked
         p_sz (int): Size of the patch (edge)
+        patch_space (bool, optional): Return the patches
+        in the patch space.  Defaults to False.
+            NOT IMPLEMENTED YET
 
     Returns:
         list: Ravel'd index of the patches
@@ -115,18 +118,26 @@ def find_patches(mask_img, p_sz:int):
     patches = []
     for ss in range(mask_img.size):
         if flat_mask[ss] == 1:
+            # Unravel
+            i, j = np.unravel_index(ss, mask_img.shape)
+            '''
+            # Patch
+            if patch_space:
+                patches.append(
+                    np.ravel_multi_index(
+                        (i//p_sz,j//p_sz), 
+                        (mask_img.shape[0]//p_sz,
+                         mask_img.shape[1]//p_sz)))
+            else:
+            '''
             patches.append(ss)
             # Fill in the patch
-            i, j = np.unravel_index(ss, mask_img.shape)
-            #import pdb; pdb.set_trace()
             i_s = (i+np.arange(p_sz)).tolist() * p_sz
             j_s = []
             for kk in range(p_sz):
                 j_s.extend([j+kk]*p_sz)
             f_idx = np.ravel_multi_index((i_s, j_s), mask_img.shape)
             flat_mask[f_idx] = 0
-
-    embed(header='129 of patch_analysis')
 
     # Return
     return patches
