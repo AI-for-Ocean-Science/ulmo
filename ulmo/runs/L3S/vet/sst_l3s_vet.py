@@ -41,6 +41,16 @@ def init_l3s_tbl():
     for key in viirs_keys:
         l3s[f'VIIRS_{key}'] = viirs[key]
 
+    # Add L3S data
+    l3s['row'] = ((90 - l3s['VIIRS_lat']) * (9000 / 180)).astype(int)
+    l3s['col'] = ((l3s['VIIRS_lon'] + 180) * (18000 / 360)).astype(int)
+    l3s['datetime'] = pandas.to_datetime(l3s['VIIRS_datetime']).dt.date
+    l3s['ex_filename'] = (
+        's3://sst-l3s/Extractions/l3s_' +
+        pandas.to_datetime(l3s['VIIRS_datetime']).dt.year.astype(str) +
+        '_matched.h5'
+    )
+
     # Check the table -- it should complain about missing required keys
     cat_utils.vet_main_table(l3s, cut_prefix='VIIRS_')
 
