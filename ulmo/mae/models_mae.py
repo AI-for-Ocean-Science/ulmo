@@ -194,6 +194,7 @@ class MaskedAutoencoderViT(nn.Module):
         x = x + self.pos_embed[:, 1:, :]
 
         # masking: length -> length * mask_ratio
+        embed(header='197 of models')
         if user_masks is None:
             x, mask, ids_restore = self.random_masking(x, mask_ratio)
         else:
