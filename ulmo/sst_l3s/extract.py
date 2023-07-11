@@ -84,7 +84,6 @@ def preproc_for_analysis(l3s_table:pandas.DataFrame,
         # TODO -- Rachel
         # Load up the data including the mask
         # Process the mask by our criteria
-        
         filename = ufile
         ds = llc_io.load_llc_ds(filename, local = dlocal)
         mask = np.where(np.isin(ds['quality_level'], [4,5]), 0, 1)
