@@ -10,6 +10,7 @@ import argparse
 
 import pandas
 import datetime
+from datetime import datetime, timedelta
 
 from matplotlib import pyplot as plt
 import seaborn as sns
@@ -45,12 +46,22 @@ def init_l3s_tbl():
     # Add L3S data
     l3s['row'] = ((90 - l3s['VIIRS_lat']) * (9000 / 180)).astype(int)
     l3s['col'] = ((l3s['VIIRS_lon'] + 180) * (18000 / 360)).astype(int)
+
     l3s['datetime'] = pandas.to_datetime(l3s['VIIRS_datetime']).dt.date
+
     l3s['ex_filename'] = (
-        's3://sst-l3s/Extractions/l3s_' +
+        '/Volumes/Aqua-1/Hackathon/daily/l3s_fields/' +
         pandas.to_datetime(l3s['VIIRS_datetime']).dt.year.astype(str) +
-        '_matched.h5'
+        '/' +
+        pandas.to_datetime(l3s['VIIRS_datetime']).dt.strftime('%j').astype(str) +
+        '/' +
+        pandas.to_datetime(l3s['VIIRS_datetime']).dt.year.astype(str) +
+        pandas.to_datetime(l3s['VIIRS_datetime']).dt.strftime('%m').astype(str) +
+        pandas.to_datetime(l3s['VIIRS_datetime']).dt.strftime('%d').astype(str) +
+        '120000-STAR-L3S_GHRSST-SSTsubskin-LEO_Daily-ACSPO_V2.80-v02.0-fv01.0.nc'
     )
+
+    
 
     # Check the table -- it should complain about missing required keys
     cat_utils.vet_main_table(l3s, cut_prefix='VIIRS_')
