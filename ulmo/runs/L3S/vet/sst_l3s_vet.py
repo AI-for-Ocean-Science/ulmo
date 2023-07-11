@@ -47,7 +47,9 @@ def init_l3s_tbl():
     l3s['row'] = ((90 - l3s['VIIRS_lat']) * (9000 / 180)).astype(int)
     l3s['col'] = ((l3s['VIIRS_lon'] + 180) * (18000 / 360)).astype(int)
 
-    l3s['datetime'] = pandas.to_datetime(l3s['VIIRS_datetime']).dt.date
+    base_datetime = pandas.to_datetime(l3s['VIIRS_datetime']).dt.date.astype(str) + ' 01:30:00'
+    base_datetime = pandas.to_datetime(base_datetime, format='%Y-%m-%d %H:%M:%S')
+    l3s['datetime'] = (base_datetime + pandas.to_timedelta(l3s['VIIRS_lon'] * 4, unit='minutes')).dt.round('S')
 
     l3s['ex_filename'] = (
         '/Volumes/Aqua-1/Hackathon/daily/l3s_fields/' +
