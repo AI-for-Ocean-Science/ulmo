@@ -242,6 +242,7 @@ def preproc_field(field, mask, inpaint=True, median=True, med_size=(3,1),
     i90 = int(0.9*field.size)
     meta_dict['T10'] = field.flatten()[srt[i10]]
     meta_dict['T90'] = field.flatten()[srt[i90]]
+    meta_dict['clear_fraction'] = 1 - np.sum(mask) / mask.size
 
     # Resize?
     if fixed_km is not None:
@@ -503,7 +504,8 @@ def write_pp_fields(pp_fields:list, meta:list,
         valid_fraction (float): Valid fraction (the rest is Train)
         s3_file (str, optional): 
             Name of the pp_file
-        local_file (str): [description]
+        local_file (str):   
+            Output filename locally
         write_cutouts (bool, optional):
             Write cutouts to disk
         skip_meta (bool, optional):
@@ -536,7 +538,8 @@ def write_pp_fields(pp_fields:list, meta:list,
         # Others
         all_tf = np.array([False]*len(main_tbl))
         all_tf[idx_idx] = True
-        for key in ['mu', 'Tmin', 'Tmax', 'T90', 'T10']:
+        for key in ['mu', 'Tmin', 'Tmax', 'T90', 
+                    'T10', 'clear_fraction']:
             ikey = 'mean_temperature' if key == 'mu' else key
 
             if key in meta[0].keys():

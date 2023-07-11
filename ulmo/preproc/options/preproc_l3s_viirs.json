@@ -13,5 +13,5 @@
         1
     ],
     "median": false,
-    "only_inpaint": true
+    "only_inpaint": false
 }

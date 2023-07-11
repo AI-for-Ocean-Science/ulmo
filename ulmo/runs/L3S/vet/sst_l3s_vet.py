@@ -9,6 +9,7 @@ import numpy as np
 import argparse
 
 import pandas
+import datetime
 
 from matplotlib import pyplot as plt
 import seaborn as sns
@@ -59,29 +60,40 @@ def init_l3s_tbl():
 
 # EXTRACTION
 def l3s_viirs_extract(tbl_file:str, 
-                      root_file=None, dlocal=True, 
+                      root_file=None, 
                       preproc_root='l3s_viirs', 
                       debug=False):
+    """ Perform the extraction for the L3S dataset
+
+    Args:
+        tbl_file (str): table file (s3)
+        root_file (_type_, optional): 
+            Output filename. Defaults to None.
+        preproc_root (str, optional): 
+            Defines the options for pre-processing. 
+            Defaults to 'l3s_viirs'.
+        debug (bool, optional): If True, perform
+            a limited extraction as a test. Defaults to False.
+    """
 
     # Giddy up (will take a bit of memory!)
     l3s_table = ulmo_io.load_main_table(tbl_file)
 
     if debug:
-        # Cut down to first 2 days
-        uni_date = np.unique(l3s_table.datetime)
-        gd_date = l3s_table.datetime <= uni_date[1]
+        # Cut down to the first month
+        gd_date = l3s_table.datetime <= datetime.datetime(2012,3,1)
         l3s_table = l3s_table[gd_date]
         debug_local = True
 
     if debug:
-        root_file = 'LLC_VIIRS144_test_preproc.h5'
+        root_file = 'L3S_VIIRS144_test_preproc.h5'
     else:
         if root_file is None:
-            root_file = 'LLC_VIIRS144_preproc.h5'
+            root_file = 'L3S_VIIRS144_preproc.h5'
 
     # Setup
     pp_local_file = 'PreProc/'+root_file
-    pp_s3_file = 's3://llc/PreProc/'+root_file
+    pp_s3_file = 's3://sst-l3s/PreProc/'+root_file
     if not os.path.isdir('PreProc'):
         os.mkdir('PreProc')
 
