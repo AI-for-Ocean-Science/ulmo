@@ -85,7 +85,7 @@ def preproc_for_analysis(l3s_table:pandas.DataFrame,
         # Load up the data including the mask
         # Process the mask by our criteria
         filename = ufile
-        ds = llc_io.load_llc_ds(filename, local = dlocal)
+        ds = llc_io.load_llc_ds(filename, local = locals)
         mask = np.where(np.isin(ds['quality_level'], [4,5]), 0, 1)
         sst = ds.sea_surface_temperature.values
 
@@ -123,9 +123,9 @@ def preproc_for_analysis(l3s_table:pandas.DataFrame,
         answers = [f for f in answers if f is not None]
 
         # Slurp
-        pp_fields += [item[0] for item in answers]
-        img_idx += [item[1] for item in answers]
-        meta += [item[2] for item in answers]
+        pp_fields += [item[0] for item in answers if item is not None]
+        img_idx += [item[1] for item in answers if item is not None]
+        meta += [item[2] for item in answers if item is not None]
 
         del answers, fields, items, sst
         # Close the file
