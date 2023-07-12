@@ -112,7 +112,7 @@ def l3s_viirs_extract(tbl_file:str,
 
     # Run it
     if debug_local:
-        pp_s3_file = None  
+        pp_s3_file = 's3://sst-l3s/PreProc/tst.h5'
     # Check indices
     l3s_table.reset_index(drop=True, inplace=True)
     assert np.all(np.arange(len(l3s_table)) == l3s_table.index)
