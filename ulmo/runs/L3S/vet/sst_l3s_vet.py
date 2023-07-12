@@ -53,11 +53,12 @@ def init_l3s_tbl():
     base_datetime = pandas.to_datetime(base_datetime, format='%Y-%m-%d %H:%M:%S')
     l3s['datetime'] = (base_datetime + pandas.to_timedelta(l3s['VIIRS_lon'] * 4, unit='minutes')).dt.round('S')
 
+    #embed(header='56 of sst_l3s_vet.py')
     l3s['ex_filename'] = (
         '/Volumes/Aqua-1/Hackathon/daily/l3s_fields/' +
         pandas.to_datetime(l3s['VIIRS_datetime']).dt.year.astype(str) +
         '/' +
-        pandas.to_datetime(l3s_viirs_tbl_file['VIIRS_datetime']).dt.strftime('%j').astype(str) +
+        pandas.to_datetime(l3s['VIIRS_datetime']).dt.strftime('%j').astype(str) +
         '/' +
         pandas.to_datetime(l3s['VIIRS_datetime']).dt.year.astype(str) +
         pandas.to_datetime(l3s['VIIRS_datetime']).dt.strftime('%m').astype(str) +
