@@ -46,6 +46,8 @@ def init_l3s_tbl():
     # Add L3S data
     l3s['row'] = ((90 - l3s['VIIRS_lat']) * (9000 / 180)).astype(int)
     l3s['col'] = ((l3s['VIIRS_lon'] + 180) * (18000 / 360)).astype(int)
+    l3s['lat'] = l3s['VIIRS_lat']
+    l3s['lon'] = l3s['VIIRS_lon']
 
     base_datetime = pandas.to_datetime(l3s['VIIRS_datetime']).dt.date.astype(str) + ' 01:30:00'
     base_datetime = pandas.to_datetime(base_datetime, format='%Y-%m-%d %H:%M:%S')
@@ -55,7 +57,7 @@ def init_l3s_tbl():
         '/Volumes/Aqua-1/Hackathon/daily/l3s_fields/' +
         pandas.to_datetime(l3s['VIIRS_datetime']).dt.year.astype(str) +
         '/' +
-        pandas.to_datetime(l3s['VIIRS_datetime']).dt.strftime('%j').astype(str) +
+        pandas.to_datetime(l3s_viirs_tbl_file['VIIRS_datetime']).dt.strftime('%j').astype(str) +
         '/' +
         pandas.to_datetime(l3s['VIIRS_datetime']).dt.year.astype(str) +
         pandas.to_datetime(l3s['VIIRS_datetime']).dt.strftime('%m').astype(str) +
@@ -92,7 +94,7 @@ def l3s_viirs_extract(tbl_file:str,
 
     if debug:
         # Cut down to the first month
-        gd_date = l3s_table.datetime <= datetime.datetime(2012,3,1)
+        gd_date = l3s_table.datetime <= datetime.datetime(2012,2,2)
         l3s_table = l3s_table[gd_date]
         debug_local = True
 
@@ -101,6 +103,8 @@ def l3s_viirs_extract(tbl_file:str,
     else:
         if root_file is None:
             root_file = 'L3S_VIIRS144_preproc.h5'
+
+    #embed(header='105 sst_l3s_vet.py')
 
     # Setup
     pp_local_file = 'PreProc/'+root_file
