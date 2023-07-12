@@ -10,7 +10,7 @@ import argparse
 
 import pandas
 import datetime
-from datetime import datetime, timedelta
+#from datetime import datetime, timedelta
 
 from matplotlib import pyplot as plt
 import seaborn as sns
@@ -63,8 +63,6 @@ def init_l3s_tbl():
         '120000-STAR-L3S_GHRSST-SSTsubskin-LEO_Daily-ACSPO_V2.80-v02.0-fv01.0.nc'
     )
 
-    
-
     # Check the table -- it should complain about missing required keys
     cat_utils.vet_main_table(l3s, cut_prefix='VIIRS_')
 
@@ -75,7 +73,7 @@ def init_l3s_tbl():
 def l3s_viirs_extract(tbl_file:str, 
                       root_file=None, 
                       preproc_root='l3s_viirs', 
-                      debug=False):
+                      debug=True):
     """ Perform the extraction for the L3S dataset
 
     Args:
@@ -113,14 +111,14 @@ def l3s_viirs_extract(tbl_file:str,
     print(f"Outputting to: {pp_s3_file}")
 
     # Run it
-    #if debug_local:
-    #    pp_s3_file = None  
+    if debug_local:
+        pp_s3_file = None  
     # Check indices
     l3s_table.reset_index(drop=True, inplace=True)
     assert np.all(np.arange(len(l3s_table)) == l3s_table.index)
     # Do it
-    if debug:
-        embed(header='210 of llc viirs')
+    #if debug:
+    #    embed(header='210 of llc viirs')
     extract.preproc_for_analysis(l3s_table, 
                                  pp_local_file,
                                  preproc_root=preproc_root,
