@@ -128,7 +128,9 @@ def l3s_viirs_extract(tbl_file:str,
     assert cat_utils.vet_main_table(l3s_table, cut_prefix=['VIIRS_'])
 
     # Final write
-    if not debug:
+    if debug:
+        ulmo_io.write_main_table(l3s_table, 'tmp.parquet', to_s3=False)
+    else:
         ulmo_io.write_main_table(l3s_table, tbl_file)
     print("You should probably remove the PreProc/ folder")
     
