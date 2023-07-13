@@ -10,6 +10,7 @@ import argparse
 
 import pandas
 import datetime
+#from datetime import datetime, timedelta
 
 from matplotlib import pyplot as plt
 import seaborn as sns
@@ -45,11 +46,24 @@ def init_l3s_tbl():
     # Add L3S data
     l3s['row'] = ((90 - l3s['VIIRS_lat']) * (9000 / 180)).astype(int)
     l3s['col'] = ((l3s['VIIRS_lon'] + 180) * (18000 / 360)).astype(int)
-    l3s['datetime'] = pandas.to_datetime(l3s['VIIRS_datetime']).dt.date
+    l3s['lat'] = l3s['VIIRS_lat']
+    l3s['lon'] = l3s['VIIRS_lon']
+
+    base_datetime = pandas.to_datetime(l3s['VIIRS_datetime']).dt.date.astype(str) + ' 01:30:00'
+    base_datetime = pandas.to_datetime(base_datetime, format='%Y-%m-%d %H:%M:%S')
+    l3s['datetime'] = (base_datetime + pandas.to_timedelta(l3s['VIIRS_lon'] * 4, unit='minutes')).dt.round('S')
+
+    #embed(header='56 of sst_l3s_vet.py')
     l3s['ex_filename'] = (
-        's3://sst-l3s/Extractions/l3s_' +
+        '/Volumes/Aqua-1/Hackathon/daily/l3s_fields/' +
         pandas.to_datetime(l3s['VIIRS_datetime']).dt.year.astype(str) +
-        '_matched.h5'
+        '/' +
+        pandas.to_datetime(l3s['VIIRS_datetime']).dt.strftime('%j').astype(str) +
+        '/' +
+        pandas.to_datetime(l3s['VIIRS_datetime']).dt.year.astype(str) +
+        pandas.to_datetime(l3s['VIIRS_datetime']).dt.strftime('%m').astype(str) +
+        pandas.to_datetime(l3s['VIIRS_datetime']).dt.strftime('%d').astype(str) +
+        '120000-STAR-L3S_GHRSST-SSTsubskin-LEO_Daily-ACSPO_V2.80-v02.0-fv01.0.nc'
     )
 
     # Check the table -- it should complain about missing required keys
@@ -62,7 +76,7 @@ def init_l3s_tbl():
 def l3s_viirs_extract(tbl_file:str, 
                       root_file=None, 
                       preproc_root='l3s_viirs', 
-                      debug=False):
+                      debug=True):
     """ Perform the extraction for the L3S dataset
 
     Args:
@@ -81,7 +95,7 @@ def l3s_viirs_extract(tbl_file:str,
 
     if debug:
         # Cut down to the first month
-        gd_date = l3s_table.datetime <= datetime.datetime(2012,3,1)
+        gd_date = l3s_table.datetime <= datetime.datetime(2012,2,2)
         l3s_table = l3s_table[gd_date]
         debug_local = True
 
@@ -90,6 +104,8 @@ def l3s_viirs_extract(tbl_file:str,
     else:
         if root_file is None:
             root_file = 'L3S_VIIRS144_preproc.h5'
+
+    #embed(header='105 sst_l3s_vet.py')
 
     # Setup
     pp_local_file = 'PreProc/'+root_file
@@ -100,14 +116,14 @@ def l3s_viirs_extract(tbl_file:str,
     print(f"Outputting to: {pp_s3_file}")
 
     # Run it
-    #if debug_local:
-    #    pp_s3_file = None  
+    if debug_local:
+        pp_s3_file = 's3://sst-l3s/PreProc/tst.h5'
     # Check indices
     l3s_table.reset_index(drop=True, inplace=True)
     assert np.all(np.arange(len(l3s_table)) == l3s_table.index)
     # Do it
-    if debug:
-        embed(header='210 of llc viirs')
+    #if debug:
+    #    embed(header='210 of llc viirs')
     extract.preproc_for_analysis(l3s_table, 
                                  pp_local_file,
                                  preproc_root=preproc_root,
@@ -117,7 +133,9 @@ def l3s_viirs_extract(tbl_file:str,
     assert cat_utils.vet_main_table(l3s_table, cut_prefix=['VIIRS_'])
 
     # Final write
-    if not debug:
+    if debug:
+        ulmo_io.write_main_table(l3s_table, 'tmp.parquet', to_s3=False)
+    else:
         ulmo_io.write_main_table(l3s_table, tbl_file)
     print("You should probably remove the PreProc/ folder")
     

@@ -64,7 +64,7 @@ def preproc_for_analysis(l3s_table:pandas.DataFrame,
     pdict = pp_io.load_options(preproc_root)
 
     # Setup for parallel
-    map_fn = partial(pp_utils.preproc_image, pdict=pdict)
+    map_fn = partial(pp_utils.preproc_image, pdict=pdict, use_mask=True)
 
     # Setup for dates
     uni_files = np.unique(l3s_table.ex_filename)
@@ -84,8 +84,10 @@ def preproc_for_analysis(l3s_table:pandas.DataFrame,
         # TODO -- Rachel
         # Load up the data including the mask
         # Process the mask by our criteria
-        #ds = llc_io.load_llc_ds(filename, local=dlocal)
-        #sst = ds.Theta.values
+        filename = ufile
+        ds = llc_io.load_llc_ds(filename, local=True)
+        qmasks = np.where(np.isin(ds['quality_level'], [4,5]), 0, 1)
+        sst = ds.sea_surface_temperature.values
 
         # Parse 
         gd_date = l3s_table.ex_filename == ufile
@@ -98,19 +100,22 @@ def preproc_for_analysis(l3s_table:pandas.DataFrame,
 
         # Load up the cutouts
         fields = []
+        masks = []
         for r, c in zip(coord_tbl.row, coord_tbl.col):
             dr = field_size[0]
             dc = field_size[1]
             #
             if (r+dr >= sst.shape[0]) or (c+dc > sst.shape[1]):
                 fields.append(None)
+                masks.append(None)
             else:
                 fields.append(sst[r:r+dr, c:c+dc])
+                masks.append(qmasks[r:r+dr, c:c+dc])
         print("Cutouts loaded for {}".format(ufile))
 
         # Multi-process time
         # 
-        items = [item for item in zip(fields,sub_idx)]
+        items = [item for item in zip(fields,masks,sub_idx)]
 
         with ProcessPoolExecutor(max_workers=n_cores) as executor:
             chunksize = len(items) // n_cores if len(items) // n_cores > 0 else 1
@@ -121,9 +126,9 @@ def preproc_for_analysis(l3s_table:pandas.DataFrame,
         answers = [f for f in answers if f is not None]
 
         # Slurp
-        pp_fields += [item[0] for item in answers]
-        img_idx += [item[1] for item in answers]
-        meta += [item[2] for item in answers]
+        pp_fields += [item[0] for item in answers if item is not None]
+        img_idx += [item[1] for item in answers if item is not None]
+        meta += [item[2] for item in answers if item is not None]
 
         del answers, fields, items, sst
         # Close the file
