@@ -151,3 +151,6 @@ if __name__ == '__main__':
 
 # Generate the table
 # python -u sst_l3s_vet.py 1
+
+# Extract
+# python -u sst_l3s_vet.py 2
