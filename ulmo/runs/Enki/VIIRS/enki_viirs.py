@@ -494,7 +494,7 @@ def main(flg):
         debug = False
         dataset = 'VIIRS'
 
-        for t in [10]:
+        for t in [20]:
             for p in [50]:
                 print(f'Working on: t={t}, p={p}')
                 #outfile = os.path.join(os.getenv('OS_SST'), 'VIIRS', 'Enki', 'Recon',
