@@ -16,13 +16,14 @@ from IPython import embed
 def get_latents(img:np.ndarray, 
                 model_file:str, 
                 opt:ulmo_io.Params):
-    """ Get the Nenya latents for the input image
+    """ Get the Nenya latents for an input image
 
     Args:
         img (np.ndarray): 
             Input image (64,64) or (1,64,64)
         model_file (str): 
-            Path to the SSL model file
+            Full path to the Nenya model file, e.g. $OS_SST/MODIS_L2/Nenya/models/v4_last.pth
+            Must be on the local filesystem (s3 is not allowed)
         opt (ulmo_io.Params): 
             Parameters for the SSL model
 
@@ -39,13 +40,6 @@ def get_latents(img:np.ndarray,
     # Pre-process
     pp_img = img - np.mean(img)
     
-    # Build the SSL model
-    model_base = os.path.basename(model_file)
-    if not os.path.isfile(model_base):
-        ulmo_io.download_file_from_s3(model_base, model_file)
-    else:
-        print(f"Using already downloaded {model_base} for the model")
-
     # DataLoader
     dset = torch.utils.data.TensorDataset(torch.from_numpy(pp_img).float())
     data_loader = torch.utils.data.DataLoader(
@@ -55,7 +49,7 @@ def get_latents(img:np.ndarray,
     # Time to run
     latents = latents_extraction.model_latents_extract(
         opt, 'None', 'valid', 
-        model_base, None, None,
+        model_file, None, None,
          loader=data_loader)
 
     # Return
@@ -114,23 +108,23 @@ def calc_DT(images, random_jitter:list,
     else:
         return DT
 
-def umap_image(model:str, img:np.ndarray):
+def umap_image(nenya_model:str, img:np.ndarray):
     """UMAP the input image
 
     Args:
-        model (str): Model file name
+        nenya_model (str): Nenya model name, e.g. v4, v5
         img (np.ndarray): Input image
 
     Returns:
         tuple: UMAP embedding, pre-processed image (np.ndarray), 
-        name of table file associated with this UMAP (str), DT (float)
+            name of table file associated with this UMAP (str), DT (float)
     """
 
     # Load opt
-    opt, model_file = ssl_io.load_opt(model)
+    opt, ssl_model_file = ssl_io.load_opt(nenya_model)
 
     # Calculate latents
-    latents, pp_img = get_latents(img, model_file, opt)
+    latents, pp_img = get_latents(img, ssl_model_file, opt)
 
     # DT40
     DT = calc_DT(img, opt.random_jitter)
@@ -139,7 +133,7 @@ def umap_image(model:str, img:np.ndarray):
     # UMAP me
     #embed(header='umap_image: about to embed')
     print("Embedding")
-    latents_mapping, table_file = nenya_umap.load(model, DT=DT)
+    latents_mapping, table_file = nenya_umap.load(nenya_model, DT=DT)
     embedding = latents_mapping.transform(latents)
 
     print(f'U0,U1 for the input image = {embedding[0,0]:.3f}, {embedding[0,1]:.3f}')
