@@ -49,22 +49,31 @@ def init_l3s_tbl():
     l3s['lat'] = l3s['VIIRS_lat']
     l3s['lon'] = l3s['VIIRS_lon']
 
-    base_datetime = pandas.to_datetime(l3s['VIIRS_datetime']).dt.date.astype(str) + ' 01:30:00'
-    base_datetime = pandas.to_datetime(base_datetime, format='%Y-%m-%d %H:%M:%S')
-    l3s['datetime'] = (base_datetime + pandas.to_timedelta(l3s['VIIRS_lon'] * 4, unit='minutes')).dt.round('S')
+    l3s['viirs_date'] = l3s['VIIRS_datetime'].dt.date
+    desired_time = datetime.time(1, 30, 0)
+    l3s['combined_datetime'] = pandas.to_datetime(l3s['viirs_date'].astype(str) + ' ' + str(desired_time))
+    l3s['datetime'] = (l3s['combined_datetime'] + pandas.to_timedelta(l3s['VIIRS_lon'] * 4, unit='minutes')).dt.round('S')
 
-    #embed(header='56 of sst_l3s_vet.py')
+    l3s['viirs_date'] = pandas.to_datetime(l3s['VIIRS_datetime'].dt.date.astype(str) + ' ' + str(desired_time))
+    l3s['viirs_date_minus1'] = pandas.to_datetime((l3s['VIIRS_datetime'].dt.date - datetime.timedelta(days=1)).astype(str) + ' ' + str(desired_time))
+    l3s['viirs_date_plus1'] = pandas.to_datetime((l3s['VIIRS_datetime'].dt.date + datetime.timedelta(days=1)).astype(str) + ' ' + str(desired_time))
+
+    time_threshold = pandas.Timedelta(hours=12)
+
+    if (l3s['datetime'] - l3s['viirs_date_minus1']).apply(lambda x: x < time_threshold).any():
+        l3s['date'] = l3s['viirs_date_minus1'].dt.date
+    elif (l3s['datetime'] - l3s['viirs_date']).apply(lambda x: x < time_threshold).any():
+        l3s['date'] = l3s['viirs_date'].dt.date
+    elif (l3s['datetime'] - l3s['viirs_date_plus1']).apply(lambda x: x < time_threshold).any():
+        l3s['date'] = l3s['viirs_date_plus1'].dt.date
+    else:
+        l3s['date'] = l3s['viirs_date'].dt.date
+
     l3s['ex_filename'] = (
         '/Volumes/Aqua-1/Hackathon/daily/l3s_fields/' +
-        pandas.to_datetime(l3s['VIIRS_datetime']).dt.year.astype(str) +
-        '/' +
-        pandas.to_datetime(l3s['VIIRS_datetime']).dt.strftime('%j').astype(str) +
-        '/' +
-        pandas.to_datetime(l3s['VIIRS_datetime']).dt.year.astype(str) +
-        pandas.to_datetime(l3s['VIIRS_datetime']).dt.strftime('%m').astype(str) +
-        pandas.to_datetime(l3s['VIIRS_datetime']).dt.strftime('%d').astype(str) +
-        '120000-STAR-L3S_GHRSST-SSTsubskin-LEO_Daily-ACSPO_V2.80-v02.0-fv01.0.nc'
-    )
+        l3s['VIIRS_datetime'].dt.strftime('%Y/%j/%Y%m%d') +
+        '120000-STAR-L3S_GHRSST-SSTsubskin-LEO_Daily-ACSPO_V2.80-v02.0-fv01.0.nc')
+    l3s = l3s.drop(['viirs_date', 'combined_datetime', 'viirs_date_minus1', 'viirs_date_plus1', 'date'], axis=1)
 
     # Check the table -- it should complain about missing required keys
     cat_utils.vet_main_table(l3s, cut_prefix='VIIRS_')
@@ -105,8 +114,6 @@ def l3s_viirs_extract(tbl_file:str,
         if root_file is None:
             root_file = 'L3S_VIIRS144_preproc.h5'
 
-    #embed(header='105 sst_l3s_vet.py')
-
     # Setup
     pp_local_file = 'PreProc/'+root_file
     pp_s3_file = 's3://sst-l3s/PreProc/'+root_file
@@ -131,6 +138,8 @@ def l3s_viirs_extract(tbl_file:str,
                                  override_RAM=True)
     # Vet
     assert cat_utils.vet_main_table(l3s_table, cut_prefix=['VIIRS_'])
+
+    #embed(header='142 sst_l3s_vet.py')
 
     # Final write
     if debug:
