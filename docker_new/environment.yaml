@@ -1,0 +1,24 @@
+name: nenya
+
+channels:
+  - conda-forge
+  - anaconda
+  
+dependencies:
+  - python=3.10.*
+  - numba
+  - scipy
+  - statsmodels
+  - cartopy
+  - numpy
+  - ipython
+  - pandas 
+  - matplotlib 
+  - bokeh=3.0.3
+  - seaborn 
+  - astropy
+  - pip
+  - gcc
+  - pip:
+    - -r requirements.txt
+    - -r requirements_extra.txt
