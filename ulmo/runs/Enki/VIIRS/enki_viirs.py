@@ -419,7 +419,7 @@ def viirs_extract_2013(debug=False, n_cores=20,
     print("Pushing to s3")
     ulmo_io.upload_file_to_s3(save_path, s3_filename)
 
-def inpaint(t:int, p:int, dataset:str,
+def viirs_inpaint(t:int, p:int, dataset:str,
             debug:bool=False, n_cores:int=10,
             clobber:bool=False, rmse_clobber:bool=False):
     """ Wrapper to inpaint_images
@@ -481,7 +481,7 @@ def main(flg):
         # More
         for t in [20]:
             for p in [50]:
-                inpaint(t, p, 'VIIRS', debug=False,
+                viirs_inpaint(t, p, 'VIIRS', debug=False)
 
     # Extract with clouds at ~10%
     if flg & (2**3):
@@ -494,7 +494,7 @@ def main(flg):
         dataset = 'VIIRS'
 
         for t in [10]:
-            for p in [10]:
+            for p in [50]:
                 print(f'Working on: t={t}, p={p}')
                 outfile = os.path.join(os.getenv('OS_SST'), 'VIIRS', 'Enki', 'Recon',
                     f'Enki_{dataset}_inpaint_t{t}_p{p}.h5')
