@@ -34,6 +34,9 @@ def load_opt(model:str):
     elif model == 'v5': 
         opt_path= os.path.join(resource_filename('ulmo', 'runs'),
             'Nenya', 'MODIS', 'v5', 'opts_nenya_modis_v5.json')
+        model_file = os.path.join(os.getenv('OS_SST'),
+                                  'MODIS_L2', 'Nenya', 'models', 
+                                  'v5_last.pth')
     else:
         raise IOError("Bad model!!")
 

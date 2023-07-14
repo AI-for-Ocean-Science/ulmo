@@ -1141,8 +1141,8 @@ if __name__ == "__main__":
     #tmp = OSSinglePortal(None, None)
     table_file = os.path.join(
             os.getenv('OS_SST'), 
-            'MODIS_L2', 'Tables',
-            'MODIS_SSL_96clear_v4_DT15.parquet')
+            'MODIS_L2', 'Nenya', 'Tables',
+            'MODIS_SSL_96clear_v5_DT15.parquet')
 
     tst_Image = None
 

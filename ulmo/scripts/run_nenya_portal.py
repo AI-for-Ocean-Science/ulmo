@@ -21,7 +21,6 @@ def main(pargs):
     """ Run
     """
     import numpy as np
-    import json
     import os
 
     from ulmo.nenya import portal
