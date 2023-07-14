@@ -481,6 +481,7 @@ def main(flg):
         # More
         for t in [20]:
             for p in [50]:
+                # This does RMSE too
                 viirs_inpaint(t, p, 'VIIRS', debug=False)
 
     # Extract with clouds at ~10%
@@ -496,12 +497,13 @@ def main(flg):
         for t in [10]:
             for p in [50]:
                 print(f'Working on: t={t}, p={p}')
-                outfile = os.path.join(os.getenv('OS_SST'), 'VIIRS', 'Enki', 'Recon',
-                    f'Enki_{dataset}_inpaint_t{t}_p{p}.h5')
+                #outfile = os.path.join(os.getenv('OS_SST'), 'VIIRS', 'Enki', 'Recon',
+                #    f'Enki_{dataset}_inpaint_t{t}_p{p}.h5')
+                #enki_analysis.calc_rms(t, p, dataset, debug=debug, 
+                #           in_recon_file=outfile, clobber=True,
+                #           keys=['valid', 'inpainted', 'valid'])
                 enki_analysis.calc_rms(t, p, dataset, debug=debug, 
-                                       method='inpaint',
-                           in_recon_file=outfile, clobber=True,
-                           keys=['valid', 'inpainted', 'valid'])
+                           clobber=True)
 
 
 # Command line execution
