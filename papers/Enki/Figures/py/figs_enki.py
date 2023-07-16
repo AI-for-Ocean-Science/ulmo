@@ -246,7 +246,7 @@ def fig_patch_ij_binned_stats(metric:str,
 
 def fig_patch_rmse(patch_file:str, in_ax=None, outfile:str=None, 
                    other_patch_files:list=None,
-                   lbls:list=None,
+                   lbls:list=None, show_model:bool=True,
                    tp:tuple=None, model:str='std'):
     """ Binned stats for patches
 
@@ -294,8 +294,8 @@ def fig_patch_rmse(patch_file:str, in_ax=None, outfile:str=None,
     ax.plot(plt_x, eval_stats, 'o', color='b', 
             label='Patches' if lbls is None else lbls[0])
 
-    markers = ['*', 's', '^', 'v']
-    colors = ['g', 'purple', 'orange', 'cyan']
+    markers = ['*', '^', 's',  'v']
+    colors = ['g', 'orange', 'purple', 'cyan']
     if other_patch_files is not None:
         for kk in range(len(other_patch_files)):
             x_edge2, eval_stats2, _, _, _, _, _ = items[kk]
@@ -319,7 +319,8 @@ def fig_patch_rmse(patch_file:str, in_ax=None, outfile:str=None,
     elif model == 'denom':
         yval = enki_anly_rms.denom_model(10**xval, floor=consts[0], scale=consts[1])
         
-    ax.plot(xval, np.log10(yval), 'r:', 
+    if show_model:
+        ax.plot(xval, np.log10(yval), 'r:', 
             label=r'$\log_{10}( \, (\sigma_T + '+f'{consts[0]:0.3f})/{consts[1]:0.1f}'+r')$')
 
 
@@ -1005,7 +1006,9 @@ def main(flg_fig):
     if flg_fig & (2 ** 4):
         #fig_viirs_rmse()
         fig_viirs_rmse(outfile='fig_viirs_rmse_t20p40.png',
-                       t=20, p=50)
+                       t=20, p=40, show_inpaint=False)
+        #fig_viirs_rmse(outfile='fig_viirs_rmse_t20p50.png',
+        #               t=20, p=50)
         #fig_viirs_rmse(outfile='fig_viirs_rmse_noinpaint.png',
         #               show_inpaint=False)
         #fig_viirs_rmse(outfile='fig_viirs_rmse_quad.png',
@@ -1018,16 +1021,23 @@ def main(flg_fig):
     # More patch figures
     if flg_fig & (2 ** 6):
         fig_patch_rmse(
-            '/home/xavier/Projects/Oceanography/SST/VIIRS/Enki/Recon/VIIRS_100clear_patches_t10_p10.npz',
-            other_patch_files=['/backup/Oceanography/OGCM/LLC/Enki/Recon/enki_noise_patches_t10_p10.npz',
                 '/backup/Oceanography/OGCM/LLC/Enki/Recon/enki_patches_t10_p10.npz',
+            other_patch_files=[
+                '/backup/Oceanography/OGCM/LLC/Enki/Recon/enki_noise_patches_t10_p10.npz',
                 '/backup/Oceanography/OGCM/LLC/Enki/Recon/enki_noise_patches_noiseless_t10_p10.npz',
-                '/backup/Oceanography/OGCM/LLC/Enki/Recon/enki_noise02_patches_t10_p10.npz',
+                '/home/xavier/Projects/Oceanography/SST/VIIRS/Enki/Recon/VIIRS_100clear_patches_t10_p10.npz',
+                #'/backup/Oceanography/OGCM/LLC/Enki/Recon/enki_noise02_patches_t10_p10.npz',
             ],
-            lbls=['VIIRS', 'LLC2 Noise 0.04K', 'LLC2 NoNoise', 
-                  'LLC2 Noise/Noiseless', 'LLC2 Noise 0.02K'],
+            lbls=[
+                  'LLC without Noise', 
+                  'LLC with Noise=0.04K', 
+                  'LLC Noise+Noiseless', 
+                'VIIRS', 
+                  #'LLC2 Noise 0.02K',
+                  ],
             outfile='fig_viirs_llc_patches_t10_p10.png',
-            tp=(10,10))
+            tp=(10,10),
+            show_model=False)
 
         #fig_patch_rmse(
         #    '/home/xavier/Projects/Oceanography/SST/VIIRS/Enki/Recon/VIIRS_100clear_patches_t10_p10.npz',
@@ -1052,9 +1062,9 @@ if __name__ == '__main__':
         #flg_fig += 2 ** 1  # cutouts
         #flg_fig += 2 ** 2  # LLC RMSE (Enki vs inpainting)
         #flg_fig += 2 ** 3  # Reconstruction example
-        flg_fig += 2 ** 4  # VIIRS RMSE vs LL (Figure 5)
+        #flg_fig += 2 ** 4  # VIIRS RMSE vs LL (Figure 5)
         #flg_fig += 2 ** 5  # Check valid 2
-        #flg_fig += 2 ** 6  # More patch figures
+        flg_fig += 2 ** 6  # More patch figures
         #flg_fig += 2 ** 7  # Compare Enki against many inpainting
         #flg_fig += 2 ** 8  # DINEOF
     else:
