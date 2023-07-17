@@ -86,6 +86,7 @@ def preproc_for_analysis(l3s_table:pandas.DataFrame,
         # Process the mask by our criteria
         filename = ufile
         ds = llc_io.load_llc_ds(filename, local=True)
+        ds = ds.squeeze(dim='time')
         qmasks = np.where(np.isin(ds['quality_level'], [4,5]), 0, 1)
         sst = ds.sea_surface_temperature.values - 273.15 # Celsius
 
@@ -121,14 +122,14 @@ def preproc_for_analysis(l3s_table:pandas.DataFrame,
             chunksize = len(items) // n_cores if len(items) // n_cores > 0 else 1
             answers = list(tqdm(executor.map(map_fn, items,
                                              chunksize=chunksize), total=len(items)))
-
+        
         # Deal with failures
         answers = [f for f in answers if f is not None]
 
         # Slurp
-        pp_fields += [item[0] for item in answers if item is not None]
-        img_idx += [item[1] for item in answers if item is not None]
-        meta += [item[2] for item in answers if item is not None]
+        pp_fields += [item[0] for item in answers]
+        img_idx += [item[1] for item in answers]
+        meta += [item[2] for item in answers]
 
         del answers, fields, items, sst
         # Close the file
@@ -138,7 +139,7 @@ def preproc_for_analysis(l3s_table:pandas.DataFrame,
     ex_idx = np.array(all_sub)
     ppf_idx = []
     ppf_idx = catalog.match_ids(np.array(img_idx), ex_idx)
-    
+    #embed(header='141 extract.py')
     # Write
     l3s_table = pp_utils.write_pp_fields(
         pp_fields, meta, l3s_table, ex_idx, ppf_idx,
