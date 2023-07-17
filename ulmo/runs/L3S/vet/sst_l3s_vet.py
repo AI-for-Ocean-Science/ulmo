@@ -130,7 +130,7 @@ def l3s_viirs_extract(tbl_file:str,
     assert np.all(np.arange(len(l3s_table)) == l3s_table.index)
     # Do it
     #if debug:
-    #    embed(header='210 of llc viirs')
+    #embed(header='210 of llc viirs')
     extract.preproc_for_analysis(l3s_table, 
                                  pp_local_file,
                                  preproc_root=preproc_root,
