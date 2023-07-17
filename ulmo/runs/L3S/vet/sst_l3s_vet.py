@@ -85,7 +85,7 @@ def init_l3s_tbl():
 def l3s_viirs_extract(tbl_file:str, 
                       root_file=None, 
                       preproc_root='l3s_viirs', 
-                      debug=True):
+                      debug=False):
     """ Perform the extraction for the L3S dataset
 
     Args:
@@ -113,6 +113,7 @@ def l3s_viirs_extract(tbl_file:str,
     else:
         if root_file is None:
             root_file = 'L3S_VIIRS144_preproc.h5'
+            debug_local = False
 
     # Setup
     pp_local_file = 'PreProc/'+root_file
@@ -161,7 +162,7 @@ def main(flg):
 
     # Generate the VIIRS images
     if flg & (2**1):
-        l3s_viirs_extract(l3s_viirs_tbl_file, debug=True)
+        l3s_viirs_extract(l3s_viirs_tbl_file, debug=False)
 
 
 # Command line execution
