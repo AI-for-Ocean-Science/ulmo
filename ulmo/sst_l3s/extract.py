@@ -87,7 +87,7 @@ def preproc_for_analysis(l3s_table:pandas.DataFrame,
         filename = ufile
         ds = llc_io.load_llc_ds(filename, local=True)
         qmasks = np.where(np.isin(ds['quality_level'], [4,5]), 0, 1)
-        sst = ds.sea_surface_temperature.values
+        sst = ds.sea_surface_temperature.values - 273.15 # Celsius
 
         # Parse 
         gd_date = l3s_table.ex_filename == ufile
