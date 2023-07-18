@@ -46,12 +46,14 @@ def load_ulmo_model(model_name:str, datadir=None, local=False):
     elif model_name == 'viirs-test':
         if datadir is None:
             datadir = os.path.join('s3://viirs', 'Models', 'VIIRS_test')
-            datadir = os.path.join('s3://viirs', 'Models', 'VIIRS_test')
         filepath = 'PreProc/VIIRS_2013_95clear_192x192_preproc_viirs_std_train.h5'
     elif model_name == 'viirs-98':
         if datadir is None:
-            datadir = os.path.join('s3://viirs', 'Models', 'VIIRS_std_98')
-            datadir = os.path.join('s3://viirs', 'Models', 'VIIRS_std_98')
+            if local:
+                datadir = 'VIIRS_std_98'
+            else:
+                datadir = os.path.join('s3://viirs', 'Models', 'VIIRS_std_98')
+
         filepath = 'PreProc/VIIRS_2013_98clear_192x192_preproc_viirs_std_train.h5'
     else:
         raise IOError("Bad Ulmo model name!!")

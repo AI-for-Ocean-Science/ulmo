@@ -222,3 +222,6 @@ if __name__ == '__main__':
 
 # Extract
 # python -u sst_l3s_vet.py 2
+
+# Ulmo
+# python -u sst_l3s_vet.py 4
