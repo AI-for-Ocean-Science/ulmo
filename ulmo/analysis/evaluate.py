@@ -17,6 +17,7 @@ from IPython import embed
 def eval_from_main(main_table: pandas.DataFrame,
                    model='modis-l2-std',
                    clobber_local=False,
+                   local:bool=False,
                    debug=False):
     """Evaluate a set of cutouts guided by the input table
 
@@ -25,6 +26,7 @@ def eval_from_main(main_table: pandas.DataFrame,
         model (str, optional): Name of Ulmo model to apply. Defaults to 'modis-l2-std'.
         clobber_local (bool, optional): Over-write local pre-process file, if True. Defaults to False.
         debug (bool, optional): Debug?
+        local (bool, optional): Use local dir for Ulmo model? Defaults to False.
 
     Raises:
         IOError: [description]
@@ -41,7 +43,7 @@ def eval_from_main(main_table: pandas.DataFrame,
         main_table['LL'] = np.nan
 
     # Load model
-    pae = model_io.load_ulmo_model(model, local=False)
+    pae = model_io.load_ulmo_model(model, local=local)
     print("Model loaded!")
 
     # Prep
