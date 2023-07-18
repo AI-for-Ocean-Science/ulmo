@@ -15,6 +15,7 @@ import datetime
 from matplotlib import pyplot as plt
 import seaborn as sns
 
+from ulmo.analysis import evaluate as ulmo_evaluate 
 from ulmo import io as ulmo_io
 from ulmo.utils import catalog as cat_utils
 
@@ -159,6 +160,27 @@ def l3s_viirs_extract(tbl_file:str,
         ulmo_io.write_main_table(l3s_table_year, new_tbl_file)
     print("You should probably remove the PreProc/ folder")
     
+def l3s_ulmo(year:int, debug=False, model='viirs-98'):
+    """Evaluate the L3S data using Ulmo
+
+    Args:
+        debug (bool, optional): [description]. Defaults to False.
+        model (str, optional): [description]. Defaults to 'viirs-98'.
+    """
+    new_tbl_file = l3s_viirs_tbl_file.replace('.parquet', f'_{year}.parquet')
+
+    # Load Table
+    l3s_tbl = ulmo_io.load_main_table(new_tbl_file)
+
+    # Evaluate
+    print("Starting evaluating..")
+    viirs_tbl = ulmo_evaluate.eval_from_main(l3s_tbl, model=model)
+
+    # Write 
+    assert cat_utils.vet_main_table(l3s_tbl)
+    ulmo_io.write_main_table(l3s_tbl, new_tbl_file)
+    print("Done evaluating..")
+
 
 def main(flg):
     if flg== 'all':
@@ -170,13 +192,18 @@ def main(flg):
     if flg & (2**0):
         init_l3s_tbl()
 
-    # Generate the VIIRS images
+    # Extract the L3S images
     if flg & (2**1):
         #l3s_viirs_extract(l3s_viirs_tbl_file, debug=False)
 
         # Try 2012
         l3s_viirs_extract(l3s_viirs_tbl_file, 2012, debug=False)
 
+    # Run Ulmo
+    if flg & (2**2):
+
+        # Try 2012
+        l3s_ulmo(2012, debug=False)
 
 # Command line execution
 if __name__ == '__main__':
