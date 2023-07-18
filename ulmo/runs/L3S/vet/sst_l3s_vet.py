@@ -118,8 +118,7 @@ def l3s_viirs_extract(tbl_file:str,
 
     # Cut on year
     gd_date = (l3s_table.VIIRS_datetime >= datetime.datetime(year,1,1)) & (
-        l3s_table.VIIRS_datetime < datetime.datetime(year+1,1,1)) & (
-        )
+        l3s_table.VIIRS_datetime < datetime.datetime(year+1,1,1)) 
     l3s_table_year = l3s_table[gd_date]
     l3s_table_year.reset_index(drop=True, inplace=True)
     print(f"Running on year={year} with {len(l3s_table_year)} rows"}")
