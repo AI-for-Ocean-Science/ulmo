@@ -174,7 +174,8 @@ def l3s_ulmo(year:int, debug=False, model='viirs-98'):
 
     # Evaluate
     print("Starting evaluating..")
-    viirs_tbl = ulmo_evaluate.eval_from_main(l3s_tbl, model=model)
+    viirs_tbl = ulmo_evaluate.eval_from_main(l3s_tbl, model=model,
+                                             local=True)
 
     # Write 
     assert cat_utils.vet_main_table(l3s_tbl)
