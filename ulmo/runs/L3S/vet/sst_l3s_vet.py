@@ -178,7 +178,7 @@ def l3s_ulmo(year:int, debug=False, model='viirs-98'):
                                              local=True)
 
     # Write 
-    assert cat_utils.vet_main_table(l3s_table_year, cut_prefix=['VIIRS_'])
+    assert cat_utils.vet_main_table(l3s_table, cut_prefix=['VIIRS_'])
     ulmo_io.write_main_table(l3s_tbl, new_tbl_file)
     print("Done evaluating..")
 
@@ -204,7 +204,14 @@ def main(flg):
     if flg & (2**2):
 
         # Try 2012
-        l3s_ulmo(2012, debug=False)
+        #l3s_ulmo(2012, debug=False)
+
+        #  Loop me
+        for year in range(2012, 2021):
+            # Skip 2019 for now``
+            if year == 2019:
+                continue
+            l3s_ulmo(year, debug=False)
 
 # Command line execution
 if __name__ == '__main__':
