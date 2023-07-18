@@ -178,7 +178,7 @@ def l3s_ulmo(year:int, debug=False, model='viirs-98'):
                                              local=True)
 
     # Write 
-    assert cat_utils.vet_main_table(l3s_tbl)
+    assert cat_utils.vet_main_table(l3s_table_year, cut_prefix=['VIIRS_'])
     ulmo_io.write_main_table(l3s_tbl, new_tbl_file)
     print("Done evaluating..")
 
