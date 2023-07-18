@@ -83,6 +83,7 @@ def init_l3s_tbl():
 
 # EXTRACTION
 def l3s_viirs_extract(tbl_file:str, 
+                      year:int,
                       root_file=None, 
                       preproc_root='l3s_viirs', 
                       debug=False):
@@ -90,6 +91,7 @@ def l3s_viirs_extract(tbl_file:str,
 
     Args:
         tbl_file (str): table file (s3)
+        year (int): Year to analyze
         root_file (_type_, optional): 
             Output filename. Defaults to None.
         preproc_root (str, optional): 
@@ -101,6 +103,12 @@ def l3s_viirs_extract(tbl_file:str,
 
     # Giddy up (will take a bit of memory!)
     l3s_table = ulmo_io.load_main_table(tbl_file)
+    # Check indices
+    l3s_table.reset_index(drop=True, inplace=True)
+    assert np.all(np.arange(len(l3s_table)) == l3s_table.index)
+
+    # New table file``
+    new_tbl_file = tbl_file.replace('.parquet', f'_{year}.parquet')
 
     if debug:
         # Cut down to the first month
@@ -108,11 +116,18 @@ def l3s_viirs_extract(tbl_file:str,
         l3s_table = l3s_table[gd_date]
         debug_local = True
 
+    # Cut on year
+    gd_date = (l3s_table.VIIRS_datetime >= datetime.datetime(year,1,1)) & (
+        l3s_table.VIIRS_datetime < datetime.datetime(year+1,1,1)) & (
+        )
+    l3s_table_year = l3s_table[gd_date]
+    l3s_table_year.reset_index(drop=True, inplace=True)
+
     if debug:
         root_file = 'L3S_VIIRS144_test_preproc.h5'
     else:
         if root_file is None:
-            root_file = 'L3S_VIIRS144_preproc.h5'
+            root_file = f'L3S_VIIRS144_{year}_preproc.h5'
             debug_local = False
 
     # Setup
@@ -126,27 +141,22 @@ def l3s_viirs_extract(tbl_file:str,
     # Run it
     if debug_local:
         pp_s3_file = 's3://sst-l3s/PreProc/tst.h5'
-    # Check indices
-    l3s_table.reset_index(drop=True, inplace=True)
-    assert np.all(np.arange(len(l3s_table)) == l3s_table.index)
     # Do it
     #if debug:
     #embed(header='210 of llc viirs')
-    extract.preproc_for_analysis(l3s_table, 
+    extract.preproc_for_analysis(l3s_table_year, 
                                  pp_local_file,
                                  preproc_root=preproc_root,
                                  s3_file=pp_s3_file,
                                  override_RAM=True)
     # Vet
-    assert cat_utils.vet_main_table(l3s_table, cut_prefix=['VIIRS_'])
-
-    #embed(header='142 sst_l3s_vet.py')
+    assert cat_utils.vet_main_table(l3s_table_year, cut_prefix=['VIIRS_'])
 
     # Final write
     if debug:
-        ulmo_io.write_main_table(l3s_table, 'tmp.parquet', to_s3=False)
+        ulmo_io.write_main_table(l3s_table_year, 'tmp.parquet', to_s3=False)
     else:
-        ulmo_io.write_main_table(l3s_table, tbl_file)
+        ulmo_io.write_main_table(l3s_table_year, new_tbl_file)
     print("You should probably remove the PreProc/ folder")
     
 
@@ -162,7 +172,10 @@ def main(flg):
 
     # Generate the VIIRS images
     if flg & (2**1):
-        l3s_viirs_extract(l3s_viirs_tbl_file, debug=False)
+        #l3s_viirs_extract(l3s_viirs_tbl_file, debug=False)
+
+        # Try 2012
+        l3s_viirs_extract(l3s_viirs_tbl_file, 2012, debug=False)
 
 
 # Command line execution
