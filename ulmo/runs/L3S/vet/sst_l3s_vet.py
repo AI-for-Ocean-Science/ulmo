@@ -45,8 +45,8 @@ def init_l3s_tbl():
         l3s[f'VIIRS_{key}'] = viirs[key]
 
     # Add L3S data
-    l3s['row'] = ((90 - l3s['VIIRS_lat']) * (9000 / 180)).astype(int)
-    l3s['col'] = ((l3s['VIIRS_lon'] + 180) * (18000 / 360)).astype(int)
+    l3s['row'] = ((90 - l3s['VIIRS_lat']) * (9000 / 180)).astype(int) - 32
+    l3s['col'] = ((l3s['VIIRS_lon'] + 180) * (18000 / 360)).astype(int) - 32
     l3s['lat'] = l3s['VIIRS_lat']
     l3s['lon'] = l3s['VIIRS_lon']
 
