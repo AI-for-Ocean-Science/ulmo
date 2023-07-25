@@ -106,7 +106,7 @@ def preproc_for_analysis(l3s_table:pandas.DataFrame,
             dr = field_size[0]
             dc = field_size[1]
             #
-            if (r+dr >= sst.shape[0]) or (c+dc > sst.shape[1]):
+            if (r+dr >= sst.shape[0]) or (c+dc > sst.shape[1]) or (r < 0) or (c < 0):
                 fields.append(None)
                 masks.append(None)
             else:
