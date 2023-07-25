@@ -155,16 +155,18 @@ def show_avg_LL(main_tbl:pandas.DataFrame,
 
 
 
-def evals_to_healpix_meds(eval_tbl, nside,  mask=True):
+def evals_to_healpix_meds(eval_tbl, nside,  mask=True,
+                          metric:str='LL'):
     """
-    Find out where the input cutouts are located and the median LL values associated
-    with each pixel
+    Find out where the input cutouts are located and the median values associated
+    with each pixel; default is LL
 
     Parameters
     ----------
-    mhw_sys : pandas.DataFrame
+    eval_tbl : pandas.DataFrame
     nside : int  # nside is a number that sets the resolution of map
     mask : bool, optional
+        If True, include a mask on the arrays
 
     Returns
     -------
@@ -176,7 +178,7 @@ def evals_to_healpix_meds(eval_tbl, nside,  mask=True):
     lons = eval_tbl.lon.values
 
     # Grab LL values
-    vals = eval_tbl.LL.values
+    vals = eval_tbl[metric].values
 
     # Healpix coords
     theta = (90 - lats) * np.pi / 180.  # convert into radians
@@ -206,15 +208,19 @@ def evals_to_healpix_meds(eval_tbl, nside,  mask=True):
     for pixel in pixels: 
     
         # find where which cutouts to put in that pixel
-        where = np.where(pixel == idx_arr)
-        first = where[0][0]
-        last = where[0][-1]
-        indices = idx_arr[first:last + 1].index
+        #where = np.where(pixel == idx_arr)
+        #first = where[0][0]
+        #last = where[0][-1]
+        #indices = idx_arr[first:last + 1].index
+
+        good = pixel == idx_arr
     
         # evaluate the median LL value for that pixel 
-        vals = eval_tbl.iloc[indices.to_numpy()].LL.to_numpy()
+        #vals = eval_tbl.iloc[indices.to_numpy()].LL.to_numpy()
+        sub_vals = vals[good]
     
-        med_values[pixel] = np.median( vals )
+        med_values[pixel] = np.median(sub_vals)
+        #med_values[pixel] = np.median( vals )
 
 
     # Mask
