@@ -59,6 +59,9 @@ def eval_from_main(main_table: pandas.DataFrame,
     for kk, pp_file in enumerate(uni_pp_files):
         if debug and kk > 0:
             continue
+        # Skipped files
+        if len(pp_file) == 0:
+            continue
         # Parse me
         parsed_s3 = urlparse(pp_file)
         local_file = os.path.join(preproc_folder, os.path.basename(pp_file))
@@ -68,7 +71,6 @@ def eval_from_main(main_table: pandas.DataFrame,
         valid = main_table.pp_type == ulmo_defs.mtbl_dmodel['pp_type']['valid']
 
         # Download preproc file for speed
-        embed(header='71 of evaluate.py')
         if not os.path.isfile(local_file) or clobber_local:
             print("Downloading from s3: {}".format(pp_file))
             ulmo_io.s3.Bucket(parsed_s3.netloc).download_file(
