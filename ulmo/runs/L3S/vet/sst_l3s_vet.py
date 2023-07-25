@@ -199,7 +199,7 @@ def main(flg):
         #l3s_viirs_extract(l3s_viirs_tbl_file, debug=False)
 
         # Try 2012
-        l3s_viirs_extract(l3s_viirs_tbl_file, 2012, debug=True)
+        l3s_viirs_extract(l3s_viirs_tbl_file, 2012, debug=False)
 
     # Run Ulmo
     if flg & (2**2):
