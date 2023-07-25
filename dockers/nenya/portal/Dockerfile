@@ -10,8 +10,6 @@ RUN git clone --depth 1 --branch nenya_resubmit https://github.com/AI-for-Ocean-
 
 # copy dependencies requirement files
 COPY ["environment.yaml", "requirements.txt", "requirements_extra.txt", "/nenya_docker/"]
-# copy pytorch file
-COPY ["last.pth", "/ulmo/ulmo/nenya/"]
 
 # update conda and create environment
 WORKDIR /nenya_docker
