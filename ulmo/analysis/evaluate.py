@@ -68,6 +68,7 @@ def eval_from_main(main_table: pandas.DataFrame,
         valid = main_table.pp_type == ulmo_defs.mtbl_dmodel['pp_type']['valid']
 
         # Download preproc file for speed
+        embed(header='71 of evaluate.py')
         if not os.path.isfile(local_file) or clobber_local:
             print("Downloading from s3: {}".format(pp_file))
             ulmo_io.s3.Bucket(parsed_s3.netloc).download_file(
