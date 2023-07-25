@@ -90,6 +90,9 @@ def preproc_for_analysis(l3s_table:pandas.DataFrame,
         qmasks = np.where(np.isin(ds['quality_level'], [4,5]), 0, 1)
         sst = ds.sea_surface_temperature.values - 273.15 # Celsius
 
+        # Close the file
+        ds.close()
+
         # Parse 
         gd_date = l3s_table.ex_filename == ufile
         sub_idx = np.where(gd_date)[0]
@@ -114,9 +117,11 @@ def preproc_for_analysis(l3s_table:pandas.DataFrame,
                 masks.append(qmasks[r:r+dr, c:c+dc])
         print("Cutouts loaded for {}".format(ufile))
 
+
         # Multi-process time
         # 
         items = [item for item in zip(fields,masks,sub_idx)]
+
 
         with ProcessPoolExecutor(max_workers=n_cores) as executor:
             chunksize = len(items) // n_cores if len(items) // n_cores > 0 else 1
@@ -132,8 +137,6 @@ def preproc_for_analysis(l3s_table:pandas.DataFrame,
         meta += [item[2] for item in answers]
 
         del answers, fields, items, sst
-        # Close the file
-        #ds.close()
 
     # Fuss with indices
     ex_idx = np.array(all_sub)
