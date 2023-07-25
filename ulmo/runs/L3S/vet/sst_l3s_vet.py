@@ -113,7 +113,7 @@ def l3s_viirs_extract(tbl_file:str,
 
     if debug:
         # Cut down to the first month
-        gd_date = l3s_table.datetime <= datetime.datetime(2012,2,2)
+        gd_date = l3s_table.datetime <= datetime.datetime(2012,2,4)
         l3s_table = l3s_table[gd_date]
         debug_local = True
 
@@ -149,7 +149,8 @@ def l3s_viirs_extract(tbl_file:str,
                                  pp_local_file,
                                  preproc_root=preproc_root,
                                  s3_file=pp_s3_file,
-                                 override_RAM=True)
+                                 override_RAM=True,
+                                 debug=debug)
     # Vet
     assert cat_utils.vet_main_table(l3s_table_year, cut_prefix=['VIIRS_'])
 
@@ -198,7 +199,7 @@ def main(flg):
         #l3s_viirs_extract(l3s_viirs_tbl_file, debug=False)
 
         # Try 2012
-        l3s_viirs_extract(l3s_viirs_tbl_file, 2012, debug=False)
+        l3s_viirs_extract(l3s_viirs_tbl_file, 2012, debug=True)
 
     # Run Ulmo
     if flg & (2**2):
