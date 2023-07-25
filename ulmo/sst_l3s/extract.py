@@ -79,22 +79,36 @@ def preproc_for_analysis(l3s_table:pandas.DataFrame,
                                                 preproc_root,
                                                 field_size=field_size)
 
-    for ufile in uni_files:
+    for ss, ufile in enumerate(uni_files):
 
         # TODO -- Rachel
         # Load up the data including the mask
         # Process the mask by our criteria
         filename = ufile
-        ds = llc_io.load_llc_ds(filename, local=True)
-        ds = ds.squeeze(dim='time')
-        qmasks = np.where(np.isin(ds['quality_level'], [4,5]), 0, 1)
-        sst = ds.sea_surface_temperature.values - 273.15 # Celsius
+
+        # Hack to deal with NetCDF error
+        try:
+            ds = llc_io.load_llc_ds(filename, local=True)
+            ds = ds.squeeze(dim='time')
+            qmasks = np.where(np.isin(ds['quality_level'], [4,5]), 0, 1)
+            sst = ds.sea_surface_temperature.values - 273.15 # Celsius
+
+            # Close the file
+            ds.close()
+        except:
+            print(f"Crashed out on {filename}. Moving on..")
+            continue
+
+        if debug and ss==1:
+            print(f"Skipping {filename} for debugging")
+            continue
 
         # Parse 
         gd_date = l3s_table.ex_filename == ufile
         sub_idx = np.where(gd_date)[0]
         all_sub += sub_idx.tolist()  # These really should be the indices of the Table
         coord_tbl = l3s_table[gd_date]
+
 
         # Add to table
         l3s_table.loc[gd_date, 'filename'] = ufile
@@ -114,9 +128,11 @@ def preproc_for_analysis(l3s_table:pandas.DataFrame,
                 masks.append(qmasks[r:r+dr, c:c+dc])
         print("Cutouts loaded for {}".format(ufile))
 
+
         # Multi-process time
         # 
         items = [item for item in zip(fields,masks,sub_idx)]
+
 
         with ProcessPoolExecutor(max_workers=n_cores) as executor:
             chunksize = len(items) // n_cores if len(items) // n_cores > 0 else 1
@@ -132,8 +148,6 @@ def preproc_for_analysis(l3s_table:pandas.DataFrame,
         meta += [item[2] for item in answers]
 
         del answers, fields, items, sst
-        # Close the file
-        #ds.close()
 
     # Fuss with indices
     ex_idx = np.array(all_sub)
