@@ -155,8 +155,8 @@ def show_avg_LL(main_tbl:pandas.DataFrame,
 
 
 
-def evals_to_healpix_meds(eval_tbl, nside,  mask=True,
-                          metric:str='LL'):
+def evals_to_healpix_stat(eval_tbl, nside,  mask=True,
+                          metric:str='LL', stat:str='median'):
     """
     Find out where the input cutouts are located and the median values associated
     with each pixel; default is LL
@@ -167,12 +167,19 @@ def evals_to_healpix_meds(eval_tbl, nside,  mask=True,
     nside : int  # nside is a number that sets the resolution of map
     mask : bool, optional
         If True, include a mask on the arrays
+    stat : str, optional
+        If 'median', return the median value of the metric in each pixel
+        If 'mean', return the average value of the metric in each pixel
+        else: barf
 
     Returns
     -------
-    num of events, lats, lons, median values : hp.ma, np.ndarray, np.ndarray, hp.ma
+    num of events, lats, lons, mean/median values : hp.ma, np.ndarray, np.ndarray, hp.ma
 
     """
+    if stat not in ['mean', 'median']:
+        raise IOError("Bad stat input")
+    
     # Grab lats, lons
     lats = eval_tbl.lat.values
     lons = eval_tbl.lon.values
@@ -219,7 +226,10 @@ def evals_to_healpix_meds(eval_tbl, nside,  mask=True,
         #vals = eval_tbl.iloc[indices.to_numpy()].LL.to_numpy()
         sub_vals = vals[good]
     
-        med_values[pixel] = np.median(sub_vals)
+        if stat == 'median':
+            med_values[pixel] = np.median(sub_vals)
+        elif stat == 'mean':
+            med_values[pixel] = np.mean(sub_vals)
         #med_values[pixel] = np.median( vals )
 
 
