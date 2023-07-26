@@ -208,24 +208,12 @@ def evals_to_healpix_stat(eval_tbl, nside,  mask=True,
 # [~zero] selects pixels where the cutouts are (where events = 1 exist)
 
 
-    # Calculate median values
-    #idx_arr = pandas.Series(idx_all).sort_values()
-    #pixels = pandas.unique(idx_arr)
-
     pixels = np.unique(idx_all)
 
     for pixel in pixels: 
     
-        # find where which cutouts to put in that pixel
-        #where = np.where(pixel == idx_arr)
-        #first = where[0][0]
-        #last = where[0][-1]
-        #indices = idx_arr[first:last + 1].index
-
+        # Grab em
         good = pixel == idx_all
-    
-        # evaluate the median value for that pixel 
-        #sub_vals = eval_tbl.iloc[indices.to_numpy()][metric].to_numpy()
         sub_vals = vals[good]
     
         if stat == 'median':
