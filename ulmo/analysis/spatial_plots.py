@@ -184,6 +184,9 @@ def evals_to_healpix_stat(eval_tbl, nside,  mask=True,
     lats = eval_tbl.lat.values
     lons = eval_tbl.lon.values
 
+    # Values
+    vals = eval_tbl[metric].values
+
     # Healpix coords
     theta = (90 - lats) * np.pi / 180.  # convert into radians
     phi = lons * np.pi / 180.
@@ -206,22 +209,24 @@ def evals_to_healpix_stat(eval_tbl, nside,  mask=True,
 
 
     # Calculate median values
-    idx_arr = pandas.Series(idx_all).sort_values()
-    pixels = pandas.unique(idx_arr)
+    #idx_arr = pandas.Series(idx_all).sort_values()
+    #pixels = pandas.unique(idx_arr)
+
+    pixels = np.unique(idx_all)
 
     for pixel in pixels: 
     
         # find where which cutouts to put in that pixel
-        where = np.where(pixel == idx_arr)
-        first = where[0][0]
-        last = where[0][-1]
-        indices = idx_arr[first:last + 1].index
+        #where = np.where(pixel == idx_arr)
+        #first = where[0][0]
+        #last = where[0][-1]
+        #indices = idx_arr[first:last + 1].index
 
-        #good = pixel == idx_arr
+        good = pixel == idx_all
     
         # evaluate the median value for that pixel 
-        sub_vals = eval_tbl.iloc[indices.to_numpy()][metric].to_numpy()
-        #sub_vals = vals[good]
+        #sub_vals = eval_tbl.iloc[indices.to_numpy()][metric].to_numpy()
+        sub_vals = vals[good]
     
         if stat == 'median':
             med_values[pixel] = np.median(sub_vals)
