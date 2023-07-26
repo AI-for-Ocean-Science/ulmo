@@ -184,9 +184,6 @@ def evals_to_healpix_stat(eval_tbl, nside,  mask=True,
     lats = eval_tbl.lat.values
     lons = eval_tbl.lon.values
 
-    # Grab LL values
-    vals = eval_tbl[metric].values
-
     # Healpix coords
     theta = (90 - lats) * np.pi / 180.  # convert into radians
     phi = lons * np.pi / 180.
@@ -215,16 +212,16 @@ def evals_to_healpix_stat(eval_tbl, nside,  mask=True,
     for pixel in pixels: 
     
         # find where which cutouts to put in that pixel
-        #where = np.where(pixel == idx_arr)
-        #first = where[0][0]
-        #last = where[0][-1]
-        #indices = idx_arr[first:last + 1].index
+        where = np.where(pixel == idx_arr)
+        first = where[0][0]
+        last = where[0][-1]
+        indices = idx_arr[first:last + 1].index
 
-        good = pixel == idx_arr
+        #good = pixel == idx_arr
     
-        # evaluate the median LL value for that pixel 
-        #vals = eval_tbl.iloc[indices.to_numpy()].LL.to_numpy()
-        sub_vals = vals[good]
+        # evaluate the median value for that pixel 
+        sub_vals = eval_tbl.iloc[indices.to_numpy()][metric].to_numpy()
+        #sub_vals = vals[good]
     
         if stat == 'median':
             med_values[pixel] = np.median(sub_vals)
@@ -252,6 +249,7 @@ def show_med_LL(main_tbl:pandas.DataFrame,
                  nside=64, 
                  use_mask=True, tricontour=False,
                  lbl=None, figsize=(12,8), 
+                 metric='LL',
                  color='viridis', show=True):
     """Generate a global map of median LL of cutouts at that location 
     
@@ -265,12 +263,13 @@ def show_med_LL(main_tbl:pandas.DataFrame,
         figsize (tuple, optional): [description]. Defaults to (12,8).
         color (str, optional): [description]. Defaults to 'Reds'.
         show (bool, optional): If True, show on the screen.  Defaults to True
+        metric (str, optional): Metric to plot. Defaults to 'LL'.
     Returns:
         matplotlib.Axis: axis holding the plot
     """
     # Healpix me
-    hp_events, hp_lons, hp_lats, hp_values = evals_to_healpix_meds(
-        main_tbl, nside, mask=use_mask)
+    hp_events, hp_lons, hp_lats, hp_values = evals_to_healpix_stat(
+        main_tbl, nside, mask=use_mask, metric=metric)
     
     # Figure
     
