@@ -205,14 +205,14 @@ def main(flg):
     if flg & (2**2):
 
         # Try 2012
-        l3s_ulmo(2012, debug=False)
+        #l3s_ulmo(2012, debug=False)
 
         #  Loop me
-        #for year in range(2012, 2021):
-        #    # Skip 2019 for now``
-        #    if year == 2019:
-        #        continue
-        #    l3s_ulmo(year, debug=False)
+        for year in range(2012, 2021):
+            # Skip 2019 for now``
+            if year in [2012, 2019]:
+                continue
+            l3s_ulmo(year, debug=False)
 
 # Command line execution
 if __name__ == '__main__':
