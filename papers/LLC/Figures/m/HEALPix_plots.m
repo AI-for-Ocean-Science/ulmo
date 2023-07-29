@@ -148,7 +148,8 @@ yyacsub2 = [-52 -52 -49 -49 -52];
 
 % Load bathy information
 
-load('~/Dropbox/Data/Bathymetry/200m_isobath_off_US_East_Coast');
+% % % load('~/Dropbox/Data/Bathymetry/200m_isobath_off_US_East_Coast');
+load('200m_isobath_off_US_East_Coast');
 
 % Get the mean and extremes of the Gulf Stream.
 
@@ -157,7 +158,8 @@ load('~/Dropbox/Data/Bathymetry/200m_isobath_off_US_East_Coast');
 % GS_north = temp_gs.northern_limit_1982_through_1986;
 % GS_south = temp_gs.southern_limit_1982_through_1986;
 
-temp_gs = load('~/Dropbox/Data/Gulf_Stream/path_stats_1982_1999.mat');
+% % % temp_gs = load('~/Dropbox/Data/Gulf_Stream/path_stats_1982_1999.mat');
+temp_gs = load('path_stats_1982_1999.mat');
 GS = [temp_gs.mean_lon; temp_gs.mean_lat]';
 GS_north = [temp_gs.mean_lon; temp_gs.max_lat]';
 GS_south = [temp_gs.mean_lon; temp_gs.min_lat]';
@@ -174,8 +176,10 @@ subplot_details_2x2_to_use = subplot_details_2x2;
 
 % Get longitude and latitude for HEALPix Cells.
 
-load ~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/HEALPix/tail_end/hp_lats_head_v98.mat
-load ~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/HEALPix/tail_end/hp_lons_head_v98.mat
+% % % load ~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/HEALPix/tail_end/hp_lats_head_v98.mat
+% % % load ~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/HEALPix/tail_end/hp_lons_head_v98.mat
+load hp_lats_head_v98.mat
+load hp_lons_head_v98.mat
 Lat = hp_lats_head_v98;
 Lon = hp_lons_head_v98;
 
@@ -186,7 +190,8 @@ Lon_o = Lon;
 
 if get_reordered_llc_HEALPix
 %     regional_cutout_structure = load('~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/HEALPix/gulf_stream_and_equatorial_regions');
-    regional_cutout_structure = load('~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/HEALPix/regional_cutouts_and_metadata');
+% % %     regional_cutout_structure = load('~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/HEALPix/regional_cutouts_and_metadata');
+    regional_cutout_structure = load('regional_cutouts_and_metadata');
     
     eq_viirs_cutouts = regional_cutout_structure.eq_viirs_cutouts_out;
     eq_viirs_metadata = regional_cutout_structure.eq_viirs_metadata_out;
@@ -206,10 +211,12 @@ if get_reordered_llc_HEALPix
     acc_llc_cutouts = regional_cutout_structure.acc_llc_cutouts_out;
     acc_llc_metadata = regional_cutout_structure.acc_llc_metadata_out;
 else
-    fi = '~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/Cutouts/2022-Nov/viirs_eq_rect_cutouts.h5';
+% % %     fi = '~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/Cutouts/2022-Nov/viirs_eq_rect_cutouts.h5';
+    fi = 'viirs_eq_rect_cutouts.h5';
     [eq_viirs_cutouts, eq_viirs_metadata] = get_cutouts_and_metadata(fi, [4 5 17 18 19]);
     
-    fi = '~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/Cutouts/2022-Nov/llc_eq_rect_cutouts.h5';
+% % %     fi = '~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/Cutouts/2022-Nov/llc_eq_rect_cutouts.h5';
+    fi = 'llc_eq_rect_cutouts.h5';
     [eq_llc_cutouts,   eq_llc_metadata] = get_cutouts_and_metadata(fi, [4 5 17 18 27]);
 end
 
@@ -230,10 +237,12 @@ end
 %% Get Gulf Stream cutouts
 
 if get_reordered_llc_HEALPix == 0
-    fi = '~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/Cutouts/2022-Nov/viirs_gulf_rect_cutouts.h5';
+% % %     fi = '~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/Cutouts/2022-Nov/viirs_gulf_rect_cutouts.h5';
+    fi = 'viirs_gulf_rect_cutouts.h5';
     [gs_viirs_cutouts, gs_viirs_metadata] = get_cutouts_and_metadata(fi, [4 5 17 18 19]);
     
-    fi = '~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/Cutouts/2022-Nov/llc_gulf_rect_cutouts.h5';
+% % %     fi = '~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/Cutouts/2022-Nov/llc_gulf_rect_cutouts.h5';
+    fi = 'llc_gulf_rect_cutouts.h5';
     [  gs_llc_cutouts,  gs_llc_metadata] = get_cutouts_and_metadata(fi, [4 5 17 18 27]);
 end
 
@@ -241,9 +250,8 @@ end
 
 % Head VIIRS 2012-2015
 
-% fi_head = '~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/HEALPix/drive-download-20220912T150339Z-001/head_viirs.csv';
-% T_head = readtable(fi_head);
-fi_head = ['~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/HEALPix/' input_HEALPix_data '/head_viirs.csv'];
+% % % fi_head = ['~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/HEALPix/' input_HEALPix_data '/head_viirs.csv'];
+fi_head = 'head_viirs.csv';
 T_head = readtable(fi_head);
 
 % load(['~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/HEALPix/' head_tail_dir '/evts_head.mat'])
@@ -259,9 +267,8 @@ T_head = readtable(fi_head);
 
 % Tail VIIRS 2018-2020
 
-% fi_tail = '~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/HEALPix/drive-download-20220912T150339Z-001/tail_viirs.csv';
-% T_tail = readtable(fi_tail);
-fi_tail = ['~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/HEALPix/' input_HEALPix_data '/tail_viirs.csv'];
+% % % fi_tail = ['~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/HEALPix/' input_HEALPix_data '/tail_viirs.csv'];
+fi_tail = 'tail_viirs.csv';
 T_tail = readtable(fi_tail);
 
 % load(['~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/HEALPix/' head_tail_dir '/evts_tail.mat'])
@@ -278,21 +285,22 @@ T_tail = readtable(fi_tail);
 
 % VIIRS 2012-2020
 
-% fi_viirs = '~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/HEALPix/drive-download-20220912T150339Z-001/all_viirs.csv';
-fi_viirs = ['~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/HEALPix/' input_HEALPix_data '/all_viirs.csv'];
+% % % fi_viirs = ['~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/HEALPix/' input_HEALPix_data '/all_viirs.csv'];
+fi_viirs = 'all_viirs.csv';
 
 T_viirs = readtable(fi_viirs);
 
 % LLC
 
-% fi_llc = '~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/HEALPix/drive-download-20220912T150339Z-001/all_llc.csv';
-fi_llc = ['~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/HEALPix/' input_HEALPix_data '/all_llc.csv'];
+% % % fi_llc = ['~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/HEALPix/' input_HEALPix_data '/all_llc.csv'];
+fi_llc = 'all_llc.csv';
 
 T_llc = readtable(fi_llc);
 
 % MODIS 98%
 
-fi_modis = '~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/HEALPix/98_modis.csv';
+% % % fi_modis = '~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/HEALPix/98_modis.csv';
+fi_modis = '98_modis.csv';
 
 T_modis = readtable(fi_modis);
 
@@ -359,7 +367,6 @@ viirs_llc_diff_gt0 = mean_viirs_gt0 - mean_llc_gt0;
 
 %% Do the same for head and tail; any non-zero matchups first
 
-% % % mm = find( T_head.sigma > 0 & T_tail.sigma > 0 & T_head.N ~= 0 & T_tail.N ~= 0);
 mm = find( T_head.N ~= 0 & T_tail.N ~= 0);
 
 lon_head = Lon(mm);
@@ -384,7 +391,6 @@ number_tail = T_tail.N(nn);
 
 %% For head and tail but requiring at least min_num cutouts/HEALPix cell
 
-% % % mm = find( T_head.sigma > 0 & T_tail.sigma > 0 & T_head.N >= min_num & T_tail.N >= min_num);
 mm = find( T_head.N >= min_num & T_tail.N >= min_num);
 
 lon_head_gt0 = Lon(mm);
@@ -848,7 +854,8 @@ set(h, WindowStyle='docked')
     
     figfact = 0.75;
     
-    load('~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/HEALPix/feature1');
+% % %     load('~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/HEALPix/feature1');
+    load('HEALPix/feature1');
     
     FigTitle = ['pcc_3x1_zoomed_ACC_gt_' num2str(min_num) '_cutouts_per_cell'];
     h = undock_figure( FigNo, FigTitle, [100 1 1557*figfact 1283]);
@@ -1090,7 +1097,7 @@ if plot_21_31
     Title_2 = ['b) $\widetilde{LL}_{VIIRS} - \widetilde{LL}_{LLC} <$ ' num2str(ll_thresholds_gt0(1),3) ' or $>$ ' num2str(ll_thresholds_gt0(2),3)];
     
     subplot_temp = make_quad_plot( FigNo, subplot_details_2x2, lat_viirs_gt0, lon_viirs_gt0, viirs_llc_diff_gt0, viirs_llc_diff_gt0, ll_thresholds_gt0, lat_range, [], ...
-        dot_size, colormap_to_use_ll, caxis_mollweide_600_600, color_label_mollweide, xlim_zonal_mean_450_450, ylim_zonal_mean, Title_1, Title_2, FigDir, FigTitle);
+        dot_size, colormap_to_use_ll, caxis_mollweide_600_600, color_label_mollweide, xlim_zonal_mean_450_450, ylim_zonal_mean, Title_1, Title_2, FigPaperDir, FigTitle);
     
     set(h, WindowStyle='docked')
     
@@ -1109,7 +1116,7 @@ if plot_21_31
         Title_2 = 'b) $\widetilde{LL}_{2018-2020}$';
         
         subplot_temp = make_quad_plot( FigNo, subplot_details_2x2, lat_head_gt0, lon_head_gt0, mean_head_gt0, mean_tail_gt0, [0 0], lat_range, [], ...
-            dot_size, colormap_to_use_ll, caxis_mollweide_550_1200, color_label_mollweide, xlim_zonal_mean_500_1000, ylim_zonal_mean, Title_1, Title_2, FigDir, FigTitle);
+            dot_size, colormap_to_use_ll, caxis_mollweide_550_1200, color_label_mollweide, xlim_zonal_mean_500_1000, ylim_zonal_mean, Title_1, Title_2, FigPaperDir, FigTitle);
         
         set(h, WindowStyle='docked')
     end
@@ -1128,7 +1135,7 @@ if plot_21_31
     Title_2 = ['b) $ \widetilde{LL}_{2012-2015} - \widetilde{LL}_{2018-2020} <$ ' num2str(ll_thresholds_gt0(1),3) ' or $>$ ' num2str(ll_thresholds_gt0(2),3)];
     
     subplot_temp = make_quad_plot( FigNo, subplot_details_2x2, lat_head_gt0, lon_head_gt0, head_tail_diff_gt0, head_tail_diff_gt0, ll_thresholds_gt0, lat_range, [], ...
-        dot_size, colormap_to_use_ll, caxis_mollweide_600_600, color_label_mollweide, xlim_zonal_mean_450_450, ylim_zonal_mean, Title_1, Title_2, FigDir, FigTitle);
+        dot_size, colormap_to_use_ll, caxis_mollweide_600_600, color_label_mollweide, xlim_zonal_mean_450_450, ylim_zonal_mean, Title_1, Title_2, FigPaperDir, FigTitle);
     
     set(h, WindowStyle='docked')
     
@@ -1145,7 +1152,7 @@ if plot_21_31
     Title_1 = '$\widetilde{LL}_{LLC}$';
     
     subplot_temp = make_quad_plot( FigNo, subplot_details_1x2, lat_viirs_gt0, lon_viirs_gt0, median_viirs_gt0, [], [0 0], lat_range, [], ...
-        dot_size, colormap_to_use_ll, caxis_mollweide_550_1200, color_label_mollweide, xlim_zonal_mean_500_1000, ylim_zonal_mean, Title_1, [], FigDir, FigTitle);
+        dot_size, colormap_to_use_ll, caxis_mollweide_550_1200, color_label_mollweide, xlim_zonal_mean_500_1000, ylim_zonal_mean, Title_1, [], FigPaperDir, FigTitle);
     
     set(h, WindowStyle='docked')
     %%
@@ -1161,7 +1168,7 @@ if plot_21_31
     Title_1 = 'a) $\widetilde{LL}_{LLC}$';
     
     subplot_temp = make_quad_plot( FigNo, subplot_details_1x2, lat_viirs_gt0, lon_viirs_gt0, median_llc_gt0, [], [0 0], lat_range, [], ...
-        dot_size, colormap_to_use_ll, caxis_mollweide_550_1200, color_label_mollweide, xlim_zonal_mean_500_1000, ylim_zonal_mean, Title_1, [], FigDir, FigTitle);
+        dot_size, colormap_to_use_ll, caxis_mollweide_550_1200, color_label_mollweide, xlim_zonal_mean_500_1000, ylim_zonal_mean, Title_1, [], FigPaperDir, FigTitle);
     
     set(h, WindowStyle='docked')
     
@@ -1179,7 +1186,7 @@ if plot_21_31
         Title_1 = '$\widetilde{LL}_{2012-2015}$';
         
         subplot_temp = make_quad_plot( FigNo, subplot_details_1x2, lat_head_gt0, lon_head_gt0, mean_head_gt0, [], [0 0], lat_range, [], ...
-            dot_size, colormap_to_use_ll, caxis_mollweide_550_1200, color_label_mollweide, xlim_zonal_mean_500_1000, ylim_zonal_mean, Title_1, [], FigDir, FigTitle);
+            dot_size, colormap_to_use_ll, caxis_mollweide_550_1200, color_label_mollweide, xlim_zonal_mean_500_1000, ylim_zonal_mean, Title_1, [], FigPaperDir, FigTitle);
         
         set(h, WindowStyle='docked')
     end
@@ -1196,7 +1203,7 @@ if plot_21_31
     Title_1 = ['$\widetilde{LL}_{2012-2015} - \widetilde{LL}_{2018-2020} <$ ' num2str(ll_thresholds_gt0(1),3) ' or $>$ ' num2str(ll_thresholds_gt0(2),3)];
     
     subplot_temp = make_quad_plot( FigNo, subplot_details_1x2, lat_head_gt0, lon_head_gt0, head_tail_diff_gt0, [], ll_thresholds_gt0, lat_range, [], ...
-        dot_size, colormap_to_use_ll, caxis_mollweide_600_600, color_label_mollweide, xlim_zonal_mean_450_450, ylim_zonal_mean, Title_1, [], FigDir, FigTitle);
+        dot_size, colormap_to_use_ll, caxis_mollweide_600_600, color_label_mollweide, xlim_zonal_mean_450_450, ylim_zonal_mean, Title_1, [], FigPaperDir, FigTitle);
     
     set(h, WindowStyle='docked')
     
@@ -1216,7 +1223,7 @@ if plot_21_31
     %      dot_size, caxis_mollweide_600_600, color_label_mollweide, xlim_zonal_mean_450_450, ylim_zonal_mean, Title_1, [], FigPaperDir, FigTitle);
     
     HEALPix_plot_Mollweid( FigNo, subplot_details_1x1{1,1}, lat_viirs_modis_gt0, lon_viirs_modis_gt0, viirs_modis_diff_gt0, ...
-        dot_size, colormap_to_use_ll, caxis_mollweide_600_600, Title_1, FigDir, FigTitle, [], [], color_label_size_small, ...
+        dot_size, colormap_to_use_ll, caxis_mollweide_600_600, Title_1, FigPaperDir, FigTitle, [], [], color_label_size_small, ...
         [], [], {xxeqsq xxgssq xxacsq}, {yyeqsq yygssq yyacsq}, {'m' 'y' 'g'})
     
     set(h, WindowStyle='docked')
@@ -1236,7 +1243,7 @@ if plot_21_31
     %      dot_size, caxis_mollweide_600_600, color_label_mollweide, xlim_zonal_mean_450_450, ylim_zonal_mean, Title_1, [], FigPaperDir, FigTitle);
     
     HEALPix_plot_Mollweid( FigNo, subplot_details_1x1{1,1}, lat_viirs_modis_gt0, lon_viirs_modis_gt0, viirs_modis_diff_gt0, ...
-        dot_size, colormap_to_use_ll, caxis_mollweide_600_600, Title_1, FigDir, FigTitle, ll_thresholds_gt0, [], color_label_size_small, ...
+        dot_size, colormap_to_use_ll, caxis_mollweide_600_600, Title_1, FigPaperDir, FigTitle, ll_thresholds_gt0, [], color_label_size_small, ...
         [], [], {xxeqsq xxgssq xxacsq}, {yyeqsq yygssq yyacsq}, {'m' 'y' 'g'})
     
     set(h, WindowStyle='docked')
@@ -1285,7 +1292,8 @@ if plot_41_45
     
     FigNo = 45;
     
-    load('~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/HEALPix/feature1');
+% % %     load('~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/HEALPix/feature1');
+    load('feature1');
     
     FigTitle = ['pcc_2x1_zoomed_VIIRS_and_corrected_LLC_LL_gt_' num2str(min_num) '_cutouts_per_cell'];
     h = undock_figure( FigNo, FigTitle, [100 1 subplot_details_patagonia{1,1}(1) subplot_details_patagonia{1,1}(2)]);
@@ -1323,7 +1331,8 @@ if plot_41_45
     bTopo = Bathy(1:25:end,1:25:end);
     [bLonm, bLatm] = meshgrid(bLon, bLat);
     
-    load('~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/HEALPix/feature1');
+% % %     load('~/Dropbox/ComputerPrograms/Satellite_Model_SST_Processing/AI-SST/Data/HEALPix/feature1');
+    load('feature1');
     
     FigTitle = ['pcc_2x1_zoomed_VIIRS_LLC_LL_and_bathy_gt_' num2str(min_num) '_cutouts_per_cell'];
     h = undock_figure( FigNo, FigTitle, [100 1 subplot_details_patagonia{1,1}(1) subplot_details_patagonia{1,1}(2)]);
@@ -1374,7 +1383,7 @@ if plot_41_45
     Title_1 = '$\widetilde{LL}_{2012-2015} - \widetilde{LL}_{2018-2020}$';
     
     %     subplot_temp = make_quad_plot( FigNo, subplot_details_1x1, lat_head_gt0, lon_head_gt0, head_tail_diff_gt0, [], [], [20 70], [-80 0], ...
-    %         40, colormap_to_use_ll, caxis_mollweide_400_400, color_label_mollweide, [], ylim_zonal_mean, Title_1, Title_2, FigDir, FigTitle, {GS(:,2) GS_north(:,2)}, {GS(:,1) GS_north(:,1)}, {'k' 'm'});
+    %         40, colormap_to_use_ll, caxis_mollweide_400_400, color_label_mollweide, [], ylim_zonal_mean, Title_1, Title_2, FigPaperDir, FigTitle, {GS(:,2) GS_north(:,2)}, {GS(:,1) GS_north(:,1)}, {'k' 'm'});
     %
     %     % Plot Gulf Stream lines and print figure again
     %
@@ -1388,7 +1397,7 @@ if plot_41_45
     %     fprintf('Printing figure: %s\n', filename_out)
     
     HEALPix_plot_Mollweid( FigNo, subplot_details_1x1{1,1}, lat_head_gt0, lon_head_gt0, head_tail_diff_gt0, ...
-        60, colormap_to_use_ll, caxis_mollweide_400_400, Title_1, FigDir, FigTitle, [], color_label_mollweide, color_label_size_small, ...
+        60, colormap_to_use_ll, caxis_mollweide_400_400, Title_1, FigPaperDir, FigTitle, [], color_label_mollweide, color_label_size_small, ...
         [20 70], [-80 0], {GS(:,2) GS_north(:,2)}, {GS(:,1) GS_north(:,1)}, {'k' 'm'});
     
     set(h, WindowStyle='docked')
@@ -1407,7 +1416,7 @@ if plot_41_45
     Title_2 = 'b) log$_{10}$(Cutouts/HEALPix Cell)';
     
     %     subplot_temp = make_quad_plot( FigNo, subplot_details_2x1, lat_viirs_gt0, lon_viirs_gt0, viirs_llc_diff_gt0, log10(number_viirs_gt0), [], [-30 30], [-150 30], ...
-    %         80, caxis_mollweide_600_200_0_4, color_label_mollweide, [], ylim_zonal_mean, Title_1, Title_2, FigDir, FigTitle);
+    %         80, caxis_mollweide_600_200_0_4, color_label_mollweide, [], ylim_zonal_mean, Title_1, Title_2, FigPaperDir, FigTitle);
     
     
     HEALPix_plot_Mollweid( FigNo, subplot_details_2x1{1,1}, lat_viirs_gt0, lon_viirs_gt0, viirs_llc_diff_gt0, ...
@@ -1431,21 +1440,21 @@ if plot_41_45
     Title_2 = 'b) log$_{10}$(Cutouts/HEALPix Cell)';
     
     %     subplot_temp = make_quad_plot( FigNo, subplot_details_2x1, lat_viirs_gt0, lon_viirs_gt0, viirs_llc_diff_gt0, log10(number_viirs_gt0), [], [-10 10], [-130 -90], ...
-    %         400, caxis_mollweide_600_0_0_3, color_label_mollweide, [], ylim_zonal_mean, Title_1, Title_2, FigDir, FigTitle);
+    %         400, caxis_mollweide_600_0_0_3, color_label_mollweide, [], ylim_zonal_mean, Title_1, Title_2, FigPaperDir, FigTitle);
     %
     %     caxis([0 4])
     
-    filename_out = [FigDir FigTitle];
+    filename_out = [FigPaperDir FigTitle];
     print( filename_out, '-dpng')
     
     fprintf('Printing figure: %s\n', filename_out)
     
     HEALPix_plot_Mollweid( FigNo, subplot_details_2x1{1,1}, lat_viirs_gt0, lon_viirs_gt0, viirs_llc_diff_gt0, ...
-        400, colormap_to_use_ll, [-450 100], Title_1, FigDir, [], [], 'LL_{VIIRS}-LL_{LLC}', color_label_size_small, ...
+        400, colormap_to_use_ll, [-450 100], Title_1, FigPaperDir, [], [], 'LL_{VIIRS}-LL_{LLC}', color_label_size_small, ...
         [-10 10], [-130 -90], {xxeqsq [-130+.1 -90-.1] [-130+.1 -90-.1]}, {yyeqsq [-0.05 -0.05] [0.05 0.05]}, {'m' 'k' 'k'})
     
     HEALPix_plot_Mollweid( FigNo, subplot_details_2x1{2,1}, lat_viirs_gt0, lon_viirs_gt0, log10(number_viirs_gt0), ...
-        400, colormap_to_use_num, [0 2.5], Title_2, FigDir, FigTitle, [], 'log_{10}(# Cutouts)', color_label_size_small, ...
+        400, colormap_to_use_num, [0 2.5], Title_2, FigPaperDir, FigTitle, [], 'log_{10}(# Cutouts)', color_label_size_small, ...
         [-10 10], [-130 -90], {xxeqsq [-130+.1 -90-.1] [-130+.1 -90-.1]}, {yyeqsq [-0.05 -0.05] [0.05 0.05]}, {'m' 'k' 'k'})
     
     set(h, WindowStyle='docked')
@@ -1538,13 +1547,13 @@ if plot_81
     
     FigNo = 81;
     FigTitle = ['pcc_2x3x3_ACC_viirs_llc_anomalous_gallery'];
-    make_2x3x3_gallery(FigNo, FigDir, FigTitle, unique_anomalous_acc_viirs_cutouts, unique_anomalous_acc_viirs_metadata, unique_anomalous_acc_llc_cutouts, anomalous_acc_llc_metadata, tRange, 11, {'a) VIIRS' 'b) LLC'})
+    make_2x3x3_gallery(FigNo, FigPaperDir, FigTitle, unique_anomalous_acc_viirs_cutouts, unique_anomalous_acc_viirs_metadata, unique_anomalous_acc_llc_cutouts, anomalous_acc_llc_metadata, tRange, 11, {'a) VIIRS' 'b) LLC'})
     
     %%
     
     FigNo = 82;
     FigTitle = ['pcc_2x3x3_ACC_viirs_llc_agreeing_gallery'];
-    make_2x3x3_gallery(FigNo, FigDir, FigTitle, unique_agreeing_acc_viirs_cutouts, unique_agreeing_acc_viirs_metadata, unique_agreeing_acc_llc_cutouts, unique_agreeing_acc_llc_metadata, tRange, 11, {'a) VIIRS' 'b) LLC'})
+    make_2x3x3_gallery(FigNo, FigPaperDir, FigTitle, unique_agreeing_acc_viirs_cutouts, unique_agreeing_acc_viirs_metadata, unique_agreeing_acc_llc_cutouts, unique_agreeing_acc_llc_metadata, tRange, 11, {'a) VIIRS' 'b) LLC'})
     
 end
 %% Figure 51 through 53: mean sigma of LL as a function of the number of cutouts/HEALPix bin
@@ -1601,7 +1610,7 @@ if plot_51_54
     
     title(['Gaussian Smoothed $\overline{\sigma_{LL}}$ for $\sigma=$' num2str(simSigma)], interpreter='latex', fontsize=30)
     
-    filename_out = [FigDir 'pcc_1x1_VIIRS_simulated_sigma_vs_cutouts_per_cell_for_intrasigma_HEALPix_of_' num2str(simSigma) ];
+    filename_out = [FigPaperDir 'pcc_1x1_VIIRS_simulated_sigma_vs_cutouts_per_cell_for_intrasigma_HEALPix_of_' num2str(simSigma) ];
     print( filename_out, '-dpng')
     fprintf('Printing figure %i: %s\n', iFig, filename_out)
     
@@ -1626,7 +1635,7 @@ if plot_51_54
     
     title(['Gaussian Smoothed $\overline{\sigma_{LL}}$ for $\sigma=$' num2str(simSigma)], interpreter='latex', fontsize=30)
     
-    filename_out = [FigDir 'pcc_1x1_VIIRS_LLC_simulated_sigma_vs_cutouts_per_cell_for_intrasigma_HEALPix_of_' num2str(simSigma) ];
+    filename_out = [FigPaperDir 'pcc_1x1_VIIRS_LLC_simulated_sigma_vs_cutouts_per_cell_for_intrasigma_HEALPix_of_' num2str(simSigma) ];
     print( filename_out, '-dpng')
     fprintf('Printing figure %i: %s\n', iFig, filename_out)
     
@@ -1650,7 +1659,7 @@ if plot_51_54
     
     title(['Gaussian Smoothed $\overline{\sigma_{LL}}$ for $\sigma=$' num2str(simSigma)], interpreter='latex', fontsize=30)
     
-    filename_out = [FigDir 'pcc_1x1_VIIRS_simulated_sigma_vs_cutouts_per_cell_for_intrasigma_HEALPix_of_' num2str(simSigma) ];
+    filename_out = [FigPaperDir 'pcc_1x1_VIIRS_simulated_sigma_vs_cutouts_per_cell_for_intrasigma_HEALPix_of_' num2str(simSigma) ];
     print( filename_out, '-dpng')
     fprintf('Printing figure %i: %s\n', iFig, filename_out)
 end
