@@ -8,8 +8,8 @@ import h5py
 from torch.utils.data import Dataset
 from torchvision import transforms
 
-from ulmo.ssl import train_util
-from ulmo.ssl.util import TwoCropTransform
+from ulmo.nenya import train_util
+from ulmo.nenya.util import TwoCropTransform
 from ulmo import io as ulmo_io
 
 class BatchDataset(Dataset):
@@ -19,7 +19,7 @@ class BatchDataset(Dataset):
     def __init__(self, image, batch_size:int, pp_file:str):
         self.batch_size = batch_size
         # Load up a faux batch
-        pp_hf = h5py.File(f, 'r')
+        pp_hf = h5py.File(pp_file, 'r')
         random_idx  = np.random.randint(
             0, pp_hf['valid'].shape[0], batch_size)
         self.images = pp_hf['valid'][random_idx, ...]

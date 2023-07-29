@@ -13,20 +13,20 @@ from statsmodels.stats.stattools import durbin_watson
 import statsmodels.formula.api as smf
 
 from ulmo import io as ulmo_io
-from ulmo.ssl import defs as ulmo_ssl_defs
+from ulmo.nenya import defs as ulmo_ssl_defs
 
 import ssl_defs
 
 from IPython import embed
 
-if os.getenv('SST_OOD'):
-    local_modis_file = os.path.join(os.getenv('SST_OOD'),
+if os.getenv('OS_SST'):
+    local_modis_file = os.path.join(os.getenv('OS_SST'),
                                     'MODIS_L2/Tables/MODIS_L2_std.parquet')
-    local_modis_CF_file = os.path.join(os.getenv('SST_OOD'),
+    local_modis_CF_file = os.path.join(os.getenv('OS_SST'),
                                     'MODIS_L2/Tables/MODIS_SSL_cloud_free.parquet')
-    local_modis_CF_DT2_file = os.path.join(os.getenv('SST_OOD'),
+    local_modis_CF_DT2_file = os.path.join(os.getenv('OS_SST'),
                                     'MODIS_L2/Tables/MODIS_SSL_cloud_free_DT2.parquet')
-    local_modis_96_file = os.path.join(os.getenv('SST_OOD'),
+    local_modis_96_file = os.path.join(os.getenv('OS_SST'),
                                     'MODIS_L2/Tables/MODIS_SSL_96clear.parquet')
 
 # Geography
@@ -107,7 +107,9 @@ def load_modis_tbl(table:str=None,
         basename = base1+base2+'.parquet'
 
     if local:
-        tbl_file = os.path.join(os.getenv('SST_OOD'), 'MODIS_L2', 'Tables', basename)
+        tbl_file = os.path.join(os.getenv('OS_SST'), 
+                                'MODIS_L2', 'Nenya',
+                                'Tables', basename)
     else:
         tbl_file = 's3://modis-l2/Tables/'+basename
 

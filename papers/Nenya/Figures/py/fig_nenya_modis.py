@@ -1,4 +1,4 @@
-""" Figures for SSL paper on MODIS """
+""" Figures for Nenya paper on MODIS """
 from datetime import datetime
 import os, sys
 import numpy as np
@@ -16,6 +16,8 @@ import matplotlib.gridspec as gridspec
 from matplotlib import pyplot as plt
 from matplotlib.patches import Rectangle, Ellipse
 import matplotlib.dates as mdates
+import matplotlib.colors as colors
+
 
 
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
@@ -33,9 +35,10 @@ from ulmo import plotting
 from ulmo.utils import utils as utils
 
 from ulmo import io as ulmo_io
-from ulmo.ssl import single_image as ssl_simage
+from ulmo.nenya import single_image as ssl_simage
 from ulmo.utils import image_utils
-from ulmo.ssl import ssl_umap
+from ulmo.nenya import ssl_umap
+from ulmo.dynamics import rossby
 
 from IPython import embed
 
@@ -67,6 +70,7 @@ yrngs_CF_U3_12 = 5.5, 13.5
 metric_lbls = dict(min_slope=r'$\alpha_{\rm min}$',
                    clear_fraction='1-CC',
                    DT=r'$\Delta T$',
+                   dT=r'$\delta T$ (K)',
                    lowDT=r'$\Delta T_{\rm low}$',
                    absDT=r'$|T_{90}| - |T_{10}|$',
                    LL='LL',
@@ -146,59 +150,70 @@ def update_outfile(outfile, table, umap_dim=2,
     
 
 
-def fig_augmenting(outfile='fig_augmenting.png', use_s3=False):
+def fig_augmenting(outfile='fig_augmenting.png', use_s3=False, single:bool=True):
 
     # Load up an image
     if use_s3:
         modis_dataset_path = 's3://modis-l2/PreProc/MODIS_R2019_2003_95clear_128x128_preproc_std.h5'
     else:
-        modis_dataset_path = os.path.join(os.getenv('SST_OOD'),
+        modis_dataset_path = os.path.join(os.getenv('OS_SST'),
                                           "MODIS_L2/PreProc/MODIS_R2019_2003_95clear_128x128_preproc_std.h5")
     with ulmo_io.open(modis_dataset_path, 'rb') as f:
         hf = h5py.File(f, 'r')
         img = hf['valid'][400]
 
+    if single:
+        outfile = outfile.replace('.png', '_single.png')
+
     # Figure time
     _, cm = plotting.load_palette()
-    fig = plt.figure(figsize=(7, 2))
-    plt.clf()
-    gs = gridspec.GridSpec(1,3)
+    if single:
+        fig = plt.figure(figsize=(4, 4))
+        gs = gridspec.GridSpec(1,1)
+    else:
+        fig = plt.figure(figsize=(7, 2))
+        gs = gridspec.GridSpec(1,3)
+
+    # Temperature range
+    Trange = img[0,...].min(), img[0,...].max()
+    print(f'Temperature range: {Trange}')
 
     # No augmentation
     ax0 = plt.subplot(gs[0])
     sns.heatmap(img[0,...], ax=ax0, xticklabels=[], 
                 yticklabels=[], cmap=cm, cbar=False,
-                square=True)
-
-    # Temperature range
-    Trange = img[0,...].min(), img[0,...].max()
-    print(f'Temperature range: {Trange}')
-    
-    # Augment me
-    loader = ssl_simage.image_loader(img, version='v4')
-    test_batch = next(iter(loader))
-    img1, img2 = test_batch
-    # Should be: Out[2]: torch.Size([1, 3, 64, 64])
-
-    # Numpy
-    img1 = img1.cpu().detach().numpy()
-    img2 = img2.cpu().detach().numpy()
-
-    print(f'Mean of img1: {img1.mean()}')
-    print(f'Mean of img2: {img2.mean()}')
-    #embed(header='159 of figs')
-
-    # Plot
-    ax1 = plt.subplot(gs[1])
-    sns.heatmap(img1[0,0,...], ax=ax1, xticklabels=[], 
-                yticklabels=[], cbar=False, cmap=cm,
                 vmin=Trange[0], vmax=Trange[1],
                 square=True)
-    ax2 = plt.subplot(gs[2])
-    sns.heatmap(img2[0,0,...], ax=ax2, xticklabels=[], 
-                yticklabels=[], cbar=False, cmap=cm,
-                vmin=Trange[0], vmax=Trange[1],
-                square=True)
+
+    if not single:
+        cb = ax0.figure.colorbar(ax0.collections[0], pad=0., fraction=0.03)
+        cb.set_label(metric_lbls['dT'], fontsize=10.)
+     
+        # Augment me
+        loader = ssl_simage.image_loader(img, version='v4')
+        test_batch = next(iter(loader))
+        img1, img2 = test_batch
+        # Should be: Out[2]: torch.Size([1, 3, 64, 64])
+
+        # Numpy
+        img1 = img1.cpu().detach().numpy()
+        img2 = img2.cpu().detach().numpy()
+
+        print(f'Mean of img1: {img1.mean()}')
+        print(f'Mean of img2: {img2.mean()}')
+        #embed(header='159 of figs')
+
+        # Plot
+        ax1 = plt.subplot(gs[1])
+        sns.heatmap(img1[0,0,...], ax=ax1, xticklabels=[], 
+                    yticklabels=[], cbar=False, cmap=cm,
+                    vmin=Trange[0], vmax=Trange[1],
+                    square=True)
+        ax2 = plt.subplot(gs[2])
+        sns.heatmap(img2[0,0,...], ax=ax2, xticklabels=[], 
+                    yticklabels=[], cbar=False, cmap=cm,
+                    vmin=Trange[0], vmax=Trange[1],
+                    square=True)
 
     plt.tight_layout(pad=0.5, h_pad=0.5, w_pad=0.5)
     plt.savefig(outfile, dpi=300)
@@ -591,7 +606,7 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
     ax_cbar = ax_gallery.inset_axes(
                     [xmax + dxv/10, ymin, dxv/2, (ymax-ymin)*0.2],
                     transform=ax_gallery.transData)
-    cbar_kws = dict(label=r'$\Delta T$ (K)')
+    cbar_kws = dict(label=r'SSTa (K)')
 
     for x in xval[:-1]:
         for y in yval[:-1]:
@@ -615,7 +630,7 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
             try:
                 if local:
                     parsed_s3 = urlparse(cutout.pp_file)
-                    local_file = os.path.join(os.getenv('SST_OOD'),
+                    local_file = os.path.join(os.getenv('OS_SST'),
                                               'MODIS_L2',
                                               parsed_s3.path[1:])
                     cutout_img = image_utils.grab_image(
@@ -623,7 +638,7 @@ def fig_umap_gallery(outfile='fig_umap_gallery_vmnx5.png',
                 else:
                     cutout_img = image_utils.grab_image(cutout, close=True)
             except:
-                embed(header='598 of plotting')                                                    
+                embed(header='631 of plotting')                                                    
             # Cut down?
             if cut_to_inner is not None:
                 imsize = cutout_img.shape[0]
@@ -1806,7 +1821,9 @@ def fig_umap_multi_metric(stat='median',
         cmap = 'gist_rainbow'
         cmap = 'rainbow'
 
-    metrics = ['DT40', 'stdDT40', 'slope', 'clouds', 'abslat', 'counts']
+    metrics = ['DT40', 'stdDT40', 'slope', 'clouds', 
+               'rossby', 'counts']
+               #'abslat', 'counts']
 
     # Start the figure
     fig = plt.figure(figsize=(12, 6.5))
@@ -1817,10 +1834,17 @@ def fig_umap_multi_metric(stat='median',
     for ss, metric in enumerate(metrics):
         ax = plt.subplot(gs[ss])
         lmetric, values = parse_metric(metric, modis_tbl)
+        # By hand fussing
         if 'std' in metric: 
             istat = 'std'
         else:
             istat = stat
+        if metric == 'rossby':
+            #norm = colors.LogNorm(vmin=values.min(), vmax=values.max())
+            norm = colors.LogNorm(vmin=10., vmax=200.) #values.max())
+        else:
+            norm = None
+            cmap = 'rainbow'
         # Do it
         stat2d, xedges, yedges, _ =\
             stats.binned_statistic_2d(
@@ -1841,10 +1865,10 @@ def fig_umap_multi_metric(stat='median',
         stat2d[bad_counts] = np.nan
         if metric == 'counts':
             img = ax.pcolormesh(xedges, yedges, 
-                             counts.T, cmap=cmap) 
+                             counts.T, cmap=cmap)
         else:
             img = ax.pcolormesh(xedges, yedges, 
-                             stat2d.T, cmap=cmap) 
+                             stat2d.T, cmap=cmap, norm=norm) 
 
         # Color bar
         cb = plt.colorbar(img, pad=0., fraction=0.030)
@@ -1857,6 +1881,8 @@ def fig_umap_multi_metric(stat='median',
         ax.text(0.95, 0.9, a_lbls[ss], transform=ax.transAxes,
               fontsize=14, ha='right', color='k')
         plotting.set_fontsize(ax, fsz)
+        # Grid
+        ax.grid()
 
     plt.tight_layout(pad=0.0, h_pad=0.0, w_pad=0.0)
     plt.savefig(outfile, dpi=300)
@@ -1898,6 +1924,14 @@ def parse_metric(metric:str, modis_tbl:pandas.DataFrame):
     elif metric == 'abslat':
         lmetric = r'$|$ latitude $|$ (deg)'
         values = np.abs(modis_tbl.lat.values)
+    elif metric == 'rossby':
+        lmetric = r'Rossby radius (km)'
+        values = rossby.calc_rossby_radius(modis_tbl.lon.values,
+                                    modis_tbl.lat.values)
+    elif metric == 'log_rossby':
+        lmetric = r'$\log_{10}$ Rossby radius (km)'
+        values = np.log10(rossby.calc_rossby_radius(modis_tbl.lon.values,
+                                    modis_tbl.lat.values))
     elif metric == 'counts':
         lmetric = 'Counts'
         values = np.ones(len(modis_tbl))

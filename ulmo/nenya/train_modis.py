@@ -4,12 +4,12 @@ import time
 import os
 from tqdm.auto import trange
 
-from ulmo.ssl.util import adjust_learning_rate
-from ulmo.ssl.util import set_optimizer, save_model
+from ulmo.nenya.util import adjust_learning_rate
+from ulmo.nenya.util import set_optimizer, save_model
 
-from ulmo.ssl.train_util import Params, option_preprocess
-from ulmo.ssl.train_util import modis_loader, set_model
-from ulmo.ssl.train_util import train_model, valid_model
+from ulmo.nenya.train_util import Params, option_preprocess
+from ulmo.nenya.train_util import modis_loader, set_model
+from ulmo.nenya.train_util import train_model, valid_model
 
 def main_train(opt_path: str):
     # loading parameters json file

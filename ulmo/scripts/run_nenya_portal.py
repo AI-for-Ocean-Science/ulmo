@@ -21,11 +21,10 @@ def main(pargs):
     """ Run
     """
     import numpy as np
-    import json
     import os
 
-    from ulmo.ssl import portal
-    from ulmo.ssl import analyze_image
+    from ulmo.nenya import portal
+    from ulmo.nenya import analyze_image
 
     from IPython import embed
 
@@ -42,7 +41,7 @@ def main(pargs):
         else:
             raise IOError("Not ready for this image type")
         # Latents and UMAP
-        embedding, pp_img, table_file, DT = analyze_image.umap_image('v4', img)
+        embedding, pp_img, table_file, DT = analyze_image.umap_image('v5', img)
         Us = embedding[0,:]
         # Prep
         inp_Image = portal.Image(
