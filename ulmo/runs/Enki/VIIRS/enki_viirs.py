@@ -18,6 +18,7 @@ from ulmo.preproc import plotting as pp_plotting
 from ulmo import io as ulmo_io
 from ulmo.utils import catalog as cat_utils
 
+from ulmo.mae import analysis as enki_analysis
 from ulmo.mae import enki_utils
 from ulmo.mae import cutout_analysis
 from ulmo.mae.cutout_analysis import rms_images
@@ -217,46 +218,55 @@ def gen_viirs_images(debug:bool=False):
     # Write
     ulmo_io.write_main_table(viirs_100, viirs_100_s3_file)
 
-def rmse_inpaint(t:int, p:int, debug:bool=False):
-
-    # Load up
-    local_orig_file = viirs_100_img_file
-    #recon_file = enki_utils.img_filename(t,p, local=True, dataset='VIIRS')
-    mask_file = enki_utils.mask_filename(t,p, local=True, dataset='VIIRS')
-    inpaint_file = os.path.join(
-        sst_path, 'VIIRS', 'Enki', 
-        'Recon', f'Enki_VIIRS_inpaint_t{t}_p{p}.h5')
-
-    f_orig = h5py.File(local_orig_file, 'r')
-    #f_recon = h5py.File(recon_file, 'r')
-    f_inpaint = h5py.File(inpaint_file, 'r')
-    f_mask = h5py.File(mask_file, 'r')
-
-    rms_inpaint = rms_images(f_orig, f_inpaint, f_mask, #nimgs=nimgs,
-                             keys=['valid', 'inpainted', 'valid'])
-    embed(header='314 of enki_viirs.py')
-
-    # Table time
-    viirs_100 = ulmo_io.load_main_table(viirs_100_s3_file)
-
-    # Revise pp_idx
-    viirs_100.pp_idx = np.arange(len(viirs_100))
-
-    # Fill
-    RMS_metric = f'RMS_inpaint_t{t}_p{p}'
-    viirs_100[RMS_metric] = rms_inpaint
-
-    # Vet
-    chk, disallowed_keys = cat_utils.vet_main_table(
-        viirs_100, return_disallowed=True, cut_prefix=['MODIS_'])
-    for key in disallowed_keys:
-        assert key[0:2] in ['LL','RM', 'DT']
-
-    # Write 
-    if debug:
-        embed(header='239 of mae_recons')
-    else:
-        ulmo_io.write_main_table(viirs_100, viirs_100_s3_file)
+#def rmse_inpaint(t:int, p:int, debug:bool=False,
+#                 clobber:bool=False):
+#    """ Measure the RMSE of inpainted images
+#
+#    Args:
+#        t (int): training percentile
+#        p (int): mask percentil
+#        debug (bool, optional): _description_. Defaults to False.
+#    """
+##    # Table time
+#    viirs_100 = ulmo_io.load_main_table(viirs_100_s3_file)
+#    RMS_metric = f'RMS_inpaint_t{t}_p{p}'
+#    if RMS_metric in viirs_100.keys() and not clobber:
+#        print(f"Found {RMS_metric} in table. Skipping..")
+#        return
+#    # Load up
+#    local_orig_file = viirs_100_img_file
+#    #recon_file = enki_utils.img_filename(t,p, local=True, dataset='VIIRS')
+#    mask_file = enki_utils.mask_filename(t,p, local=True, dataset='VIIRS')
+#    inpaint_file = os.path.join(
+#        sst_path, 'VIIRS', 'Enki', 
+#        'Recon', f'Enki_VIIRS_inpaint_t{t}_p{p}.h5')
+#
+#    f_orig = h5py.File(local_orig_file, 'r')
+#    #f_recon = h5py.File(recon_file, 'r')
+#    f_inpaint = h5py.File(inpaint_file, 'r')
+#    f_mask = h5py.File(mask_file, 'r')
+#
+#    rms_inpaint = rms_images(f_orig, f_inpaint, f_mask, #nimgs=nimgs,
+#                             keys=['valid', 'inpainted', 'valid'])
+#
+#
+#    # Revise pp_idx
+#    viirs_100.pp_idx = np.arange(len(viirs_100))
+#
+#    # Fill
+#    viirs_100[RMS_metric] = rms_inpaint
+#
+#    # Vet
+#    chk, disallowed_keys = cat_utils.vet_main_table(
+#        viirs_100, return_disallowed=True, cut_prefix=['MODIS_'])
+#    for key in disallowed_keys:
+#        assert key[0:2] in ['LL','RM', 'DT']
+#
+#    # Write 
+#    if debug:
+#        embed(header='239 of mae_recons')
+#    else:
+#        ulmo_io.write_main_table(viirs_100, viirs_100_s3_file)
 
 
 def viirs_extract_2013(debug=False, n_cores=20, 
@@ -409,6 +419,40 @@ def viirs_extract_2013(debug=False, n_cores=20,
     print("Pushing to s3")
     ulmo_io.upload_file_to_s3(save_path, s3_filename)
 
+def viirs_inpaint(t:int, p:int, dataset:str,
+            debug:bool=False, n_cores:int=10,
+            clobber:bool=False, rmse_clobber:bool=False):
+    """ Wrapper to inpaint_images
+
+    Args:
+        t (int): training percentile
+        p (int): mask percentile
+        dataset (str): dataset ['VIIRS', 'LLC', 'LLC2_nonoise]
+        method (str, optional): Inpainting method. Defaults to 'biharmonic'.
+        debug (bool, optional): Debug?. Defaults to False.
+        patch_sz (int, optional): patch size. Defaults to 4.
+        n_cores (int, optional): number of cores. Defaults to 10.
+        clobber (bool, optional): Clobber? Defaults to False.
+        rmse_clobber (bool, optional): Clobber? Defaults to False.
+    """
+    # Outfile
+    outfile = os.path.join(os.getenv('OS_SST'), 'VIIRS', 'Enki', 'Recon',
+        f'Enki_{dataset}_inpaint_t{t}_p{p}.h5')
+    # Do it
+    if not os.path.isfile(outfile) or clobber:
+        cutout_analysis.inpaint_images(outfile, t, p, dataset, 
+                                   n_cores=n_cores, debug=debug,
+                                   nsub_files=100000)
+    else:                            
+        print(f"Found: {outfile}.  Not clobbering..")
+
+    # RMSE time
+    enki_analysis.calc_rms(t, p, dataset, debug=debug, method='inpaint',
+                           in_recon_file=outfile, clobber=rmse_clobber,
+                           keys=['valid', 'inpainted', 'valid'])
+                                                 
+
+
 def main(flg):
     if flg== 'all':
         flg= np.sum(np.array([2 ** ii for ii in range(25)]))
@@ -421,20 +465,45 @@ def main(flg):
 
     # Inpaint VIIRS images
     if flg & (2**1):
-        inpaint('Enki_VIIRS_inpaint_t10_p10.h5', 
-                10, 10, debug=False, local=True) 
-
-    # RMSE of inpainted images
-    if flg & (2**2):
-
+        '''
+        for t in [10,20]:
+            for p in [10,20,30,40]:
+                if t==20 and p==10:
+                    continue
+                inpaint(t, p, 'VIIRS', debug=False)
+        # Redo 10,10
         for t in [10]:
             for p in [10]:
-                print(f'Working on: t={t}, p={p}')
-                rmse_inpaint(t, p)#, clobber=clobber, debug=debug)
+                inpaint(t, p, 'VIIRS', debug=False,
+                        clobber=True, rmse_clobber=True)
+        '''
+
+        # More
+        for t in [20]:
+            for p in [50]:
+                # This does RMSE too
+                viirs_inpaint(t, p, 'VIIRS', debug=False)
 
     # Extract with clouds at ~10%
     if flg & (2**3):
         viirs_extract_2013(local=True, save_fields=True)
+
+    # RMSE recalc
+    if flg & (2**4):
+
+        debug = False
+        dataset = 'VIIRS'
+
+        for t in [20]:
+            for p in [50]:
+                print(f'Working on: t={t}, p={p}')
+                #outfile = os.path.join(os.getenv('OS_SST'), 'VIIRS', 'Enki', 'Recon',
+                #    f'Enki_{dataset}_inpaint_t{t}_p{p}.h5')
+                #enki_analysis.calc_rms(t, p, dataset, debug=debug, 
+                #           in_recon_file=outfile, clobber=True,
+                #           keys=['valid', 'inpainted', 'valid'])
+                enki_analysis.calc_rms(t, p, dataset, debug=debug, 
+                           clobber=True)
 
 
 # Command line execution
@@ -444,9 +513,9 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         flg = 0
         #flg += 2 ** 0  # 1 -- Generate the total table
-        #flg += 2 ** 1  # 2 -- Inpaint 
-        #flg += 2 ** 2  # 4 -- Inpaint RMSE
-        flg += 2 ** 3  # 8 -- Extract VIIRS to CC15 (for cloud masks!)
+        #flg += 2 ** 1  # 2 -- Inpaint  + RMSE
+        #flg += 2 ** 3  # 8 -- Extract VIIRS to CC15 (for cloud masks!)
+        #flg += 2 ** 4  # 16 -- RMSE
     else:
         flg = sys.argv[1]
 

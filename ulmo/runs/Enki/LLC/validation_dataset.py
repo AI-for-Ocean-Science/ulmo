@@ -23,8 +23,9 @@ from IPython import embed
 
 enki_valid_file = 's3://llc/mae/Tables/Enki_LLC_valid_nonoise.parquet'
 enki_valid_noise_file = 's3://llc/mae/Tables/Enki_LLC_valid_noise.parquet'
+enki_valid_noise02_file = 's3://llc/mae/Tables/Enki_LLC_valid_noise02.parquet'
 
-def u_init_144(tbl_file:str, debug=False, resol=0.5, plot=False,
+def u_init_144(tbl_file:str, resol=0.5, plot=False,
                max_lat=None, rotate:float=0.25):
     """ Get the show started by sampling uniformly
     in space and and time
@@ -175,7 +176,8 @@ def main(flg):
     if flg & (2**0):
         # For Enki validation
         #u_init_144(enki_valid_file, max_lat=57.)#, plot=True)
-        u_init_144(enki_valid_noise_file, max_lat=57.)#, plot=True)
+        #u_init_144(enki_valid_noise_file, max_lat=57.)#, plot=True)
+        u_init_144(enki_valid_noise02_file, max_lat=57.)#, plot=True)
 
     if flg & (2**1):
         # Enki
@@ -184,27 +186,35 @@ def main(flg):
         #              preproc_root='llc_144_nonoise', 
         #              root_file='Enki_LLC_valid_nonoise_preproc.h5') 
 
-        # NOISE
-        u_extract_144(enki_valid_noise_file,
-                      preproc_root='llc_144', 
-                      root_file='Enki_LLC_valid_noise_preproc.h5') 
+        # NOISE with 0.04K
+        #u_extract_144(enki_valid_noise_file,
+        #              preproc_root='llc_144', 
+        #              root_file='Enki_LLC_valid_noise_preproc.h5') 
+
+        # NOISE with 0.02K
+        u_extract_144(enki_valid_noise02_file,
+                      preproc_root='llc_144_noise02', 
+                      root_file='Enki_LLC_valid_noise02_preproc.h5') 
 
     if flg & (2**2):
+        '''
         u_evaluate_144(enki_valid_file)
         u_evaluate_144(enki_valid_noise_file)
+        '''
+        u_evaluate_144(enki_valid_noise02_file)
 
     # Calculate RMS for various reconstructions
     if flg & (2**3):
         clobber = False
         debug=False
 
+        '''
         # No noise
         for t in [10,20,35,50,75]:
             for p in [10,20,30,40,50]:
                 print(f'Working on: t={t}, p={p}')
                 enki_analysis.calc_rms(t, p, dataset='LLC2_nonoise', 
                                        clobber=clobber, debug=debug)
-        '''
 
         # Noise
         for t in [10, 35, 50, 75]:
@@ -213,13 +223,22 @@ def main(flg):
                 enki_analysis.calc_rms(t, p, dataset='LLC2_noise', 
                                        clobber=clobber, debug=debug)
         '''
+        # 0.04K Noise but noisless original
+        for t in [10]:
+            for p in [10]:
+                print(f'Working on: t={t}, p={p}')
+                enki_analysis.calc_rms(t, p, dataset='LLC2_noise', 
+                    method='noiseless',
+                    remove_bias=False,
+                    clobber=clobber, debug=debug)
 
     # Inpainting galore
     if flg & (2**4):
-        inpaint(10, 10, 'LLC2_nonoise', 'biharmonic', debug=False, rmse_clobber=True, clobber=True)
-        inpaint(10, 10, 'LLC2_nonoise', 'grid_nearest', debug=False, rmse_clobber=True)
-        inpaint(10, 10, 'LLC2_nonoise', 'grid_linear', debug=False, rmse_clobber=True)
-        inpaint(10, 10, 'LLC2_nonoise', 'grid_cubic', debug=False, rmse_clobber=True)
+        for t, p in zip([10,20], [10,30]):
+            inpaint(t, p, 'LLC2_nonoise', 'biharmonic', debug=False)#, rmse_clobber=False, clobber=False)
+            inpaint(t, p, 'LLC2_nonoise', 'grid_nearest', debug=False)#, rmse_clobber=False)
+            inpaint(t, p, 'LLC2_nonoise', 'grid_linear', debug=False)#, rmse_clobber=False)
+            inpaint(t, p, 'LLC2_nonoise', 'grid_cubic', debug=False)#, rmse_clobber=False)
 
 # Command line execution
 if __name__ == '__main__':
@@ -239,6 +258,13 @@ if __name__ == '__main__':
 
 # Setup
 # python -u validation_dataset.py 1
+
+# Extract
+# python -u validation_dataset.py 2
+
+# Extract
+# python -u validation_dataset.py 4
+
 
 # RMSE
 # python -u validation_dataset.py 8

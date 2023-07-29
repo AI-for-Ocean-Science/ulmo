@@ -557,7 +557,7 @@ def write_pp_fields(pp_fields:list, meta:list,
         return main_tbl
 
     # Train/validation
-    n = int(valid_fraction * pp_fields.shape[0])
+    n = int(np.round((valid_fraction * pp_fields.shape[0])))
     idx = shuffle(np.arange(pp_fields.shape[0]))
     valid_idx, train_idx = idx[:n], idx[n:]
 

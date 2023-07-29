@@ -126,6 +126,7 @@ def anly_patches(patch_file:str, nbins:int=32, model:str='std'):
     patch_file = os.path.join(os.getenv("OS_OGCM"),
         'LLC', 'Enki', 'Recon', patch_file)
 
+    print(f'Loading: {patch_file}')
     f = np.load(patch_file)
     data = f['data']
     data = data.reshape((data.shape[0]*data.shape[1], 

@@ -49,10 +49,15 @@ def add_days(llc_table:pandas.DataFrame, dti:pandas.DatetimeIndex, outfile=None)
     for date in dti[1:]:
         new_tbl = llc_table[llc_table['datetime'] == dti[0]].copy()
         new_tbl['datetime'] = date
-        llc_table = llc_table.append(new_tbl, ignore_index=True)
+        #llc_table = llc_table.append(new_tbl, ignore_index=True)
+        llc_table = pandas.concat([llc_table, new_tbl], ignore_index=True)
+
+    # Drop index
+    llc_table.drop(columns=['index'], inplace=True)
 
     # Write
     if outfile is not None:
+        assert catalog.vet_main_table(llc_table)
         ulmo_io.write_main_table(llc_table, outfile)
 
     # Return
@@ -220,11 +225,13 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
 
         del answers, fields, items, sst
         ds.close()
+        #embed(header='extract 223')
 
     # Fuss with indices
     ex_idx = np.array(all_sub)
     ppf_idx = []
     ppf_idx = catalog.match_ids(np.array(img_idx), ex_idx)
+    
     # Write
     llc_table = pp_utils.write_pp_fields(
         pp_fields, meta, llc_table, ex_idx, ppf_idx,

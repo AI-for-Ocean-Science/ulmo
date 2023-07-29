@@ -1,10 +1,10 @@
-""" Figures for MAE paper """
+""" Figures for Enki paper """
 import os, sys
 import numpy as np
 import scipy
 from pkg_resources import resource_filename
 
-import healpy as hp
+import xarray
 
 import matplotlib as mpl
 import matplotlib.gridspec as gridspec
@@ -57,30 +57,35 @@ ogcm_path = os.getenv('OS_OGCM')
 enki_path = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki')
 
 valid_tbl_file = os.path.join(enki_path, 'Tables',
-                              'MAE_LLC_valid_nonoise.parquet')
+                              'Enki_LLC_valid_nonoise.parquet')
 valid_img_file = os.path.join(enki_path, 'PreProc',
-                              'MAE_LLC_valid_nonoise_preproc.h5')
+                              'Enki_LLC_valid_nonoise_preproc.h5')
 
 smper = r'$m_\%$'
 stper = r'$t_\%$'
 
-def fig_reconstruct(outfile:str='fig_reconstruct.png', t:int=10, p:int=20,
-                    patch_sz:int=4):
+def fig_reconstruct(outfile:str='fig_reconstruct.png', t:int=20, 
+                    p:int=30, patch_sz:int=4):
 
     # Load
-    tbl = ulmo_io.load_main_table(valid_tbl_file)
+    tbl_file, orig_file, recon_file, mask_file = enki_utils.set_files(
+        'LLC2_nonoise', 20, 30)
+
+    print(f"Orig: {orig_file}")
+    print(f"Recon: {recon_file}")
+    print(f"Mask: {mask_file}")
+
+    tbl = ulmo_io.load_main_table(tbl_file)
     bias = enki_utils.load_bias((t,p))
 
     # Pick one
-    LL = 0.
+    #LL = 1. # Pretty nice
+    LL = 2. # Pretty nice
     imin = np.argmin(np.abs(tbl.LL - LL))
     cutout = tbl.iloc[imin]
 
-    # Load the images
-    recon_file = enki_utils.img_filename(t,p, local=True)
-    mask_file = enki_utils.mask_filename(t,p, local=True)
 
-    f_orig = h5py.File(valid_img_file, 'r')
+    f_orig = h5py.File(orig_file, 'r')
     f_recon = h5py.File(recon_file, 'r')
     f_mask = h5py.File(mask_file, 'r')
 
@@ -109,7 +114,7 @@ def fig_reconstruct(outfile:str='fig_reconstruct.png', t:int=10, p:int=20,
                                              bias=bias)
     max_rmse = np.max(results['std_diff'])
 
-    print(f'Residual max: {max_res:.3f}, RMSE max: {max_rmse:.3f}')
+    print(f'Residual max: {max_res:.3f}, RMSE max: {max_rmse:.3f}, Average RMSE: {np.mean(results["std_diff"]):.3f}')
 
 
 def fig_patches(outfile:str, patch_file:str, model:str='std'):
@@ -241,7 +246,7 @@ def fig_patch_ij_binned_stats(metric:str,
 
 def fig_patch_rmse(patch_file:str, in_ax=None, outfile:str=None, 
                    other_patch_files:list=None,
-                   lbls:list=None,
+                   lbls:list=None, show_model:bool=True,
                    tp:tuple=None, model:str='std'):
     """ Binned stats for patches
 
@@ -289,8 +294,8 @@ def fig_patch_rmse(patch_file:str, in_ax=None, outfile:str=None,
     ax.plot(plt_x, eval_stats, 'o', color='b', 
             label='Patches' if lbls is None else lbls[0])
 
-    markers = ['*', 's', '^']
-    colors = ['g', 'purple']
+    markers = ['*', '^', 's',  'v']
+    colors = ['g', 'orange', 'purple', 'cyan']
     if other_patch_files is not None:
         for kk in range(len(other_patch_files)):
             x_edge2, eval_stats2, _, _, _, _, _ = items[kk]
@@ -314,7 +319,8 @@ def fig_patch_rmse(patch_file:str, in_ax=None, outfile:str=None,
     elif model == 'denom':
         yval = enki_anly_rms.denom_model(10**xval, floor=consts[0], scale=consts[1])
         
-    ax.plot(xval, np.log10(yval), 'r:', 
+    if show_model:
+        ax.plot(xval, np.log10(yval), 'r:', 
             label=r'$\log_{10}( \, (\sigma_T + '+f'{consts[0]:0.3f})/{consts[1]:0.1f}'+r')$')
 
 
@@ -381,7 +387,7 @@ def fig_viirs_example(outfile:str, t:int, idx:int=0):
     img, _ = image_utils.grab_image(cutout, pp_hf=f_pp2012, close=False)
 
     # Load model
-    chkpt_file = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'MAE', 'models', f'mae_t{t}_399.pth')
+    chkpt_file = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki', 'models', f'mae_t{t}_399.pth')
     model = models_mae.prepare_model(chkpt_file)
 
     # Reconstruct
@@ -423,16 +429,16 @@ def fig_llc_inpainting(outfile:str, t:int, p:int,
     # Files
     local_enki_table = os.path.join(
         enki_path, 'Tables', 
-        'MAE_LLC_valid_nonoise.parquet')
+        'Enki_LLC_valid_nonoise.parquet')
     local_mae_valid_nonoise_file = os.path.join(
         enki_path, 'PreProc', 
-        'MAE_LLC_valid_nonoise_preproc.h5')
+        'Enki_LLC_valid_nonoise_preproc.h5')
     local_orig_file = local_mae_valid_nonoise_file
     inpaint_file = os.path.join(
         ogcm_path, 'LLC', 'Enki', 
-        'Recon', f'LLC_inpaint_t{t}_p{p}.h5')
-    recon_file = enki_utils.img_filename(t,p, local=True)
-    mask_file = enki_utils.mask_filename(t,p, local=True)
+        'Recon', f'Enki_LLC2_nonoise_biharmonic_t{t}_p{p}.h5')
+    recon_file = enki_utils.img_filename(t,p, local=True, dataset='LLC2_nonoise')
+    mask_file = enki_utils.mask_filename(t,p, local=True, dataset='LLC2_nonoise')
 
     # Load up
     enki_tbl = ulmo_io.load_main_table(local_enki_table)
@@ -447,18 +453,10 @@ def fig_llc_inpainting(outfile:str, t:int, p:int,
         nimgs = 1000
     else:
         nimgs = 50000
-    #orig_imgs = f_orig['valid'][:nimgs,0,...]
-    #mask_imgs = f_mask['valid'][:nimgs,0,...]
-
-    # Allow for various shapes (hack)
-    #recon_imgs = f_recon['valid'][:nimgs,0,...]
 
 
-    #rms_enki = rms_images(orig_imgs, recon_imgs, mask_imgs)
+    # Calculate
     rms_enki = rms_images(f_orig, f_recon, f_mask, nimgs=nimgs)
-    
-    #inpaint_imgs = f_inpaint['inpainted'][:nimgs,...]
-    #rms_inpaint = rms_images(orig_imgs, inpaint_imgs, mask_imgs)
     rms_inpaint = rms_images(f_orig, f_inpaint, f_mask, nimgs=nimgs,
                              keys=['valid', 'inpainted', 'valid'])
 
@@ -526,7 +524,7 @@ def fig_llc_inpainting(outfile:str, t:int, p:int,
     cbaxes.set_label(r'$LL_{\rm Ulmo}$', fontsize=17.)
     cbaxes.ax.tick_params(labelsize=15)
 
-    ax2.plot([1e-3, 10], [1e-3,10], 'k--')
+    ax2.plot([1e-3, 1], [1e-3,1], 'k--')
     axes.append(ax2)
 
     # RMS_Enki vs. DT
@@ -691,7 +689,7 @@ def fig_viirs_rmse(outfile='fig_viirs_rmse.png',
     # load rmse
     llc = ulmo_io.load_main_table(os.path.join(
         os.getenv('OS_OGCM'), 'LLC', 'Enki', 
-        'Tables', 'MAE_LLC_valid_nonoise.parquet'))
+        'Tables', 'Enki_LLC_valid_nonoise.parquet'))
     
     if in_ax is None:
         fig = plt.figure(figsize=(10, 10))
@@ -713,14 +711,15 @@ def fig_viirs_rmse(outfile='fig_viirs_rmse.png',
         viirs, t, p, batch_percent=100./nbatch)
     rmse_viirs[f'rms_inpaint_t{t}_p{p}'] = enki_anly_rms.calc_batch_RMSE(
         viirs, t, p, batch_percent=100./nbatch, inpaint=True)
+    #embed(header='fig_: 719')
 
     # VIIRS plot
     x = rmse_viirs['median_LL']
     y = rmse_viirs[f'rms_t{t}_p{p}']
     y_inpaint = rmse_viirs[f'rms_inpaint_t{t}_p{p}']
-    plt.scatter(x, y, marker='s', color='k', label='VIIRS Enki')
+    plt.scatter(x, y, marker='s', color='k', label=f'VIIRS Enki ({stper}={t}, {smper}={p})')
     if show_inpaint:
-        plt.scatter(x, y_inpaint, marker='s', color='b', label='VIIRS Inpaint')
+        plt.scatter(x, y_inpaint, marker='o', color='b', label='VIIRS Biharmonic')
 
     # LLC analysis
     x_llc, y_llc = [], []
@@ -748,8 +747,8 @@ def fig_viirs_rmse(outfile='fig_viirs_rmse.png',
     ax.grid(color='gray', linestyle='dashed', linewidth = 0.5)
     #plt.title(f't={t}, p={p}')
                          
-    if show_inpaint:                         
-        ax.set_yscale('log')
+    #if show_inpaint:                         
+    #    ax.set_yscale('log')
     
     if in_ax is None:
         plt.savefig(outfile, dpi=300)
@@ -835,7 +834,7 @@ def fig_chk_valid(outfile='fig_chk_valid.png'):
 
 
 def fig_llc_many_inpainting(outfile='fig_llc_many_inpainting.png', 
-                   t:int=10, p:int=10, in_ax=None, 
+                   t:int=20, p:int=30, in_ax=None, 
                    nbatch:int=10, show_inpaint:bool=True,
                    show_llc_quad:bool=False):
                          
@@ -890,6 +889,86 @@ def fig_llc_many_inpainting(outfile='fig_llc_many_inpainting.png',
     plt.close()
     print(f'Wrote: {outfile}')
 
+
+def fig_dineof(outfile='fig_dineof.png'): 
+                         
+    # Calculate RMSE
+    # rmse
+    orig_file = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki', 'DINEOF',
+                             'Enki_LLC_orig.nc')
+    ds_orig = xarray.open_dataset(orig_file)
+    orig_imgs = np.asarray(ds_orig.variables['SST'])
+
+    def simple_rmse(recon_imgs, mask_imgs):
+        calc = (recon_imgs - orig_imgs)*mask_imgs
+        calc = calc**2
+        nmask = np.sum(mask_imgs, axis=(1,2))
+        calc = np.sum(calc, axis=(1,2)) / nmask
+        rmse = np.sqrt(calc)
+        return np.mean(rmse)
+
+    def rmse_DINEOF(p):
+        # open files
+        dineof_file = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki', 'DINEOF',
+            f'Enki_LLC_DINEOF_p{p}.nc')
+        print(f'Working on: {dineof_file}')
+        ds_recon = xarray.open_dataset(dineof_file)
+        mask_file = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki', 'Recon',
+            f'mae_mask_t75_p{p}.h5')
+        f_ma = h5py.File(mask_file, 'r')
+        
+        # extract data
+        recon_imgs = np.asarray(ds_recon.variables['sst_filled'])
+        mask_imgs = f_ma['valid'][:180,0,...]
+        #for i in range(180):
+        #    mask_imgs.append(f_ma['valid'][i,0,...])
+
+        return simple_rmse(recon_imgs, mask_imgs)
+            
+    def rmse_enki(p):
+        enki_file = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Enki', 'DINEOF',
+            f'Enki_LLC_DINEOF_enki_p{p}.nc')
+        mask_file = enki_file.replace('enki', 'mask')
+        # Load
+        f_enki = h5py.File(enki_file, 'r')
+        recon_imgs = np.asarray(f_enki['valid'][:,0,...])
+        f_mask = h5py.File(mask_file, 'r')
+        mask_imgs = np.asarray(f_mask['valid'][:,0,...])
+
+        return simple_rmse(recon_imgs, mask_imgs)
+
+    rmses = []
+    enki_rmses = []
+    ps = [10, 20, 30, 40, 50]
+    for p in ps:
+        rmses.append(rmse_DINEOF(p))
+        enki_rmses.append(rmse_enki(p))
+    
+    # Plot
+    fig = plt.figure(figsize=(10, 10))
+    plt.clf()
+    gs = gridspec.GridSpec(1,1)
+    ax = plt.subplot(gs[0])
+
+    plt.plot(ps, rmses, 'o', label='DINEOF')
+    plt.plot(ps, enki_rmses, 's', color='k', label='Enki')
+
+    fsz = 17
+    plt.legend(title_fontsize=fsz+1, fontsize=fsz, 
+               fancybox=True, loc='lower left')
+    #plt.title('Training Percentile: t={}'.format(models[i]))
+    plt.xlabel(smper)
+    plt.ylabel("Average RMSE (K)")
+    ax.set_xlim(0., 60)
+    ax.set_ylim(0., 0.3)
+
+    plotting.set_fontsize(ax, 19)
+    ax.grid(color='gray', linestyle='dashed', linewidth = 0.5)
+                         
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print(f'Wrote: {outfile}')
+
 #### ########################## #########################
 def main(flg_fig):
     if flg_fig == 'all':
@@ -899,8 +978,10 @@ def main(flg_fig):
 
     # Patches
     if flg_fig & (2 ** 0):
-        fig_patches('fig_patches_t10_p20.png',
-                    'enki_patches_t10_p20.npz')
+        #fig_patches('fig_patches_t10_p20.png',
+        #            'enki_patches_t10_p20.npz')
+        fig_patches('fig_patches_t20_p30.png',
+                    'enki_patches_t20_p30.npz')
         #fig_patches('fig_patches_t10_p20_denom.png',
         #            'mae_patches_t10_p20.npz',
         #            model='denom')
@@ -911,7 +992,11 @@ def main(flg_fig):
 
     # LLC (Enki vs inpainting)
     if flg_fig & (2 ** 2):
-        fig_llc_inpainting('fig_llcinpainting.png', 10, 10, single=True)#, debug=True)
+        #fig_llc_inpainting('fig_llcinpainting_t10_p10.png', 10, 10, 
+        #                   single=True)#, debug=True)
+        fig_llc_inpainting('fig_llcinpainting_t20_p30.png', 
+                           20, 30, 
+                           single=True)#, debug=True)
 
     # Example
     if flg_fig & (2 ** 3):
@@ -919,11 +1004,15 @@ def main(flg_fig):
 
     # VIIRS vs LLC with LL
     if flg_fig & (2 ** 4):
-        fig_viirs_rmse()
-        fig_viirs_rmse(outfile='fig_viirs_rmse_noinpaint.png',
-                       show_inpaint=False)
-        fig_viirs_rmse(outfile='fig_viirs_rmse_quad.png',
-                       show_inpaint=False, show_llc_quad=True)
+        #fig_viirs_rmse()
+        fig_viirs_rmse(outfile='fig_viirs_rmse_t20p40.png',
+                       t=20, p=40, show_inpaint=False)
+        #fig_viirs_rmse(outfile='fig_viirs_rmse_t20p50.png',
+        #               t=20, p=50)
+        #fig_viirs_rmse(outfile='fig_viirs_rmse_noinpaint.png',
+        #               show_inpaint=False)
+        #fig_viirs_rmse(outfile='fig_viirs_rmse_quad.png',
+        #               show_inpaint=False, show_llc_quad=True)
 
     # Check valid 2, with and without noise
     if flg_fig & (2 ** 5):
@@ -932,12 +1021,23 @@ def main(flg_fig):
     # More patch figures
     if flg_fig & (2 ** 6):
         fig_patch_rmse(
-            '/home/xavier/Projects/Oceanography/SST/VIIRS/Enki/Recon/VIIRS_100clear_patches_t10_p10.npz',
-            other_patch_files=['/backup/Oceanography/OGCM/LLC/Enki/Recon/enki_noise_patches_t10_p10.npz',
-                '/backup/Oceanography/OGCM/LLC/Enki/Recon/enki_patches_t10_p10.npz'],
-            lbls=['VIIRS', 'LLC2 Noise', 'LLC2 NoNoise'],
+                '/backup/Oceanography/OGCM/LLC/Enki/Recon/enki_patches_t10_p10.npz',
+            other_patch_files=[
+                '/backup/Oceanography/OGCM/LLC/Enki/Recon/enki_noise_patches_t10_p10.npz',
+                '/backup/Oceanography/OGCM/LLC/Enki/Recon/enki_noise_patches_noiseless_t10_p10.npz',
+                '/home/xavier/Projects/Oceanography/SST/VIIRS/Enki/Recon/VIIRS_100clear_patches_t10_p10.npz',
+                #'/backup/Oceanography/OGCM/LLC/Enki/Recon/enki_noise02_patches_t10_p10.npz',
+            ],
+            lbls=[
+                  'LLC without Noise', 
+                  'LLC with Noise=0.04K', 
+                  'LLC Noise+Noiseless', 
+                'VIIRS', 
+                  #'LLC2 Noise 0.02K',
+                  ],
             outfile='fig_viirs_llc_patches_t10_p10.png',
-            tp=(10,10))
+            tp=(10,10),
+            show_model=False)
 
         #fig_patch_rmse(
         #    '/home/xavier/Projects/Oceanography/SST/VIIRS/Enki/Recon/VIIRS_100clear_patches_t10_p10.npz',
@@ -948,19 +1048,25 @@ def main(flg_fig):
     if flg_fig & (2 ** 7):
         fig_llc_many_inpainting()
 
+    # DINEOF
+    if flg_fig & (2 ** 8):
+        fig_dineof()
+
+
 # Command line execution
 if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg_fig = 0
-        flg_fig += 2 ** 0  # patches
+        #flg_fig += 2 ** 0  # patches
         #flg_fig += 2 ** 1  # cutouts
-        #flg_fig += 2 ** 2  # LLC (Enki vs inpainting)
+        #flg_fig += 2 ** 2  # LLC RMSE (Enki vs inpainting)
         #flg_fig += 2 ** 3  # Reconstruction example
-        #flg_fig += 2 ** 4  # VIIRS LL
+        #flg_fig += 2 ** 4  # VIIRS RMSE vs LL (Figure 5)
         #flg_fig += 2 ** 5  # Check valid 2
         flg_fig += 2 ** 6  # More patch figures
         #flg_fig += 2 ** 7  # Compare Enki against many inpainting
+        #flg_fig += 2 ** 8  # DINEOF
     else:
         flg_fig = sys.argv[1]
 

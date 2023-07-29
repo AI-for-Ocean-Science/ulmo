@@ -18,6 +18,8 @@ def load_bias(tp:tuple=None, bias_path:str=None, dataset:str='LLC2_nonoise'):
     """
     # Name
     if bias_path is None:
+        if dataset == 'VIIRS':
+            dataset = 'LLC2_nonoise'
         bias_path = os.path.join(resource_filename('ulmo', 'runs'), 
             'Enki', 'Masters', f'enki_bias_{dataset}.csv')
     # Load
@@ -60,6 +62,9 @@ def img_filename(t_per:int, p_per:int,
                 dpath = os.path.join(os.getenv('OS_OGCM'), 'LLC')
             elif dataset == 'LLC2_noise':
                 root = 'enki_noise'
+                dpath = os.path.join(os.getenv('OS_OGCM'), 'LLC')
+            elif dataset == 'LLC2_noise02':
+                root = 'enki_noise02'
                 dpath = os.path.join(os.getenv('OS_OGCM'), 'LLC')
             elif dataset == 'VIIRS':
                 root = 'VIIRS_100clear'
@@ -172,7 +177,7 @@ def set_files(dataset:str, t:int, p:int):
 
     Args:
         dataset (str): 
-            Dataset name ['VIIRS', 'LLC', 'LLC2]
+            Dataset name ['VIIRS', 'LLC', 'LLC2', 'LLC2_nonoise']
         t (int): 
             Train percentile
         p (int): 
@@ -204,6 +209,10 @@ def set_files(dataset:str, t:int, p:int):
         tbl_file = 's3://llc/mae/Tables/Enki_LLC_valid_noise.parquet'
         orig_file = os.path.join(enki_path, 'PreProc', 
                                  'Enki_LLC_valid_noise_preproc.h5')
+    elif dataset == 'LLC2_noise02':
+        tbl_file = 's3://llc/mae/Tables/Enki_LLC_valid_noise02.parquet'
+        orig_file = os.path.join(enki_path, 'PreProc', 
+                                 'Enki_LLC_valid_noise02_preproc.h5')
     else:
         raise ValueError("Bad dataset")
 
