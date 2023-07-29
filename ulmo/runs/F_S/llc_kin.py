@@ -368,6 +368,13 @@ def main(flg):
         kin_nenya_eval(modis_l2_file, 
                        s3_outdir='s3://modis-l2/Nenya/')
 
+    # New UMAP on VIIRS
+    if flg & (2**7):
+        nenya_umap(local_viirs98_file, 'DT1',
+            ssl_io.latent_path('viirs'),
+                   'VIIRS_Nenya', 'viirs', 
+                   's3://viirs/Nenya/',
+                   local=True, DT_key='DT')
 
 # Command line execution
 if __name__ == '__main__':
