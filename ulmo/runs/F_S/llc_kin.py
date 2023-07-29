@@ -247,7 +247,7 @@ def kin_nenya_eval(tbl_file:str, s3_outdir:str=None,
             os.remove(data_file)
             print(f'{data_file} removed')
     
-def nenya_umap(tbl_file:str, 
+def run_nenya_umap(tbl_file:str, 
                subset:str, 
                local_latents_path:str, 
                out_root:str, 
@@ -294,7 +294,6 @@ def nenya_umap(tbl_file:str,
 
     DT_cut = None if subset == 'DTall' else subset
 
-    embed(header='297 of llc_kin')
     nenya_umap.umap_subset(tbl.copy(),
                          nenya_opt_path, 
                          outfile, 
@@ -344,14 +343,14 @@ def main(flg):
 
         '''
         # VIIRS
-        nenya_umap(local_viirs98_file, 'DT1',
+        run_nenya_umap(local_viirs98_file, 'DT1',
             ssl_io.latent_path('viirs'),
                    'VIIRS_Nenya', 'viirs', 
                    's3://viirs/Nenya/',
                    local=True, DT_key='DT')
 
         # LLC Kin
-        nenya_umap(full_fileA, 'DT1',
+        run_nenya_umap(full_fileA, 'DT1',
             ssl_io.latent_path('llc'),
                    'LLC_A_Nenya', 'llc', 
                    's3://llc/Nenya/',
@@ -359,9 +358,9 @@ def main(flg):
         '''
 
         # MODIS
-        nenya_umap(modis_l2_file, 
+        run_nenya_umap(modis_l2_file, 
                    'DT1', 
-                   ssl_io.latent_path('modis_redo'), 
+                   nenya_io.latent_path('modis_redo'), 
                    'MODIS_Nenya', 
                    table_utils.path_to_tables('modis'), 
                    'modis', 
@@ -375,7 +374,7 @@ def main(flg):
 
     # New UMAP on VIIRS
     if flg & (2**7):
-        nenya_umap(
+        run_nenya_umap(
             local_viirs98_file, 'DT1', nenya_io.latent_path('viirs'),
             'VIIRS_Nenya', 
             nenya_io.table_path('viirs'),
@@ -396,7 +395,8 @@ if __name__ == '__main__':
         #flg += 2 ** 3  # 8 -- Evaluate VIIRS 98
         #flg += 2 ** 4  # 16 -- Evaluate LLC matched to VIIRS 98
         #flg += 2 ** 5  # 32 -- UMAP Nenya -- This only works on 3.9!!
-        #flg += 2 ** 3  # 8 -- Evaluate MODIS 96
+        #flg += 2 ** 6  # 64 -- Evaluate MODIS 96
+        #flg += 2 ** 7  # 128 -- UMAP Nenya on VIIRS
     else:
         flg = sys.argv[1]
 
