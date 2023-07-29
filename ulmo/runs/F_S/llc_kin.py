@@ -14,10 +14,10 @@ from ulmo import io as ulmo_io
 from ulmo.preproc import plotting as pp_plotting
 from ulmo.utils import table as table_utils
 
-from ulmo.ssl.train_util import option_preprocess
-from ulmo.ssl import latents_extraction
-from ulmo.ssl import ssl_umap
-from ulmo.ssl import io as ssl_io
+from ulmo.nenya.train_util import option_preprocess
+from ulmo.nenya import latents_extraction
+from ulmo.nenya import nenya_umap
+from ulmo.nenya import io as nenya_io
 
 from IPython import embed
 
@@ -31,7 +31,7 @@ if os.getenv('SST_OOD') is not None:
     local_viirs98_file = os.path.join(os.getenv('SST_OOD'),
                                   'VIIRS', 'Tables', 'VIIRS_all_98clear_std.parquet')
 
-nenya_opt_path = os.path.join(resource_filename('ulmo', 'runs'), 'SSL',
+nenya_opt_path = os.path.join(resource_filename('ulmo', 'runs'), 'Nenya',
                               'MODIS', 'v4', 'opts_ssl_modis_v4.json')
 
 
@@ -253,7 +253,10 @@ def nenya_umap(tbl_file:str,
                out_root:str, 
                out_table_path:str,
                table:str, 
-               clobber_local=False, debug=False, local:bool=True,
+               clobber_local=False, debug=False, 
+               umap_savefile:str=None,
+               local:bool=True,
+               train_umap:bool=False,
                DT_key='DT40'):
     """ Run UMAP on Nenya output
 
@@ -278,8 +281,9 @@ def nenya_umap(tbl_file:str,
     #embed(header='254 of llc_kin')
 
     # UMAP save file
-    base1 = '96clear_v4'
-    umap_savefile = os.path.join(
+    if umap_savefile is None:
+        base1 = '96clear_v4'
+        umap_savefile = os.path.join(
             os.getenv('SST_OOD'), 
             f'MODIS_L2/UMAP/MODIS_SSL_{base1}_{subset}_UMAP.pkl')
 
@@ -290,7 +294,8 @@ def nenya_umap(tbl_file:str,
 
     DT_cut = None if subset == 'DTall' else subset
 
-    ssl_umap.umap_subset(tbl.copy(),
+    embed(header='297 of llc_kin')
+    nenya_umap.umap_subset(tbl.copy(),
                          nenya_opt_path, 
                          outfile, 
                          local=local,
@@ -298,7 +303,7 @@ def nenya_umap(tbl_file:str,
                          DT_key = DT_key,
                          debug=debug, 
                          table=table,
-                         train_umap=False, 
+                         train_umap=train_umap, 
                          umap_savefile=umap_savefile,
                          local_dataset_path=local_latents_path,
                          remove=False, CF=False)
@@ -370,11 +375,14 @@ def main(flg):
 
     # New UMAP on VIIRS
     if flg & (2**7):
-        nenya_umap(local_viirs98_file, 'DT1',
-            ssl_io.latent_path('viirs'),
-                   'VIIRS_Nenya', 'viirs', 
-                   's3://viirs/Nenya/',
-                   local=True, DT_key='DT')
+        nenya_umap(
+            local_viirs98_file, 'DT1', nenya_io.latent_path('viirs'),
+            'VIIRS_Nenya', 
+            nenya_io.table_path('viirs'),
+            'VIIRS_Nenya_98clear_v1_DT1.parquet',
+            umap_savefile=os.path.join(nenya_io.umap_path('viirs'),
+                'VIIRS_Nenya_98clear_v1_DT1_UMAP.pkl'),
+            local=True, DT_key='DT', train_umap=True)
 
 # Command line execution
 if __name__ == '__main__':

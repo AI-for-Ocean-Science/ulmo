@@ -50,3 +50,38 @@ def load_opt(nenya_model:str):
     # Return
     return opt, ssl_model_file
     
+def translate_dataet(dataset:str):
+    """ Translate the dataset name to the local path"""
+    if 'modis' in dataset: 
+        dset = 'MODIS_L2'
+    elif 'viirs' in dataset: 
+        dset = 'VIIRS'
+    else:
+        raise IOError(f'Bad dataset: {dataset}')
+    return dset
+
+def latent_path(dataset:str, local:bool=True, 
+                model:str='MODIS_R2019_v4/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_256_temp_0.07_trial_5_cosine_warm'):
+    if local:
+        sst_path = os.getenv('OS_SST')
+
+    if dataset == 'modis_redo':
+        model = model.replace('v4', 'v4_REDO')
+
+    dset = translate_dataet(dataset)
+
+    return os.path.join(sst_path, dset, 'Nenya', 'latents', model)
+
+def table_path(dataset:str, local:bool=True): 
+    if local:
+        sst_path = os.getenv('OS_SST')
+    dset = translate_dataet(dataset)
+
+    return os.path.join(sst_path, dset, 'Nenya', 'Tables')
+
+def umap_path(dataset:str, local:bool=True): 
+    if local:
+        sst_path = os.getenv('OS_SST')
+    dset = translate_dataet(dataset)
+
+    return os.path.join(sst_path, dset, 'Nenya', 'UMAP')
