@@ -31,9 +31,11 @@ MANIFEST
 # Misc
 *.pkl
 tmp.*
+tmp*
 
 # Data
 *.nc
+*.npy
 *.h5
 *.csv
 *.parquet

@@ -15,9 +15,9 @@ from IPython import embed
 def set_paths(root):
     paths = {}
     paths['sst'] = '/Volumes/Aqua-1/MODIS/uri-ai-sst/OOD' if os.getenv('SST_OOD') is None else os.getenv('SST_OOD')
-    paths['eval'] = os.path.join(sst_path, root, 'Evaluations')
-    paths['extract'] = os.path.join(sst_path, root, 'Extractions')
-    paths['preproc'] = os.path.join(sst_path, root, 'PreProc')
+    paths['eval'] = os.path.join(paths['sst'], root, 'Evaluations')
+    paths['extract'] = os.path.join(paths['sst'], root, 'Extractions')
+    paths['preproc'] = os.path.join(paths['sst'], root, 'PreProc')
     return paths
 
 

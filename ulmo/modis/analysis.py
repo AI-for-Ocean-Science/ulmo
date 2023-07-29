@@ -136,6 +136,28 @@ def cloud_cover_granule(filename:str,
                         nadir_offset=480,
                         qual_thresh=2,
                         temp_bounds = (-2, 33)):
+    """ Calculate the cloud cover for a MODIS granule
+
+    Args:
+        filename (str): MODIS filename 
+        CC_values (list, optional): 
+            List of cloud cover values to calculate. Defaults to None.
+        nside (int, optional):
+            Healpix nside. Defaults to None.
+        field (str, optional):
+            Field to use. Defaults to 'SST'.
+        field_size (tuple, optional): 
+            Size of the field. Defaults to (128,128).
+        nadir_offset (int, optional): 
+            Offset from nadir. Defaults to 480.
+        qual_thresh (int, optional): 
+            Quality threshold. Defaults to 2.
+        temp_bounds (tuple, optional): 
+            Temperature bounds. Defaults to (-2, 33).
+
+    Returns:
+        tuple: tot_pix, hp_idx
+    """
 
     # Load
     sst, latitude, longitude, masks = modis_io.load_granule(

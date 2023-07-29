@@ -35,7 +35,6 @@ def plot_extraction(llc_table:pandas.DataFrame, figsize=(7,4),
     ax = plt.axes(projection=tformM)
 
 
-    cm = plt.get_cmap('Blues')
     # Cut
     #good = np.invert(hp_events.mask)
     img = plt.scatter(x=llc_table.lon,

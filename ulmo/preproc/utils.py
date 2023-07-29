@@ -333,7 +333,7 @@ def preproc_tbl(data_tbl:pandas.DataFrame,
                 clobber=False, 
                 inpainted_mask=False,
                 n_cores=10):
-    """ Pre-process a Table of extracted files
+    """ PreProcess a set of images
 
     Args:
         data_tbl (pandas.DataFrame): 
@@ -452,10 +452,6 @@ def preproc_tbl(data_tbl:pandas.DataFrame,
             img_idx += [item[1] for item in answers]
             meta += [item[2] for item in answers]
 
-            #if debug:
-            #    from ulmo.plotting import plotting
-            #    embed(header='426 of preproc')
-
             # Clean up
             del answers, fields, items
             if use_mask:
@@ -492,6 +488,7 @@ def write_pp_fields(pp_fields:list, meta:list,
                     valid_fraction:float,
                     s3_file:str, local_file:str,
                     kin_meta:dict=None,
+                    write_cutouts:bool=True,
                     debug:bool=False,
                     skip_meta=False):
     """Write a set of pre-processed cutouts to disk
@@ -505,9 +502,12 @@ def write_pp_fields(pp_fields:list, meta:list,
             Should be same size and aligned to pp_fields
         ppf_idx (np.ndarray): Order of items in table extracted
         valid_fraction (float): Valid fraction (the rest is Train)
-        s3_file (str): [description]
+        s3_file (str, optional): 
+            Name of the pp_file
         local_file (str): [description]
         kin_meta (dict, optional): Additional meta to include
+        write_cutouts (bool, optional):
+            Write cutouts to disk
         skip_meta (bool, optional):
             If True, don't fuss with meta data
 
@@ -533,6 +533,8 @@ def write_pp_fields(pp_fields:list, meta:list,
         embed(header='528 of preproc/utils')
     clms = list(main_tbl.keys())
     if not skip_meta:
+        #main_tbl['mean_temperature'] = [imeta['mu'] for imeta in meta]
+        #clms += ['mean_temperature']
         # Others
         all_tf = np.array([False]*len(main_tbl))
         all_tf[idx_idx] = True
@@ -560,8 +562,12 @@ def write_pp_fields(pp_fields:list, meta:list,
             if key not in clms:
                 clms += [key]
 
+    # Skip cutouts?
+    if not write_cutouts:
+        return main_tbl
+
     # Train/validation
-    n = int(valid_fraction * pp_fields.shape[0])
+    n = int(np.round((valid_fraction * pp_fields.shape[0])))
     idx = shuffle(np.arange(pp_fields.shape[0]))
     valid_idx, train_idx = idx[:n], idx[n:]
 

@@ -34,8 +34,9 @@ def SSH_Map(fn,field_size):
     
 #print_metadata()
 
-fn = "https://opendap.jpl.nasa.gov/opendap/SeaSurfaceTopography/merged_alt/L4/cdr_grid/ssh_grids_v1812_1992100212.nc"
+opendapp = 'https://opendap.jpl.nasa.gov/opendap/SeaSurfaceTopography/merged_alt/L4/cdr_grid/ssh_grids_v1812_1992100212.nc'
+ssh_path = r'C:\Users\btpri\Desktop\ssh_grids_v1812_1992100212.nc'
 
-SSH_Map(fn, 32)
+SSH_Map(ssh_path, 32)
 
 

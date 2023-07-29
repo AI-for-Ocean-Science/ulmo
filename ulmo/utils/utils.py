@@ -1,10 +1,8 @@
+""" Custom Dataset for HDF5 files. """
 import h5py
 import numpy as np
-from pathlib import Path
-import torch
 from torch.utils import data
 from torch.utils.data.dataloader import default_collate
-
 
 class HDF5Dataset(data.Dataset):
     """Represents an abstract HDF5 dataset.
@@ -13,12 +11,18 @@ class HDF5Dataset(data.Dataset):
         file_path: Path to the HDF5 file.
         dataset_names: List of dataset names to gather. 
             Objects will be returned in this order.
+        return_mask: Return the mask on a call to __getitem__?
     """
-    def __init__(self, file_path, partition):
+    def __init__(self, file_path, partition, 
+                 return_mask:bool=False,
+                 mask_partition:str='masks'):
         super().__init__()
         self.file_path = file_path
         self.partition = partition
         self.meta_dset = partition + '_metadata'
+        # Mask
+        self.return_mask = return_mask
+        self.mask_partition = mask_partition
         # s3 is too risky and slow here
         self.h5f = h5py.File(file_path, 'r')
 
@@ -31,7 +35,12 @@ class HDF5Dataset(data.Dataset):
         #    metadata = self.h5f[self.meta_dset][index]
         #else:
         metadata = None
-        return data, metadata
+
+        if self.return_mask:
+            mask = self.h5f[self.mask_partition][index]
+            return data, mask
+        else:
+            return data, metadata
     
 
 def id_collate(batch):

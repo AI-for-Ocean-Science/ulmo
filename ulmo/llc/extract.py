@@ -49,10 +49,15 @@ def add_days(llc_table:pandas.DataFrame, dti:pandas.DatetimeIndex, outfile=None)
     for date in dti[1:]:
         new_tbl = llc_table[llc_table['datetime'] == dti[0]].copy()
         new_tbl['datetime'] = date
-        llc_table = llc_table.append(new_tbl, ignore_index=True)
+        #llc_table = llc_table.append(new_tbl, ignore_index=True)
+        llc_table = pandas.concat([llc_table, new_tbl], ignore_index=True)
+
+    # Drop index
+    llc_table.drop(columns=['index'], inplace=True)
 
     # Write
     if outfile is not None:
+        assert catalog.vet_main_table(llc_table)
         ulmo_io.write_main_table(llc_table, outfile)
 
     # Return
@@ -115,6 +120,7 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
                          extract_kin=False,
                          kin_stat_dict=None,
                          dlocal=False,
+                         write_cutouts:bool=True,
                          override_RAM=False,
                          s3_file=None, debug=False):
     """Main routine to extract and pre-process LLC data for later SST analysis
@@ -134,9 +140,14 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         dlocal (bool, optional): Data files are local? Defaults to False.
         override_RAM (bool, optional): Over-ride RAM warning?
         s3_file (str, optional): s3 URL for file to write. Defaults to None.
+        write_cutouts (bool, optional): 
+            Write the cutouts to disk?
 
     Raises:
         IOError: [description]
+
+    Returns:
+        pandas.DataFrame: Modified in place table
 
     """
     # Load coords?
@@ -285,6 +296,7 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
             del answers
 
         ds.close()
+        #embed(header='extract 223')
 
     # Fuss with indices
     ex_idx = np.array(all_sub)
@@ -296,8 +308,7 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         pp_fields, meta, llc_table, 
         ex_idx, ppf_idx, 
         valid_fraction, s3_file, local_file,
-        kin_meta=kin_meta, debug=debug)
-    del pp_fields
+        kin_meta=kin_meta, debug=debug, write_cutouts=write_cutouts)
 
     # Write kin?
     if extract_kin:
@@ -307,8 +318,9 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         # divb
         divb_local_file = local_file.replace('.h5', '_divb.h5')
         pp_utils.write_extra_fields(divb_fields, llc_table, divb_local_file)
-
+    
     # Clean up
+    del pp_fields
 
     # Upload to s3? 
     if s3_file is not None:

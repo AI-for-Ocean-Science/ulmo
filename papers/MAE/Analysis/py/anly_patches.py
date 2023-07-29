@@ -8,28 +8,6 @@ from ulmo.mae import patch_analysis
 
 from IPython import embed
 
-def parse_metric(tbl, metric):
-
-    if metric == 'abs_median_diff':
-        values = np.abs(tbl.median_diff)
-        label = r'$|\rm median\_diff |$'
-    elif metric == 'median_diff':
-        values = tbl.median_diff
-        label = 'median_diff'
-    elif metric == 'std_diff':
-        values = tbl.std_diff
-        label = 'rms_diff'
-    elif metric == 'log10_std_diff':
-        values = np.log10(tbl.std_diff)
-        label = 'log10_rms_diff'
-    elif metric == 'log10_stdT':
-        values = np.log10(tbl.stdT)
-        label = 'log10_stdT'
-    else:
-        raise IOError(f"bad metric: {metric}")
-
-    # Return
-    return values, label
 
 
 
@@ -55,4 +33,5 @@ if __name__ == "__main__":
 
     # Testing full set
     patch_analysis.anlayze_full_test(
-        10, 20, debug=True, nsub=1000)
+        's3://llc/mae/Recon/mae_reconstruct_t10_p20.h5')
+        

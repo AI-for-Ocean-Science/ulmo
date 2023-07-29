@@ -1,0 +1,83 @@
+# Script to evaluate Enki outputs with VIIRS 98 Ulm
+#   THIS FAILED!!
+#   TRYING JupyterHub instead..
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: xavier-enki-eval
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: NotIn
+                values:
+                  - k8s-chase-ci-01.noc.ucsb.edu
+              - key: nvidia.com/gpu.product
+                operator: In
+                values:
+                  - NVIDIA-GeForce-GTX-1080-Ti
+      containers:
+      - name: container
+        image: localhost:30081/profxj/ulmo_nvidia:latest  # UPDATE
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: "2"
+            memory: "24Gi"  # Need at least 25.5
+            ephemeral-storage: 100Gi
+          limits:
+            cpu: "5"
+            memory: "36Gi"
+            ephemeral-storage: 150Gi
+            nvidia.com/gpu:  "1"  # See docs to exlude certain types
+        command: ["/bin/bash", "-c"]
+        args:
+          - cd ulmo; 
+            git fetch;
+            git checkout enki_real; 
+            git pull; 
+            pip install -U scikit-image;
+            pip install -U smart-open[s3];
+            python setup.py develop;
+            cd ../tmp; 
+            mkdir foo; 
+            cd foo; 
+            mkdir Evaluations;   
+            python -u /ulmo/ulmo/runs/Enki/LLC/validation_dataset.py 4;
+            rm PreProc/*;
+            cd ..;
+            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp foo s3://llc/mae/ --recursive;
+        env:
+          - name: "ENDPOINT_URL"
+            value: "http://rook-ceph-rgw-nautiluss3.rook"
+          - name: "S3_ENDPOINT"
+            value: "rook-ceph-rgw-nautiluss3.rook"
+        volumeMounts:
+          - name: prp-s3-credentials
+            mountPath: "/root/.aws/credentials"
+            subPath: "credentials"
+          - name: ephemeral
+            mountPath: "/tmp"
+          - name: "dshm"
+            mountPath: "/dev/shm"
+      nodeSelector:
+        nautilus.io/disktype: nvme
+      restartPolicy: Never
+      volumes:
+        # Secrets file for nautilus s3 credentials .aws/credentials and .s3cfg
+        - name: prp-s3-credentials
+          secret:
+            secretName: prp-s3-credentials
+        # Shared memory (necessary for Python's multiprocessing.shared_memory module to work)
+        - name: dshm
+          emptyDir:
+            medium: Memory
+        # Ephemeral storage
+        - name: ephemeral
+          emptyDir: {}
