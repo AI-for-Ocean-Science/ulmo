@@ -376,9 +376,8 @@ def main(flg):
     if flg & (2**7):
         run_nenya_umap(
             local_viirs98_file, 'DT1', nenya_io.latent_path('viirs'),
-            'VIIRS_Nenya', 
-            nenya_io.table_path('viirs'),
-            'VIIRS_Nenya_98clear_v1_DT1.parquet',
+            'VIIRS_Nenya_98clear_v1', 
+            nenya_io.table_path('viirs'), 'viirs',
             umap_savefile=os.path.join(nenya_io.umap_path('viirs'),
                 'VIIRS_Nenya_98clear_v1_DT1_UMAP.pkl'),
             local=True, DT_key='DT', train_umap=True)
