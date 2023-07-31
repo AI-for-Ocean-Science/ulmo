@@ -1,10 +1,9 @@
 """ Figures related to the SSL paper but not quite """
 import os
 import numpy as np
-import scipy
 
 from ulmo.utils import table as table_utils
-from ulmo.ssl import figures
+from ulmo.nenya import figures
 
 from IPython import embed
 
@@ -14,8 +13,14 @@ def load_tbl(survey:str, DT:str='DT1'):
         # VIIRS
         tbl_file = os.path.join(os.getenv('OS_SST'), 'VIIRS', 'Nenya', 'Tables', 
                                 f'VIIRS_Nenya_{DT}.parquet')
+    elif survey == 'viirs_on_viirs':
+        tbl_file = os.path.join(os.getenv('OS_SST'), 'VIIRS', 'Nenya', 'Tables', 
+                                f'VIIRS_Nenya_98clear_v1_{DT}.parquet')
     elif survey == 'llc':
         tbl_file = f'/data/Projects/Oceanography/AI/OOD/SST/LLC/Tables/LLC_A_Nenya_{DT}.parquet'
+    elif survey == 'llc_on_llc':
+        tbl_file = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Nenya', 'Tables', 
+                                f'LLC_A_Nenya_v1_{DT}.parquet')
     elif survey == 'modis':
         tbl_file = os.path.join(os.getenv('OS_AI'),
                                 f'/data/Projects/Oceanography/AI/OOD/SST/LLC/Tables/LLC_A_Nenya_{DT}.parquet')
@@ -54,10 +59,27 @@ def main(flg):
 
     # Galleries
     if flg & (2**1):
+        '''
+        # VIIRS with MODIS
         viirs = load_tbl('viirs')
         figures.umap_gallery(viirs, 'fig_nenya_viirs_gallery_DT1.png',
                              local=os.path.join(os.getenv('OS_SST'), 'VIIRS'),
                              in_vmnx=[-0.75, 0.75])
+        '''
+
+        # VIIRS with VIIRS
+        viirs = load_tbl('viirs_on_viirs')
+        figures.umap_gallery(viirs, 'fig_nenya_viirs2_gallery_DT1.png',
+                             local=os.path.join(os.getenv('OS_SST'), 'VIIRS'),
+                             in_vmnx=[-0.75, 0.75])
+
+        '''
+        # LLC with LLC
+        viirs = load_tbl('llc_on_llc')
+        figures.umap_gallery(viirs, 'fig_nenya_llc2_gallery_DT1.png',
+                             local=os.path.join(os.getenv('OS_OGCM'), 'LLC'),
+                             in_vmnx=[-0.75, 0.75])
+        '''
 
 
 # Command line execution
