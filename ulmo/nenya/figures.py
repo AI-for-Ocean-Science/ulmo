@@ -26,7 +26,7 @@ from ulmo import plotting
 from ulmo.utils import utils as utils
 from ulmo.utils import table as table_utils
 from ulmo.utils import image_utils
-from ulmo.ssl import ssl_umap
+from ulmo.nenya import nenya_umap
 
 
 from IPython import embed
@@ -179,7 +179,7 @@ def umap_gallery(tbl:pandas.DataFrame, outfile:str,
     # Cut table
     dxv = 0.5
     dyv = 0.25
-    umap_grid = ssl_umap.grid_umap(tbl[umap_keys[0]].values,
+    umap_grid = nenya_umap.grid_umap(tbl[umap_keys[0]].values,
                             tbl[umap_keys[1]].values, nxy=nxy)
     # Unpack
     xmin, xmax = umap_grid['xmin'], umap_grid['xmax']
@@ -192,7 +192,9 @@ def umap_gallery(tbl:pandas.DataFrame, outfile:str,
     good = (tbl[umap_keys[0]] > xmin) & (
         tbl[umap_keys[0]] < xmax) & (
         tbl[umap_keys[1]] > ymin) & (
-            tbl[umap_keys[1]] < ymax) & np.isfinite(tbl.LL)
+            tbl[umap_keys[1]] < ymax) 
+    if 'LL' in tbl.keys():
+        good += np.isfinite(tbl.LL)
 
     tbl = tbl.loc[good].copy()
     num_samples = len(tbl)
@@ -261,10 +263,16 @@ def umap_gallery(tbl:pandas.DataFrame, outfile:str,
 
     for x in xval[:-1]:
         for y in yval[:-1]:
-            pts = np.where((tbl[umap_keys[0]] >= x) & (
+            pts_cut = (tbl[umap_keys[0]] >= x) & (
                 tbl[umap_keys[0]] < x+dxv) & (
                 tbl[umap_keys[1]] >= y) & (tbl[umap_keys[1]] < y+dxv)
-                           & np.isfinite(tbl.LL))[0]
+            if 'LL' in tbl.keys():
+                pts_cut += np.isfinite(tbl.LL)
+            pts = np.where(pts_cut)[0]
+            #pts = np.where((tbl[umap_keys[0]] >= x) & (
+            #    tbl[umap_keys[0]] < x+dxv) & (
+            #    tbl[umap_keys[1]] >= y) & (tbl[umap_keys[1]] < y+dxv)
+            #               & np.isfinite(tbl.LL))[0]
             if len(pts) < min_pts:
                 continue
 
@@ -316,7 +324,7 @@ def umap_gallery(tbl:pandas.DataFrame, outfile:str,
             if plt_cbar:
                 plt_cbar = False
             ndone += 1
-            print(f'ndone= {ndone}, LL={cutout.LL}')
+            print(f'ndone= {ndone}')#, LL={cutout.LL}')
             if ndone > nmax:
                 break
         if ndone > nmax:
@@ -378,7 +386,7 @@ def umap_density(tbl:pandas.DataFrame, umap_keys:list,
 
     # Boundaries of the box
     if umap_grid is None:
-        umap_grid = ssl_umap.grid_umap(tbl[umap_keys[0]].values, tbl[umap_keys[0]].values,
+        umap_grid = nenya_umap.grid_umap(tbl[umap_keys[0]].values, tbl[umap_keys[0]].values,
                   nxy=nxy)
 
     xmin, xmax = umap_grid['xmin'], umap_grid['xmax']
@@ -394,7 +402,9 @@ def umap_density(tbl:pandas.DataFrame, umap_keys:list,
     good = (tbl[umap_keys[0]] > xmin) & (
         tbl[umap_keys[0]] < xmax) & (
         tbl[umap_keys[1]] > ymin) & (
-            tbl[umap_keys[1]] < ymax) & np.isfinite(tbl.LL)
+            tbl[umap_keys[1]] < ymax) 
+    if 'LL' in tbl.keys():
+        good += np.isfinite(tbl.LL)
 
     tbl = tbl.loc[good].copy()
     num_samples = len(tbl)

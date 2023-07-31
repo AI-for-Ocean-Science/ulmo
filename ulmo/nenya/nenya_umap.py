@@ -200,6 +200,10 @@ def umap_subset(modis_tbl:pandas.DataFrame,
     if local_dataset_path is not None:
         print(f"Loading latents from this folder: {local_dataset_path}")
         latent_files = glob.glob(local_dataset_path+'/*_latents_*.h5')
+        if len(latent_files) == 0:
+            latent_files = glob.glob(local_dataset_path+'/*_latents*.h5')
+        if len(latent_files) == 0:
+            raise IOError("No latents found!")
     else:
         print(f"Loading latents from this folder: {opt.latents_folder}")
         if s3_outdir is None:
@@ -291,7 +295,7 @@ def umap_subset(modis_tbl:pandas.DataFrame,
 
     # UMAP me
     if debug:
-        embed(header='218 of umap')
+        embed(header='295 of umap')
 
     if train_umap:
         ntrain = min(ntrain, nlatents)

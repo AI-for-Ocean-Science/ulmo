@@ -372,8 +372,10 @@ def main(flg):
         kin_nenya_eval(modis_l2_file, 
                        s3_outdir='s3://modis-l2/Nenya/')
 
-    # New UMAP on VIIRS
+    # New UMAP on VIIRS/LLC
     if flg & (2**7):
+        '''
+        # VIIRS
         run_nenya_umap(
             local_viirs98_file, 'DT1', nenya_io.latent_path('viirs'),
             'VIIRS_Nenya_98clear_v1', 
@@ -381,6 +383,17 @@ def main(flg):
             umap_savefile=os.path.join(nenya_io.umap_path('viirs'),
                 'VIIRS_Nenya_98clear_v1_DT1_UMAP.pkl'),
             local=True, DT_key='DT', train_umap=True)
+        '''
+
+        # LLC
+        run_nenya_umap(
+            full_fileA, 'DT1', nenya_io.latent_path('llc'),
+            'LLC_A_Nenya_v1', 
+            nenya_io.table_path('llc'), 'llc',
+            umap_savefile=os.path.join(nenya_io.umap_path('llc'),
+                'LLC_Nenya_v1_DT1_UMAP.pkl'),
+            local=True, DT_key='DT', train_umap=True)
+
 
 # Command line execution
 if __name__ == '__main__':
@@ -395,7 +408,7 @@ if __name__ == '__main__':
         #flg += 2 ** 4  # 16 -- Evaluate LLC matched to VIIRS 98
         #flg += 2 ** 5  # 32 -- UMAP Nenya -- This only works on 3.9!!
         #flg += 2 ** 6  # 64 -- Evaluate MODIS 96
-        #flg += 2 ** 7  # 128 -- UMAP Nenya on VIIRS
+        #flg += 2 ** 7  # 128 -- UMAP Nenya on their own models
     else:
         flg = sys.argv[1]
 

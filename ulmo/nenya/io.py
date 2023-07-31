@@ -5,6 +5,29 @@ from pkg_resources import resource_filename
 from ulmo import io as ulmo_io
 from ulmo.nenya.train_util import option_preprocess
 
+def translate_dataset(dataset:str):
+    """ Translate the dataset name to the local path"""
+    if 'modis' in dataset: 
+        dset = 'MODIS_L2'
+    elif 'viirs' in dataset: 
+        dset = 'VIIRS'
+    elif 'llc' in dataset: 
+        dset = 'LLC'
+    else:
+        raise IOError(f'Bad dataset: {dataset}')
+    return dset
+
+def get_data_path(dataset:str, local:bool=True):
+    if local:
+        if dataset[0:3] == 'llc':
+            data_path = os.getenv('OS_OGCM')
+        else:
+            data_path = os.getenv('OS_SST')
+    else:
+        raise IOError("Only local data paths for now")
+
+    return data_path
+
 def load_opt(nenya_model:str):
     """ Load the SSL model options
 
@@ -50,38 +73,27 @@ def load_opt(nenya_model:str):
     # Return
     return opt, ssl_model_file
     
-def translate_dataet(dataset:str):
-    """ Translate the dataset name to the local path"""
-    if 'modis' in dataset: 
-        dset = 'MODIS_L2'
-    elif 'viirs' in dataset: 
-        dset = 'VIIRS'
-    else:
-        raise IOError(f'Bad dataset: {dataset}')
-    return dset
 
 def latent_path(dataset:str, local:bool=True, 
                 model:str='MODIS_R2019_v4/SimCLR_resnet50_lr_0.05_decay_0.0001_bsz_256_temp_0.07_trial_5_cosine_warm'):
-    if local:
-        sst_path = os.getenv('OS_SST')
+    data_path = get_data_path(dataset, local=local)
 
     if dataset == 'modis_redo':
         model = model.replace('v4', 'v4_REDO')
 
-    dset = translate_dataet(dataset)
+    dset = translate_dataset(dataset)
 
-    return os.path.join(sst_path, dset, 'Nenya', 'latents', model)
+    return os.path.join(data_path, dset, 'Nenya', 'latents', model)
 
 def table_path(dataset:str, local:bool=True): 
-    if local:
-        sst_path = os.getenv('OS_SST')
-    dset = translate_dataet(dataset)
+    data_path = get_data_path(dataset, local=local)
 
-    return os.path.join(sst_path, dset, 'Nenya', 'Tables')
+    dset = translate_dataset(dataset)
+
+    return os.path.join(data_path, dset, 'Nenya', 'Tables')
 
 def umap_path(dataset:str, local:bool=True): 
-    if local:
-        sst_path = os.getenv('OS_SST')
-    dset = translate_dataet(dataset)
+    data_path = get_data_path(dataset, local=local)
+    dset = translate_dataset(dataset)
 
-    return os.path.join(sst_path, dset, 'Nenya', 'UMAP')
+    return os.path.join(data_path, dset, 'Nenya', 'UMAP')
