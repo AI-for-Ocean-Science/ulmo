@@ -13,13 +13,48 @@ import torch.backends.cudnn as cudnn
 from torchvision import transforms, datasets
 from torch.utils.data import DataLoader, Dataset
 
-from ulmo.ssl.models.resnet_big import SupConResNet
-from ulmo.ssl.losses import SupConLoss
+from ulmo.nenya.models.resnet_big import SupConResNet
+from ulmo.nenya.losses import SupConLoss
 
-from ulmo.ssl.util import TwoCropTransform, AverageMeter
-from ulmo.ssl.util import warmup_learning_rate
+from ulmo.nenya.util import TwoCropTransform, AverageMeter
+from ulmo.nenya.util import warmup_learning_rate
 
 from ulmo import io as ulmo_io
+import json
+
+# Reproduced here so Nenya v4 can run from pickle
+class Params():
+    """Class that loads hyperparameters from a json file.
+    Example:
+    ```
+    params = Params(json_path)
+    print(params.learning_rate)
+    params.learning_rate = 0.5  # change the value of learning_rate in params
+    ```
+    This module comes from:
+    https://github.com/cs230-stanford/cs230-code-examples/blob/master/pytorch/vision/utils.py
+    """
+
+    def __init__(self, json_path):
+        with open(json_path) as f:
+            params = json.load(f)
+            self.__dict__.update(params)
+
+    def save(self, json_path):
+        with open(json_path, 'w') as f:
+            json.dump(self.__dict__, f, indent=4)
+            
+    def update(self, json_path):
+        """Loads parameters from json file"""
+        with open(json_path) as f:
+            params = json.load(f)
+            self.__dict__.update(params)
+
+    @property
+    def dict(self):
+        """Gives dict-like access to Params instance by `params.dict['learning_rate']"""
+        return self.__dict__
+
     
 def option_preprocess(opt:ulmo_io.Params):
     """

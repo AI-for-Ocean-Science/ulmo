@@ -1,4 +1,4 @@
-""" UMAP utitlies for SSL """
+""" UMAP utitlies for Nenya """
 import numpy as np
 import os, shutil
 import pickle
@@ -8,9 +8,9 @@ import pandas
 import umap
 
 from ulmo import io as ulmo_io
-from ulmo.ssl.train_util import option_preprocess
+from ulmo.nenya.train_util import option_preprocess
 from ulmo.utils import catalog as cat_utils
-from ulmo.ssl import defs as ssl_defs
+from ulmo.nenya import defs as ssl_defs
 
 from IPython import embed
 
@@ -32,22 +32,45 @@ def DT_interval(inp:tuple):
         return (DT-dDT, DT+dDT)
 
 def load(model_name:str, DT:float=None, use_s3:bool=False):
+    """ Load a UMAP model
+
+    Args:
+        model_name (str): 
+            Model name ['LLC', 'LLC_local', 'CF', 'v4', 'v5']
+        DT (float, optional):
+            DT value (K). Defaults to None. 
+        use_s3 (bool, optional): 
+            Use s3? Defaults to False.
+
+    Raises:
+        IOError: _description_
+        IOError: _description_
+        IOError: _description_
+
+    Returns:
+        tuple: UMAP model, table file
+    """
     tbl_file = None
     if model_name == 'LLC':
         umap_file = 's3://llc/SSL/LLC_MODIS_2012_model/ssl_LLC_v1_umap.pkl'
     elif model_name == 'LLC_local':
         umap_file = './ssl_LLC_v1_umap.pkl'
-    if model_name in ['CF', 'v4']:
+    elif model_name in ['CF', 'v4', 'v5']:
         if use_s3:
             raise IOError("Not ready for s3!")
         else:
-            umap_path = os.path.join(os.getenv('SST_OOD'),
-                                 'MODIS_L2', 'UMAP')
+            umap_path = os.path.join(os.getenv('OS_SST'),
+                                 'MODIS_L2', 'Nenya', 'UMAP')
         # Root
         if model_name == 'CF':
             umap_root = 'cloud_free'
-        elif model_name == 'v4':
+            nname = 'SSL'
+        elif model_name == 'v4':  # Probably lost to the vaguries of UMAP pickeling
             umap_root = '96clear_v4'
+            nname = 'SSL'
+        elif model_name == 'v5':  # Probably lost to the vaguries of UMAP pickeling
+            umap_root = '96clear_v5'
+            nname = 'Nenya'
         else:
             raise IOError("Bad model_name")
         
@@ -58,14 +81,16 @@ def load(model_name:str, DT:float=None, use_s3:bool=False):
             if DT_rng[0] < DT <= DT_rng[1]:
                 umap_file = os.path.join(
                     umap_path, 
-                    f'MODIS_SSL_{umap_root}_{key}_UMAP.pkl')
+                    f'MODIS_{nname}_{umap_root}_{key}_UMAP.pkl')
                                     
         tbl_file = os.path.join(
-            os.getenv('SST_OOD'), 'MODIS_L2', 'Tables', 
+            os.getenv('OS_SST'), 'MODIS_L2', 'Nenya', 'Tables', 
             os.path.basename(umap_file).replace(
                 '_UMAP.pkl', '.parquet'))
     else:
         raise IOError("bad model")
+
+    # Download?
     if use_s3:
         umap_base = os.path.basename(umap_file)
         if not os.path.isfile(umap_base):
@@ -73,6 +98,7 @@ def load(model_name:str, DT:float=None, use_s3:bool=False):
     else: # local
         umap_base = umap_file
     print(f"Loading UMAP: {umap_base}")
+
     # Return
     return pickle.load(ulmo_io.open(umap_base, "rb")), tbl_file
 
@@ -131,9 +157,6 @@ def umap_subset(modis_tbl:pandas.DataFrame,
         else:
             keep = np.abs(modis_tbl.min_slope - alpha_cuts[0]) < alpha_cuts[1]
 
-    if debug:
-        embed(header='138 of umap')
-
     modis_tbl = modis_tbl[keep].copy()
     print(f"After the cuts, we have {len(modis_tbl)} cutouts to work on.")
 
@@ -157,6 +180,9 @@ def umap_subset(modis_tbl:pandas.DataFrame,
     if debug:
         latent_files = latent_files[0:2]
 
+    if debug:
+        embed(header='178 of umap')
+
     all_latents = []
     sv_idx = []
     for latents_file in latent_files:
@@ -167,9 +193,9 @@ def umap_subset(modis_tbl:pandas.DataFrame,
         if not os.path.isfile(basefile):
             # Try local if local is True
             if local:
-                local_file = latents_file.replace('s3://modis-l2/SSL',
-                    os.path.join(os.getenv('SST_OOD'),
-                                                  'MODIS_L2', 'SSL'))
+                local_file = latents_file.replace('s3://modis-l2/SSL', # yes, SSL as these are the latest
+                    os.path.join(os.getenv('OS_SST'),
+                                                  'MODIS_L2', 'Nenya'))
                 print(f"Copying {local_file}")
                 shutil.copyfile(local_file, basefile)
             if not os.path.isfile(basefile):
@@ -225,7 +251,7 @@ def umap_subset(modis_tbl:pandas.DataFrame,
         print("Done..")
 
         # Save?
-        if umap_savefile is not None and not debug:
+        if umap_savefile is not None:
             pickle.dump(latents_mapping, open(umap_savefile, "wb" ) )
             print(f"Saved UMAP to {umap_savefile}")
     else:
