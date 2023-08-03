@@ -39,9 +39,12 @@ def main(flg):
 
         metrics = ['DT', 'stdDT', 'LL', 'clouds', 'abslat', 'log10counts']
 
-        # Load
-        tbl = load_tbl('viirs')
-        outfile='fig_nenya_viirs_multi_umap_DT1.png'
+        # VIIRS
+        #tbl = load_tbl('viirs')
+        #outfile='fig_nenya_viirs_multi_umap_DT1.png'
+
+        tbl = load_tbl('viirs_on_viirs')
+        outfile='fig_nenya_viirs2_multi_umap_DT1.png'
 
         # LLC
         #tbl = load_tbl('llc')
@@ -49,8 +52,13 @@ def main(flg):
         #metrics = ['DT', 'stdDT', 'abslat', 'log10counts']
 
         # Plot
-        binx=np.linspace(-1,10.5,30)
-        biny=np.linspace(-3.5,4.5,30)
+        # MODIS
+        #binx=np.linspace(-1,10.5,30)
+        #biny=np.linspace(-3.5,4.5,30)
+
+        # VIIRS
+        binx=np.linspace(1,13,30)
+        biny=np.linspace(3.5,11.5,30)
         
         figures.umap_multi_metric(
             tbl, binx, biny,
@@ -88,8 +96,8 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg = 0
-        #flg += 2 ** 0  # 1 -- Checking Nenya via multi figs
-        flg += 2 ** 1  # 2 -- Galleries
+        flg += 2 ** 0  # 1 -- Checking Nenya via multi figs
+        #flg += 2 ** 1  # 2 -- Galleries
     else:
         flg = sys.argv[1]
 
