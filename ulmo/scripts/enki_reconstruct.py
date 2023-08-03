@@ -15,8 +15,8 @@ from ulmo.mae import models_mae
 from ulmo.mae import reconstruct
 import ulmo.mae.util.misc as misc
 from ulmo.mae.util.hdfstore import HDF5Store
-from ulmo.mae.mae_utils import img_filename, mask_filename
-from ulmo.mae.engine_pretrain import reconstruct_one_epoch
+from ulmo.mae.enki_utils import img_filename, mask_filename
+from ulmo.mae.reconstruct import reconstruct_one_epoch
 from ulmo.mae.util.misc import NativeScalerWithGradNormCount as NativeScaler
 
 from ulmo import io as ulmo_io
@@ -93,6 +93,8 @@ def get_args_parser():
     parser.add_argument('--dist_on_itp', action='store_true')
     parser.add_argument('--dist_url', default='env://',
                         help='url used to set up distributed training')
+    parser.add_argument('--use_masks', action='store_true',
+                        help='Use Masks?')
     parser.add_argument('--debug', action='store_true',
                         help='Debug')
 
@@ -104,7 +106,9 @@ def main(args):
     misc.init_distributed_mode(args)
     
     # Load data (locally)
-    dataset_train = HDF5Dataset(args.data_path, partition='valid')
+    dataset_train = HDF5Dataset(args.data_path, 
+                                partition='valid',
+                                return_mask=args.use_masks)
     with h5py.File(args.data_path, 'r') as f:
         dshape=f['valid'][0].shape
     data_loader_train = torch.utils.data.DataLoader(
@@ -149,16 +153,19 @@ def main(args):
         data_loader_train.sampler.set_epoch(epoch)
 
     # Do one epoch of reconstruction
-    #  This also initializes a bunch of things
+    #  This runs on all the data except the last batch
+    #  which was dropped (in case it was the wrong length)
     train_stats = reconstruct_one_epoch(
         model, data_loader_train,
         optimizer, device, loss_scaler,
         args.mask_ratio, args.batch_size, args.accum_iter,
         image_store=images,
         mask_store=masks,
+        use_mask=args.use_masks
     )
 
-    print("Reconstructing batch remainder")
+    # Now get the last batch and write to disk
+    print("Reconstructing the batch remainder")
     reconstruct.run_remainder(model, data_length, 
                               images, masks,
                               args.batch_size, 

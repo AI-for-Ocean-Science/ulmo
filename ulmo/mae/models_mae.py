@@ -19,6 +19,8 @@ from timm.models.vision_transformer import PatchEmbed, Block
 
 from ulmo.mae.util.pos_embed import get_2d_sincos_pos_embed
 
+from IPython import embed
+
 
 class MaskedAutoencoderViT(nn.Module):
     """ Masked Autoencoder with VisionTransformer backbone
@@ -126,6 +128,9 @@ class MaskedAutoencoderViT(nn.Module):
         Perform per-sample random masking by per-sample shuffling.
         Per-sample shuffling is done by argsort random noise.
         x: [N, L, D], sequence
+
+        Returns:
+            tuple: x_masked, mask, ids_restore
         """
         N, L, D = x.shape  # batch, length, dim
         len_keep = int(L * (1 - mask_ratio))
@@ -145,17 +150,55 @@ class MaskedAutoencoderViT(nn.Module):
         mask[:, :len_keep] = 0
         # unshuffle to get the binary mask
         mask = torch.gather(mask, dim=1, index=ids_restore)
+        #embed(header='153 of models')
 
+        # Return
         return x_masked, mask, ids_restore
 
-    def forward_encoder(self, x, mask_ratio):
+    def impose_masking(self, x, mask):
+        """
+        Perform per-sample masking using the input masks
+        x: [N, L, D], sequence
+        mask: [N, D], sequence
+
+        Returns:
+            tuple: x_masked, mask, ids_restore
+        """
+        N, L, D = x.shape  # batch, length, dim
+
+        mask = torch.Tensor(mask).to(torch.device('cuda'), non_blocking=True)
+        mask = mask.reshape((N, L))
+        # Build the ids
+        keep = []
+        shuffle = []
+        for i in range(N):
+            # Hopefully this is the right order
+            keep.append(torch.where(mask[i] == 0)[0])
+            shuffle.append(torch.cat((keep[-1],torch.where(
+                mask[i] == 1)[0])))
+        ids_keep2 = torch.cat(keep).reshape((N, -1))
+        ids_shuffle2 = torch.cat(shuffle).reshape((N, -1))
+        ids_restore2 = torch.argsort(ids_shuffle2, dim=1)
+
+        # x
+        x_masked = torch.gather(x, dim=1, index=ids_keep2.unsqueeze(-1).repeat(1, 1, D))
+
+        # Return
+        return x_masked, mask, ids_restore2
+
+
+    def forward_encoder(self, x, mask_ratio, user_masks=None):
+
         # embed patches
         x = self.patch_embed(x)
         # add pos embed w/o cls token
         x = x + self.pos_embed[:, 1:, :]
 
         # masking: length -> length * mask_ratio
-        x, mask, ids_restore = self.random_masking(x, mask_ratio)
+        if user_masks is None:
+            x, mask, ids_restore = self.random_masking(x, mask_ratio)
+        else:
+            x, mask, ids_restore = self.impose_masking(x, user_masks)
 
         # append cls token
         cls_token = self.cls_token + self.pos_embed[:, :1, :]
@@ -213,8 +256,22 @@ class MaskedAutoencoderViT(nn.Module):
         loss = (loss * mask).sum() / mask.sum()  # mean loss on removed patches
         return loss
 
-    def forward(self, imgs, mask_ratio=0.75):
-        latent, mask, ids_restore = self.forward_encoder(imgs, mask_ratio)
+    def forward(self, imgs, mask_ratio=0.75, masks=None):
+        """ Forward pass of the model
+
+        Args:
+            imgs (_type_): _description_
+            mask_ratio (float, optional): 
+                Masking ratio. Defaults to 0.75.
+                Over-ridden by masks, if provided
+            masks (array-like, optional): 
+                Masks to be used for reconstruction. 
+
+        Returns:
+            _type_: _description_
+        """
+        latent, mask, ids_restore = self.forward_encoder(
+            imgs, mask_ratio, user_masks=masks)
         pred = self.forward_decoder(latent, ids_restore)  # [N, L, p*p*3] --> [N, L, p*p*1]?
         loss = self.forward_loss(imgs, pred, mask)
         return loss, pred, mask
