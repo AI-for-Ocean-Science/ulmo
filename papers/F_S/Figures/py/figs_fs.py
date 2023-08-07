@@ -73,21 +73,26 @@ def main(flg):
         figures.umap_gallery(viirs, 'fig_nenya_viirs_gallery_DT1.png',
                              local=os.path.join(os.getenv('OS_SST'), 'VIIRS'),
                              in_vmnx=[-0.75, 0.75])
-        '''
 
         # VIIRS with VIIRS
         viirs = load_tbl('viirs_on_viirs')
         figures.umap_gallery(viirs, 'fig_nenya_viirs2_gallery_DT1.png',
                              local=os.path.join(os.getenv('OS_SST'), 'VIIRS'),
                              in_vmnx=[-0.75, 0.75])
+        '''
 
         '''
         # LLC with LLC
-        viirs = load_tbl('llc_on_llc')
-        figures.umap_gallery(viirs, 'fig_nenya_llc2_gallery_DT1.png',
+        tbl = load_tbl('llc_on_llc')
+        figures.umap_gallery(tbl, 'fig_nenya_llc2_gallery_DT1.png',
                              local=os.path.join(os.getenv('OS_OGCM'), 'LLC'),
                              in_vmnx=[-0.75, 0.75])
         '''
+        # LLC with VIIRS
+        tbl = load_tbl('viirs_on_llc')
+        figures.umap_gallery(tbl, 'fig_nenya_llc_viirs_gallery_DT1.png',
+                             local=os.path.join(os.getenv('OS_OGCM'), 'LLC'),
+                             in_vmnx=[-0.75, 0.75])
 
 
 # Command line execution
@@ -96,7 +101,7 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg = 0
-        flg += 2 ** 0  # 1 -- Checking Nenya via multi figs
+        #flg += 2 ** 0  # 1 -- Checking Nenya via multi figs
         #flg += 2 ** 1  # 2 -- Galleries
     else:
         flg = sys.argv[1]
