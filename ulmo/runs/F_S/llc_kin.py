@@ -100,10 +100,12 @@ def u_extract_kin(tbl_file:str, debug=False,
     FS_stat_dict = {}
     FS_stat_dict['calc_FS'] = True
     # Frontogenesis
-    FS_stat_dict['Fronto_thresh'] = 2e-4 
+    #FS_stat_dict['Fronto_thresh'] = 2e-4  # prior to the g factor
+    FS_stat_dict['Fronto_thresh'] = 5e-14 
     FS_stat_dict['Fronto_sum'] = True
     # Fronts
-    FS_stat_dict['Front_thresh'] = 3e-3 
+    #FS_stat_dict['Front_thresh'] = 3e-3 
+    FS_stat_dict['Front_thresh'] = 1e-13 
 
     # Giddy up (will take a bit of memory!)
     if debug:

@@ -93,7 +93,8 @@ def explore_stat_thresh(stat, outroot='_thresh.png', debug=False,
     if stat == 'F_s':
         R1_stat = brazil_front_dict['R1_F_s']
         R2_stat = brazil_front_dict['R2_F_s']
-        mnmx = [2e-5, 1e-2]
+        #mnmx = [2e-5, 1e-2]
+        mnmx = [2e-15, 2e-13]
     elif stat == 'divb':
         R1_stat = brazil_front_dict['R1_divb']
         R2_stat = brazil_front_dict['R2_divb']
@@ -271,17 +272,19 @@ def main(flg):
     if flg & (2**0):
         brazil_cutouts()
 
-    # F_s
-    #fig_brazil_front_stats('F_s')
-    # divb
-    #fig_brazil_front_stats('divb')
-    # divT
-    #fig_brazil_front_stats('divT')
+    if flg & (2**1):
+        # F_s
+        fig_brazil_front_stats('F_s')
+        # divb
+        fig_brazil_front_stats('divb')
+        # divT
+        fig_brazil_front_stats('divT')
 
     # Thresholds
-    #explore_stat_thresh('F_s')
-    #explore_stat_thresh('divb')
-    #explore_stat_thresh('divT')
+    if flg & (2**2):
+        explore_stat_thresh('F_s')
+        #explore_stat_thresh('divb')
+        #explore_stat_thresh('divT')
 
 
     # VIIRS
@@ -305,9 +308,9 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg = 0
-        flg += 2 ** 0  # 1 -- cutouts
-        #flg += 2 ** 1  # 2 -- Extract + Kin
-        #flg += 2 ** 2  # 4 -- Evaluate
+        #flg += 2 ** 0  # 1 -- cutouts
+        #flg += 2 ** 1  # 2 -- Stats
+        flg += 2 ** 2  # 4 -- Thresholds
     else:
         flg = sys.argv[1]
 
