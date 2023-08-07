@@ -2,6 +2,8 @@
 import numpy as np
 from skimage.transform import resize_local_mean
 
+from ulmo.plotting import plotting
+
 from IPython import embed
 
 try:
@@ -153,7 +155,7 @@ def calc_gradb(Theta:np.ndarray, Salt:np.ndarray,
 
     # Magnitude
     grad_b2 = dbdx**2 + dbdy**2
-    embed(header='136 of kin')
+
     return grad_b2
 
 def calc_F_s(U:np.ndarray, V:np.ndarray,
@@ -193,6 +195,7 @@ def calc_F_s(U:np.ndarray, V:np.ndarray,
 
     # Finish
     F_s = F_s_x + F_s_y
+    #embed(header='196 of kinematics.py')
 
     # div b too?
     if add_gradb:
