@@ -21,6 +21,9 @@ def load_tbl(survey:str, DT:str='DT1'):
     elif survey == 'llc_on_llc':
         tbl_file = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Nenya', 'Tables', 
                                 f'LLC_A_Nenya_v1_{DT}.parquet')
+    elif survey == 'viirs_on_llc':
+        tbl_file = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'Nenya', 'Tables', 
+                                f'LLC_A_Nenya_VIIRS_{DT}.parquet')
     elif survey == 'modis':
         tbl_file = os.path.join(os.getenv('OS_AI'),
                                 f'/data/Projects/Oceanography/AI/OOD/SST/LLC/Tables/LLC_A_Nenya_{DT}.parquet')
