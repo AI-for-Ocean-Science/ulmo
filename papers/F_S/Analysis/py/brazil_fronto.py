@@ -19,7 +19,7 @@ from IPython import embed
 sys.path.append(os.path.abspath("../Analysis/py"))
 import brazil_utils
 
-def brazil_pdfs(outfile='brazil_kin_cutouts.npz', debug=False):
+def brazil_cutouts(outfile='brazil_kin_cutouts.npz', debug=False):
     """ Generate the Kin cutouts of F_S, w_z, Divb2 for DT ~ 1K cutouts
     in the Brazil-Malvanis confluence
     """
@@ -268,6 +268,9 @@ def main(flg):
     else:
         flg= int(flg)
 
+    if flg & (2**0):
+        brazil_cutouts()
+
     # F_s
     #fig_brazil_front_stats('F_s')
     # divb
@@ -291,9 +294,10 @@ def main(flg):
 
     # VIIRS vs. LLC
     #fig_brazil_divT_cdf()
-    fig_brazil_divT_cdf(
-        outfile='fig_brazil_divT_cdf_smooth25.png',
-        viirs_brazil_front_file='../Analysis/viirs_brazil_kin_cutouts_smooth25.npz')
+    if flg & (2**9):
+        fig_brazil_divT_cdf(
+            outfile='fig_brazil_divT_cdf_smooth25.png',
+            viirs_brazil_front_file='../Analysis/viirs_brazil_kin_cutouts_smooth25.npz')
 
 # Command line execution
 if __name__ == '__main__':
@@ -301,6 +305,7 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg = 0
+        flg += 2 ** 0  # 1 -- cutouts
         #flg += 2 ** 1  # 2 -- Extract + Kin
         #flg += 2 ** 2  # 4 -- Evaluate
     else:
