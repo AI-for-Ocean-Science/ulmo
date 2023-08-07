@@ -326,8 +326,8 @@ def main(flg):
         u_init_kin(full_fileA, minmax_lat=(-72,57.))
 
     if flg & (2**1):
-        u_extract_kin('', debug=True, dlocal=True)  # debug
-        #u_extract_kin(full_fileA)
+        #u_extract_kin('', debug=True, dlocal=True)  # debug
+        u_extract_kin(full_fileA)
 
     if flg & (2**2):
         kin_nenya_eval(full_fileA)
