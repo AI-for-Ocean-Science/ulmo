@@ -77,12 +77,13 @@ def main(flg):
                              local=os.path.join(os.getenv('OS_SST'), 'VIIRS'),
                              in_vmnx=[-0.75, 0.75])
 
+        '''
+        
         # VIIRS with VIIRS
         viirs = load_tbl('viirs_on_viirs')
         figures.umap_gallery(viirs, 'fig_nenya_viirs2_gallery_DT1.png',
                              local=os.path.join(os.getenv('OS_SST'), 'VIIRS'),
                              in_vmnx=[-0.75, 0.75])
-        '''
 
         '''
         # LLC with LLC
@@ -90,12 +91,12 @@ def main(flg):
         figures.umap_gallery(tbl, 'fig_nenya_llc2_gallery_DT1.png',
                              local=os.path.join(os.getenv('OS_OGCM'), 'LLC'),
                              in_vmnx=[-0.75, 0.75])
-        '''
         # LLC with VIIRS
         tbl = load_tbl('viirs_on_llc')
         figures.umap_gallery(tbl, 'fig_nenya_llc_viirs_gallery_DT1.png',
                              local=os.path.join(os.getenv('OS_OGCM'), 'LLC'),
                              in_vmnx=[-0.75, 0.75])
+        '''
 
 
 # Command line execution
