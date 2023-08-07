@@ -17,7 +17,7 @@ from IPython import embed
 
 # Local
 sys.path.append(os.path.abspath("../Analysis/py"))
-import kin_utils
+import brazil_utils
 
 def brazil_pdfs(outfile='brazil_kin_cutouts.npz', debug=False):
     """ Generate the Kin cutouts of F_S, w_z, Divb2 for DT ~ 1K cutouts
@@ -27,7 +27,7 @@ def brazil_pdfs(outfile='brazil_kin_cutouts.npz', debug=False):
     tbl_test_noise_file = 's3://llc/Tables/LLC_uniform144_r0.5.parquet'
     llc_table = ulmo_io.load_main_table(tbl_test_noise_file)
 
-    evals_bz, idx_R1, idx_R2 = kin_utils.grab_brazil_cutouts(llc_table,
+    evals_bz, idx_R1, idx_R2 = brazil_utils.grab_brazil_cutouts(llc_table,
                                                              dDT=0.25) # Higher dDT for stats
 
     # R1 first
@@ -261,12 +261,12 @@ def fig_brazil_divT_cdf(outfile='fig_brazil_divT_cdf.png',
     plt.close()
     print(f'Wrote: {outfile}')
 
-# Command line execution
-if __name__ == '__main__':
-    #grab_brazil_cutouts()
+def main(flg):
 
-    # Generate Brazil cutouts
-    #brazil_pdfs()#debug=True)
+    if flg== 'all':
+        flg= np.sum(np.array([2 ** ii for ii in range(25)]))
+    else:
+        flg= int(flg)
 
     # F_s
     #fig_brazil_front_stats('F_s')
@@ -294,3 +294,16 @@ if __name__ == '__main__':
     fig_brazil_divT_cdf(
         outfile='fig_brazil_divT_cdf_smooth25.png',
         viirs_brazil_front_file='../Analysis/viirs_brazil_kin_cutouts_smooth25.npz')
+
+# Command line execution
+if __name__ == '__main__':
+    import sys
+
+    if len(sys.argv) == 1:
+        flg = 0
+        #flg += 2 ** 1  # 2 -- Extract + Kin
+        #flg += 2 ** 2  # 4 -- Evaluate
+    else:
+        flg = sys.argv[1]
+
+    main(flg)
