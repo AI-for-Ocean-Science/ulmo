@@ -112,6 +112,7 @@ def u_extract_kin(tbl_file:str, debug=False,
 
     llc_table = ulmo_io.load_main_table(tbl_file)
 
+    '''
     # Another test
     if debug:
         # Cut down to first 2 days
@@ -119,6 +120,7 @@ def u_extract_kin(tbl_file:str, debug=False,
         gd_date = llc_table.datetime <= uni_date[1]
         llc_table = llc_table[gd_date]
         debug_local = True
+    '''
     
 
     if debug:
@@ -414,7 +416,7 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         flg = 0
         #flg += 2 ** 0  # 1 -- Setup Table
-        #flg += 2 ** 1  # 2 -- Extract
+        #flg += 2 ** 1  # 2 -- Extract + Kin
         #flg += 2 ** 2  # 4 -- Evaluate
         #flg += 2 ** 3  # 8 -- Evaluate VIIRS 98
         #flg += 2 ** 4  # 16 -- Evaluate LLC matched to VIIRS 98
