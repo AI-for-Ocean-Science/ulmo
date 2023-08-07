@@ -112,14 +112,14 @@ def u_extract_kin(tbl_file:str, debug=False,
 
     llc_table = ulmo_io.load_main_table(tbl_file)
 
-    ''' # Another test
+    # Another test
     if debug:
         # Cut down to first 2 days
         uni_date = np.unique(llc_table.datetime)
         gd_date = llc_table.datetime <= uni_date[1]
         llc_table = llc_table[gd_date]
         debug_local = True
-    '''
+    
 
     if debug:
         root_file = 'LLC_FS_test_preproc.h5'
@@ -322,8 +322,8 @@ def main(flg):
         u_init_kin(full_fileA, minmax_lat=(-72,57.))
 
     if flg & (2**1):
-        #u_extract_F_S('', debug=True, dlocal=True)  # debug
-        u_extract_kin(full_fileA)
+        u_extract_kin('', debug=True, dlocal=True)  # debug
+        #u_extract_kin(full_fileA)
 
     if flg & (2**2):
         kin_nenya_eval(full_fileA)

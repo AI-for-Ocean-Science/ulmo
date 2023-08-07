@@ -284,6 +284,7 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
             #if debug:
             #    idx, FS_metrics = kinematics.cutout_F_S(items[0], FS_stats=kin_stat_dict,
             #             field_size=field_size[0])
+
             # Process em
             with ProcessPoolExecutor(max_workers=n_cores) as executor:
                 chunksize = len(items) // n_cores if len(items) // n_cores > 0 else 1
@@ -312,6 +313,7 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
 
     # Write kin?
     if extract_kin:
+        embed(header='316 of extract.py')
         # F_s
         Fs_local_file = local_file.replace('.h5', '_Fs.h5')
         pp_utils.write_extra_fields(Fs_fields, llc_table, Fs_local_file)

@@ -4,6 +4,8 @@ import pandas
 
 from ulmo import io as ulmo_io
 
+from IPython import embed
+
 def path_to_tables(dataset:str):
     """ Generate path to tables
 
@@ -158,6 +160,11 @@ def parse_metric(metric:str, tbl:pandas.DataFrame):
     elif metric == 'log10counts':
         lmetric = r'$\log_{10}$ Counts'
         values = np.ones(len(tbl))
+    # Frontogenesis
+    elif metric == 'FS_Npos':
+        lmetric = r'FS_Npos',
+        embed(header='166 of table')
+        values = tbl.FS_Npos.values
     else:
         raise IOError("Bad metric!")
 

@@ -37,15 +37,8 @@ def umap_multi_metric(tbl,
                 binx:np.ndarray,
                 biny:np.ndarray,
                 stat='median', 
-                cuts=None,
-                percentiles=None,
-                table=None,
-                local=False, 
                 cmap=None,
-                vmnx = (-1000., None),
-                region=None,
                 umap_keys=['US0','US1'],
-                umap_dim=2,
                 metrics:list=None,
                 outfile:str=None,
                 debug=False): 
@@ -65,8 +58,6 @@ def umap_multi_metric(tbl,
     """
     if outfile is None:
         outfile= f'fig_umap_multi_{stat}.png' 
-
-    num_samples = len(tbl)
 
     # Histogram
     hist_param = dict(binx=binx, biny=biny)

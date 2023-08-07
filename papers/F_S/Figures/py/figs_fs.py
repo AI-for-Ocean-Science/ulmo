@@ -46,20 +46,24 @@ def main(flg):
         #tbl = load_tbl('viirs')
         #outfile='fig_nenya_viirs_multi_umap_DT1.png'
 
-        tbl = load_tbl('viirs_on_viirs')
-        outfile='fig_nenya_viirs2_multi_umap_DT1.png'
+        #tbl = load_tbl('viirs_on_viirs')
+        #outfile='fig_nenya_viirs2_multi_umap_DT1.png'
 
         # LLC
         #tbl = load_tbl('llc')
         #outfile='fig_nenya_llcA_multi_umap_DT1.png'
         #metrics = ['DT', 'stdDT', 'abslat', 'log10counts']
 
+        tbl = load_tbl('viirs_on_llc')
+        outfile='fig_nenya_llc_viirs_multi_umap_DT1.png'
+        metrics = ['DT', 'stdDT', 'meanT', 'FS_Npos', 'abslat', 'log10counts']
+
         # Plot
-        # MODIS
+        # MODIS UMAP
         #binx=np.linspace(-1,10.5,30)
         #biny=np.linspace(-3.5,4.5,30)
 
-        # VIIRS
+        # VIIRS UMAP
         binx=np.linspace(1,13,30)
         biny=np.linspace(3.5,11.5,30)
         
