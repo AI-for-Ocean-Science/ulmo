@@ -253,7 +253,7 @@ def run_nenya_umap(tbl_file:str,
                out_root:str, 
                out_table_path:str,
                table:str, 
-               clobber_local=False, debug=False, 
+               debug=False, 
                umap_savefile:str=None,
                local:bool=True,
                train_umap:bool=False,
@@ -266,8 +266,8 @@ def run_nenya_umap(tbl_file:str,
         local_latents_path (str): Path to the latents
         out_root (str): Root for the UMAP output table
         table (str): Descriptor of the dataset, passed to umap_subset()
-        s3_outdir (str): ??
-        clobber_local (bool, optional): _description_. Defaults to False.
+        umap_savefile (str, optional): UMAP save file to use. Defaults to None.
+        train_umap (bool, optional): Train the UMAP? Defaults to False.
         debug (bool, optional): _description_. Defaults to False.
         local (bool, optional): _description_. Defaults to True.
         DT_key (str, optional): _description_. Defaults to 'DT40'.
@@ -385,6 +385,7 @@ def main(flg):
             local=True, DT_key='DT', train_umap=True)
         '''
 
+        '''
         # LLC
         run_nenya_umap(
             full_fileA, 'DT1', nenya_io.latent_path('llc'),
@@ -393,6 +394,17 @@ def main(flg):
             umap_savefile=os.path.join(nenya_io.umap_path('llc'),
                 'LLC_Nenya_v1_DT1_UMAP.pkl'),
             local=True, DT_key='DT', train_umap=True)
+        '''
+
+        # Run VIIRS UMAP on LLC
+        run_nenya_umap(
+            full_fileA, 'DT1', nenya_io.latent_path('llc'),
+            'LLC_A_Nenya_VIIRS', 
+            nenya_io.table_path('llc'), 'llc',
+            umap_savefile=os.path.join(nenya_io.umap_path('viirs'),
+                'VIIRS_Nenya_98clear_v1_DT1_UMAP.pkl'),
+            local=True, DT_key='DT', train_umap=False)
+
 
 
 # Command line execution
@@ -406,9 +418,9 @@ if __name__ == '__main__':
         #flg += 2 ** 2  # 4 -- Evaluate
         #flg += 2 ** 3  # 8 -- Evaluate VIIRS 98
         #flg += 2 ** 4  # 16 -- Evaluate LLC matched to VIIRS 98
-        #flg += 2 ** 5  # 32 -- UMAP Nenya -- This only works on 3.9!!
+        #flg += 2 ** 5  # 32 -- UMAP Nenya from MODIS -- This only works on 3.9!!
         #flg += 2 ** 6  # 64 -- Evaluate MODIS 96
-        #flg += 2 ** 7  # 128 -- UMAP Nenya on their own models
+        #flg += 2 ** 7  # 128 -- UMAPs galore
     else:
         flg = sys.argv[1]
 
