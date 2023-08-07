@@ -185,7 +185,7 @@ def umap_gallery(tbl:pandas.DataFrame, outfile:str,
         tbl[umap_keys[1]] > ymin) & (
             tbl[umap_keys[1]] < ymax) 
     if 'LL' in tbl.keys():
-        good += np.isfinite(tbl.LL)
+        good &= np.isfinite(tbl.LL)
 
     tbl = tbl.loc[good].copy()
     num_samples = len(tbl)
@@ -258,7 +258,7 @@ def umap_gallery(tbl:pandas.DataFrame, outfile:str,
                 tbl[umap_keys[0]] < x+dxv) & (
                 tbl[umap_keys[1]] >= y) & (tbl[umap_keys[1]] < y+dxv)
             if 'LL' in tbl.keys():
-                pts_cut += np.isfinite(tbl.LL)
+                pts_cut &= np.isfinite(tbl.LL)
             pts = np.where(pts_cut)[0]
             #pts = np.where((tbl[umap_keys[0]] >= x) & (
             #    tbl[umap_keys[0]] < x+dxv) & (
