@@ -44,7 +44,6 @@ spec:
             git pull; 
             python setup.py develop;
             cd ulmo/runs/F_S;
-            sleep 900;
             python ./llc_kin.py 4;
         env:
           - name: "ENDPOINT_URL"

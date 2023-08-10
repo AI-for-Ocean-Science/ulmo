@@ -144,6 +144,9 @@ def u_extract_kin(tbl_file:str, debug=False,
     # Check indices
     assert np.all(np.arange(len(llc_table)) == llc_table.index)
 
+    print("WARNING: THIS WILL MUCK UP PP_IDX.  Best to avoid that!!")
+    embed(header='147 FIX THE ABOVE')
+
     # Do it
     extract.preproc_for_analysis(llc_table, 
                                  pp_local_file,
