@@ -83,6 +83,8 @@ def umap_multi_metric(tbl,
         lmetric, values = table_utils.parse_metric(metric, tbl)
         if 'std' in metric: 
             istat = 'std'
+        elif metric == 'FS_Npos': 
+            istat = 'mean'
         else:
             istat = stat
         # Do it

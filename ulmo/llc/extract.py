@@ -313,7 +313,6 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
 
     # Write kin?
     if extract_kin:
-        embed(header='316 of extract.py')
         # F_s
         Fs_local_file = local_file.replace('.h5', '_Fs.h5')
         pp_utils.write_extra_fields(Fs_fields, llc_table, Fs_local_file)

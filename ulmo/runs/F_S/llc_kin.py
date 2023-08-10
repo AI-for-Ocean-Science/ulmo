@@ -274,7 +274,7 @@ def run_nenya_umap(tbl_file:str,
         train_umap (bool, optional): Train the UMAP? Defaults to False.
         debug (bool, optional): _description_. Defaults to False.
         local (bool, optional): _description_. Defaults to True.
-        DT_key (str, optional): _description_. Defaults to 'DT40'.
+        DT_key (str, optional): Key for DT. Defaults to 'DT40'.
     """
 
     # Load table

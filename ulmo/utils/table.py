@@ -163,8 +163,17 @@ def parse_metric(metric:str, tbl:pandas.DataFrame):
     # Frontogenesis
     elif metric == 'FS_Npos':
         lmetric = r'FS_Npos',
-        embed(header='166 of table')
-        values = tbl.FS_Npos.values
+        values = tbl[metric].values.astype(int)
+    # Scattering
+    elif metric == 'S1_iso_4':
+        lmetric = r'$S_{1,iso}^4$',
+        values = tbl[metric].values
+    elif metric == 's21':
+        lmetric = r'$s_{21}$'
+        values = tbl[metric].values
+    elif metric == 's22':
+        lmetric = r'$s_{22}$'
+        values = tbl[metric].values
     else:
         raise IOError("Bad metric!")
 
