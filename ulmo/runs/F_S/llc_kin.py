@@ -182,13 +182,13 @@ def kin_nenya_eval(tbl_file:str, s3_outdir:str=None,
                               #'MODIS', 'v3', 'opts_96clear_ssl.json')
     
     # Parse the model
-    embed(header='184 of llc_kin')
+    #embed(header='184 of llc_kin')
     opt = option_preprocess(ulmo_io.Params(nenya_opt_path))
     model_file = os.path.join(opt.s3_outdir,
         opt.model_folder, 'last.pth')
 
     # Load up the table
-    print(f"Grabbing table: {opt.tbl_file}")
+    print(f"Grabbing table: {tbl_file}")
     llc_table = ulmo_io.load_main_table(tbl_file)
 
     # Grab the model
