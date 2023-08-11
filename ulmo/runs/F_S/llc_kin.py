@@ -6,6 +6,7 @@ import numpy as np
 
 import h5py
 import pandas
+import umap  # This needs to be here for the unpickling to work
 from pkg_resources import resource_filename
 
 from ulmo.llc import extract 
