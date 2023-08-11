@@ -181,6 +181,7 @@ def kin_nenya_eval(tbl_file:str, s3_outdir:str=None,
                               #'MODIS', 'v3', 'opts_96clear_ssl.json')
     
     # Parse the model
+    embed(header='184 of llc_kin')
     opt = option_preprocess(ulmo_io.Params(nenya_opt_path))
     model_file = os.path.join(opt.s3_outdir,
         opt.model_folder, 'last.pth')

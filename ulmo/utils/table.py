@@ -174,7 +174,11 @@ def parse_metric(metric:str, tbl:pandas.DataFrame):
     elif metric == 's22':
         lmetric = r'$s_{22}$'
         values = tbl[metric].values
+    elif metric == 'PCA_1':
+        lmetric = metric
+        values = tbl[metric].values
     else:
-        raise IOError("Bad metric!")
+        lmetric = metric
+        values = tbl[metric].values
 
     return lmetric, values
