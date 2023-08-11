@@ -192,9 +192,10 @@ def kin_nenya_eval(tbl_file:str, s3_outdir:str=None,
     llc_table = ulmo_io.load_main_table(tbl_file)
 
     # Grab the model
-    print(f"Grabbing model: {model_file}")
     model_base = os.path.basename(model_file)
-    ulmo_io.download_file_from_s3(model_base, model_file)
+    if not os.path.isfile(model_base) or clobber_local:
+        print(f"Grabbing model: {model_file}")
+        ulmo_io.download_file_from_s3(model_base, model_file)
 
     # PreProc files
     pp_files = np.unique(llc_table.pp_file).tolist()
@@ -334,15 +335,16 @@ def main(flg):
         #u_extract_kin('', debug=True, dlocal=True)  # debug
         u_extract_kin(full_fileA)
 
-    if flg & (2**2):
-        kin_nenya_eval(full_fileA)
+    if flg & (2**2):  # Nenya on correct LLC
+        kin_nenya_eval(full_fileA,
+                       s3_outdir='s3://llc/Nenya/')
 
     # Nenya on VIIRS
     if flg & (2**3):
         kin_nenya_eval(viirs98_file, 
                        s3_outdir='s3://viirs/Nenya/')
 
-    # Nenya on LLC
+    # Nenya on alternate LLC VIIRS144
     if flg & (2**4):
         kin_nenya_eval(llc_viirs98_file,
                        s3_outdir='s3://llc/Nenya/')
@@ -424,7 +426,7 @@ if __name__ == '__main__':
         flg = 0
         #flg += 2 ** 0  # 1 -- Setup Table
         #flg += 2 ** 1  # 2 -- Extract + Kin
-        #flg += 2 ** 2  # 4 -- Evaluate
+        #flg += 2 ** 2  # 4 -- Evaluate LLC uniform with Nenya
         #flg += 2 ** 3  # 8 -- Evaluate VIIRS 98
         #flg += 2 ** 4  # 16 -- Evaluate LLC matched to VIIRS 98
         #flg += 2 ** 5  # 32 -- UMAP Nenya from MODIS -- This only works on 3.9!!
