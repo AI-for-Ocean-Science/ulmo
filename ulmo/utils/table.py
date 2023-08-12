@@ -161,9 +161,9 @@ def parse_metric(metric:str, tbl:pandas.DataFrame):
         lmetric = r'$\log_{10}$ Counts'
         values = np.ones(len(tbl))
     # Frontogenesis
-    elif metric == 'FS_Npos':
-        lmetric = r'FS_Npos',
-        values = tbl[metric].values.astype(int)
+    elif 'FS_Npos' in metric:
+        lmetric = metric
+        values = tbl['FS_Npos'].values.astype(int)
     # Scattering
     elif metric == 'S1_iso_4':
         lmetric = r'$S_{1,iso}^4$',

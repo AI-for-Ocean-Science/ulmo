@@ -83,7 +83,7 @@ def umap_multi_metric(tbl,
         lmetric, values = table_utils.parse_metric(metric, tbl)
         if 'std' in metric: 
             istat = 'std'
-        elif metric == 'FS_Npos': 
+        elif 'FS_Npos' in metric: 
             istat = 'mean'
         else:
             istat = stat
@@ -111,6 +111,8 @@ def umap_multi_metric(tbl,
             img = ax.pcolormesh(xedges, yedges, 
                              counts.T, cmap=cmap) 
         else:
+            if 'log10' in metric:
+                stat2d = np.log10(stat2d)
             img = ax.pcolormesh(xedges, yedges, 
                              stat2d.T, cmap=cmap) 
 

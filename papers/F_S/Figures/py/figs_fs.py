@@ -56,7 +56,11 @@ def main(flg):
 
         tbl = load_tbl('viirs_on_llc')
         outfile='fig_nenya_llc_viirs_multi_umap_DT1.png'
-        metrics = ['DT', 'stdDT', 'meanT', 'FS_Npos', 'abslat', 'log10counts']
+        metrics = ['DT', 'stdDT', 'meanT', 'log10FS_Npos', 'abslat', 'log10counts']
+
+        # LLC with VIIRS UMAP
+        binx=np.linspace(2,10.5,30)
+        biny=np.linspace(3.5,11.5,30)
 
         # Plot
         # MODIS UMAP
@@ -64,8 +68,8 @@ def main(flg):
         #biny=np.linspace(-3.5,4.5,30)
 
         # VIIRS UMAP
-        binx=np.linspace(1,13,30)
-        biny=np.linspace(3.5,11.5,30)
+        #binx=np.linspace(1,13,30)
+        #biny=np.linspace(3.5,11.5,30)
         
         figures.umap_multi_metric(
             tbl, binx, biny,
