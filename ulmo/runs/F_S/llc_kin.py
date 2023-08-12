@@ -414,7 +414,7 @@ def main(flg):
         run_nenya_umap(
             full_fileA, 'DT1', nenya_io.latent_path('llc'),
             'LLC_A_Nenya_VIIRS', 
-            nenya_io.table_path('llc', s3=True), 
+            nenya_io.table_path('llc', local=False), 
             'llc',
             umap_savefile=os.path.join(nenya_io.umap_path('viirs'),
                 'VIIRS_Nenya_98clear_v1_DT1_UMAP.pkl'),

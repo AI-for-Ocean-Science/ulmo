@@ -90,7 +90,7 @@ def latent_path(dataset:str, local:bool=True,
 
     return os.path.join(data_path, dset, 'Nenya', 'latents', model)
 
-def table_path(dataset:str, local:bool=True, s3:bool=False): 
+def table_path(dataset:str, local:bool=True):
     data_path = get_data_path(dataset, local=local)
 
     if local:
