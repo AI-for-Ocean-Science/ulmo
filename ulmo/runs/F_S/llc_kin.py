@@ -302,7 +302,6 @@ def run_nenya_umap(tbl_file:str,
     # Output files
     outfile = os.path.join(
         out_table_path, f'{out_root}_{subset}.parquet')
-    embed(header='305 of llc_kin')
 
 
     DT_cut = None if subset == 'DTall' else subset
