@@ -24,7 +24,12 @@ def get_data_path(dataset:str, local:bool=True):
         else:
             data_path = os.getenv('OS_SST')
     else:
-        raise IOError("Only local data paths for now")
+        if dataset[0:3] == 'llc':
+            data_path = 's3://llc'
+        elif 'viirs' in dataset: 
+            data_path = 's3://viirs'
+        else:
+            raise IOError(f"Need to add this dataset: {dataset}")
 
     return data_path
 
@@ -85,12 +90,14 @@ def latent_path(dataset:str, local:bool=True,
 
     return os.path.join(data_path, dset, 'Nenya', 'latents', model)
 
-def table_path(dataset:str, local:bool=True): 
+def table_path(dataset:str, local:bool=True, s3:bool=False): 
     data_path = get_data_path(dataset, local=local)
 
-    dset = translate_dataset(dataset)
-
-    return os.path.join(data_path, dset, 'Nenya', 'Tables')
+    if local:
+        dset = translate_dataset(dataset)
+        return os.path.join(data_path, dset, 'Nenya', 'Tables')
+    else:
+        return os.path.join(data_path, 'Nenya', 'Tables')
 
 def umap_path(dataset:str, local:bool=True): 
     data_path = get_data_path(dataset, local=local)

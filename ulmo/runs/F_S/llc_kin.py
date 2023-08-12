@@ -276,6 +276,8 @@ def run_nenya_umap(tbl_file:str,
         local_latents_path (str): Path to the latents
         out_root (str): Root for the UMAP output table
         table (str): Descriptor of the dataset, passed to umap_subset()
+        out_table_path (str): Path to the output table
+            Can be s3
         umap_savefile (str, optional): UMAP save file to use. Defaults to None.
         train_umap (bool, optional): Train the UMAP? Defaults to False.
         debug (bool, optional): _description_. Defaults to False.
@@ -300,6 +302,7 @@ def run_nenya_umap(tbl_file:str,
     # Output files
     outfile = os.path.join(
         out_table_path, f'{out_root}_{subset}.parquet')
+    embed(header='305 of llc_kin')
 
 
     DT_cut = None if subset == 'DTall' else subset
@@ -411,7 +414,8 @@ def main(flg):
         run_nenya_umap(
             full_fileA, 'DT1', nenya_io.latent_path('llc'),
             'LLC_A_Nenya_VIIRS', 
-            nenya_io.table_path('llc'), 'llc',
+            nenya_io.table_path('llc', s3=True), 
+            'llc',
             umap_savefile=os.path.join(nenya_io.umap_path('viirs'),
                 'VIIRS_Nenya_98clear_v1_DT1_UMAP.pkl'),
             local=True, DT_key='DT', train_umap=False)
