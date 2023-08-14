@@ -290,7 +290,7 @@ def umap_gallery(tbl:pandas.DataFrame, outfile:str,
                 else:
                     cutout_img = image_utils.grab_image(cutout, close=True)
             except:
-                embed(header='290 of plotting')                                                    
+                embed(header='290 of nenya.figures')                                                    
             # Cut down?
             if cut_to_inner is not None:
                 imsize = cutout_img.shape[0]

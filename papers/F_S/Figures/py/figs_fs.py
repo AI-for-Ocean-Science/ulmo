@@ -7,6 +7,7 @@ from ulmo.nenya import figures
 
 from IPython import embed
 
+vx_dt = {'DT15': 1., 'DT1': 0.75, 'DT2': 1.5}
 
 def load_tbl(survey:str, DT:str='DT1'):
     if survey == 'viirs':
@@ -54,27 +55,36 @@ def main(flg):
         #outfile='fig_nenya_llcA_multi_umap_DT1.png'
         #metrics = ['DT', 'stdDT', 'abslat', 'log10counts']
 
-        tbl = load_tbl('viirs_on_llc')
-        outfile='fig_nenya_llc_viirs_multi_umap_DT1.png'
-        metrics = ['DT', 'stdDT', 'meanT', 'log10FS_Npos', 'abslat', 'log10counts']
+        subsets =  ['DT15', 'DT1', 'DT2']
+        for subset in subsets:
+            tbl = load_tbl('viirs_on_llc', DT=subset)
+            outfile= f'fig_nenya_llc_viirs_multi_umap_{subset}.png'
+            metrics = ['DT', 'stdDT', 'meanT', 'log10FS_Npos', 'abslat', 'log10counts']
 
-        # LLC with VIIRS UMAP
-        binx=np.linspace(2,10.5,30)
-        biny=np.linspace(3.5,11.5,30)
+            # LLC with VIIRS UMAP (DT1)
+            if subset == 'DT1':
+                binx=np.linspace(2,10.5,30)
+                biny=np.linspace(3.5,11.5,30)
+            elif subset == 'DT15':
+                binx=np.linspace(1.5,11.5,30)
+                biny=np.linspace(3.5,11.5,30)
+            elif subset == 'DT2':
+                binx=np.linspace(0.,9.5,30)
+                biny=np.linspace(1,10.,30)
 
-        # Plot
-        # MODIS UMAP
-        #binx=np.linspace(-1,10.5,30)
-        #biny=np.linspace(-3.5,4.5,30)
+            # Plot
+            # MODIS UMAP
+            #binx=np.linspace(-1,10.5,30)
+            #biny=np.linspace(-3.5,4.5,30)
 
-        # VIIRS UMAP
-        #binx=np.linspace(1,13,30)
-        #biny=np.linspace(3.5,11.5,30)
-        
-        figures.umap_multi_metric(
-            tbl, binx, biny,
-            metrics=metrics,
-            outfile=outfile)
+            # VIIRS UMAP
+            #binx=np.linspace(1,13,30)
+            #biny=np.linspace(3.5,11.5,30)
+            
+            figures.umap_multi_metric(
+                tbl, binx, biny,
+                metrics=metrics,
+                outfile=outfile)
 
     # Galleries
     if flg & (2**1):
@@ -86,12 +96,16 @@ def main(flg):
                              in_vmnx=[-0.75, 0.75])
 
         
-         VIIRS with VIIRS
-        viirs = load_tbl('viirs_on_viirs')
-        figures.umap_gallery(viirs, 'fig_nenya_viirs2_gallery_DT1.png',
-                             local=os.path.join(os.getenv('OS_SST'), 'VIIRS'),
-                             in_vmnx=[-0.75, 0.75])
         '''
+        # VIIRS with VIIRS
+        subsets =  ['DT1', 'DT15']
+        for subset in subsets:
+            viirs = load_tbl('viirs_on_viirs', DT=subset)
+            figures.umap_gallery(
+                viirs, f'fig_nenya_viirs2_gallery_{subset}.png',
+                local=os.path.join(os.getenv('OS_SST'), 'VIIRS'),
+                in_vmnx=[-vx_dt[subset], vx_dt[subset]])
+                                #in_vmnx=[-0.75, 0.75])
 
         '''
         # LLC with LLC
@@ -100,10 +114,14 @@ def main(flg):
                              local=os.path.join(os.getenv('OS_OGCM'), 'LLC'),
                              in_vmnx=[-0.75, 0.75])
         # LLC with VIIRS
-        tbl = load_tbl('viirs_on_llc')
-        figures.umap_gallery(tbl, 'fig_nenya_llc_viirs_gallery_DT1.png',
-                             local=os.path.join(os.getenv('OS_OGCM'), 'LLC'),
-                             in_vmnx=[-0.75, 0.75])
+        subsets =  ['DT15', 'DT1', 'DT2']
+        for subset in subsets:
+            tbl = load_tbl('viirs_on_llc', DT=subset)
+            figures.umap_gallery(
+                tbl, 
+                f'fig_nenya_llc_viirs_gallery_{subset}.png',
+                local=os.path.join(os.getenv('OS_OGCM'), 'LLC', 'F_S'),
+                in_vmnx=[-vx_dt[subset], vx_dt[subset]])
         '''
 
 
