@@ -206,11 +206,11 @@ def rerun_kin(tbl_file:str, F_S_datafile:str, divb_datafile:str,
         print("Loading up the kinematic cutouts")
         items = []
         if debug:
-            nitems = 1000
+            nitems = min(1000, len(sub_tbl))
         else:
             nitems = len(sub_tbl)
         for idx in range(nitems):
-            pidx = sub_tbl.pp_idx[idx]
+            pidx = sub_tbl.pp_idx.values[idx]
             if pidx < 0:
                 continue
             # Load
