@@ -228,6 +228,8 @@ def rerun_kin(tbl_file:str, F_S_datafile:str, divb_datafile:str,
         kin_idx = [item[0] for item in answers]
         kin_meta = [item[1] for item in answers]
 
+        embed(header='231 of llc_kin')
+
         # Fill in
         for key in kin_meta[0].keys():
             llc_table.loc[kin_idx, key] = [imeta[key] for imeta in kin_meta]
