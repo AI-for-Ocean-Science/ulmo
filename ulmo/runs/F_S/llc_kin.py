@@ -369,7 +369,6 @@ def train_viirs_llc_umap(subset:str, umap_savefile:str,
                          local_dataset_path=nenya_io.latent_path(table),
                          remove=False, CF=False)
     # Combine
-    embed(header='370 of llc_kin')
     random_llc = np.random.choice(np.arange(llc_latents.shape[0]), 
                                   size=min(ntrain, llc_latents.shape[0]), 
                                   replace=False)
@@ -379,6 +378,7 @@ def train_viirs_llc_umap(subset:str, umap_savefile:str,
     all_latents = np.concatenate([llc_latents[random_llc,...], 
                                   viirs_latents[random_viirs,...]])
     # Train                        
+    embed(header='381 of llc kin')
     print(f"Training UMAP on a random {all_latents.shape[0]} set of the files")
     #random = np.random.choice(np.arange(nlatents), size=ntrain, 
     #                        replace=False)
@@ -521,7 +521,7 @@ def main(flg):
     if flg & (2**7):
 
         '''
-        # VIIRS
+        # VIIRS on VIIRS
         subsets =  ['DT15', 'DT0', 'DT1', 'DT2', 'DT4', 'DT5', 'DTall']
         for subset in subsets:
             run_nenya_umap(
@@ -533,6 +533,18 @@ def main(flg):
                     f'VIIRS_Nenya_98clear_v1_{subset}_UMAP.pkl'),
                 local=True, DT_key='DT', train_umap=True)
         '''
+        # VIIRS on VIIRS+LLC
+        #subsets =  ['DT15', 'DT0', 'DT1', 'DT2', 'DT4', 'DT5', 'DTall']
+        subsets =  ['DT15']
+        for subset in subsets:
+            run_nenya_umap(
+                local_viirs98_file, subset, 
+                nenya_io.latent_path('viirs'),
+                'VIIRS_Nenya_VIIRS_LLC', 
+                nenya_io.table_path('viirs'), 'viirs',
+                umap_savefile=os.path.join(nenya_io.umap_path('viirs'),
+                    f'VIIRS_LLC_Nenya_v1_{subset}_UMAP.pkl'),
+                local=True, DT_key='DT', train_umap=False)
 
 
         '''
