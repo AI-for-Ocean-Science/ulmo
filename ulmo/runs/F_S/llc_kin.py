@@ -378,7 +378,6 @@ def train_viirs_llc_umap(subset:str, umap_savefile:str,
     all_latents = np.concatenate([llc_latents[random_llc,...], 
                                   viirs_latents[random_viirs,...]])
     # Train                        
-    embed(header='381 of llc kin')
     print(f"Training UMAP on a random {all_latents.shape[0]} set of the files")
     #random = np.random.choice(np.arange(nlatents), size=ntrain, 
     #                        replace=False)
@@ -577,7 +576,7 @@ def main(flg):
         subsets =  ['DT15']
         for subset in subsets:
             umap_savefile=os.path.join(nenya_io.umap_path('viirs'),
-                    f'VIIRS_LLC_Nenya_v1_{subset}_UMAP.pkl'),
+                    f'VIIRS_LLC_Nenya_v1_{subset}_UMAP.pkl')
             train_viirs_llc_umap(subset, umap_savefile)
 
         '''
