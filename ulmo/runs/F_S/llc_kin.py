@@ -189,7 +189,8 @@ def rerun_kin(tbl_file:str, F_S_datafile:str, divb_datafile:str,
     assert np.all(np.arange(len(llc_table)) == llc_table.index)
     map_kin = partial(kinematics.cutout_kin, 
                     kin_stats=FS_stat_dict,
-                    extract_kin=False)
+                    extract_kin=False,
+                    input_FSdivb=True)
 
     uni_date = np.unique(llc_table.datetime)
     all_sub = []
@@ -204,7 +205,11 @@ def rerun_kin(tbl_file:str, F_S_datafile:str, divb_datafile:str,
         # Load em up
         print("Loading up the kinematic cutouts")
         items = []
-        for idx in range(len(sub_tbl)):
+        if debug:
+            nitems = 1000
+        else:
+            nitems = len(sub_tbl)
+        for idx in range(nitems):
             pidx = sub_tbl.pp_idx[idx]
             if pidx < 0:
                 continue
@@ -213,13 +218,15 @@ def rerun_kin(tbl_file:str, F_S_datafile:str, divb_datafile:str,
             divb_cutout = f_divb['valid'][pidx,0,...]
             # Append
             items.append((FS_cutout, divb_cutout, idx))
+        print("Done.")
 
         # Run it
         with ProcessPoolExecutor(max_workers=n_cores) as executor:
             chunksize = len(items) // n_cores if len(items) // n_cores > 0 else 1
             answers = list(tqdm(executor.map(map_kin, items,
                                              chunksize=chunksize), total=len(items)))
-        kin_meta += [item[1] for item in answers]
+        kin_idx = [item[0] for item in answers]
+        kin_meta = [item[1] for item in answers]
         embed(header='220 of llc_kin')
 
 def kin_nenya_eval(tbl_file:str, s3_outdir:str=None,
@@ -491,7 +498,8 @@ def main(flg):
         divb_file = os.path.join(os.getenv('OS_OGCM'),
                                'LLC', 'F_S', 'PreProc',
                                'LLC_FS_preproc_divb.h5')
-        rerun_kin(full_fileA, FS_file, divb_file)
+        rerun_kin(full_fileA, FS_file, divb_file,
+                  debug=True)
 
 
 # Command line execution
