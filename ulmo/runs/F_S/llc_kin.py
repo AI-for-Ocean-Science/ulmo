@@ -352,6 +352,7 @@ def train_viirs_llc_umap(subset:str, umap_savefile:str,
                          debug=False, 
                          table=table,
                          load_latents_only=True,
+                         local_dataset_path=nenya_io.latent_path(table),
                          remove=False, CF=False)
     # VIIRS latents
     tbl = ulmo_io.load_main_table(local_viirs98_file)
@@ -365,6 +366,7 @@ def train_viirs_llc_umap(subset:str, umap_savefile:str,
                          debug=False, 
                          table=table,
                          load_latents_only=True,
+                         local_dataset_path=nenya_io.latent_path(table),
                          remove=False, CF=False)
     # Combine
     embed(header='370 of llc_kin')
