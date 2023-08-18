@@ -17,6 +17,9 @@ def load_tbl(survey:str, DT:str='DT1'):
     elif survey == 'viirs_on_viirs':
         tbl_file = os.path.join(os.getenv('OS_SST'), 'VIIRS', 'Nenya', 'Tables', 
                                 f'VIIRS_Nenya_98clear_v1_{DT}.parquet')
+    elif survey == 'viirs_on_viirs+llc':
+        tbl_file = os.path.join(os.getenv('OS_SST'), 'VIIRS', 'Nenya', 'Tables', 
+                                f'VIIRS_Nenya_VIIRS_LLC_{DT}.parquet')
     elif survey == 'llc':
         tbl_file = f'/data/Projects/Oceanography/AI/OOD/SST/LLC/Tables/LLC_A_Nenya_{DT}.parquet'
     elif survey == 'llc_on_llc':
@@ -96,7 +99,6 @@ def main(flg):
                              in_vmnx=[-0.75, 0.75])
 
         
-        '''
         # VIIRS with VIIRS
         subsets =  ['DT1', 'DT15']
         for subset in subsets:
@@ -105,7 +107,16 @@ def main(flg):
                 viirs, f'fig_nenya_viirs2_gallery_{subset}.png',
                 local=os.path.join(os.getenv('OS_SST'), 'VIIRS'),
                 in_vmnx=[-vx_dt[subset], vx_dt[subset]])
-                                #in_vmnx=[-0.75, 0.75])
+        '''
+
+        # VIIRS with VIIRS+LLC
+        subsets =  ['DT15']
+        for subset in subsets:
+            viirs = load_tbl('viirs_on_viirs+llc', DT=subset)
+            figures.umap_gallery(
+                viirs, f'fig_nenya_viirs+llc_gallery_{subset}.png',
+                local=os.path.join(os.getenv('OS_SST'), 'VIIRS'),
+                in_vmnx=[-vx_dt[subset], vx_dt[subset]])
 
         '''
         # LLC with LLC

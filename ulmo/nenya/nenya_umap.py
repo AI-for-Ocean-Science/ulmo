@@ -116,6 +116,7 @@ def umap_subset(modis_tbl:pandas.DataFrame,
                 s3_outdir:str=None,
                 local_dataset_path:str=None,
                 load_latents_only:bool=False,
+                skip_vet:bool=False,
                 local=True, CF=False, debug=False):
     """Run UMAP on a subset of the data
     First 2 dimensions are written to the table
@@ -139,6 +140,7 @@ def umap_subset(modis_tbl:pandas.DataFrame,
         CF (bool, optional): Use cloud free (99%) set? Defaults to False.
         train_umap (bool, optional): Train a new UMAP? Defaults to True.
         DT_key (str, optional): Which DT to use? Defaults to 'DT40'.
+        skip_vet (bool, optional): Skip vetting? Defaults to False.
         debug (bool, optional): _description_. Defaults to False.
 
     Raises:
@@ -342,7 +344,8 @@ def umap_subset(modis_tbl:pandas.DataFrame,
         modis_tbl.drop(columns=drop_columns, inplace=True)
     
     # Vet
-    assert cat_utils.vet_main_table(modis_tbl, cut_prefix=cut_prefix)
+    if not skip_vet:
+        assert cat_utils.vet_main_table(modis_tbl, cut_prefix=cut_prefix)
     # Write new table
     to_s3 = True if 's3' in outfile else False
     if not debug:

@@ -398,6 +398,7 @@ def run_nenya_umap(tbl_file:str,
                umap_savefile:str=None,
                local:bool=True,
                train_umap:bool=False,
+               skip_vet:bool=False,
                DT_key='DT40'):
     """ Run UMAP on Nenya output
 
@@ -414,6 +415,8 @@ def run_nenya_umap(tbl_file:str,
         debug (bool, optional): _description_. Defaults to False.
         local (bool, optional): _description_. Defaults to True.
         DT_key (str, optional): Key for DT. Defaults to 'DT40'.
+        skip_vet (bool, optional): Skip vetting the table. Defaults to False.
+            Required for LLC with <NA> kinematic values
     """
 
     # Load table
@@ -448,6 +451,7 @@ def run_nenya_umap(tbl_file:str,
                          train_umap=train_umap, 
                          umap_savefile=umap_savefile,
                          local_dataset_path=local_latents_path,
+                         skip_vet=skip_vet,
                          remove=False, CF=False)
 
 
@@ -594,7 +598,8 @@ def main(flg):
                 'llc',
                 umap_savefile=os.path.join(nenya_io.umap_path('viirs'),
                     f'VIIRS_LLC_Nenya_v1_{subset}_UMAP.pkl'),
-                local=True, DT_key='DT', train_umap=False)
+                local=True, DT_key='DT', train_umap=False,
+                skip_vet=True)
 
 
     # Redo/expand kin
