@@ -371,13 +371,15 @@ def train_viirs_llc_umap(subset:str, umap_savefile:str,
     # Combine
     embed(header='370 of llc_kin')
     random_llc = np.random.choice(np.arange(llc_latents.shape[0]), 
-                                  size=ntrain, replace=False)
+                                  size=min(ntrain, llc_latents.shape[0]), 
+                                  replace=False)
     random_viirs = np.random.choice(np.arange(viirs_latents.shape[0]), 
-                                  size=ntrain, replace=False)
+                                  size=min(ntrain, viirs_latents.shape[0]), 
+                                  replace=False)
     all_latents = np.concatenate([llc_latents[random_llc,...], 
                                   viirs_latents[random_viirs,...]])
     # Train                        
-    print(f"Training UMAP on a random {2*ntrain} set of the files")
+    print(f"Training UMAP on a random {all_latents.shape[0]} set of the files")
     #random = np.random.choice(np.arange(nlatents), size=ntrain, 
     #                        replace=False)
     reducer_umap = umap.UMAP(random_state=42)
