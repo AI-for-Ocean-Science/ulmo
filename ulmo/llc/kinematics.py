@@ -205,7 +205,7 @@ def calc_F_s(U:np.ndarray, V:np.ndarray,
         return F_s
 
 def cutout_kin(item:tuple, kin_stats:dict, field_size=None,
-               extract_kin=False):
+               extract_kin=False, input_FSdivb:bool=False):
     """Simple function to measure kinematic stats
     So far -- front related stats
     Enables multi-processing
@@ -215,16 +215,22 @@ def cutout_kin(item:tuple, kin_stats:dict, field_size=None,
         kin_stats (dict): kin stats to calculate
         extract_kin (bool, optioal): If True, return
             the extracted cutouts too
+        input_FSdivb (bool, optional): 
+            If True, items are (F_s, gradb, idx)
 
     Returns:
         tuple: int, dict if extract_kin is False
-            Otherwise, int, dict, np.ndarray, np.ndarray
+            Otherwise, int, dict, np.ndarray, np.ndarray (F_s, gradb)
     """
     # Unpack
-    U_cutout, V_cutout, Theta_cutout, Salt_cutout, idx = item
+    if input_FSdivb:
+        F_s, gradb, idx = item
 
-    # F_S
-    F_s, gradb = calc_F_s(U_cutout, V_cutout, Theta_cutout, Salt_cutout,
+    else:
+        U_cutout, V_cutout, Theta_cutout, Salt_cutout, idx = item
+
+        # F_S
+        F_s, gradb = calc_F_s(U_cutout, V_cutout, Theta_cutout, Salt_cutout,
                    add_gradb=True)
 
     # Resize?
@@ -244,6 +250,11 @@ def cutout_kin(item:tuple, kin_stats:dict, field_size=None,
 def calc_kin_stats(F_s:np.ndarray, gradb:np.ndarray, stat_dict:dict):
     """Calcualte statistics on the F_s metric
 
+    FS_Npos: Number of pixels greater than Fronto_thresh
+    FS_Nneg: Number of pixels less than -1*Fronto_thresh
+    FS_pos_sum: Sum of positive F_S pixels
+    FS_neg_sum: Sum of negative F_S pixels
+
     Args:
         F_s (np.ndarray): F_s cutout
         gradb (np.ndarray): |grad b|^2 cutout
@@ -258,8 +269,10 @@ def calc_kin_stats(F_s:np.ndarray, gradb:np.ndarray, stat_dict:dict):
     # Frontogensis
     if 'Fronto_thresh' in stat_dict.keys():
         kin_metrics['FS_Npos'] = int(np.sum(F_s > stat_dict['Fronto_thresh']))
+        kin_metrics['FS_Nneg'] = int(np.sum(F_s < -1*stat_dict['Fronto_thresh']))
     if 'Fronto_sum' in stat_dict.keys():
         kin_metrics['FS_pos_sum'] = np.sum(F_s[F_s > 0.])
+        kin_metrics['FS_neg_sum'] = np.sum(F_s[F_s < 0.])
 
     # Fronts
     if 'Front_thresh' in stat_dict.keys():

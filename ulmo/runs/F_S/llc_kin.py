@@ -9,8 +9,13 @@ import pandas
 import umap  # This needs to be here for the unpickling to work
 from pkg_resources import resource_filename
 
+from functools import partial
+from concurrent.futures import ProcessPoolExecutor
+from tqdm import tqdm
+
 from ulmo.llc import extract 
 from ulmo.llc import uniform
+from ulmo.llc import kinematics
 from ulmo import io as ulmo_io
 from ulmo.preproc import plotting as pp_plotting
 from ulmo.utils import table as table_utils
@@ -35,6 +40,16 @@ if os.getenv('SST_OOD') is not None:
 nenya_opt_path = os.path.join(resource_filename('ulmo', 'runs'), 'Nenya',
                               'MODIS', 'v4', 'opts_ssl_modis_v4.json')
 
+FS_stat_dict = {}
+FS_stat_dict['version'] = 1.0 # 2023-08-17
+FS_stat_dict['calc_FS'] = True
+# Frontogenesis
+#FS_stat_dict['Fronto_thresh'] = 2e-4  # prior to the g factor
+FS_stat_dict['Fronto_thresh'] = 5e-14 
+FS_stat_dict['Fronto_sum'] = True
+# Fronts
+#FS_stat_dict['Front_thresh'] = 3e-3 
+FS_stat_dict['Front_thresh'] = 1e-13 
 
 def u_init_kin(tbl_file:str, debug=False, 
                resol=0.5, 
@@ -98,15 +113,7 @@ def u_extract_kin(tbl_file:str, debug=False,
         preproc_root (str, optional): _description_. Defaults to 'llc_144'.
         dlocal (bool, optional): Use local files for LLC data.
     """
-    FS_stat_dict = {}
-    FS_stat_dict['calc_FS'] = True
-    # Frontogenesis
-    #FS_stat_dict['Fronto_thresh'] = 2e-4  # prior to the g factor
-    FS_stat_dict['Fronto_thresh'] = 5e-14 
-    FS_stat_dict['Fronto_sum'] = True
-    # Fronts
-    #FS_stat_dict['Front_thresh'] = 3e-3 
-    FS_stat_dict['Front_thresh'] = 1e-13 
+
 
     # Giddy up (will take a bit of memory!)
     if debug:
@@ -164,6 +171,52 @@ def u_extract_kin(tbl_file:str, debug=False,
     ulmo_io.write_main_table(llc_table, tbl_file)
     print("You should probably remove the PreProc/ folder")
     
+def rerun_kin(tbl_file:str, F_S_datafile:str, divb_datafile:str,
+              debug=False, dlocal=True, 
+              n_cores=10): 
+
+    if debug:
+        tbl_file = tst_file
+        debug_local = True
+
+    # Load table
+    llc_table = ulmo_io.load_main_table(tbl_file)
+
+    # Open kin files
+    f_FS = h5py.File(F_S_datafile, 'r')
+    f_divb = h5py.File(divb_datafile, 'r')
+
+    # Check indices
+    assert np.all(np.arange(len(llc_table)) == llc_table.index)
+    map_kin = partial(kinematics.cutout_kin, 
+                    kin_stats=FS_stat_dict,
+                    extract_kin=False)
+
+    uni_date = np.unique(llc_table.datetime)
+    for udate in uni_date:
+    
+        gd_date = llc_table.datetime == udate
+        sub_idx = np.where(gd_date)[0]
+        all_sub += sub_idx.tolist()  # These really should be the indices of the Table
+        sub_tbl = llc_table[gd_date]
+
+        embed(header='293 of llc_kin')
+        # Load em up
+        items = []
+        for idx in range(len(sub_tbl)):
+            pidx = sub_tbl.pp_idx[idx]
+            # Load
+            FS_cutout = f_FS[pidx][:]
+            divb_cutout = f_divb[pidx][:]
+            # Append
+            items.append((FS_cutout, divb_cutout, idx))
+
+        # Run it
+        with ProcessPoolExecutor(max_workers=n_cores) as executor:
+            chunksize = len(items) // n_cores if len(items) // n_cores > 0 else 1
+            answers = list(tqdm(executor.map(map_kin, items,
+                                             chunksize=chunksize), total=len(items)))
+        kin_meta += [item[1] for item in answers]
 
 def kin_nenya_eval(tbl_file:str, s3_outdir:str=None,
                    clobber_local=False, debug=False):
@@ -426,6 +479,9 @@ def main(flg):
                     f'VIIRS_Nenya_98clear_v1_{subset}_UMAP.pkl'),
                 local=True, DT_key='DT', train_umap=False)
 
+    # Redo/expand kin
+    if flg & (2**8):
+        rerun_kin(full_fileA)
 
 
 # Command line execution
@@ -442,6 +498,7 @@ if __name__ == '__main__':
         #flg += 2 ** 5  # 32 -- UMAP Nenya from MODIS -- This only works on 3.9!!
         #flg += 2 ** 6  # 64 -- Evaluate MODIS 96
         #flg += 2 ** 7  # 128 -- UMAPs galore
+        #flg += 2 ** 8  # 256 -- Redo/expand kin
     else:
         flg = sys.argv[1]
 
