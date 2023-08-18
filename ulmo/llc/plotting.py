@@ -8,11 +8,15 @@ from ulmo.utils import image_utils
 
 
 def show_cutout(cutout:pandas.core.series.Series,
-                local_file:str=None): 
+                local_file:str=None,
+                ax=None): 
     """Simple wrapper for showing the input cutout
 
     Args:
         cutout (pandas.core.series.Series): Cutout to display
+        local_file (str, optional): Local file to use. Defaults to None.
+        ax (matplotlib.axes._subplots.AxesSubplot, optional): 
+            Axes to use. Defaults to None.
     """
 
 
@@ -20,4 +24,4 @@ def show_cutout(cutout:pandas.core.series.Series,
     img = image_utils.grab_image(cutout, close=True, local_file=local_file)
 
     # Plot
-    plotting.show_image(img)
+    plotting.show_image(img, ax=ax)

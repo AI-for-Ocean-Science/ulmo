@@ -137,28 +137,31 @@ def grab_image(args):
 def grab_velocity(cutout:pandas.core.series.Series, ds=None,
                   add_SST=False, add_Salt:bool=False, 
                   add_W=False, 
-                  local=True):                
+                  local_path:str=None):
     """Grab velocity
 
     Args:
         cutout (pandas.core.series.Series): cutout image
         ds (xarray.DataSet, optional): Dataset. Defaults to None.
-        local (bool, optional): Grab files from local?
         add_SST (bool, optional): Include SST too?. Defaults to False.
         add_Salt (bool, optional): Include Salt too?. Defaults to False.
         add_W (bool, optional): Include wz too?. Defaults to False.
+        local_path (str, optional): Local path to data. Defaults to None.
 
     Returns:
         list: U, V cutouts as np.ndarray (i.e. values)
             and SST too if add_SST=True
-            and Salt too if add_SST=True
+            and Salt too if add_Salt=True
             and W too if add_W=True
     """
-    if not local:
-        raise NotImplementedError("Not ready for this yet")
+    # Local?with ulmo_io.open(cutout.filename, 'rb') as f:
+    if local_path is None:
+        filename = cutout.filename
+    else:
+        filename = os.path.join(local_path, os.path.basename(cutout.filename))
     # Open
-    #with ulmo_io.open(cutout.filename, 'rb') as f:
-    ds = xr.open_dataset(cutout.filename)
+    ds = xr.open_dataset(filename)
+
     # U field
     U_cutout = ds.U[cutout.row:cutout.row+cutout.field_size, 
                 cutout.col:cutout.col+cutout.field_size].values

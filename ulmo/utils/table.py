@@ -166,7 +166,7 @@ def parse_metric(metric:str, tbl:pandas.DataFrame):
         values = tbl['FS_Npos'].values.astype(int)
     elif 'FS_pos_sum' in metric:
         lmetric = metric
-        values = tbl[metric].values
+        values = tbl['FS_pos_sum'].values
     # Scattering
     elif metric == 'S1_iso_4':
         lmetric = r'$S_{1,iso}^4$',
