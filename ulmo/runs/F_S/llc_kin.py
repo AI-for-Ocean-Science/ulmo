@@ -192,6 +192,7 @@ def rerun_kin(tbl_file:str, F_S_datafile:str, divb_datafile:str,
                     extract_kin=False)
 
     uni_date = np.unique(llc_table.datetime)
+    all_sub = []
     for udate in uni_date:
     
         gd_date = llc_table.datetime == udate
