@@ -233,6 +233,7 @@ def rerun_kin(tbl_file:str, F_S_datafile:str, divb_datafile:str,
             llc_table.loc[kin_idx, key] = [imeta[key] for imeta in kin_meta]
 
     # Vet
+    embed(header='236 of llc_kin')
     assert cat_utils.vet_main_table(llc_table)
 
     # Write
