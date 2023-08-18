@@ -573,7 +573,8 @@ def main(flg):
                 nenya_io.table_path('llc'), 'llc',
                 umap_savefile=os.path.join(nenya_io.umap_path('llc'),
                     f'LLC_Nenya_v1_{subset}_UMAP.pkl'),
-                local=True, DT_key='DT', train_umap=True)
+                local=True, DT_key='DT', train_umap=True,
+                skip_vet=True)
 
 
         '''
