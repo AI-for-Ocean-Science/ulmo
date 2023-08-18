@@ -115,6 +115,7 @@ def umap_subset(modis_tbl:pandas.DataFrame,
                 DT_key:str='DT40',
                 s3_outdir:str=None,
                 local_dataset_path:str=None,
+                load_latents_only:bool=False,
                 local=True, CF=False, debug=False):
     """Run UMAP on a subset of the data
     First 2 dimensions are written to the table
@@ -122,7 +123,8 @@ def umap_subset(modis_tbl:pandas.DataFrame,
     Args:
         modis_tbl (pandas.DataFrame): MODIS table
         opt_path (str): _description_
-        outfile (str): _description_
+        outfile (str): Output path+file for table with
+            UMAP values
         DT_cut (str, optional): DT cut to apply. Defaults to None.
             This uses the DT_key
         s3_outdir (str, optional): 
@@ -292,6 +294,9 @@ def umap_subset(modis_tbl:pandas.DataFrame,
     # Concatenate
     all_latents = np.concatenate(all_latents, axis=0)
     nlatents = all_latents.shape[0]
+
+    if load_latents_only:
+        return all_latents
 
     # UMAP me
     if debug:

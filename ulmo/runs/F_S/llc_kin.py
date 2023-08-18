@@ -7,6 +7,7 @@ import numpy as np
 import h5py
 import pandas
 import umap  # This needs to be here for the unpickling to work
+import pickle
 from pkg_resources import resource_filename
 
 from functools import partial
@@ -236,7 +237,8 @@ def rerun_kin(tbl_file:str, F_S_datafile:str, divb_datafile:str,
 
     # Vet
     # The data types for the kinematics are a bit scrambled..
-    #assert cat_utils.vet_main_table(llc_table)
+    embed(header='240 of llc_kin')
+    assert cat_utils.vet_main_table(llc_table)
 
     # Write
     if not debug:
@@ -333,6 +335,56 @@ def kin_nenya_eval(tbl_file:str, s3_outdir:str=None,
         if not debug:
             os.remove(data_file)
             print(f'{data_file} removed')
+
+def train_viirs_llc_umap(subset:str, umap_savefile:str,
+                         ntrain:int=200000):
+
+    DT_cut = None if subset == 'DTall' else subset
+
+    # Load LLC latents
+    tbl = ulmo_io.load_main_table(full_fileA)
+    table = 'llc'
+    llc_latents = nenya_umap.umap_subset(tbl.copy(),
+                         nenya_opt_path, 
+                         None, 
+                         local=True,
+                         DT_cut=DT_cut, 
+                         DT_key = 'DT',
+                         debug=False, 
+                         table=table,
+                         load_latents_only=True,
+                         remove=False, CF=False)
+    # VIIRS latents
+    tbl = ulmo_io.load_main_table(local_viirs98_file)
+    table = 'viirs'
+    viirs_latents = nenya_umap.umap_subset(tbl.copy(),
+                         nenya_opt_path, 
+                         None, 
+                         local=True,
+                         DT_cut=DT_cut, 
+                         DT_key = 'DT',
+                         debug=False, 
+                         table=table,
+                         load_latents_only=True,
+                         remove=False, CF=False)
+    # Combine
+    embed(header='370 of llc_kin')
+    random_llc = np.random.choice(np.arange(llc_latents.shape[0]), 
+                                  size=ntrain, replace=False)
+    random_viirs = np.random.choice(np.arange(viirs_latents.shape[0]), 
+                                  size=ntrain, replace=False)
+    all_latents = np.concatenate([llc_latents[random_llc,...], 
+                                  viirs_latents[random_viirs,...]])
+    # Train                        
+    print(f"Training UMAP on a random {2*ntrain} set of the files")
+    #random = np.random.choice(np.arange(nlatents), size=ntrain, 
+    #                        replace=False)
+    reducer_umap = umap.UMAP(random_state=42)
+    latents_mapping = reducer_umap.fit(all_latents)
+    print("Done..")
+    pickle.dump(latents_mapping, open(umap_savefile, "wb" ) )
+    print(f"Saved UMAP to {umap_savefile}")
+
     
 def run_nenya_umap(tbl_file:str, 
                subset:str, 
@@ -491,6 +543,7 @@ def main(flg):
             local=True, DT_key='DT', train_umap=True)
         '''
 
+        '''
         # Run VIIRS UMAP on LLC
         subsets =  ['DT15', 'DT0', 'DT1', 'DT2', 'DT4', 'DT5', 'DTall']
         for subset in subsets:
@@ -502,6 +555,30 @@ def main(flg):
                 umap_savefile=os.path.join(nenya_io.umap_path('viirs'),
                     f'VIIRS_Nenya_98clear_v1_{subset}_UMAP.pkl'),
                 local=True, DT_key='DT', train_umap=False)
+        '''
+
+        # Train on LLC + VIIRS
+        #subsets =  ['DT15', 'DT0', 'DT1', 'DT2', 'DT4', 'DT5', 'DTall']
+        subsets =  ['DT15']
+        for subset in subsets:
+            umap_savefile=os.path.join(nenya_io.umap_path('viirs'),
+                    f'VIIRS_LLC_Nenya_v1_{subset}_UMAP.pkl'),
+            train_viirs_llc_umap(subset, umap_savefile)
+
+        '''
+        # Run VIIRS+LLC UMAP on LLC
+        #subsets =  ['DT15', 'DT0', 'DT1', 'DT2', 'DT4', 'DT5', 'DTall']
+        subsets =  ['DT15']
+        for subset in subsets:
+            run_nenya_umap(
+                full_fileA, subset, nenya_io.latent_path('llc'),
+                'LLC_A_Nenya_VIIRS_LLC', 
+                nenya_io.table_path('llc', local=False), 
+                'llc',
+                umap_savefile=os.path.join(nenya_io.umap_path('viirs'),
+                    f'VIIRS_LLC_Nenya_v1_{subset}_UMAP.pkl'),
+                local=True, DT_key='DT', train_umap=False)
+        '''
 
     # Redo/expand kin
     if flg & (2**8):
@@ -511,8 +588,8 @@ def main(flg):
         divb_file = os.path.join(os.getenv('OS_OGCM'),
                                'LLC', 'F_S', 'PreProc',
                                'LLC_FS_preproc_divb.h5')
-        rerun_kin(full_fileA, FS_file, divb_file)
-                  #debug=True)
+        rerun_kin(full_fileA, FS_file, divb_file,
+                  debug=True)
 
 
 # Command line execution
