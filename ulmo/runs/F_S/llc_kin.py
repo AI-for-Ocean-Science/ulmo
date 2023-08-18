@@ -548,10 +548,10 @@ def main(flg):
                 umap_savefile=os.path.join(nenya_io.umap_path('viirs'),
                     f'VIIRS_LLC_Nenya_v1_{subset}_UMAP.pkl'),
                 local=True, DT_key='DT', train_umap=False)
+        '''
 
         # LLC on VIIRS
-        #subsets =  ['DT15', 'DT0', 'DT1', 'DT2', 'DT4', 'DT5', 'DTall']
-        subsets =  ['DT1']
+        subsets =  ['DT15', 'DT0', 'DT1']#, 'DT2', 'DT4', 'DT5', 'DTall']
         for subset in subsets:
             run_nenya_umap(
                 local_viirs98_file, subset, 
@@ -561,9 +561,9 @@ def main(flg):
                 umap_savefile=os.path.join(nenya_io.umap_path('llc'),
                     f'LLC_Nenya_v1_{subset}_UMAP.pkl'),
                 local=True, DT_key='DT', train_umap=False)
+
+
         '''
-
-
         # LLC galore
         subsets =  ['DT15', 'DT0', 'DT1', 'DT2', 'DT4', 'DT5', 'DTall']
         for subset in subsets:
@@ -575,6 +575,7 @@ def main(flg):
                     f'LLC_Nenya_v1_{subset}_UMAP.pkl'),
                 local=True, DT_key='DT', train_umap=True,
                 skip_vet=True)
+        '''
 
 
         '''

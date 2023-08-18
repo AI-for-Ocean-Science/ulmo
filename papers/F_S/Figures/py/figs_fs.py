@@ -17,7 +17,10 @@ def load_tbl(survey:str, DT:str='DT1'):
     elif survey == 'viirs_on_viirs':
         tbl_file = os.path.join(os.getenv('OS_SST'), 'VIIRS', 'Nenya', 'Tables', 
                                 f'VIIRS_Nenya_98clear_v1_{DT}.parquet')
-    elif survey == 'viirs_on_viirs+llc':
+    elif survey == 'llc_on_viirs':
+        tbl_file = os.path.join(os.getenv('OS_SST'), 'VIIRS', 'Nenya', 'Tables', 
+                                f'VIIRS_Nenya_LLC_{DT}.parquet')
+    elif survey == 'viirs+llc_on_viirs':
         tbl_file = os.path.join(os.getenv('OS_SST'), 'VIIRS', 'Nenya', 'Tables', 
                                 f'VIIRS_Nenya_VIIRS_LLC_{DT}.parquet')
     elif survey == 'llc':
@@ -123,6 +126,14 @@ def main(flg):
                 local=os.path.join(os.getenv('OS_SST'), 'VIIRS'),
                 in_vmnx=[-vx_dt[subset], vx_dt[subset]])
         '''
+        # VIIRS with VIIRS
+        subsets =  ['DT1']#, 'DT15']
+        for subset in subsets:
+            viirs = load_tbl('llc_on_viirs', DT=subset)
+            figures.umap_gallery(
+                viirs, f'fig_nenya_llc_on_viirs_gallery_{subset}.png',
+                local=os.path.join(os.getenv('OS_SST'), 'VIIRS'),
+                in_vmnx=[-vx_dt[subset], vx_dt[subset]])
 
         '''
         # LLC with LLC
@@ -139,7 +150,6 @@ def main(flg):
                 f'fig_nenya_llc_viirs_gallery_{subset}.png',
                 local=os.path.join(os.getenv('OS_OGCM'), 'LLC', 'F_S'),
                 in_vmnx=[-vx_dt[subset], vx_dt[subset]])
-        '''
 
         # LLC with VIIRS
         subsets =  ['DT15']
@@ -150,6 +160,7 @@ def main(flg):
                 f'fig_nenya_llc_viirs+llc_gallery_{subset}.png',
                 local=os.path.join(os.getenv('OS_OGCM'), 'LLC', 'F_S'),
                 in_vmnx=[-vx_dt[subset], vx_dt[subset]])
+        '''
 
 
 # Command line execution
