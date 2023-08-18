@@ -184,7 +184,7 @@ def rerun_kin(tbl_file:str, F_S_datafile:str, divb_datafile:str,
     # Open kin files
     f_FS = h5py.File(F_S_datafile, 'r')
     f_divb = h5py.File(divb_datafile, 'r')
-
+    
     # Check indices
     assert np.all(np.arange(len(llc_table)) == llc_table.index)
     map_kin = partial(kinematics.cutout_kin, 
@@ -226,11 +226,11 @@ def rerun_kin(tbl_file:str, F_S_datafile:str, divb_datafile:str,
                                              chunksize=chunksize), total=len(items)))
         kin_idx = [item[0] for item in answers]
         kin_meta = [item[1] for item in answers]
-        embed(header='220 of llc_kin')
 
         # Fill in
         for key in kin_meta[0].keys():
             llc_table.loc[kin_idx, key] = [imeta[key] for imeta in kin_meta]
+        embed(header='220 of llc_kin')
 
 def kin_nenya_eval(tbl_file:str, s3_outdir:str=None,
                    clobber_local=False, debug=False):
