@@ -201,7 +201,6 @@ def rerun_kin(tbl_file:str, F_S_datafile:str, divb_datafile:str,
         all_sub += sub_idx.tolist()  # These really should be the indices of the Table
         sub_tbl = llc_table[gd_date]
 
-        embed(header='203 of llc_kin')
         # Load em up
         print("Loading up the kinematic cutouts")
         items = []
@@ -217,7 +216,7 @@ def rerun_kin(tbl_file:str, F_S_datafile:str, divb_datafile:str,
             FS_cutout = f_FS['valid'][pidx,0,...]
             divb_cutout = f_divb['valid'][pidx,0,...]
             # Append
-            items.append((FS_cutout, divb_cutout, idx))
+            items.append((FS_cutout, divb_cutout, sub_idx[idx]))
         print("Done.")
 
         # Run it
@@ -228,6 +227,10 @@ def rerun_kin(tbl_file:str, F_S_datafile:str, divb_datafile:str,
         kin_idx = [item[0] for item in answers]
         kin_meta = [item[1] for item in answers]
         embed(header='220 of llc_kin')
+
+        # Fill in
+        for key in kin_meta[0].keys():
+            llc_table.loc[kin_idx, key] = [imeta[key] for imeta in kin_meta]
 
 def kin_nenya_eval(tbl_file:str, s3_outdir:str=None,
                    clobber_local=False, debug=False):
