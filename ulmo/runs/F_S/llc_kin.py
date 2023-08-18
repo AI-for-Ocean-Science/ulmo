@@ -19,6 +19,7 @@ from ulmo.llc import kinematics
 from ulmo import io as ulmo_io
 from ulmo.preproc import plotting as pp_plotting
 from ulmo.utils import table as table_utils
+from ulmo.utils import catalog as cat_utils
 
 from ulmo.nenya.train_util import option_preprocess
 from ulmo.nenya import latents_extraction
@@ -174,9 +175,9 @@ def u_extract_kin(tbl_file:str, debug=False,
 def rerun_kin(tbl_file:str, F_S_datafile:str, divb_datafile:str,
               debug=False, n_cores=10): 
 
-    if debug:
-        tbl_file = tst_file
-        debug_local = True
+    #if debug:
+    #    tbl_file = tst_file
+    #    debug_local = True
 
     # Load table
     llc_table = ulmo_io.load_main_table(tbl_file)
@@ -230,7 +231,13 @@ def rerun_kin(tbl_file:str, F_S_datafile:str, divb_datafile:str,
         # Fill in
         for key in kin_meta[0].keys():
             llc_table.loc[kin_idx, key] = [imeta[key] for imeta in kin_meta]
-        embed(header='220 of llc_kin')
+
+    # Vet
+    assert cat_utils.vet_main_table(llc_table)
+
+    # Write
+    if not debug:
+        ulmo_io.write_main_table(llc_table, tbl_file)
 
 def kin_nenya_eval(tbl_file:str, s3_outdir:str=None,
                    clobber_local=False, debug=False):
