@@ -209,8 +209,8 @@ def rerun_kin(tbl_file:str, F_S_datafile:str, divb_datafile:str,
             if pidx < 0:
                 continue
             # Load
-            FS_cutout = f_FS[pidx][:]
-            divb_cutout = f_divb[pidx][:]
+            FS_cutout = f_FS['valid'][pidx,0,...]
+            divb_cutout = f_divb['valid'][pidx,0,...]
             # Append
             items.append((FS_cutout, divb_cutout, idx))
 
