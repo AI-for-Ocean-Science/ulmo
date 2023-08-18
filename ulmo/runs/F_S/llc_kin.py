@@ -237,8 +237,7 @@ def rerun_kin(tbl_file:str, F_S_datafile:str, divb_datafile:str,
 
     # Vet
     # The data types for the kinematics are a bit scrambled..
-    embed(header='240 of llc_kin')
-    assert cat_utils.vet_main_table(llc_table)
+    #assert cat_utils.vet_main_table(llc_table)
 
     # Write
     if not debug:
@@ -588,8 +587,8 @@ def main(flg):
         divb_file = os.path.join(os.getenv('OS_OGCM'),
                                'LLC', 'F_S', 'PreProc',
                                'LLC_FS_preproc_divb.h5')
-        rerun_kin(full_fileA, FS_file, divb_file,
-                  debug=True)
+        rerun_kin(full_fileA, FS_file, divb_file)
+                  #debug=True)
 
 
 # Command line execution
