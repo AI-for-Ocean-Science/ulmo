@@ -228,7 +228,7 @@ def rerun_kin(tbl_file:str, F_S_datafile:str, divb_datafile:str,
         kin_idx = [item[0] for item in answers]
         kin_meta = [item[1] for item in answers]
 
-        embed(header='231 of llc_kin')
+        #embed(header='231 of llc_kin')
 
         # Fill in
         for key in kin_meta[0].keys():
@@ -511,8 +511,8 @@ def main(flg):
         divb_file = os.path.join(os.getenv('OS_OGCM'),
                                'LLC', 'F_S', 'PreProc',
                                'LLC_FS_preproc_divb.h5')
-        rerun_kin(full_fileA, FS_file, divb_file,
-                  debug=True)
+        rerun_kin(full_fileA, FS_file, divb_file)
+                  #debug=True)
 
 
 # Command line execution
