@@ -172,8 +172,7 @@ def u_extract_kin(tbl_file:str, debug=False,
     print("You should probably remove the PreProc/ folder")
     
 def rerun_kin(tbl_file:str, F_S_datafile:str, divb_datafile:str,
-              debug=False, dlocal=True, 
-              n_cores=10): 
+              debug=False, n_cores=10): 
 
     if debug:
         tbl_file = tst_file
@@ -200,8 +199,9 @@ def rerun_kin(tbl_file:str, F_S_datafile:str, divb_datafile:str,
         all_sub += sub_idx.tolist()  # These really should be the indices of the Table
         sub_tbl = llc_table[gd_date]
 
-        embed(header='293 of llc_kin')
+        embed(header='203 of llc_kin')
         # Load em up
+        print("Loading up the kinematic cutouts")
         items = []
         for idx in range(len(sub_tbl)):
             pidx = sub_tbl.pp_idx[idx]
@@ -217,6 +217,7 @@ def rerun_kin(tbl_file:str, F_S_datafile:str, divb_datafile:str,
             answers = list(tqdm(executor.map(map_kin, items,
                                              chunksize=chunksize), total=len(items)))
         kin_meta += [item[1] for item in answers]
+        embed(header='220 of llc_kin')
 
 def kin_nenya_eval(tbl_file:str, s3_outdir:str=None,
                    clobber_local=False, debug=False):
@@ -481,7 +482,13 @@ def main(flg):
 
     # Redo/expand kin
     if flg & (2**8):
-        rerun_kin(full_fileA)
+        FS_file = os.path.join(os.getenv('OS_OGCM'),
+                               'LLC', 'F_S', 'PreProc',
+                               'LLC_FS_preproc_Fs.h5')
+        divb_file = os.path.join(os.getenv('OS_OGCM'),
+                               'LLC', 'F_S', 'PreProc',
+                               'LLC_FS_preproc_divb.h5')
+        rerun_kin(full_fileA, FS_file, divb_file)
 
 
 # Command line execution
