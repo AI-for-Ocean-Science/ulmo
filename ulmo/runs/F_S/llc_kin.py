@@ -206,6 +206,8 @@ def rerun_kin(tbl_file:str, F_S_datafile:str, divb_datafile:str,
         items = []
         for idx in range(len(sub_tbl)):
             pidx = sub_tbl.pp_idx[idx]
+            if pidx < 0:
+                continue
             # Load
             FS_cutout = f_FS[pidx][:]
             divb_cutout = f_divb[pidx][:]
