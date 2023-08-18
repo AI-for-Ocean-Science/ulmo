@@ -531,6 +531,8 @@ def main(flg):
                 umap_savefile=os.path.join(nenya_io.umap_path('viirs'),
                     f'VIIRS_Nenya_98clear_v1_{subset}_UMAP.pkl'),
                 local=True, DT_key='DT', train_umap=True)
+        '''
+
         # VIIRS on VIIRS+LLC
         #subsets =  ['DT15', 'DT0', 'DT1', 'DT2', 'DT4', 'DT5', 'DTall']
         subsets =  ['DT15']
@@ -543,7 +545,6 @@ def main(flg):
                 umap_savefile=os.path.join(nenya_io.umap_path('viirs'),
                     f'VIIRS_LLC_Nenya_v1_{subset}_UMAP.pkl'),
                 local=True, DT_key='DT', train_umap=False)
-        '''
 
 
         '''
@@ -571,6 +572,7 @@ def main(flg):
                 local=True, DT_key='DT', train_umap=False)
         '''
 
+        '''
         # Train on LLC + VIIRS
         #subsets =  ['DT15', 'DT0', 'DT1', 'DT2', 'DT4', 'DT5', 'DTall']
         subsets =  ['DT15']
@@ -578,6 +580,7 @@ def main(flg):
             umap_savefile=os.path.join(nenya_io.umap_path('viirs'),
                     f'VIIRS_LLC_Nenya_v1_{subset}_UMAP.pkl')
             train_viirs_llc_umap(subset, umap_savefile)
+        '''
 
         '''
         # Run VIIRS+LLC UMAP on LLC
