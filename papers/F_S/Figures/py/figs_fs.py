@@ -41,6 +41,22 @@ def load_tbl(survey:str, DT:str='DT1'):
     tbl = table_utils.load(tbl_file)
     return tbl
 
+def counts_FS(outfile:str, table:str, subset:str, Ncut:int,
+              cmap:str=None):
+    # Load
+    tbl = load_tbl(table, DT=subset)
+
+    # F_S cut
+    good = tbl.FS_Npos > Ncut
+    cut_tbl = tbl[good]
+
+    #embed(header='52 of figs')
+
+    # Plot
+    figures.umap_density(cut_tbl, ['US0', 'US1'], outfile=outfile, show_cbar=True,
+                         normalize=False, cmap=cmap)
+
+
 def main(flg):
     if flg== 'all':
         flg= np.sum(np.array([2 ** ii for ii in range(25)]))
@@ -65,7 +81,7 @@ def main(flg):
         #metrics = ['DT', 'stdDT', 'abslat', 'log10counts']
 
         #subsets =  ['DT15', 'DT1', 'DT2']
-        subsets =  ['DT15']
+        subsets =  ['DT2']
         for subset in subsets:
             #tbl = load_tbl('viirs_on_llc', DT=subset)
             #outfile= f'fig_nenya_llc_viirs_multi_umap_{subset}.png'
@@ -88,8 +104,13 @@ def main(flg):
                     binx=np.linspace(1.5,11.5,30)
                     biny=np.linspace(3.5,11.5,30)
             elif subset == 'DT2':
-                binx=np.linspace(0.,9.5,30)
-                biny=np.linspace(1,10.,30)
+                if table == 'llc_on_llc':
+                    binx=np.linspace(-4,5.,30)
+                    biny=np.linspace(1,14.,30)
+                else:
+                    binx=np.linspace(0.,9.5,30)
+                    biny=np.linspace(1,10.,30)
+                
 
             # Plot
             # MODIS UMAP
@@ -143,7 +164,7 @@ def main(flg):
         '''
 
         # LLC with LLC
-        subsets =  ['DT15', 'DT1']#, 'DT2']
+        subsets =  ['DT2'] #'DT15', 'DT1']#, 'DT2']
         for subset in subsets:
             tbl = load_tbl('llc_on_llc', DT=subset)
             figures.umap_gallery(
@@ -172,6 +193,11 @@ def main(flg):
                 in_vmnx=[-vx_dt[subset], vx_dt[subset]])
         '''
 
+    # Show counts of FS
+    if flg & (2**2):
+        subset = 'DT2'
+        counts_FS(f'FS_counts_LLC_LLC_{subset}.png', 'llc_on_llc', subset, 10,
+                  cmap='Blues')
 
 # Command line execution
 if __name__ == '__main__':
@@ -181,6 +207,7 @@ if __name__ == '__main__':
         flg = 0
         #flg += 2 ** 0  # 1 -- Checking Nenya via multi figs
         #flg += 2 ** 1  # 2 -- Galleries
+        #flg += 2 ** 1  # 4 -- F_S counts
     else:
         flg = sys.argv[1]
 

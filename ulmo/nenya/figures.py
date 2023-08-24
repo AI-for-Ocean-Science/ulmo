@@ -358,7 +358,7 @@ def umap_gallery(tbl:pandas.DataFrame, outfile:str,
         ax_incidence = fig.add_axes([0.71, 0.45, 0.25, 0.36])
 
         umap_density(tbl, umap_keys,
-                     umap_grid=umap_grid, umap_comp=umap_comp,
+                     umap_grid=umap_grid, 
                      show_cbar=True, ax=ax_incidence, fsz=12.)
     #ax_incidence.plot(np.arange(10), np.arange(10))
 
@@ -371,18 +371,34 @@ def umap_gallery(tbl:pandas.DataFrame, outfile:str,
 
 def umap_density(tbl:pandas.DataFrame, umap_keys:list,
                  outfile:str=None, 
-                     local=False, table='std', 
-                     umap_comp='0,1', umap_grid=None,
-                     umap_dim=2, cmap=None, nxy=16,
-                     fsz=19.,
+                     umap_grid=None,
+                     cmap=None, nxy=16,
+                     fsz=19., normalize:bool=True,
                      use_std_lbls=True,
                      show_cbar = False,
-                     debug=False, ax=None): 
+                     ax=None): 
+    """ Density of UMAP points
+
+    Args:
+        tbl (pandas.DataFrame): Table including UMAP values
+        umap_keys (list): Keys for the UMAP values, e.g. ['US0', 'US1']
+        outfile (str, optional): _description_. Defaults to None.
+        umap_grid (_type_, optional): _description_. Defaults to None.
+        cmap (_type_, optional): _description_. Defaults to None.
+        nxy (int, optional): _description_. Defaults to 16.
+        fsz (_type_, optional): _description_. Defaults to 19..
+        use_std_lbls (bool, optional): _description_. Defaults to True.
+        show_cbar (bool, optional): _description_. Defaults to False.
+        normalize (bool, optional): Normalize the counts? Defaults to True.
+        ax (_type_, optional): _description_. Defaults to None.
+    """
+                     
 
     # Boundaries of the box
     if umap_grid is None:
-        umap_grid = nenya_umap.grid_umap(tbl[umap_keys[0]].values, tbl[umap_keys[0]].values,
-                  nxy=nxy)
+        umap_grid = nenya_umap.grid_umap(
+            tbl[umap_keys[0]].values, tbl[umap_keys[1]].values, 
+            nxy=nxy)
 
     xmin, xmax = umap_grid['xmin'], umap_grid['xmax']
     ymin, ymax = umap_grid['ymin'], umap_grid['ymax']
@@ -409,7 +425,8 @@ def umap_density(tbl:pandas.DataFrame, umap_keys:list,
         tbl[umap_keys[0]], 
         tbl[umap_keys[1]], bins=(xval, yval))
 
-    counts /= np.sum(counts)
+    if normalize:
+        counts /= np.sum(counts)
 
     if ax is None:
         fig = plt.figure(figsize=(8, 8))
