@@ -173,7 +173,9 @@ def u_extract_kin(tbl_file:str, debug=False,
     ulmo_io.write_main_table(llc_table, tbl_file)
     print("You should probably remove the PreProc/ folder")
     
-def rerun_kin(tbl_file:str, F_S_datafile:str, divb_datafile:str,
+def rerun_kin(tbl_file:str, F_S_datafile:str, 
+              divb_datafile:str,
+              dlocal:bool=True,
               debug=False, n_cores=10): 
 
     #if debug:
@@ -242,6 +244,97 @@ def rerun_kin(tbl_file:str, F_S_datafile:str, divb_datafile:str,
     # Write
     if not debug:
         ulmo_io.write_main_table(llc_table, tbl_file)
+
+def calc_T_SST(tbl_file:str, F_S_datafile:str, 
+              divb_datafile:str=None,
+              TT_file:str=None, dlocal:bool=True,
+              debug=False, n_cores=10): 
+
+    #if debug:
+    #    tbl_file = tst_file
+    #    debug_local = True
+
+    # Load table
+    llc_table = ulmo_io.load_main_table(tbl_file)
+
+    # Open kin files
+    f_FS = h5py.File(F_S_datafile, 'r')
+    f_divb = h5py.File(divb_datafile, 'r')
+    
+    # Check indices
+    assert np.all(np.arange(len(llc_table)) == llc_table.index)
+    if TT_file is None and divb_datafile is not None:
+        map_kin = partial(kinematics.cutout_kin, 
+                    kin_stats=FS_stat_dict,
+                    extract_kin=False,
+                    input_FSdivb=True)
+    elif TT_file is not None: 
+        map_kin = partial(kinematics.cutout_kin, 
+                    kin_stats=FS_stat_dict,
+                    extract_kin=False,
+                    input_FSdivb=True)
+
+    uni_date = np.unique(llc_table.datetime)
+    all_sub = []
+    for udate in uni_date:
+        # Load
+        filename = llc_io.grab_llc_datafile(udate, local=dlocal)
+        print(f"Loading up the LLC dataset: {filename}")
+        ds = llc_io.load_llc_ds(filename, local=dlocal)
+        sst = ds.Theta.values
+        U = ds.U.values
+        V = ds.V.values 
+        Salt = ds.Salt.values
+    
+        gd_date = llc_table.datetime == udate
+        sub_idx = np.where(gd_date)[0]
+        all_sub += sub_idx.tolist()  # These really should be the indices of the Table
+        sub_tbl = llc_table[gd_date]
+
+        # Load em up
+        print("Loading up the kinematic cutouts")
+        items = []
+        if debug:
+            nitems = min(1000, len(sub_tbl))
+        else:
+            nitems = len(sub_tbl)
+        for idx in range(nitems):
+            pidx = sub_tbl.pp_idx.values[idx]
+            if pidx < 0:
+                continue
+            embed(header='305 of llc_kin')
+            # Load items
+            items.append(
+                    (U[r:r+dr, c:c+dc],
+                    V[r:r+dr, c:c+dc],
+                    sst[r:r+dr, c:c+dc],
+                    Salt[r:r+dr, c:c+dc],
+                    jj)
+                )
+        print("Done.")
+
+        # Run it
+        with ProcessPoolExecutor(max_workers=n_cores) as executor:
+            chunksize = len(items) // n_cores if len(items) // n_cores > 0 else 1
+            answers = list(tqdm(executor.map(map_kin, items,
+                                             chunksize=chunksize), total=len(items)))
+        kin_idx = [item[0] for item in answers]
+        kin_meta = [item[1] for item in answers]
+
+        #embed(header='231 of llc_kin')
+
+        # Fill in
+        for key in kin_meta[0].keys():
+            llc_table.loc[kin_idx, key] = [imeta[key] for imeta in kin_meta]
+
+    # Vet
+    # The data types for the kinematics are a bit scrambled..
+    #assert cat_utils.vet_main_table(llc_table)
+
+    # Write
+    if not debug:
+        ulmo_io.write_main_table(llc_table, tbl_file)
+
 
 def kin_nenya_eval(tbl_file:str, s3_outdir:str=None,
                    clobber_local=False, debug=False):
@@ -620,15 +713,28 @@ def main(flg):
 
     # Redo/expand kin
     if flg & (2**8):
+
+        # Standard
         FS_file = os.path.join(os.getenv('OS_OGCM'),
                                'LLC', 'F_S', 'PreProc',
                                'LLC_FS_preproc_Fs.h5')
         divb_file = os.path.join(os.getenv('OS_OGCM'),
                                'LLC', 'F_S', 'PreProc',
                                'LLC_FS_preproc_divb.h5')
-        rerun_kin(full_fileA, FS_file, divb_file)
+        rerun_kin(full_fileA, FS_file, divb_datafile)
                   #debug=True)
 
+
+    # SST Tendency
+    if flg & (2**9):
+        FS_file = os.path.join(os.getenv('OS_OGCM'),
+                               'LLC', 'F_S', 'PreProc',
+                               'LLC_FS_preproc_Fs.h5')
+        TT_file = os.path.join(os.getenv('OS_OGCM'),
+                               'LLC', 'F_S', 'PreProc',
+                               'LLC_FS_preproc_divb.h5')
+        calc_T_SST(full_fileA, FS_file, TT_file,
+                  debug=True)
 
 # Command line execution
 if __name__ == '__main__':
@@ -644,7 +750,8 @@ if __name__ == '__main__':
         #flg += 2 ** 5  # 32 -- UMAP Nenya from MODIS -- This only works on 3.9!!
         #flg += 2 ** 6  # 64 -- Evaluate MODIS 96
         #flg += 2 ** 7  # 128 -- UMAPs galore
-        #flg += 2 ** 8  # 256 -- Redo/expand kin
+        #flg += 2 ** 8  # 256 -- Redo/expand kin 
+        #flg += 2 ** 9  # 512 -- SST Tendency
     else:
         flg = sys.argv[1]
 
