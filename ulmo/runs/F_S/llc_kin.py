@@ -329,10 +329,12 @@ def calc_T_SST(tbl_file:str, T_SST_datafile:str,
         kin_idx += [item[0] for item in answers]
         T_SST_fields += [item[2] for item in answers]
 
+    # Repackage
     T_SST_fields = np.stack(T_SST_fields)
     T_SST_fields = T_SST_fields[:, None, :, :]  # Shaped for training
     T_SST_fields = T_SST_fields.astype(np.float32) # Recast
     
+    # Deal with indexing
     new_idx = cat_utils.match_ids(np.arange(len(kin_idx)), kin_idx)
 
     # Write T_SST to disk
@@ -347,8 +349,8 @@ def calc_T_SST(tbl_file:str, T_SST_datafile:str,
     #assert cat_utils.vet_main_table(llc_table)
 
     # Write
-    if not debug:
-        ulmo_io.write_main_table(llc_table, tbl_file)
+    #if not debug:
+    #    ulmo_io.write_main_table(llc_table, tbl_file)
 
 
 def kin_nenya_eval(tbl_file:str, s3_outdir:str=None,
