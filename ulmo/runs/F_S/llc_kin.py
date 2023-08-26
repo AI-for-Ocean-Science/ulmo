@@ -745,8 +745,8 @@ def main(flg):
         TT_file = os.path.join(os.getenv('OS_OGCM'),
                                'LLC', 'F_S', 'PreProc',
                                'LLC_FS_preproc_T_SST.h5')
-        calc_T_SST(full_fileA, TT_file, debug=True)
-
+        calc_T_SST(full_fileA, TT_file) # debug=True)
+                   
 # Command line execution
 if __name__ == '__main__':
     import sys
