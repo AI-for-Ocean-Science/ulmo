@@ -332,12 +332,11 @@ def calc_T_SST(tbl_file:str, T_SST_datafile:str,
     T_SST_fields = np.stack(T_SST_fields)
     T_SST_fields = T_SST_fields[:, None, :, :]  # Shaped for training
     T_SST_fields = T_SST_fields.astype(np.float32) # Recast
-    #new_idx = sub_idx[np.argsort(sub_tbl.pp_idx.values[valid])]
-    embed(header='305 of llc_kin')
+    
     new_idx = cat_utils.match_ids(np.arange(len(kin_idx)), kin_idx)
 
     # Write T_SST to disk
-    with h5py.File(local_file, 'w') as f:
+    with h5py.File(T_SST_datafile, 'w') as f:
         # Validation
         f.create_dataset(
             'valid', data=T_SST_fields[new_idx])
@@ -743,14 +742,10 @@ def main(flg):
 
     # SST Tendency
     if flg & (2**9):
-        FS_file = os.path.join(os.getenv('OS_OGCM'),
-                               'LLC', 'F_S', 'PreProc',
-                               'LLC_FS_preproc_Fs.h5')
         TT_file = os.path.join(os.getenv('OS_OGCM'),
                                'LLC', 'F_S', 'PreProc',
-                               'LLC_FS_preproc_divb.h5')
-        calc_T_SST(full_fileA, FS_file, TT_file,
-                  debug=True)
+                               'LLC_FS_preproc_T_SST.h5')
+        calc_T_SST(full_fileA, TT_file, debug=True)
 
 # Command line execution
 if __name__ == '__main__':
