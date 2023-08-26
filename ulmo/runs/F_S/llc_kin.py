@@ -246,14 +246,18 @@ def rerun_kin(tbl_file:str, F_S_datafile:str,
     if not debug:
         ulmo_io.write_main_table(llc_table, tbl_file)
 
-def calc_T_SST(tbl_file:str, F_S_datafile:str, 
-              divb_datafile:str=None,
-              TT_file:str=None, dlocal:bool=True,
+def calc_T_SST(tbl_file:str, T_SST_datafile:str, 
+              dlocal:bool=True,
               debug=False, n_cores=10): 
 
     #if debug:
     #    tbl_file = tst_file
     #    debug_local = True
+    # Load up coords
+    coords_ds = llc_io.load_coords()
+    R_earth = 6371. # km
+    circum = 2 * np.pi* R_earth
+    km_deg = circum / 360.
 
     # Load table
     llc_table = ulmo_io.load_main_table(tbl_file)
@@ -263,20 +267,16 @@ def calc_T_SST(tbl_file:str, F_S_datafile:str,
     f_divb = h5py.File(divb_datafile, 'r')
     
     # Check indices
-    assert np.all(np.arange(len(llc_table)) == llc_table.index)
-    if TT_file is None and divb_datafile is not None:
-        map_kin = partial(kinematics.cutout_kin, 
-                    kin_stats=FS_stat_dict,
-                    extract_kin=False,
-                    input_FSdivb=True)
-    elif TT_file is not None: 
-        map_kin = partial(kinematics.cutout_kin, 
-                    kin_stats=FS_stat_dict,
-                    extract_kin=False,
-                    input_FSdivb=True)
+    map_kin = partial(kinematics.cutout_kin, 
+                        kin_stats=None,
+                        extract_kin=True,
+                        field_size=field_size[0],
+                        calc_T_SST=True)
 
     uni_date = np.unique(llc_table.datetime)
     all_sub = []
+    T_SST_fields = []
+    kin_idx = []
     for udate in uni_date:
         # Load
         filename = llc_io.grab_llc_datafile(udate, local=dlocal)
@@ -300,17 +300,23 @@ def calc_T_SST(tbl_file:str, F_S_datafile:str,
         else:
             nitems = len(sub_tbl)
         for idx in range(nitems):
+            #
             pidx = sub_tbl.pp_idx.values[idx]
             if pidx < 0:
                 continue
-            embed(header='305 of llc_kin')
+            # setup
+            r = sub_tbl.row.values[idx]
+            c = sub_tbl.col.values[idx]
+            dlat_km = (coords_ds.lat.data[r+1,c]-coords_ds.lat.data[r,c]) * km_deg
+            dr = int(np.round(fixed_km / dlat_km))
+            dc = dr
             # Load items
             items.append(
                     (U[r:r+dr, c:c+dc],
                     V[r:r+dr, c:c+dc],
                     sst[r:r+dr, c:c+dc],
                     Salt[r:r+dr, c:c+dc],
-                    jj)
+                    pidx)
                 )
         print("Done.")
 
@@ -319,14 +325,22 @@ def calc_T_SST(tbl_file:str, F_S_datafile:str,
             chunksize = len(items) // n_cores if len(items) // n_cores > 0 else 1
             answers = list(tqdm(executor.map(map_kin, items,
                                              chunksize=chunksize), total=len(items)))
-        kin_idx = [item[0] for item in answers]
-        kin_meta = [item[1] for item in answers]
+        kin_idx += [item[0] for item in answers]
+        T_SST_fields += [item[2] for item in answers]
 
-        #embed(header='231 of llc_kin')
+    T_SST_fields = np.stack(T_SST_fields)
+    T_SST_fields = T_SST_fields[:, None, :, :]  # Shaped for training
+    T_SST_fields = T_SST_fields.astype(np.float32) # Recast
+    #new_idx = sub_idx[np.argsort(sub_tbl.pp_idx.values[valid])]
+    embed(header='305 of llc_kin')
+    new_idx = cat_utils.match_ids(np.arange(len(kin_idx)), kin_idx)
 
-        # Fill in
-        for key in kin_meta[0].keys():
-            llc_table.loc[kin_idx, key] = [imeta[key] for imeta in kin_meta]
+    # Write T_SST to disk
+    with h5py.File(local_file, 'w') as f:
+        # Validation
+        f.create_dataset(
+            'valid', data=T_SST_fields[new_idx])
+
 
     # Vet
     # The data types for the kinematics are a bit scrambled..

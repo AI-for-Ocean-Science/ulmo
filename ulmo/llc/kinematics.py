@@ -214,7 +214,7 @@ def calc_F_s(U:np.ndarray, V:np.ndarray,
     else:
         return F_s
 
-def cutout_kin(item:tuple, kin_stats:dict, field_size=None,
+def cutout_kin(item:tuple, kin_stats:dict=None, field_size=None,
                extract_kin=False, input_FSdivb:bool=False,
                calc_T_SST:bool=False):
     """Simple function to measure kinematic stats
@@ -225,7 +225,7 @@ def cutout_kin(item:tuple, kin_stats:dict, field_size=None,
 
     Args:
         item (tuple): Items for analysis
-        kin_stats (dict or None): kin stats to calculate
+        kin_stats (dict, optional ): kin stats to calculate
         extract_kin (bool, optioal): If True, return
             the extracted cutouts too
         input_FSdivb (bool, optional): 
