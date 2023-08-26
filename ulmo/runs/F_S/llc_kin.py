@@ -247,7 +247,7 @@ def rerun_kin(tbl_file:str, F_S_datafile:str,
         ulmo_io.write_main_table(llc_table, tbl_file)
 
 def calc_T_SST(tbl_file:str, T_SST_datafile:str, 
-              dlocal:bool=True,
+              dlocal:bool=True, field_size=(64,64),
               debug=False, n_cores=10): 
 
     #if debug:
@@ -270,6 +270,10 @@ def calc_T_SST(tbl_file:str, T_SST_datafile:str,
                         calc_T_SST=True)
 
     uni_date = np.unique(llc_table.datetime)
+
+    if debug:
+        uni_date = uni_date[:2]
+
     all_sub = []
     T_SST_fields = []
     kin_idx = []
