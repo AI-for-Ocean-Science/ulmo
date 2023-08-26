@@ -248,6 +248,7 @@ def rerun_kin(tbl_file:str, F_S_datafile:str,
 
 def calc_T_SST(tbl_file:str, T_SST_datafile:str, 
               dlocal:bool=True, field_size=(64,64),
+              fixed_km:float=144.,
               debug=False, n_cores=10): 
 
     #if debug:
