@@ -262,10 +262,6 @@ def calc_T_SST(tbl_file:str, T_SST_datafile:str,
     # Load table
     llc_table = ulmo_io.load_main_table(tbl_file)
 
-    # Open kin files
-    f_FS = h5py.File(F_S_datafile, 'r')
-    f_divb = h5py.File(divb_datafile, 'r')
-    
     # Check indices
     map_kin = partial(kinematics.cutout_kin, 
                         kin_stats=None,
