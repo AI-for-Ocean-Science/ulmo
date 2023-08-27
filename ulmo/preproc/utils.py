@@ -653,6 +653,7 @@ def write_extra_fields(fields:list,
         train_idx = sub_idx[np.argsort(sub_tbl.pp_idx.values[train])]
     
     clms = list(main_tbl.keys())
+    
     # ###################
     # Write to disk (avoids holding another 20Gb in memory)
     print("Writing: {}".format(local_file))
