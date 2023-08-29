@@ -2,6 +2,13 @@
 import os
 import numpy as np
 
+import h5py
+
+import matplotlib as mpl
+import matplotlib.gridspec as gridspec
+from matplotlib import pyplot as plt
+import seaborn as sns
+
 from ulmo.utils import table as table_utils
 from ulmo.nenya import figures
 
@@ -56,6 +63,47 @@ def counts_FS(outfile:str, table:str, subset:str, Ncut:int,
     figures.umap_density(cut_tbl, ['US0', 'US1'], outfile=outfile, show_cbar=True,
                          normalize=False, cmap=cmap)
 
+
+def fig_compare_T(outfile:str, nrand=50000, FS_thresh:float=1e-14):
+
+
+    # Load files
+    FS_file = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'F_S', 'PreProc',
+                       'LLC_FS_preproc_Fs.h5')
+    TT_file = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'F_S', 'PreProc',
+                       'LLC_FS_preproc_T_SST.h5')
+    SST_file = os.path.join(os.getenv('OS_OGCM'), 'LLC', 'F_S', 'PreProc',
+                       'LLC_FS_preproc.h5')
+
+    f_SST = h5py.File(SST_file, 'r')                
+    f_FS = h5py.File(FS_file, 'r')
+    f_TT = h5py.File(TT_file, 'r')
+    nimg = f_FS['valid'].shape[0]
+
+    # Select a random set of images
+    irand = np.random.choice(np.arange(nimg), size=nrand, replace=False)
+    r_FS = f_FS['valid'][np.sort(irand), 0, ...]
+    r_TT = f_TT['valid'][np.sort(irand), 0, ...]
+
+    gd_FS = r_FS > FS_thresh
+
+    ax = sns.histplot(y=r_FS[gd_FS], x=r_TT[gd_FS], log_scale=(True,True),
+                      cbar=True)
+
+    x0, y0 = 1e-3, 1e-14
+    x1, y1 = x0 * 1e2, y0 * 1e2
+    ax.plot([x0,x1], [y0,y1], ls='--', color='r')
+
+    ax.set_xlabel(r'$T_{\rm SST}$')
+    ax.set_ylabel(r'$F_S$')
+
+    ax.set_xlim(1e-7, 1)
+
+
+    plt.savefig(outfile, dpi=300)
+    plt.close()
+    print(f"Wrote: {outfile}")
+    
 
 def main(flg):
     if flg== 'all':
@@ -199,6 +247,10 @@ def main(flg):
         counts_FS(f'FS_counts_LLC_LLC_{subset}.png', 'llc_on_llc', subset, 10,
                   cmap='Blues')
 
+    # Tendency vs Tendency
+    if flg & (2**3):
+        fig_compare_T('fig_compare_T.png', nrand=50000)
+
 # Command line execution
 if __name__ == '__main__':
     import sys
@@ -207,7 +259,8 @@ if __name__ == '__main__':
         flg = 0
         #flg += 2 ** 0  # 1 -- Checking Nenya via multi figs
         #flg += 2 ** 1  # 2 -- Galleries
-        #flg += 2 ** 1  # 4 -- F_S counts
+        #flg += 2 ** 2  # 4 -- F_S counts
+        #flg += 2 ** 3  # 8 -- Tendency vs Tendency
     else:
         flg = sys.argv[1]
 
