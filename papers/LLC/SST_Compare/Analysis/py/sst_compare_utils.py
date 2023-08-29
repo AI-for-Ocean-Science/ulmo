@@ -13,7 +13,8 @@ s3_viirs_table_file = 's3://viirs/Tables/VIIRS_all_98clear_std.parquet'
 s3_modis_table_file = 's3://modis-l2/Tables/MODIS_SSL_96clear.parquet'
 
 def load_table(dataset:str, local:bool=False, cut_lat_max:float=57.,
-                cut_lat_min=-70., time_cut=None,
+                cut_lat_min:float=-70., cut_lon_max:float=57.,
+               cut_lon_min:float=-70.,time_cut=None,
                cut_DT:tuple=None):
     """ Load the output table
 
@@ -22,8 +23,18 @@ def load_table(dataset:str, local:bool=False, cut_lat_max:float=57.,
             Dataset. Either [viirs, modis, llc_match or llc_uniform]
         local (bool, optional): 
             Load from local. Defaults to False.
-        cut_lat (float, optional): 
+        cut_lat_max (float, optional): 
             Cut on latitude. Defaults to 57..
+        cut_lat_min (float, optional): 
+            Cut on latitude. Defaults to 57..
+        cut_lon_max (float, optional): 
+            Cut on latitude. Defaults to 57..
+        cut_lon_min (float, optional): 
+            Cut on latitude. Defaults to 57..
+        time_cut (str, optional):
+            'head', 'tail', or None
+        cut_DT (tuple, optional):
+            Slice on T90-T10. Defaults to None..
 
 
     Returns:
@@ -67,6 +78,12 @@ def load_table(dataset:str, local:bool=False, cut_lat_max:float=57.,
     if cut_lat_min is not None:
         tbl = tbl[tbl.lat > cut_lat_min].copy()
 
+    if cut_lon_max is not None:
+        tbl = tbl[tbl.lon < cut_lon_max].copy()
+
+    if cut_lon_min is not None:
+        tbl = tbl[tbl.lon > cut_lon_min].copy()
+        
     if cut_DT is not None:
         tbl.DT = tbl.T90.values - tbl.T10.values
         tbl = tbl[(tbl.DT < cut_DT[1]) & (tbl.DT >= cut_DT[0])].copy()
