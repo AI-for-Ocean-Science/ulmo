@@ -4,7 +4,6 @@ import numpy as np
 
 import h5py
 
-import matplotlib as mpl
 import matplotlib.gridspec as gridspec
 from matplotlib import pyplot as plt
 import seaborn as sns
