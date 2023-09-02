@@ -15,9 +15,9 @@ import numpy as np
 
 import torch
 
-import ulmo.mae.util.misc as misc
-import ulmo.mae.util.lr_sched as lr_sched
-from ulmo.mae.util.hdfstore import HDF5Store
+import ulmo.enki.util.misc as misc
+import ulmo.enki.util.lr_sched as lr_sched
+from ulmo.enki.util.hdfstore import HDF5Store
 
 
 def train_one_epoch(model: torch.nn.Module,
