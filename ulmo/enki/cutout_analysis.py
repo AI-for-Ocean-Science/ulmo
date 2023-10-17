@@ -13,7 +13,7 @@ from scipy.sparse import csc_matrix
 from scipy.interpolate import griddata
 from skimage.restoration import inpaint as sk_inpaint
 
-from ulmo.mae import enki_utils
+from ulmo.enki import enki_utils
 
 from IPython import embed
 

@@ -9,7 +9,9 @@ from matplotlib.patches import Rectangle
 import seaborn as sns
 
 from ulmo import plotting
-from ulmo.mae import patch_analysis
+from ulmo.enki import patch_analysis
+
+from IPython import embed
 
 def plot_recon(orig_img, recon_img, mask_img, p_sz:int=4,
                outfile:str=None, gs:gridspec=None,
@@ -126,7 +128,10 @@ def plot_recon(orig_img, recon_img, mask_img, p_sz:int=4,
 def plot_recon_four(orig_img:np.ndarray, recon_img:np.ndarray, 
                     mask_img:np.ndarray, 
                bias:float=0., img_vmnx:tuple=(-1,1),
-               res_vmnx:tuple=(None,None), outfile='recon.png'):
+               gs:gridspec.GridSpec=None,
+               show_cbars:bool=True,
+               show_title:bool=True,
+               res_vmnx:tuple=(None,None), outfile=None):
     """
     Plots the:
     1) Original Image
@@ -146,9 +151,11 @@ def plot_recon_four(orig_img:np.ndarray, recon_img:np.ndarray,
     upatches = patch_analysis.find_patches(unmasked, p_sz)
 
 
-    fig = plt.figure(figsize=(9, 3))
-    plt.clf()
-    gs = gridspec.GridSpec(1,4)
+    if gs is None:
+        fig = plt.figure(figsize=(9, 3))
+        plt.clf()
+        gs = gridspec.GridSpec(1,4)
+
     ax0 = plt.subplot(gs[0])
 
     _, cm = plotting.load_palette()
@@ -158,11 +165,10 @@ def plot_recon_four(orig_img:np.ndarray, recon_img:np.ndarray,
 
     _ = sns.heatmap(np.flipud(orig_img), xticklabels=[],
                     vmin=img_vmnx[0], vmax=img_vmnx[1],
-                    yticklabels=[], cmap=cm, cbar=True, 
+                    yticklabels=[], cmap=cm, cbar=show_cbars,
                     square=True, 
                     cbar_kws=cbar_kws,
                     ax=ax0)
-
     # Reconstructed
     sub_recon = np.ones_like(recon_img) * np.nan
     # Difference
@@ -206,9 +212,12 @@ def plot_recon_four(orig_img:np.ndarray, recon_img:np.ndarray,
 
     _ = sns.heatmap(np.flipud(usub_recon), xticklabels=[],
                     vmin=img_vmnx[0], vmax=img_vmnx[1],
-                    yticklabels=[], cmap=cm, cbar=True, 
+                    yticklabels=[], cmap=cm, cbar=show_cbars,
                     square=True, cbar_kws=cbar_kws,
                     ax=ax1)
+    if show_cbars:
+        cbar = ax1.collections[0].colorbar
+        cbar.ax.tick_params(labelsize=9)
 
     # Recon image
     ax2 = plt.subplot(gs[2])
@@ -220,7 +229,7 @@ def plot_recon_four(orig_img:np.ndarray, recon_img:np.ndarray,
         sub_recon = frecon.copy()
     _ = sns.heatmap(np.flipud(sub_recon), xticklabels=[],
                     vmin=img_vmnx[0], vmax=img_vmnx[1],
-                    yticklabels=[], cmap=cm, cbar=True, 
+                    yticklabels=[], cmap=cm, cbar=show_cbars,
                     square=True, cbar_kws=cbar_kws,
                     ax=ax2)
 
@@ -230,10 +239,16 @@ def plot_recon_four(orig_img:np.ndarray, recon_img:np.ndarray,
     cbar_kws['label'] = 'Residuals (K)'
     _ = sns.heatmap(np.flipud(diff), xticklabels=[], 
                     vmin=res_vmnx[0], vmax=res_vmnx[1],
-                    yticklabels=[], cmap='bwr', cbar=True,
+                    yticklabels=[], cmap='bwr', cbar=show_cbars,
                     square=True, 
                     cbar_kws=cbar_kws,
                     ax=ax3)
+
+    # Color bar fontsize
+    if show_cbars:
+        for ax in [ax0, ax1, ax2, ax3]:
+            cbar = ax.collections[0].colorbar
+            cbar.ax.tick_params(labelsize=9)
 
     # Borders
     # 
@@ -242,14 +257,14 @@ def plot_recon_four(orig_img:np.ndarray, recon_img:np.ndarray,
         ax.patch.set_edgecolor('black')  
         ax.patch.set_linewidth(1.)  
         #
-        show_title=True
         if show_title:
             ax.set_title(title, fontsize=14, y=-0.13)
     
-    plt.tight_layout(pad=0.5, h_pad=0.5, w_pad=0.5)
-    plt.savefig(outfile, dpi=300)
-    plt.close()
-    print('Wrote {:s}'.format(outfile))
+    if outfile is not None:
+        plt.tight_layout(pad=0.5, h_pad=0.5, w_pad=0.5)
+        plt.savefig(outfile, dpi=300)
+        plt.close()
+        print('Wrote {:s}'.format(outfile))
 
     
     return
