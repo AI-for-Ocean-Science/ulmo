@@ -298,7 +298,14 @@ def enki_demean_patch4(**kwargs):
         decoder_embed_dim=512, decoder_depth=8, decoder_num_heads=16,
         mlp_ratio=4, norm_layer=partial(nn.LayerNorm, eps=1e-6), demean=1, **kwargs)
     return model
-    
+
+# Demeaned Model
+def enki_demean_patch2(**kwargs):
+    model = MaskedAutoencoderViT( # changing embed_dim from 768 fucks it up big time
+        patch_size=2, embed_dim=256, depth=12, num_heads=16,
+        decoder_embed_dim=512, decoder_depth=8, decoder_num_heads=16,
+        mlp_ratio=4, norm_layer=partial(nn.LayerNorm, eps=1e-6), demean=1, **kwargs)
+    return model
     
 def mae_vit_base_patch16_dec512d8b(**kwargs):
     model = MaskedAutoencoderViT(
@@ -326,6 +333,7 @@ def mae_vit_huge_patch14_dec512d8b(**kwargs):
 # set recommended archs
 mae_vit_LLC_patch4 = mae_vit_LLC_patch4
 enki_demean_patch4 = enki_demean_patch4
+enki_demean_patch2 = enki_demean_patch2
 mae_vit_base_patch16 = mae_vit_base_patch16_dec512d8b  # decoder: 512 dim, 8 blocks
 mae_vit_large_patch16 = mae_vit_large_patch16_dec512d8b  # decoder: 512 dim, 8 blocks
 mae_vit_huge_patch14 = mae_vit_huge_patch14_dec512d8b  # decoder: 512 dim, 8 blocks
