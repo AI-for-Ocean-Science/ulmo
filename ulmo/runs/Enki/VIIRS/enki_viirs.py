@@ -272,7 +272,8 @@ def gen_viirs_images(debug:bool=False):
 def viirs_extract_2013(debug=False, n_cores=20, 
                        nsub_files=5000,
                        ndebug_files=0,
-                       local:bool=False,
+                       local:bool=False, 
+                       opt_root:str='viirs_cc15',
                        save_fields:bool=False):
     """Extract "cloud free" images for 2013
 
@@ -292,7 +293,7 @@ def viirs_extract_2013(debug=False, n_cores=20,
     else:
         tbl_file = 's3://viirs/Tables/VIIRS_2013_cc15.parquet'
     # Pre-processing (and extraction) settings
-    pdict = pp_io.load_options('viirs_cc15')
+    pdict = pp_io.load_options(opt_root)
     
     # 2013 
     print("Grabbing the file list")

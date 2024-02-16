@@ -111,7 +111,7 @@ def find_patches(mask_img, p_sz:int, patch_space:bool=False):
             NOT IMPLEMENTED YET
 
     Returns:
-        list: Ravel'd index of the patches
+        list: unRavel'd index of the patches
     """
 
     flat_mask = mask_img.flatten().astype(int)
@@ -207,3 +207,28 @@ def patch_stats_img(items:list, p_sz:int=4,
 
     # Return
     return stat_dict
+
+
+def patchify_mask(input_mask:np.ndarray,
+                  p_sz:int, rebin:tuple=None):
+
+    if rebin is None:
+        rebin = (1,1)
+
+    # Find the patches
+    mask_idx = np.where(input_mask)
+    #p_idx = (mask_idx[0]//p_sz, mask_idx[1]//p_sz)
+    p_idx = (mask_idx[0]//(p_sz*rebin[0]), 
+             mask_idx[1]//(p_sz*rebin[1]))
+
+    # For loop; a touch slow but not so bad
+    new_mask = np.zeros((input_mask.shape[0]//rebin[0], 
+                         input_mask.shape[1]//rebin[1]), 
+                        dtype=int)
+
+    for ii, jj in zip(p_idx[0], p_idx[1]):
+        new_mask[ii*p_sz:(ii+1)*p_sz, 
+                 jj*p_sz:(jj+1)*p_sz] = 1
+
+    # Return
+    return new_mask

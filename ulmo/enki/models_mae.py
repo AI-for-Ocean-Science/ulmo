@@ -17,7 +17,7 @@ import torch.nn as nn
 
 from timm.models.vision_transformer import PatchEmbed, Block
 
-from ulmo.mae.util.pos_embed import get_2d_sincos_pos_embed
+from ulmo.enki.util.pos_embed import get_2d_sincos_pos_embed
 
 from IPython import embed
 
@@ -28,7 +28,7 @@ class MaskedAutoencoderViT(nn.Module):
     def __init__(self, img_size=64, patch_size=16, in_chans=1,
                  embed_dim=1024, depth=24, num_heads=16,
                  decoder_embed_dim=512, decoder_depth=8, decoder_num_heads=16,
-                 mlp_ratio=4., norm_layer=nn.LayerNorm, norm_pix_loss=False):
+                 mlp_ratio=4., norm_layer=nn.LayerNorm, norm_pix_loss=False, demean=0):
         super().__init__()
 
         # --------------------------------------------------------------------------
@@ -43,6 +43,7 @@ class MaskedAutoencoderViT(nn.Module):
             Block(embed_dim, num_heads, mlp_ratio, qkv_bias=True, qk_scale=None, norm_layer=norm_layer)
             for i in range(depth)])
         self.norm = norm_layer(embed_dim)
+        self.demean = demean
         # --------------------------------------------------------------------------
 
         # --------------------------------------------------------------------------
@@ -98,7 +99,7 @@ class MaskedAutoencoderViT(nn.Module):
     def patchify(self, imgs):
         """
         imgs: (N, 3, H, W) I think the 3 is channels. Which in our case is 1
-        x: (N, L, patch_size**2 *3) 2 should be 1
+        x: (N, L, patch_size**2 *3) 3 should be 1
         """
         p = self.patch_embed.patch_size[0]
         assert imgs.shape[2] == imgs.shape[3] and imgs.shape[2] % p == 0
@@ -188,7 +189,6 @@ class MaskedAutoencoderViT(nn.Module):
 
 
     def forward_encoder(self, x, mask_ratio, user_masks=None):
-
         # embed patches
         x = self.patch_embed(x)
         # add pos embed w/o cls token
@@ -199,7 +199,13 @@ class MaskedAutoencoderViT(nn.Module):
             x, mask, ids_restore = self.random_masking(x, mask_ratio)
         else:
             x, mask, ids_restore = self.impose_masking(x, user_masks)
-
+        
+        ####### new #########
+        if self.demean == 1:
+            mean_embedding = torch.mean(x)
+            x = x - mean_embedding # x_demeaned
+        ####### end #########
+            
         # append cls token
         cls_token = self.cls_token + self.pos_embed[:, :1, :]
         cls_tokens = cls_token.expand(x.shape[0], -1, -1)
@@ -240,8 +246,8 @@ class MaskedAutoencoderViT(nn.Module):
 
     def forward_loss(self, imgs, pred, mask):
         """
-        imgs: [N, 3, H, W] # 3 is 1
-        pred: [N, L, p*p*3] # 3 is... also probably one? :P
+        imgs: [N, 1, H, W]
+        pred: [N, L, p*p*1] 
         mask: [N, L], 0 is keep, 1 is remove, 
         """
         target = self.patchify(imgs)
@@ -284,7 +290,22 @@ def mae_vit_LLC_patch4(**kwargs):
         decoder_embed_dim=512, decoder_depth=8, decoder_num_heads=16,
         mlp_ratio=4, norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
     return model
-    
+
+# Demeaned Model
+def enki_demean_patch4(**kwargs):
+    model = MaskedAutoencoderViT( # changing embed_dim from 768 fucks it up big time
+        patch_size=4, embed_dim=256, depth=12, num_heads=16,
+        decoder_embed_dim=512, decoder_depth=8, decoder_num_heads=16,
+        mlp_ratio=4, norm_layer=partial(nn.LayerNorm, eps=1e-6), demean=1, **kwargs)
+    return model
+
+# Demeaned Model
+def enki_demean_patch2(**kwargs):
+    model = MaskedAutoencoderViT( # changing embed_dim from 768 fucks it up big time
+        patch_size=2, embed_dim=256, depth=12, num_heads=16,
+        decoder_embed_dim=512, decoder_depth=8, decoder_num_heads=16,
+        mlp_ratio=4, norm_layer=partial(nn.LayerNorm, eps=1e-6), demean=1, **kwargs)
+    return model
     
 def mae_vit_base_patch16_dec512d8b(**kwargs):
     model = MaskedAutoencoderViT(
@@ -308,8 +329,11 @@ def mae_vit_huge_patch14_dec512d8b(**kwargs):
     return model
 
 
+
 # set recommended archs
 mae_vit_LLC_patch4 = mae_vit_LLC_patch4
+enki_demean_patch4 = enki_demean_patch4
+enki_demean_patch2 = enki_demean_patch2
 mae_vit_base_patch16 = mae_vit_base_patch16_dec512d8b  # decoder: 512 dim, 8 blocks
 mae_vit_large_patch16 = mae_vit_large_patch16_dec512d8b  # decoder: 512 dim, 8 blocks
 mae_vit_huge_patch14 = mae_vit_huge_patch14_dec512d8b  # decoder: 512 dim, 8 blocks
