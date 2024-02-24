@@ -81,6 +81,7 @@ def show_image(img:np.ndarray, cm=None, cbar:bool=True,
         cm ([type], optional): Color map to use. Defaults to None.
             If None, load the heatmap above
         cbar (bool, optional): If True, show a color bar. Defaults to True.
+        clbl ([type], optional): Color bar label. Defaults to None.
         vmnx (tuple, optional): Set vmin, vmax. Defaults to None
         set_aspect (str, optional):
             Passed to ax.set_aspect() if provided
