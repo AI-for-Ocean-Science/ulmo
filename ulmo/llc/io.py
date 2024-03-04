@@ -13,8 +13,6 @@ from ulmo.utils import image_utils
 
 from IPython import embed
 
-if os.getenv('LLC_DATA') is not None:
-    local_llc_files_path = os.path.join(os.getenv('LLC_DATA'), 'ThetaUVSalt')
 s3_llc_files_path = 's3://llc/ThetaUVSalt'
 
 def load_coords(verbose=True):
@@ -26,7 +24,8 @@ def load_coords(verbose=True):
     Returns:
         xarray.DataSet: contains the LLC coordinates
     """
-    coord_file = os.path.join(os.getenv('LLC_DATA'), 'LLC_coords.nc')
+    coord_file = os.path.join(os.getenv('OS_OGCM'), 
+                              'LLC', 'data', 'LLC_coords.nc')
     if verbose:
         print("Loading LLC coords from {}".format(coord_file))
     coord_ds = xr.load_dataset(coord_file)
