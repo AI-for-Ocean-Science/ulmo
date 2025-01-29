@@ -487,6 +487,7 @@ def write_pp_fields(pp_fields:list, meta:list,
                     ppf_idx:np.ndarray,
                     valid_fraction:float,
                     s3_file:str, local_file:str,
+                    kin_meta:dict=None,
                     write_cutouts:bool=True,
                     debug:bool=False,
                     skip_meta=False):
@@ -504,6 +505,7 @@ def write_pp_fields(pp_fields:list, meta:list,
         s3_file (str, optional): 
             Name of the pp_file
         local_file (str): [description]
+        kin_meta (dict, optional): Additional meta to include
         write_cutouts (bool, optional):
             Write cutouts to disk
         skip_meta (bool, optional):
@@ -552,6 +554,14 @@ def write_pp_fields(pp_fields:list, meta:list,
                 if key not in clms:
                     clms += [key]
 
+    # Kinematic meta
+    if kin_meta is not None:
+        for key in kin_meta[0].keys():
+            main_tbl.loc[idx_idx, key] = [imeta[key] for imeta in kin_meta]
+            # Add to clms
+            if key not in clms:
+                clms += [key]
+
     # Skip cutouts?
     if not write_cutouts:
         return main_tbl
@@ -594,6 +604,70 @@ def write_pp_fields(pp_fields:list, meta:list,
         # Train
         if valid_fraction < 1:
             f.create_dataset('train', data=pp_fields[train_idx].astype(np.float32))
+            dset = f.create_dataset('train_metadata', data=main_tbl.iloc[train_idx].to_numpy(dtype=str).astype('S'))
+            dset.attrs['columns'] = clms
+    print("Wrote: {}".format(local_file))
+
+    # Return
+    return main_tbl
+
+def write_extra_fields(fields:list, 
+                    main_tbl:pandas.DataFrame, 
+                    local_file:str):
+    """Write an extra set of cutouts to disk
+
+    Args:
+        fields (list): List of preprocessed fields
+        main_tbl (pandas.DataFrame): Main table
+        s3_file (str): [description]
+        local_file (str): [description]
+
+    Returns:
+        pandas.DataFrame: Updated main table
+    """
+    
+    # Recast
+    fields = np.stack(fields)
+    fields = fields[:, None, :, :]  # Shaped for training
+    fields = fields.astype(np.float32) # Recast
+
+    print("After pre-processing, there are {} images ready for analysis".format(fields.shape[0]))
+
+    # Need to be in sync with main cutouts
+    valid = main_tbl.pp_type == ulmo_defs.mtbl_dmodel['pp_type']['valid']
+    train = main_tbl.pp_type == ulmo_defs.mtbl_dmodel['pp_type']['train']
+    ntrain = np.sum(train)
+
+    # Prep -- this stuff is confusing!!
+    sub_tbl = main_tbl[valid | train].copy()
+    sub_idx = np.arange(len(sub_tbl))
+    assert len(sub_idx) == fields.shape[0]
+
+    # Fuss with indexing
+    valid = sub_tbl.pp_type == ulmo_defs.mtbl_dmodel['pp_type']['valid']
+    valid_idx = sub_idx[np.argsort(sub_tbl.pp_idx.values[valid])]
+
+    # Train
+    if ntrain > 0:
+        train = sub_tbl.pp_type == ulmo_defs.mtbl_dmodel['pp_type']['train']
+        train_idx = sub_idx[np.argsort(sub_tbl.pp_idx.values[train])]
+    
+    clms = list(main_tbl.keys())
+    
+    # ###################
+    # Write to disk (avoids holding another 20Gb in memory)
+    print("Writing: {}".format(local_file))
+    with h5py.File(local_file, 'w') as f:
+        # Validation
+        f.create_dataset(
+            'valid', data=fields[valid_idx].astype(np.float32))
+        # Metadata
+        dset = f.create_dataset('valid_metadata', 
+                                data=main_tbl.iloc[valid_idx].to_numpy(dtype=str).astype('S'))
+        dset.attrs['columns'] = clms
+        # Train
+        if ntrain > 0:
+            f.create_dataset('train', data=fields[train_idx].astype(np.float32))
             dset = f.create_dataset('train_metadata', data=main_tbl.iloc[train_idx].to_numpy(dtype=str).astype('S'))
             dset.attrs['columns'] = clms
     print("Wrote: {}".format(local_file))

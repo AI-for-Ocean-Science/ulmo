@@ -5,8 +5,12 @@ import numpy as np
 import pandas
 
 from matplotlib import pyplot as plt
-import cartopy.crs as ccrs
-from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
+try: 
+    import cartopy.crs as ccrs
+except:
+    print("Cartopy not installed; not all plots will work")
+else:
+    from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
 from ulmo.utils import image_utils
 

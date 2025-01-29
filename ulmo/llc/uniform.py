@@ -19,16 +19,15 @@ from IPython import embed
 
 
 def coords(resol, field_size, CC_max=1e-4, outfile=None, 
-           max_lat=None, localCC=True, min_lat:float=None,
+           minmax_lat=None, localCC=True,
            rotate:float=None):
     """
     Use healpix to setup a uniform extraction grid
 
     Args:
-        resol (float): Typical separation on the healpix grid (deg?)
+        resol (float): Typical separation on the healpix grid
+        minmax_lat (tuple): Restrict to latitudes given by this range
         field_size (tuple): Cutout size in pixels
-        max_lat (float,optional): Restrict to latitudes lower than this
-        min_lat (float,optional): Restrict to latitudes higher than this
         outfile (str, optional): If provided, write the table to this outfile.
             Defaults to None.
         localCC (bool, optional):  If True, load the CC_mask locally.
@@ -76,14 +75,10 @@ def coords(resol, field_size, CC_max=1e-4, outfile=None,
     llc_table['col'] = good_CC_idx[1][idx[good_sep]] - field_size[0]//2 # Lower left corner
 
     # Cut on latitutde?
-    if max_lat is not None:
-        print(f"Restricting to |latitude| < {max_lat}")
-        gd_lat = np.abs(llc_table.lat) < max_lat
-        llc_table = llc_table[gd_lat].copy()
-    
-    if min_lat is not None:
-        print(f"Restricting to |latitude| > {min_lat}")
-        gd_lat = np.abs(llc_table.lat) > min_lat
+    if minmax_lat is not None:
+        print(f"Restricting to latitudes = {minmax_lat}")
+        #gd_lat = np.abs(llc_table.lat) < max_lat
+        gd_lat = (llc_table.lat > minmax_lat[0]) & (llc_table.lat < minmax_lat[1])
         llc_table = llc_table[gd_lat].copy()
 
     llc_table.reset_index(inplace=True)

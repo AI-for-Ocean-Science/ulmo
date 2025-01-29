@@ -116,12 +116,15 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
                          fixed_km=None,
                          n_cores=10,
                          valid_fraction=1., 
+                         calculate_kin=False,
+                         extract_kin=False,
+                         kin_stat_dict=None,
                          dlocal=False,
                          write_cutouts:bool=True,
                          override_RAM=False,
                          s3_file=None, debug=False):
     """Main routine to extract and pre-process LLC data for later SST analysis
-    The llc_table is modified in place.
+    The llc_table is modified in place (and also returned).
 
     Args:
         llc_table (pandas.DataFrame): cutout table
@@ -131,6 +134,9 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         fixed_km (float, optional): Require cutout to be this size in km
         n_cores (int, optional): Number of cores for parallel processing. Defaults to 10.
         valid_fraction (float, optional): [description]. Defaults to 1..
+        calculate_kin (bool, optional): Perform frontogenesis calculations?
+        extract_kin (bool, optional): Extract kinematic cutouts too!
+        kin_stat_dict (dict, optional): dict for guiding FS stats
         dlocal (bool, optional): Data files are local? Defaults to False.
         override_RAM (bool, optional): Over-ride RAM warning?
         s3_file (str, optional): s3 URL for file to write. Defaults to None.
@@ -157,6 +163,17 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
     # Setup for parallel
     map_fn = partial(pp_utils.preproc_image, pdict=pdict)
 
+    # Kinematics
+    if calculate_kin:
+        if kin_stat_dict is None:
+            raise IOError("You must provide kin_stat_dict with calculate_kin")
+        # Prep
+        if 'calc_FS' in kin_stat_dict.keys() and kin_stat_dict['calc_FS']:
+            map_kin = partial(kinematics.cutout_kin, 
+                         kin_stats=kin_stat_dict,
+                         extract_kin=extract_kin,
+                         field_size=field_size[0])
+
     # Setup for dates
     uni_date = np.unique(llc_table.datetime)
     if len(llc_table) > 1000000 and not override_RAM:
@@ -164,11 +181,16 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
 
     # Init
     pp_fields, meta, img_idx, all_sub = [], [], [], []
+    if calculate_kin:
+        kin_meta = []
+    else:
+        kin_meta = None
+    if extract_kin:  # Cutouts of kinematic information
+        Fs_fields, divb_fields = [], []
 
     # Prep LLC Table
-    llc_table = pp_utils.prep_table_for_preproc(llc_table, 
-                                                preproc_root,
-                                                field_size=field_size)
+    llc_table = pp_utils.prep_table_for_preproc(
+        llc_table, preproc_root, field_size=field_size)
     # Loop
     #if debug:
     #    uni_date = uni_date[0:1]
@@ -190,7 +212,7 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
         llc_table.loc[gd_date, 'filename'] = filename
 
         # Load up the cutouts
-        fields = []
+        fields, rs, cs, drs = [], [], [], []
         for r, c in zip(coord_tbl.row, coord_tbl.col):
             if fixed_km is None:
                 dr = field_size[0]
@@ -199,6 +221,10 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
                 dlat_km = (coords_ds.lat.data[r+1,c]-coords_ds.lat.data[r,c]) * km_deg
                 dr = int(np.round(fixed_km / dlat_km))
                 dc = dr
+                # Save for kinematics
+                drs.append(dr)
+                rs.append(r)
+                cs.append(c)
             #
             if (r+dr >= sst.shape[0]) or (c+dc > sst.shape[1]):
                 fields.append(None)
@@ -217,13 +243,59 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
 
         # Deal with failures
         answers = [f for f in answers if f is not None]
+        cur_img_idx = [item[1] for item in answers]
 
         # Slurp
         pp_fields += [item[0] for item in answers]
-        img_idx += [item[1] for item in answers]
+        img_idx += cur_img_idx
         meta += [item[2] for item in answers]
 
-        del answers, fields, items, sst
+        del answers, fields, items
+        # Kinmatics
+        if calculate_kin:
+            # Assuming FS for now
+            #if 'calc_FS' in kin_stat_dict.keys() and kin_stat_dict['calc_FS']:
+
+            # Grab the data fields (~5 Gb RAM)
+            U = ds.U.values
+            V = ds.V.values
+            Salt = ds.Salt.values
+
+            # Build cutouts
+            items = []
+            print("Building Kinematic cutouts")
+            for jj in cur_img_idx:
+                # Re-index
+                ii = np.where(sub_idx == jj)[0][0]
+                # Saved
+                r = rs[ii]
+                c = cs[ii]
+                dr = drs[ii]
+                dc = dr
+                #
+                items.append(
+                    (U[r:r+dr, c:c+dc],
+                    V[r:r+dr, c:c+dc],
+                    sst[r:r+dr, c:c+dc],
+                    Salt[r:r+dr, c:c+dc],
+                    jj)
+                )
+
+            #if debug:
+            #    idx, FS_metrics = kinematics.cutout_F_S(items[0], FS_stats=kin_stat_dict,
+            #             field_size=field_size[0])
+
+            # Process em
+            with ProcessPoolExecutor(max_workers=n_cores) as executor:
+                chunksize = len(items) // n_cores if len(items) // n_cores > 0 else 1
+                answers = list(tqdm(executor.map(map_kin, items,
+                                             chunksize=chunksize), total=len(items)))
+            kin_meta += [item[1] for item in answers]
+            if extract_kin:
+                Fs_fields += [item[2] for item in answers]
+                divb_fields += [item[3] for item in answers]
+            del answers
+
         ds.close()
         #embed(header='extract 223')
 
@@ -231,13 +303,23 @@ def preproc_for_analysis(llc_table:pandas.DataFrame,
     ex_idx = np.array(all_sub)
     ppf_idx = []
     ppf_idx = catalog.match_ids(np.array(img_idx), ex_idx)
-    
+
     # Write
     llc_table = pp_utils.write_pp_fields(
-        pp_fields, meta, llc_table, ex_idx, ppf_idx,
-        valid_fraction, s3_file, local_file, debug=debug,
-        write_cutouts=write_cutouts)
+        pp_fields, meta, llc_table, 
+        ex_idx, ppf_idx, 
+        valid_fraction, s3_file, local_file,
+        kin_meta=kin_meta, debug=debug, write_cutouts=write_cutouts)
 
+    # Write kin?
+    if extract_kin:
+        # F_s
+        Fs_local_file = local_file.replace('.h5', '_Fs.h5')
+        pp_utils.write_extra_fields(Fs_fields, llc_table, Fs_local_file)
+        # divb
+        divb_local_file = local_file.replace('.h5', '_divb.h5')
+        pp_utils.write_extra_fields(divb_fields, llc_table, divb_local_file)
+    
     # Clean up
     del pp_fields
 

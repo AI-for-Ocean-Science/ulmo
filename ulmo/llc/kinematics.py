@@ -1,5 +1,10 @@
 """ Routines related to kinemaic measures of LLC data """
 import numpy as np
+from skimage.transform import resize_local_mean
+
+from ulmo.plotting import plotting
+
+from IPython import embed
 
 try:
     from gsw import density
@@ -106,19 +111,78 @@ def calc_okubo_weiss(U:np.ndarray, V:np.ndarray):
     # Return
     return W
 
+def calc_gradT(Theta:np.ndarray, dx=2.):
+    """Calculate |grad T|^2
+
+    Args:
+        Theta (np.ndarray): SST field
+        dx (float, optional): Grid spacing in km
+
+    Returns:
+        np.ndarray: |grad T|^2 field
+    """
+
+    # Gradient
+    dTdx = np.gradient(Theta, axis=1) / dx
+    dTdy = np.gradient(Theta, axis=0) / dx
+
+    # Magnitude
+    grad_T2 = dTdx**2 + dTdy**2
+    return grad_T2
+
+def calc_gradb(Theta:np.ndarray, Salt:np.ndarray,
+             ref_rho=1025., g=0.0098, dx=2.):
+    """Calculate |grad b|^2
+
+    Args:
+        Theta (np.ndarray): SST field
+        Salt (np.ndarray): Salt field
+        ref_rho (float, optional): Reference density
+        g (float, optional): Acceleration due to gravity
+            in km/s^2
+        dx (float, optional): Grid spacing in km
+
+    Returns:
+        np.ndarray: |grad b|^2 field
+    """
+    # Buoyancy
+    rho = density.rho(Salt, Theta, np.zeros_like(Salt))
+    b = g*rho/ref_rho
+
+    # Gradient
+    dbdx = np.gradient(b, axis=1) / dx
+    dbdy = np.gradient(b, axis=0) / dx
+
+    # Magnitude
+    grad_b2 = dbdx**2 + dbdy**2
+
+    return grad_b2
+
+
 def calc_F_s(U:np.ndarray, V:np.ndarray,
              Theta:np.ndarray, Salt:np.ndarray,
-             ref_rho=1.):
-    """Calculate Frontogenesis forcing term
+             add_gradb=False,
+             ref_rho=1025., g=0.0098, dx=2.,
+             calc_T_SST:bool=False):
+    """Calculate the Frontogenesis tendency 
+
+    Default is the standard (density) approach
+    but one can optinally use SST
 
     Args:
         U (np.ndarray): U velocity field
         V (np.ndarray): V velocity field
-        SST (np.ndarray): SST field
+        Theta (np.ndarray): SST field
         Salt (np.ndarray): Salt field
+        ref_rho (float, optional): Reference density
+        add_gradb (bool, optional): Calculate+return gradb 
+        g (float, optional): Acceleration due to gravity
+            in km/s^2
+        dx (float, optional): Grid spacing in km
+        calc_T_SST (bool, optional): Calculate the SST tendency?
 
     Returns:
-        np.ndarray: F_s field
+        np.ndarray or tuple: F_s field (, gradb2)
     """
     dUdx = np.gradient(U, axis=1)
     dVdx = np.gradient(V, axis=1)
@@ -127,9 +191,13 @@ def calc_F_s(U:np.ndarray, V:np.ndarray,
     dVdy = np.gradient(V, axis=0)
 
     # Buoyancy
-    rho = density.rho(Salt, Theta, np.zeros_like(Salt))
-    dbdx = -1*np.gradient(rho/ref_rho, axis=1)
-    dbdy = -1*np.gradient(rho/ref_rho, axis=0)
+    if calc_T_SST:
+        dbdx = -1*np.gradient(Theta, axis=1) / dx
+        dbdy = -1*np.gradient(Theta, axis=0) / dx
+    else:
+        rho = density.rho(Salt, Theta, np.zeros_like(Salt))
+        dbdx = -1*np.gradient(g*rho/ref_rho, axis=1) / dx
+        dbdy = -1*np.gradient(g*rho/ref_rho, axis=0) / dx
 
     # Terms
     F_s_x = -1 * (dUdx*dbdx + dVdx*dbdy) * dbdx 
@@ -137,9 +205,103 @@ def calc_F_s(U:np.ndarray, V:np.ndarray,
 
     # Finish
     F_s = F_s_x + F_s_y
+    #embed(header='196 of kinematics.py')
 
-    # Return
-    return F_s
+    # div b too?
+    if add_gradb:
+        grad_b2 = dbdx**2 + dbdy**2
+        return F_s, grad_b2
+    else:
+        return F_s
+
+def cutout_kin(item:tuple, kin_stats:dict=None, field_size=None,
+               extract_kin=False, input_FSdivb:bool=False,
+               calc_T_SST:bool=False):
+    """Simple function to measure kinematic stats
+    So far -- front related stats
+    Enables multi-processing
+
+    Now includes SST Tendency
+
+    Args:
+        item (tuple): Items for analysis
+        kin_stats (dict, optional ): kin stats to calculate
+        extract_kin (bool, optioal): If True, return
+            the extracted cutouts too
+        input_FSdivb (bool, optional): 
+            If True, items are (F_s, gradb, idx)
+        calc_T_SST (bool, optional): Calculate the SST tendency?
+
+    Returns:
+        tuple: int, dict if extract_kin is False
+            Otherwise, int, dict, np.ndarray, np.ndarray (F_s, gradb)
+    """
+    # Unpack
+    if input_FSdivb:
+        F_s, gradb, idx = item
+
+    else:
+        U_cutout, V_cutout, Theta_cutout, Salt_cutout, idx = item
+
+        if calc_T_SST:
+            F_s, gradb = calc_F_s(U_cutout, V_cutout, Theta_cutout, 
+                              Salt_cutout, add_gradb=True,
+                              calc_T_SST=True)
+        else:
+            # F_S
+            F_s, gradb = calc_F_s(U_cutout, V_cutout, Theta_cutout, 
+                              Salt_cutout, add_gradb=True)
+
+    # Resize?
+    if field_size is not None:
+        F_s = resize_local_mean(F_s, (field_size, field_size))
+        gradb = resize_local_mean(gradb, (field_size, field_size))
+
+    # Stats
+    if kin_stats is not None:
+        kin_metrics = calc_kin_stats(F_s, gradb, kin_stats)
+    else:
+        kin_metrics = None
+
+    if extract_kin:
+        return idx, kin_metrics, F_s, gradb
+    else:
+        return idx, kin_metrics
+
+
+def calc_kin_stats(F_s:np.ndarray, gradb:np.ndarray, stat_dict:dict):
+    """Calcualte statistics on the F_s metric
+
+    FS_Npos: Number of pixels greater than Fronto_thresh
+    FS_Nneg: Number of pixels less than -1*Fronto_thresh
+    FS_pos_sum: Sum of positive F_S pixels
+    FS_neg_sum: Sum of negative F_S pixels
+
+    Args:
+        F_s (np.ndarray): F_s cutout
+        gradb (np.ndarray): |grad b|^2 cutout
+        stat_dict (dict): kin dict of metrics to calculate
+        and related parameters
+
+    Returns:
+        dict: kin metrics
+    """
+    kin_metrics = {}
+
+    # Frontogensis
+    if 'Fronto_thresh' in stat_dict.keys():
+        kin_metrics['FS_Npos'] = int(np.sum(F_s > stat_dict['Fronto_thresh']))
+        kin_metrics['FS_Nneg'] = int(np.sum(F_s < -1*stat_dict['Fronto_thresh']))
+    if 'Fronto_sum' in stat_dict.keys():
+        kin_metrics['FS_pos_sum'] = np.sum(F_s[F_s > 0.])
+        kin_metrics['FS_neg_sum'] = np.sum(F_s[F_s < 0.])
+
+    # Fronts
+    if 'Front_thresh' in stat_dict.keys():
+        kin_metrics['gradb_Npos'] = int(np.sum(gradb > stat_dict['Front_thresh']))
+    #
+    return kin_metrics
+
 
 def cutout_vel_stat(item:tuple):
     """

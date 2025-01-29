@@ -2162,6 +2162,13 @@ def main(pargs):
                      rtio_cut=rcut, slope_pos=slope_pos,
             debug=pargs.debug, local=pargs.local)
 
+        # South Pacific
+        #fig_geo_umap('fig_geo_umap_DT1_southpacific.png',
+        #    [[-120, -90.],   # W (Pretty crude)
+        #     [-30, -10.]],      # S
+        #    table='96_DT1',
+        #    debug=pargs.debug, local=pargs.local)
+
 
         # Global using Med
         #fig_yearly_geo_umap('fig_yearly_geo_DT15_global_med.png',
@@ -2463,4 +2470,3 @@ if __name__ == '__main__':
 # UMAP temporal
 #  python py/fig_ssl_modis.py yearly_geo --local 
 #  python py/fig_ssl_modis.py seasonal_geo --local 
-

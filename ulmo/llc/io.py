@@ -3,17 +3,16 @@
 import os
 import warnings
 
+import numpy as np
 import xarray as xr
 import pandas
-import h5py
+
 
 from ulmo import io as ulmo_io
 from ulmo.utils import image_utils
 
 from IPython import embed
 
-if os.getenv('LLC_DATA') is not None:
-    local_llc_files_path = os.path.join(os.getenv('LLC_DATA'), 'ThetaUVSalt')
 s3_llc_files_path = 's3://llc/ThetaUVSalt'
 
 def load_coords(verbose=True):
@@ -25,7 +24,8 @@ def load_coords(verbose=True):
     Returns:
         xarray.DataSet: contains the LLC coordinates
     """
-    coord_file = os.path.join(os.getenv('LLC_DATA'), 'LLC_coords.nc')
+    coord_file = os.path.join(os.getenv('OS_OGCM'), 
+                              'LLC', 'data', 'LLC_coords.nc')
     if verbose:
         print("Loading LLC coords from {}".format(coord_file))
     coord_ds = xr.load_dataset(coord_file)
@@ -100,6 +100,32 @@ def load_llc_ds(filename, local=False):
     else:
         ds = xr.open_dataset(filename)
     return ds
+
+def grab_cutout(data_var, row, col, field_size=None, fixed_km=None,
+                coords_ds=None, resize=False):
+    if field_size is None and fixed_km is None:
+        raise IOError("Must set field_size or fixed_km")
+    if coords_ds is None:
+        coords_ds = load_coords()
+    # Setup
+    R_earth = 6371. # km
+    circum = 2 * np.pi* R_earth
+    km_deg = circum / 360.
+
+    if fixed_km is not None:
+        dlat_km = (coords_ds.lat.data[row+1,col]-coords_ds.lat.data[row,col]) * km_deg
+        dr = int(np.round(fixed_km / dlat_km))
+    else:
+        dr = field_size
+    dc = dr
+
+    cut_data = data_var[row:row+dr, col:col+dc]
+
+    if resize:
+        raise NotImplementedError("Need to resize..")
+
+    # Return
+    return cut_data
                     
 def grab_image(args):
     warnings.warn('Use grab_image() in utils.image_utils',
@@ -108,43 +134,55 @@ def grab_image(args):
 
 
 def grab_velocity(cutout:pandas.core.series.Series, ds=None,
-                  add_SST=False, add_Salt:bool=False, local=False):                
+                  add_SST=False, add_Salt:bool=False, 
+                  add_W=False, 
+                  local_path:str=None):
     """Grab velocity
 
     Args:
         cutout (pandas.core.series.Series): cutout image
         ds (xarray.DataSet, optional): Dataset. Defaults to None.
-        local (bool, optional): Grab files from local?
         add_SST (bool, optional): Include SST too?. Defaults to False.
         add_Salt (bool, optional): Include Salt too?. Defaults to False.
+        add_W (bool, optional): Include wz too?. Defaults to False.
+        local_path (str, optional): Local path to data. Defaults to None.
 
     Returns:
-        list: U, V cutputs 
+        list: U, V cutouts as np.ndarray (i.e. values)
             and SST too if add_SST=True
-            and Salt too if add_SST=True
+            and Salt too if add_Salt=True
+            and W too if add_W=True
     """
-    if local:
-        raise NotImplementedError("Not ready for this yet")
+    # Local?with ulmo_io.open(cutout.filename, 'rb') as f:
+    if local_path is None:
+        filename = cutout.filename
+    else:
+        filename = os.path.join(local_path, os.path.basename(cutout.filename))
     # Open
-    with ulmo_io.open(cutout.filename, 'rb') as f:
-        ds = xr.open_dataset(f)
+    ds = xr.open_dataset(filename)
+
     # U field
     U_cutout = ds.U[cutout.row:cutout.row+cutout.field_size, 
-                cutout.col:cutout.col+cutout.field_size]
+                cutout.col:cutout.col+cutout.field_size].values
     # Vfield
     V_cutout = ds.V[cutout.row:cutout.row+cutout.field_size, 
-                cutout.col:cutout.col+cutout.field_size]
+                cutout.col:cutout.col+cutout.field_size].values
     output = [U_cutout, V_cutout]
 
     # Add SST?
     if add_SST:
         output.append(ds.Theta[cutout.row:cutout.row+cutout.field_size, 
-                cutout.col:cutout.col+cutout.field_size])
+                cutout.col:cutout.col+cutout.field_size].values)
 
     # Add Salt?
     if add_Salt:
         output.append(ds.Salt[cutout.row:cutout.row+cutout.field_size, 
-                cutout.col:cutout.col+cutout.field_size])
+                cutout.col:cutout.col+cutout.field_size].values)
+
+    # Add W
+    if add_W:
+        output.append(ds.W[0, cutout.row:cutout.row+cutout.field_size, 
+                cutout.col:cutout.col+cutout.field_size].values)
 
     # Return
     return output

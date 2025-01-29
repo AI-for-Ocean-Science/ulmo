@@ -13,6 +13,7 @@ except ImportError:
 import astropy_healpix
 from astropy import units
 
+
 def plot_extraction(llc_table:pandas.DataFrame, figsize=(7,4),
                     resol=None, cbar=False, s=0.01):
     """Plot the extractions to check

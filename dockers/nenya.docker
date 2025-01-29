@@ -1,0 +1,68 @@
+# https://www.techrepublic.com/article/how-to-create-a-docker-image-and-push-it-to-docker-hub/
+# https://medium.com/faun/how-to-build-a-docker-container-from-scratch-docker-basics-a-must-know-395cba82897b
+#docker build -t nenya_nvidia -f ../ulmo/dockers/nenya.docker .
+#docker tag nenya_nvidia:latest profxj/nenya_nvidia:latest
+#docker push profxj/nenya_nvidia:latest
+# Testing: docker exec -it <container> /bin/bash
+
+# install timm version 0.3.2
+# change file in /opt/conda/lib/python3.9/site-packages/timm/models/layers/helpers.py
+# PyTorch 1.8.1+
+# torchvision 0.8.1+
+
+FROM nvidia/cuda:11.2.1-runtime-ubuntu20.04
+
+ENV DEBIAN_FRONTEND="noninteractive" TZ="US"
+
+RUN  apt-get update && \
+     apt-get install -y tzdata && \
+     apt-get install -y wget glances git 
+#     curl https://rclone.org/install.sh | bash
+
+# Code and storage
+RUN  apt-get install -y git awscli
+
+# Download and install Anaconda.
+RUN apt-get update && apt-get install curl -y
+
+# Miniconda
+ENV PATH="/root/miniconda3/bin:${PATH}"
+ARG PATH="/root/miniconda3/bin:${PATH}"
+RUN wget https://repo.anaconda.com/miniconda/Miniconda3-py38_4.9.2-Linux-x86_64.sh \
+    && mkdir /root/.conda \
+    && bash Miniconda3-py38_4.9.2-Linux-x86_64.sh -b \
+    && rm -f Miniconda3-py38_4.9.2-Linux-x86_64.sh 
+
+RUN pip install --upgrade pip \
+    && pip install torch \
+    && pip install torchvision \
+    && pip install scikit-image \
+    && pip install tensorboard_logger \
+    && pip install h5py 
+   
+
+# Other apt
+#RUN  apt-get update && \
+#     apt-get install -y vim
+
+# Storage
+RUN  pip install smart-open[s3]
+
+# Some basics
+RUN  pip install ipython
+
+# Some bigger packages
+RUN  pip install scikit-learn
+RUN  pip install xarray
+RUN  pip install pandas
+RUN  pip install matplotlib
+RUN  pip install astropy
+RUN  pip install pyarrow  
+RUN  pip install astropy-healpix
+RUN  pip install timm==0.3.2
+
+# ulmo time
+RUN git clone https://github.com/AI-for-Ocean-Science/ulmo.git
+
+# Other bits and dependencies
+#RUN cd ulmo; python setup.py develop
