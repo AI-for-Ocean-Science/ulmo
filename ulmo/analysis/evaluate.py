@@ -10,9 +10,26 @@ import pandas
 from ulmo import io as ulmo_io
 from ulmo.models import io as model_io
 from ulmo import defs as ulmo_defs
+from ulmo.ood import ood
+from ulmo.preproc import utils as pp_utils
 
 from IPython import embed
 
+
+def eval_raw_sst(pae:ood.ProbabilisticAutoencoder,
+                 field:np.ndarray,
+                 mask:np.ndarray,
+                 pdict:dict={}):
+
+    # Pre-process
+    pp_field, meta = pp_utils.preproc_field(field, mask,
+                                            **pdict) 
+
+    # Evaluate
+    latents, LL = pae.eval_numpy_img(pp_field)
+
+    # Return
+    return latents, LL, meta
 
 def eval_from_main(main_table: pandas.DataFrame,
                    model='modis-l2-std',
