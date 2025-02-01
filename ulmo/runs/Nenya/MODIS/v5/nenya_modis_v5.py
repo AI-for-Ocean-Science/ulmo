@@ -31,6 +31,7 @@ def nenya_v5_umap(opt_path:str, debug=False, local=False, metric:str='DT40'):
         ntrain (int, optional): Number of random latent vectors to use to train the UMAP model
         debug (bool, optional): For testing and debuggin 
         ndim (int, optional): Number of dimensions for the embedding
+        metric (str, optional): Metric to use for UMAP
     """
     # Load up the options file
     opt = option_preprocess(ulmo_io.Params(opt_path))
