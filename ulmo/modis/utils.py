@@ -21,7 +21,7 @@ def times_from_filenames(filenames:list, ioff=10, toff=1):
             Defaults to 1 for MODIS
 
     Returns:
-        list:  List of datetimes
+        list:  List of datetime.datetime
     """
     # Dates
     dtimes = [datetime.datetime(int(ifile[1+ioff:5+ioff]), # Year
